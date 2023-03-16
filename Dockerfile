@@ -1,4 +1,4 @@
-FROM ghcr.io/quickpizza-base:latest
+FROM ghcr.io/grafana/quickpizza-base:latest
 
 WORKDIR /app
 

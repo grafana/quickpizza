@@ -39,7 +39,7 @@ jobs:
           file: ./Dockerfile.base
           push: true
           tags: |
-            ghcr.io/quickpizza-base:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/quickpizza-base:latest
+            ghcr.io/grafana/quickpizza-base:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/grafana/quickpizza-base:latest
           build-args: TARGETARCH=amd64
       - name: Build Docker image and push to the Registry
         uses: docker/build-push-action@v3
@@ -48,5 +48,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/quickpizza-local:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/quickpizza-local:latest
+            ghcr.io/grafana/quickpizza-local:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/grafana/quickpizza-local:latest
           build-args: TARGETARCH=amd64
