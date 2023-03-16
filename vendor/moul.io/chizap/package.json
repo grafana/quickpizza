@@ -1,0 +1,29 @@
+{
+  "_comment": "this project is not a node.js one, package.json is just used to define some metadata",
+  "name": "@moul.io/chizap",
+  "version": "0.0.1",
+  "author": "Manfred Touron <oss@moul.io> (https://manfred.life)",
+  "contributors": [
+    "Manfred Touron <oss@moul.io> (https://manfred.life)"
+  ],
+  "license": "(Apache-2.0 OR MIT)",
+  "scripts": {
+    "start": "chizap",
+    "install": "make install",
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moul/chizap.git"
+  },
+  "bugs": "https://github.com/moul/chizap/issues",
+  "homepage": "https://moul.io/chizap",
+  "release": {
+    "branches": ["master", "main"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/github"
+    ]
+  }
+}
