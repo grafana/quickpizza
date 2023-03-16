@@ -33,7 +33,6 @@ jobs:
             core.setOutput('tag', tag)
             core.setOutput('tag-no-v', tag_no_v)
       - name: Build Docker image and push to the Registry
-        id: docker_build
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -42,10 +41,7 @@ jobs:
           tags: |
             ghcr.io/quickpizza-base:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/quickpizza-base:latest
           build-args: TARGETARCH=amd64
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
       - name: Build Docker image and push to the Registry
-        id: docker_build
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -54,5 +50,3 @@ jobs:
           tags: |
             ghcr.io/quickpizza-local:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/quickpizza-local:latest
           build-args: TARGETARCH=amd64
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
