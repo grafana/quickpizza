@@ -2,6 +2,9 @@ FROM node:16.19.1-bullseye
 
 WORKDIR /app
 COPY . .
+WORKDIR /app/web
+RUN npm install
+WORKDIR /app
 
 RUN apt-get update && apt-get install -y wget
 RUN wget https://golang.org/dl/go1.18.linux-amd64.tar.gz

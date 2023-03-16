@@ -1,9 +1,11 @@
-FROM dgzlopes/quickpizza-again:base
+FROM ghcr.io/quickpizza-base:latest
 
 WORKDIR /app
 
 ARG PUBLIC_BACKEND_ENDPOINT=http://localhost:3333/
 ENV PUBLIC_BACKEND_ENDPOINT=${PUBLIC_BACKEND_ENDPOINT}
+ARG PUBLIC_BACKEND_WS_ENDPOINT=http://localhost:3000/
+ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 
 RUN make build
 
