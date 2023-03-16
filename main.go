@@ -15,10 +15,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgzlopes/quickpizza-v3/web"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/grafana/quickpizza/web"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"

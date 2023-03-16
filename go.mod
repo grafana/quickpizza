@@ -1,4 +1,4 @@
-module github.com/dgzlopes/quickpizza-v3
+module github.com/grafana/quickpizza
 
 go 1.18
 
@@ -9,7 +9,6 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/rs/xid v1.4.0
 	go.uber.org/zap v1.24.0
-	moul.io/chizap v1.0.3
 )
 
 require (
