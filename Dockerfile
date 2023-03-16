@@ -1,4 +1,4 @@
-FROM ghcr.io/grafana/quickpizza-base:latest
+FROM ghcr.io/grafana/quickpizza-base:latest as build
 
 WORKDIR /app
 
@@ -9,11 +9,9 @@ ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 
 RUN make build
 
-FROM ubuntu:20.04
+FROM gcr.io/distroless/static-debian11
 
-WORKDIR /app
+COPY --from=build /app/bin/quickpizza /
+COPY --from=build /app/data.json /data.json
 
-COPY --from=0 /app/bin/quickpizza /app/bin/quickpizza
-COPY --from=0 /app/data.json /app/data.json
-
-ENTRYPOINT [ "./bin/quickpizza" ]
+ENTRYPOINT [ "./quickpizza" ]
