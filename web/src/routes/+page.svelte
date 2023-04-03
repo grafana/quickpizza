@@ -124,9 +124,9 @@
 			<h1 class="text-2xl md:text-4xl mt-14 font-semibold">
 				Looking to break out of your pizza routine?
 			</h1>
-			<h1 class="text-xl md:text-2xl mt-2 font-semibold">
+			<h2 class="text-xl md:text-2xl mt-2 font-semibold">
 				<span class="text-red-600">QuickPizza</span> has your back!
-			</h1>
+			</h2>
 			<p class="m-2 text-gray-700">
 				With just one click, you'll discover new and exciting pizza combinations that you never knew
 				existed.
