@@ -47,7 +47,7 @@ const customers = new SharedArray('all my customers', function () {
 });
 
 export function setup() {
-  let res = http.get(`http://localhost:3333`)
+  let res = http.get(BASE_URL)
   if (res.status !== 200) {
     throw new Error(`Got unexpected status code ${res.status} when trying to setup. Exiting.`)
   }
