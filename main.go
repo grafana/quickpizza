@@ -61,7 +61,7 @@ type Data struct {
 	Doughs []pizza.Dough `json:"doughs"`
 
 	// Ingredients
-	OliveOils   []pizza.Ingredient `json:"oliveOils"`
+	OliveOils   []pizza.Ingredient `json:"olive_oils"`
 	Tomatoes    []pizza.Ingredient `json:"tomatoes"`
 	Mozzarellas []pizza.Ingredient `json:"mozzarellas"`
 	Toppings    []pizza.Ingredient `json:"toppings"`

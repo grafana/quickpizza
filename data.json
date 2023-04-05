@@ -11,7 +11,7 @@
             "caloriesPerSlice": 300
         }
     ],
-    "oliveOils": [
+    "olive_oils": [
         {
             "name": "Extra virgin olive oil",
             "caloriesPerSlice": 50,

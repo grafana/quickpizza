@@ -36,10 +36,10 @@ func (p Pizza) CalculateCalories() int {
 }
 
 type Restrictions struct {
-	MaxCaloriesPerSlice int      `json:"maxCaloriesPerSlice"`
-	MustBeVegetarian    bool     `json:"mustBeVegetarian"`
-	ExcludedIngredients []string `json:"excludedIngredients"`
-	ExcludedTools       []string `json:"excludedTools"`
-	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
-	MinNumberOfToppings int      `json:"minNumberOfToppings"`
+	MaxCaloriesPerSlice int      `json:"max_calories_per_slice"`
+	MustBeVegetarian    bool     `json:"must_be_vegetarian"`
+	ExcludedIngredients []string `json:"excluded_ingredients"`
+	ExcludedTools       []string `json:"excluded_tools"`
+	MaxNumberOfToppings int      `json:"max_number_of_toppings"`
+	MinNumberOfToppings int      `json:"min_number_of_toppings"`
 }

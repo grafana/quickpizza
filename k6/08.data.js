@@ -2,6 +2,7 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 import { Trend, Counter } from "k6/metrics";
 import { SharedArray } from 'k6/data';
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
@@ -48,12 +49,12 @@ export function setup() {
 
 export function getPizza() {
   let restrictions = {
-    "maxCaloriesPerSlice": 500,
-    "mustBeVegetarian": false,
-    "excludedIngredients": ["pepperoni"],
-    "excludedTools": ["knife"],
-    "maxNumberOfToppings": 6,
-    "minNumberOfToppings": 2
+    max_calories_pers_slice: 500,
+    must_be_vegetarian: false,
+    excluded_ingredients: ["pepperoni"],
+    excluded_tools: ["knife"],
+    max_number_of_toppings: 6,
+    min_number_of_toppings: 2
   }
   let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
     headers: {
@@ -76,5 +77,6 @@ export function teardown(){
 export function handleSummary(data) {
   return {
     'summary.json': JSON.stringify(data, null, 2),
+    stdout: textSummary(data, { indent: " ", enableColors: true }),
   }
 }
