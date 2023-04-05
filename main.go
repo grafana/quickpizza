@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/grafana/quickpizza/pizza"
 	"github.com/grafana/quickpizza/web"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
@@ -56,49 +57,14 @@ var (
 	}, []string{"method", "path", "status"})
 )
 
-type Pizza struct {
-	Name        string       `json:"name"`
-	Dough       Dough        `json:"dough"`
-	Ingredients []Ingredient `json:"ingredients"`
-	Tool        string       `json:"tool"`
-}
-
-type Dough struct {
-	Name             string `json:"name"`
-	CaloriesPerSlice int    `json:"caloriesPerSlice"`
-}
-
-type Ingredient struct {
-	Name             string `json:"name"`
-	CaloriesPerSlice int    `json:"caloriesPerSlice"`
-	Vegetarian       bool   `json:"vegetarian"`
-}
-
-func (p Pizza) IsVegetarian() bool {
-	for _, ingredient := range p.Ingredients {
-		if !ingredient.Vegetarian {
-			return false
-		}
-	}
-	return true
-}
-
-func (p Pizza) CalculateCalories() int {
-	calories := 0
-	for _, ingredient := range p.Ingredients {
-		calories += ingredient.CaloriesPerSlice
-	}
-	return calories
-}
-
 type Data struct {
-	Doughs []Dough `json:"doughs"`
+	Doughs []pizza.Dough `json:"doughs"`
 
 	// Ingredients
-	OliveOils   []Ingredient `json:"oliveOils"`
-	Tomatoes    []Ingredient `json:"tomatoes"`
-	Mozzarellas []Ingredient `json:"mozzarellas"`
-	Toppings    []Ingredient `json:"toppings"`
+	OliveOils   []pizza.Ingredient `json:"oliveOils"`
+	Tomatoes    []pizza.Ingredient `json:"tomatoes"`
+	Mozzarellas []pizza.Ingredient `json:"mozzarellas"`
+	Toppings    []pizza.Ingredient `json:"toppings"`
 
 	// Important stuff
 	Tools []string `json:"tools"`
@@ -114,7 +80,7 @@ type Data struct {
 type InMemoryDatabase struct {
 	mx                  sync.Mutex
 	data                Data
-	lastRecommendations []Pizza
+	lastRecommendations []pizza.Pizza
 	userSessionTokens   map[string]time.Time
 }
 
@@ -127,7 +93,7 @@ type PizzaRestrictions struct {
 	MinNumberOfToppings int      `json:"minNumberOfToppings"`
 }
 
-func (db *InMemoryDatabase) GeneratePizza(restrictions PizzaRestrictions) Pizza {
+func (db *InMemoryDatabase) GeneratePizza(restrictions PizzaRestrictions) pizza.Pizza {
 	db.mx.Lock()
 	defer db.mx.Unlock()
 
@@ -141,28 +107,28 @@ func (db *InMemoryDatabase) GeneratePizza(restrictions PizzaRestrictions) Pizza 
 		restrictions.MinNumberOfToppings = 3
 	}
 
-	var validOliveOils []Ingredient
+	var validOliveOils []pizza.Ingredient
 	for _, oliveOil := range db.data.OliveOils {
 		if !contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
 			validOliveOils = append(validOliveOils, oliveOil)
 		}
 	}
 
-	var validTomatoes []Ingredient
+	var validTomatoes []pizza.Ingredient
 	for _, tomato := range db.data.Tomatoes {
 		if !contains(restrictions.ExcludedIngredients, tomato.Name) && (!restrictions.MustBeVegetarian || tomato.Vegetarian) {
 			validTomatoes = append(validTomatoes, tomato)
 		}
 	}
 
-	var validMozzarellas []Ingredient
+	var validMozzarellas []pizza.Ingredient
 	for _, mozzarella := range db.data.Mozzarellas {
 		if !contains(restrictions.ExcludedIngredients, mozzarella.Name) && (!restrictions.MustBeVegetarian || mozzarella.Vegetarian) {
 			validMozzarellas = append(validMozzarellas, mozzarella)
 		}
 	}
 
-	var validToppings []Ingredient
+	var validToppings []pizza.Ingredient
 	for _, topping := range db.data.Toppings {
 		if !contains(restrictions.ExcludedIngredients, topping.Name) && (!restrictions.MustBeVegetarian || topping.Vegetarian) {
 			validToppings = append(validToppings, topping)
@@ -176,7 +142,7 @@ func (db *InMemoryDatabase) GeneratePizza(restrictions PizzaRestrictions) Pizza 
 		}
 	}
 
-	var pizza Pizza
+	var p pizza.Pizza
 	for i := 0; i < 10; i++ {
 		var randomName string
 		for {
@@ -198,33 +164,33 @@ func (db *InMemoryDatabase) GeneratePizza(restrictions PizzaRestrictions) Pizza 
 			}
 		}
 
-		pizza = Pizza{
+		p = pizza.Pizza{
 			Name:        randomName,
 			Dough:       db.data.Doughs[rand.Intn(len(db.data.Doughs))],
-			Ingredients: []Ingredient{validOliveOils[rand.Intn(len(validOliveOils))], validTomatoes[rand.Intn(len(validTomatoes))], validMozzarellas[rand.Intn(len(validMozzarellas))]},
+			Ingredients: []pizza.Ingredient{validOliveOils[rand.Intn(len(validOliveOils))], validTomatoes[rand.Intn(len(validTomatoes))], validMozzarellas[rand.Intn(len(validMozzarellas))]},
 			Tool:        validTools[rand.Intn(len(validTools))],
 		}
 
 		for j := 0; j < rand.Intn(restrictions.MaxNumberOfToppings-restrictions.MinNumberOfToppings)+restrictions.MinNumberOfToppings; j++ {
-			pizza.Ingredients = append(pizza.Ingredients, validToppings[rand.Intn(len(validToppings))])
+			p.Ingredients = append(p.Ingredients, validToppings[rand.Intn(len(validToppings))])
 		}
 
-		uniqueIngredients := make(map[string]Ingredient)
-		for _, ingredient := range pizza.Ingredients {
+		uniqueIngredients := make(map[string]pizza.Ingredient)
+		for _, ingredient := range p.Ingredients {
 			uniqueIngredients[ingredient.Name] = ingredient
 		}
-		pizza.Ingredients = make([]Ingredient, 0)
+		p.Ingredients = make([]pizza.Ingredient, 0)
 		for _, ingredient := range uniqueIngredients {
-			pizza.Ingredients = append(pizza.Ingredients, ingredient)
+			p.Ingredients = append(p.Ingredients, ingredient)
 		}
 
-		if pizza.CalculateCalories() > restrictions.MaxCaloriesPerSlice {
+		if p.CalculateCalories() > restrictions.MaxCaloriesPerSlice {
 			continue
 		}
 		break
 	}
 
-	return pizza
+	return p
 }
 
 func (db *InMemoryDatabase) PopulateFromFile(path string) error {
@@ -265,7 +231,7 @@ func (d *InMemoryDatabase) PersistToFile(path string) error {
 	return nil
 }
 
-func (db *InMemoryDatabase) SetLatestPizza(pizza Pizza) {
+func (db *InMemoryDatabase) SetLatestPizza(pizza pizza.Pizza) {
 	db.mx.Lock()
 	defer db.mx.Unlock()
 
@@ -283,9 +249,9 @@ func contains(slice []string, value string) bool {
 }
 
 type PizzaRecommendation struct {
-	Pizza      Pizza `json:"pizza"`
-	Calories   int   `json:"calories"`
-	Vegetarian bool  `json:"vegetarian"`
+	Pizza      pizza.Pizza `json:"pizza"`
+	Calories   int         `json:"calories"`
+	Vegetarian bool        `json:"vegetarian"`
 }
 
 func main() {
@@ -379,7 +345,7 @@ func main() {
 			ingredientType := chi.URLParam(r, "type")
 			isVegetarian := r.URL.Query().Get("is_vegetarian")
 
-			var ingredients []Ingredient
+			var ingredients []pizza.Ingredient
 			switch ingredientType {
 			case "olive_oil":
 				ingredients = db.data.OliveOils
@@ -394,7 +360,7 @@ func main() {
 				return
 			}
 
-			var filteredIngredients []Ingredient
+			var filteredIngredients []pizza.Ingredient
 			for _, ingredient := range ingredients {
 				if isVegetarian != "" && ingredient.Vegetarian != (isVegetarian == "true") {
 					continue
@@ -404,7 +370,7 @@ func main() {
 
 			logger.Info("Ingredients requested", zap.String("type", ingredientType))
 
-			err = json.NewEncoder(w).Encode(map[string][]Ingredient{"ingredients": filteredIngredients})
+			err = json.NewEncoder(w).Encode(map[string][]pizza.Ingredient{"ingredients": filteredIngredients})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -415,7 +381,7 @@ func main() {
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(globalLogger, r)
 			logger.Info("Doughs requested")
-			err = json.NewEncoder(w).Encode(map[string][]Dough{"doughs": db.data.Doughs})
+			err = json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": db.data.Doughs})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -490,7 +456,7 @@ func main() {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]Pizza{"pizzas": db.lastRecommendations})
+			err = json.NewEncoder(w).Encode(map[string][]pizza.Pizza{"pizzas": db.lastRecommendations})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
