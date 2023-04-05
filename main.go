@@ -84,16 +84,7 @@ type InMemoryDatabase struct {
 	userSessionTokens   map[string]time.Time
 }
 
-type PizzaRestrictions struct {
-	MaxCaloriesPerSlice int      `json:"maxCaloriesPerSlice"`
-	MustBeVegetarian    bool     `json:"mustBeVegetarian"`
-	ExcludedIngredients []string `json:"excludedIngredients"`
-	ExcludedTools       []string `json:"excludedTools"`
-	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
-	MinNumberOfToppings int      `json:"minNumberOfToppings"`
-}
-
-func (db *InMemoryDatabase) GeneratePizza(restrictions PizzaRestrictions) pizza.Pizza {
+func (db *InMemoryDatabase) GeneratePizza(restrictions pizza.Restrictions) pizza.Pizza {
 	db.mx.Lock()
 	defer db.mx.Unlock()
 
@@ -305,7 +296,7 @@ func main() {
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(globalLogger, r)
 			logger.Info("Received pizza recommendation request")
-			var restrictions PizzaRestrictions
+			var restrictions pizza.Restrictions
 
 			err := json.NewDecoder(r.Body).Decode(&restrictions)
 			if err != nil {
