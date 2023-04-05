@@ -2,7 +2,7 @@ FROM node:16.19.1-bullseye
 
 WORKDIR /app
 COPY . .
-WORKDIR /app/web
+WORKDIR /app/pkg/web
 RUN npm install
 WORKDIR /app
 
