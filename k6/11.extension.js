@@ -4,6 +4,8 @@ import { Trend, Counter } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 import { SharedArray } from 'k6/data';
 import { chromium } from 'k6/experimental/browser';
+import { LoadAndCheck } from "./shared/frontend/basic.js";
+import internal from 'k6/x/internal';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
@@ -70,6 +72,14 @@ export function getPizza() {
     },
   });
   check(res, { "status is 200": (res) => res.status === 200 });
+  check (res, { "pizza follows restrictions": (res) => { 
+    if (internal.checkRestrictions(res.json().pizza, restrictions) === false) {
+      console.log(`${res.json().pizza.name} does not follow restrictions: ${internal.getCheckResult()}`);
+      return false;
+    } else {
+      return true;
+    }
+  }});
   console.log(`${res.json().pizza.name} (${res.json().pizza.ingredients.length} ingredients)`);
   pizzas.add(1);
   ingredients.add(res.json().pizza.ingredients.length);
@@ -77,19 +87,7 @@ export function getPizza() {
 }
 
 export async function checkFrontend() {
-  const browser = chromium.launch({ headless: true });
-  const page = browser.newPage();
-
-  try {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    page.screenshot({ path: `screenshots/${__ITER}.png` });
-    check(page, {
-      'header': page.locator('h1').textContent() == 'Looking to break out of your pizza routine?',
-    });
-  } finally {
-    page.close();
-    browser.close();
-  }
+  await LoadAndCheck(BASE_URL, true);
 }
 
 export function teardown(){
