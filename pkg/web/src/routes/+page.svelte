@@ -238,7 +238,7 @@
 			{/if}
 			<p>
 				{#if pizza['pizza']}
-					<div class="flex justify-center">
+					<div class="flex justify-center" id="recommendations">
 						<div class="w-[300px] sm:w-[500px] mt-6 bg-gray-50 border border-gray-200 rounded-lg">
 							<div class="text-left p-4">
 								<h2 class="font-medium">Our recommendation:</h2>
