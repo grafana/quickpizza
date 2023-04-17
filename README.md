@@ -36,6 +36,12 @@ If the test uses the Browser API, you need to pass the `K6_BROWSER_ENABLED=true`
 K6_BROWSER_ENABLED=true k6 run --iterations 1 --vus 1 browser.js
 ```
 
+If the test uses the Extension, you need to build it first:
+
+```bash
+xk6 build --with xk6-internal=.
+```
+
 ### Running a Prometheus instance
 
 If you want to stream the metrics to a Prometheus instance, you need, well, a Prometheus instance. You can use the following command to run a local one:
