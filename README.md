@@ -14,6 +14,14 @@ docker run -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
 That's it. Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
 
 
+## Deploy locally to kubernetes
+
+
+```bash
+kubectl apply -f pizza-info.yaml
+kubectl port-forward svc/pizza-info 3333:3434
+```
+
 
 ## Using k6 to test it
 
@@ -65,6 +73,18 @@ docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus
              --web.console.templates=/usr/share/prometheus/consoles \
              --web.enable-remote-write-receiver
 ```
+
+### Deploy to kubernetes
+
+```bash
+kubectl apply -f pod-info.yaml --namespace=<<your ns>>
+```
+
+```bash
+kubectl port-forward svc/pod-info 3333:3434
+```
+
+Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
 
 ### Deploy to Fly.io
 
