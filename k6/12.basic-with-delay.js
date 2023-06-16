@@ -22,7 +22,7 @@ export const options = {
 };
 
 export function disrupt(data) {
-  const disruptor = new ServiceDisruptor("pod-info", "default");
+  const disruptor = new ServiceDisruptor("pizza-info", "pizza-ns");
   const targets = disruptor.targets();
   if (targets.length != 1) {
     throw new Error("expected list to have one target");
