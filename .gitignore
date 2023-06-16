@@ -9,6 +9,7 @@ build
 .env
 
 bin
+fly.toml
 
 summary.json
 screenshot.png

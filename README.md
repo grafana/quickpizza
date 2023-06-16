@@ -2,7 +2,7 @@
 
 ![Screenshot from 2023-03-18 15-29-05](https://user-images.githubusercontent.com/8228060/226112255-fe2d4cdc-193e-4c23-8a36-3d8f60baaf03.png)
 
-## How to run it
+## Run locally with Docker
 
 Requirements:
 - Docker
@@ -11,7 +11,9 @@ Requirements:
 docker run -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
 ```
 
-That's it. Now you can go to localhost:3333 and get some pizza recommendations!
+That's it. Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
+
+
 
 ## Using k6 to test it
 
@@ -29,6 +31,16 @@ If you want to run one iteration with one virtual user, you can use the followin
 ```bash
 k6 run --iterations 1 --vus 1 01.basic.js
 ```
+
+If QuickPizza is available remotely, then pass the hostname and port through the `BASE_URL` environment variable as follows:
+
+```bash
+k6 run -e BASE_URL=https://acmecorp.dev k6/01.basic.js
+# or 
+k6 run -e BASE_URL=https://acmecorp.dev:3333 k6/01.basic.js
+```
+
+
 
 If the test uses the Browser API, you need to pass the `K6_BROWSER_ENABLED=true` environment variable:
 
@@ -52,4 +64,12 @@ docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus
              --web.console.libraries=/usr/share/prometheus/console_libraries \
              --web.console.templates=/usr/share/prometheus/consoles \
              --web.enable-remote-write-receiver
+```
+
+### Deploy to Fly.io
+
+[Authenticate using the fly CLI](https://fly.io/docs/speedrun/). Then, run the CLI to deploy the application and set up the internal port `3333` that the server listens to.
+
+```bash
+fly launch --internal-port 3333 --now
 ```
