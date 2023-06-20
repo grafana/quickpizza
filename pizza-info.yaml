@@ -9,11 +9,12 @@ metadata:
   name: pizza-info
   namespace: pizza-ns
 spec:
+  type: LoadBalancer
   selector:
     app: pizza-info
   ports:
     - protocol: TCP
-      port: 3434 
+      port: 3333
       targetPort: 3333
 ---
 apiVersion: v1

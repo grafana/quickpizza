@@ -70,8 +70,28 @@ docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus
 kubectl apply -f pizza-info.yaml --namespace=pizza-ns
 ```
 
+The IP of the service should be `pending`:
+
 ```bash
-kubectl port-forward svc/pizza-info 3333:3434 --namespace=pizza-ns
+kubectl get all -n pizza-ns
+
+NAME                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/pizza-info   LoadBalancer   10.108.142.101   <pending>     3333:30076/TCP   13s
+```
+
+[Assign the external IP of the cluster](https://k6.io/docs/javascript-api/xk6-disruptor/get-started/expose-your-application/). For example, if you use `minikube`, open a terminal and run:
+
+```bash
+minikube tunnel
+```
+
+The external IP should be assigned:
+
+```bash
+kubectl get all -n pizza-ns
+
+NAME                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/pizza-info   LoadBalancer   10.108.142.101   127.0.0.1     3333:30076/TCP   39s
 ```
 
 Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
