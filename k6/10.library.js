@@ -3,7 +3,6 @@ import { check, sleep } from "k6";
 import { Trend, Counter } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 import { SharedArray } from 'k6/data';
-import { chromium } from 'k6/experimental/browser';
 import { LoadAndCheck } from "./shared/frontend/basic.js";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';

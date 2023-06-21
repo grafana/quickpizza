@@ -84,13 +84,13 @@ export async function checkFrontend() {
   const page = context.newPage();
 
   try {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
+    await page.goto(BASE_URL)
     check(page, {
       'header': page.locator('h1').textContent() == 'Looking to break out of your pizza routine?',
     });
 
-    await page.click('button', { text: 'Pizza, Please!' });
-    await page.waitForTimeout(500);
+    await page.locator('//button[. = "Pizza, Please!"]').click();
+    page.waitForTimeout(500);
     page.screenshot({ path: `screenshots/${__ITER}.png` });
     check(page, {
       'recommendation': page.locator('div#recommendations').textContent() != '',
