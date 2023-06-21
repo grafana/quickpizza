@@ -1,4 +1,4 @@
-import { LoadAndCheck } from "./shared/frontend/basic.js";
+import { LoadAndCheck } from "../../shared/frontend/basic.js";
 import { ServiceDisruptor } from "k6/x/disruptor";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
