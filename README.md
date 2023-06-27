@@ -2,18 +2,13 @@
 
 ![Screenshot from 2023-03-18 15-29-05](https://user-images.githubusercontent.com/8228060/226112255-fe2d4cdc-193e-4c23-8a36-3d8f60baaf03.png)
 
-This project contains an awesome application called `QuickPizza` and also demonstrates how to use the different features of k6. 
+## What is QuickPizza? 🍕🍕🍕
 
-You'll find sample tests about:
+`QuickPizza` is a web application, used for demonstrations and workshops, that generates new and exciting pizza combinations! 
 
-- Basic HTTP load test
-- Stages and lifecycles in k6
-- Scenarios in k6
-- Browser testing via k6 browser
-- Hybrid performance test (HTTP + xk6-disruptor, browser + xk6-disruptor)
-- and many more!
+The app is built using [SvelteKit](https://kit.svelte.dev/) for the frontend and [Go](https://go.dev/) for the backend.
 
-This can be used for demonstrations or workshops.
+It also demonstrates the basic and advanced functionalities of k6, ranging from a basic load test to using different modules and extensions.
 
 ## Requirements
 
@@ -38,17 +33,17 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 
 ## Using k6 to test it
 
-All tests live in the `k6/tests` folder. Within this folder, you will find the following folders:
+All tests live in the `k6` folder. Within this folder, you will find the following folders:
 
-- [mainTrack](k6/tests/mainTrack/) - covers the basic functionalities of k6.
-- [browser](k6/tests/browser/) - covers a more deep-dive look on how to use the k6 browser module for browser and web performance testing.
-- [disruptor](k6/tests/disruptor/) - covers a more deep-dive look on how to use xk6-disruptor for failure injection testing.
-- [hybrid](k6/tests/hybrid/) - covers tests that demonstrates a hybrid performance test.
+- [foundation](k6/foundations/) - covers the basic functionalities of k6.
+- [browser](k6/browser/) - covers a more deep-dive look on how to use the k6 browser module for browser and web performance testing.
+- [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use xk6-disruptor for failure injection testing.
+- [hybrid](k6/advanced) - covers tests that are more advanced such as hybrid tests, tracing, etc.
 
-To run them, you can use the `k6 run` command:
+To run tests on the `foundations` folder, you can use the following commands:
 
 ```bash
-cd k6/tests/mainTrack 
+cd k6/foundations
 k6 run 01.basic.js
 ```
 
@@ -72,25 +67,25 @@ If the test uses the [browser module](https://k6.io/docs/javascript-api/k6-brows
 K6_BROWSER_ENABLED=true k6 run --iterations 1 --vus 1 browser.js
 ```
 
-If the test uses an extension, you need to build it first via xk6:
+If the test uses an extension, you need to build it first via xk6. To build the extension using Docker, you can run the following command:
 
 ```bash
-xk6 build --with xk6-internal=.
+cd k6/foundations/extension
+
+docker run --rm -e GOOS=darwin -u "$(id -u):$(id -g)" -v "${PWD}:/xk6" \
+  grafana/xk6 build  \
+  --with xk6-internal=.
 ```
 
-For example, if you want to build the [xk6-disruptor](https://github.com/grafana/xk6-disruptor) for fault injection testing, you can use the following command:
+Note that the `GOOS` variable is for Mac. Please refer to [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/) for more information.
+
+To run the test that uses an extension, you can run the following command:
 
 ```bash
-xk6 build --with github.com/grafana/xk6-disruptor --output disruptork6
+K6_BROWSER_ENABLED=true ./extension/k6 run 11.extension.js
 ```
 
-This will create a binary called `disruptork6` in your directory. 
-
-If you get an error building the binary, go back to your parent directory and build the binary again. Afterwards, you can run the test from your parent directory or move the binary to the QuickPizza folder.
-
-To run this binary anywhere in your folder, you can copy it your `/usr/local/bin` directory.
-
-### Running a Prometheus instance
+## Running a Prometheus instance
 
 If you want to stream the metrics to a Prometheus instance, you need, well, a Prometheus instance. You can use the following command to run a local one:
 
@@ -146,20 +141,28 @@ service/pizza-info   LoadBalancer   10.108.142.101   127.0.0.1     3333:30076/TC
 
 Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
 
-To run a basic xk6-disruptor test, run the following command:
+### Running xk6-disruptor tests
+
+To build the [xk6-disruptor](https://github.com/grafana/xk6-disruptor) extension for fault injection testing, you can use the following command:
 
 ```bash
-cd k6/tests/disruptor
-disruptork6 run 01.basic.js
+cd k6/disruptor
+
+docker run --rm -e GOOS=darwin -u "$(id -u):$(id -g)" -v "${PWD}:/xk6" \
+  grafana/xk6 build  \
+  --with github.com/grafana/xk6-disruptor
 ```
 
-This assumes you have moved `disruptork6` binary to `/usr/local/bin`.
+To run a basic xk6-disruptor test, run the following command on the `k6/disruptor` folder:
+
+```bash
+./k6 run 01.basic.js
+```
 
 To run an example hybrid test of browser and xk6-disruptor, run the following command:
 
 ```bash
-cd k6/tests/hybrid
-K6_BROWSER_ENABLED=true disruptork6 run 01.browser-with-disruptor.js
+K6_BROWSER_ENABLED=true ./k6 run ../advanced/01.browser-with-disruptor.js
 ```
 
 ## Deploy to Fly.io
