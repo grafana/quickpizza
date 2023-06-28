@@ -3,7 +3,7 @@ import { check, sleep } from "k6";
 import { Trend, Counter } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 import { SharedArray } from 'k6/data';
-import { chromium } from 'k6/experimental/browser';
+import { LoadAndCheck } from "./lib/frontend/basic.js";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
@@ -77,28 +77,7 @@ export function getPizza() {
 }
 
 export async function checkFrontend() {
-  const browser = chromium.launch({ headless: true });
-  const context = browser.newContext(
-    { viewport: { width: 1920, height: 1080 } },
-  );
-  const page = context.newPage();
-
-  try {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    check(page, {
-      'header': page.locator('h1').textContent() == 'Looking to break out of your pizza routine?',
-    });
-
-    await page.click('button', { text: 'Pizza, Please!' });
-    await page.waitForTimeout(500);
-    page.screenshot({ path: `screenshots/${__ITER}.png` });
-    check(page, {
-      'recommendation': page.locator('div#recommendations').textContent() != '',
-    });
-  } finally {
-    page.close();
-    browser.close();
-  }
+  await LoadAndCheck(BASE_URL, true);
 }
 
 export function teardown(){

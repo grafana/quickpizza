@@ -1,5 +1,5 @@
 import { chromium } from 'k6/experimental/browser';
-import { check, sleep } from "k6";
+import { check } from "k6";
 
 export async function LoadAndCheck(url, headless) {
   const browser = chromium.launch({ headless: headless });
@@ -9,13 +9,13 @@ export async function LoadAndCheck(url, headless) {
   const page = context.newPage();
   
   try {
-    await page.goto(url, { waitUntil: 'networkidle' })
+    await page.goto(url)
     check(page, {
       'header': page.locator('h1').textContent() == 'Looking to break out of your pizza routine?',
     });
   
-    await page.click('button', { text: 'Pizza, Please!' });
-    await page.waitForTimeout(500);
+    await page.locator('//button[. = "Pizza, Please!"]').click();
+    page.waitForTimeout(500);
     page.screenshot({ path: `screenshots/${__ITER}.png` });
     check(page, {
       'recommendation': page.locator('div#recommendations').textContent() != '',
