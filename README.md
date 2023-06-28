@@ -35,10 +35,10 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 
 All tests live in the `k6` folder. Within this folder, you will find the following folders:
 
-- [foundation](k6/foundations/) - covers the basic functionalities of k6.
+- [foundations](k6/foundations/) - covers the basic functionalities of k6.
 - [browser](k6/browser/) - covers a more deep-dive look on how to use the k6 browser module for browser and web performance testing.
 - [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use xk6-disruptor for failure injection testing.
-- [hybrid](k6/advanced) - covers tests that are more advanced such as hybrid tests, tracing, etc.
+- [advanced](k6/advanced) - covers tests that are more advanced such as hybrid tests, tracing, etc.
 
 To run tests on the `foundations` folder, you can use the following commands:
 
@@ -99,9 +99,9 @@ docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus
 
 ## Deploy application to Kubernetes
 
-When working with the xk6-disruptor test, you need to deploy the pizza application to Kubernetes.
+If you want to run a test that uses xk6-disruptor, you need to deploy QuickPizza to Kubernetes.
 
-To start, make sure you stop the Docker container first for `QuickPizza`.
+If you are already running the app with Docker, make sure you stop the `QuickPizza` container first.
 
 Then, start minikube by running the command:
 
