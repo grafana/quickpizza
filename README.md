@@ -8,7 +8,7 @@
 
 The app is built using [SvelteKit](https://kit.svelte.dev/) for the frontend and [Go](https://go.dev/) for the backend.
 
-It also demonstrates the basic and advanced functionalities of k6, ranging from a basic load test to using different modules and extensions.
+The tests written for `QuickPizza` demonstrates the basic and advanced functionalities of k6, ranging from a basic load test to using different modules and extensions.
 
 ## Requirements
 
