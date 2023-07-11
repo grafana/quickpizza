@@ -26,7 +26,7 @@ COPY --from=builder /bin/quickpizza /bin
 COPY data.json /
 
 # Serve all microservices by default
-ENV QP_ALL_SERVICES=1
+ENV QUICKPIZZA_ALL_SERVICES=1
 
 EXPOSE 3333
 ENTRYPOINT [ "/bin/quickpizza" ]

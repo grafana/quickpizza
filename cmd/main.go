@@ -20,16 +20,16 @@ func main() {
 		globalLogger.Fatal("Cannot create server", zap.Error(err))
 	}
 
-	if envServe("QP_FRONTEND") {
+	if envServe("QUICKPIZZA_FRONTEND") {
 		server = server.WithFrontend()
 	}
 
-	if envServe("QP_WS") {
+	if envServe("QUICKPIZZA_WS") {
 		server = server.WithWS()
 	}
 
 	// TODO: Split this further in subsequent PRs.
-	if envServe("QP_API") {
+	if envServe("QUICKPIZZA_API") {
 		server = server.WithAPI()
 	}
 
@@ -41,7 +41,7 @@ func main() {
 }
 
 func envServe(name string) bool {
-	return envBool("QP_ALL_SERVICES") || envBool(name)
+	return envBool("QUICKPIZZA_ALL_SERVICES") || envBool(name)
 }
 
 func envBool(name string) bool {
