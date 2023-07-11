@@ -331,7 +331,9 @@ func (s *Server) WithAPI() *Server {
 			logger.Info("Received pizza recommendation request")
 			var restrictions pizza.Restrictions
 
-			err := json.NewDecoder(r.Body).Decode(&restrictions)
+			dec := json.NewDecoder(r.Body)
+			dec.DisallowUnknownFields()
+			err := dec.Decode(&restrictions)
 			if err != nil {
 				logger.Error("Failed to decode request body", zap.Error(err))
 				w.WriteHeader(http.StatusBadRequest)
