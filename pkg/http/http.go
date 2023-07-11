@@ -1,4 +1,4 @@
-package main
+package http
 
 import (
 	"context"
@@ -245,31 +245,23 @@ type PizzaRecommendation struct {
 	Vegetarian bool        `json:"vegetarian"`
 }
 
-func main() {
-	globalLogger, err := zap.NewProduction()
+type Server struct {
+	db  *InMemoryDatabase
+	log *zap.Logger
+
+	router chi.Router
+	melody *melody.Melody
+}
+
+func NewServer(logger *zap.Logger) (*Server, error) {
+	db := &InMemoryDatabase{}
+	err := db.PopulateFromFile("/data.json")
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("loading database: %w", err)
 	}
 
-	db := InMemoryDatabase{}
-	err = db.PopulateFromFile("data.json")
-	if err != nil {
-		globalLogger.Fatal("Failed to load database", zap.Error(err))
-	}
-
-	m := melody.New()
-	r := chi.NewRouter()
-	r.Use(PrometheusMiddleware)
-	r.Use(middleware.Recoverer)
-	r.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-ID"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	}).Handler)
-
+	// Start session cleanup goroutine.
+	// TODO: Encapsulate this with a mutex, as concurrent map writes will panic in runtime.
 	go func() {
 		for {
 			time.Sleep(time.Minute)
@@ -281,20 +273,61 @@ func main() {
 		}
 	}()
 
-	r.Handle("/*", SvelteKitHandler("/*"))
+	router := chi.NewRouter()
+	router.Use(middleware.Recoverer)
+	router.Use(PrometheusMiddleware)
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-ID"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}).Handler)
 
-	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
-		m.HandleRequest(w, r)
+	router.Handle("/metrics", promhttp.Handler())
+
+	return &Server{
+		db:     db,
+		log:    logger,
+		router: router,
+		melody: melody.New(),
+	}, nil
+}
+
+func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(rw, r)
+}
+
+func (s *Server) WithFrontend() *Server {
+	s.router.Handle("/*", SvelteKitHandler("/*"))
+
+	return s
+}
+
+func (s *Server) WithWS() *Server {
+	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
+		err := s.melody.HandleRequest(w, r)
+		if err != nil {
+			s.log.Error("Upgrading request to WS", zap.Error(err))
+
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = fmt.Fprint(w, err)
+		}
 	})
 
-	m.HandleMessage(func(s *melody.Session, msg []byte) {
-		m.Broadcast(msg)
+	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {
+		s.melody.Broadcast(msg)
 	})
 
-	r.Group(func(r chi.Router) {
+	return s
+}
+
+func (s *Server) WithAPI() *Server {
+	s.router.Group(func(r chi.Router) {
 		r.Use(ValidateUserMiddleware)
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			logger.Info("Received pizza recommendation request")
 			var restrictions pizza.Restrictions
 
@@ -305,8 +338,8 @@ func main() {
 				return
 			}
 
-			pizza := db.GeneratePizza(restrictions)
-			db.SetLatestPizza(pizza)
+			pizza := s.db.GeneratePizza(restrictions)
+			s.db.SetLatestPizza(pizza)
 
 			pizzaRecommendation := PizzaRecommendation{
 				Pizza:      pizza,
@@ -332,20 +365,20 @@ func main() {
 		})
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			ingredientType := chi.URLParam(r, "type")
 			isVegetarian := r.URL.Query().Get("is_vegetarian")
 
 			var ingredients []pizza.Ingredient
 			switch ingredientType {
 			case "olive_oil":
-				ingredients = db.data.OliveOils
+				ingredients = s.db.data.OliveOils
 			case "tomato":
-				ingredients = db.data.Tomatoes
+				ingredients = s.db.data.Tomatoes
 			case "mozzarella":
-				ingredients = db.data.Mozzarellas
+				ingredients = s.db.data.Mozzarellas
 			case "topping":
-				ingredients = db.data.Toppings
+				ingredients = s.db.data.Toppings
 			default:
 				w.WriteHeader(http.StatusBadRequest)
 				return
@@ -361,7 +394,7 @@ func main() {
 
 			logger.Info("Ingredients requested", zap.String("type", ingredientType))
 
-			err = json.NewEncoder(w).Encode(map[string][]pizza.Ingredient{"ingredients": filteredIngredients})
+			err := json.NewEncoder(w).Encode(map[string][]pizza.Ingredient{"ingredients": filteredIngredients})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -370,9 +403,9 @@ func main() {
 		})
 
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			logger.Info("Doughs requested")
-			err = json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": db.data.Doughs})
+			err := json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": s.db.data.Doughs})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -381,9 +414,9 @@ func main() {
 		})
 
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			logger.Info("Tools requested")
-			err = json.NewEncoder(w).Encode(map[string][]string{"tools": db.data.Tools})
+			err := json.NewEncoder(w).Encode(map[string][]string{"tools": s.db.data.Tools})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -392,9 +425,9 @@ func main() {
 		})
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			logger.Info("Quotes requested")
-			err = json.NewEncoder(w).Encode(map[string][]string{"quotes": db.data.Quotes})
+			err := json.NewEncoder(w).Encode(map[string][]string{"quotes": s.db.data.Quotes})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -403,7 +436,7 @@ func main() {
 		})
 
 		r.Get("/api/login", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			logger.Info("Login requested")
 			user := r.URL.Query().Get("user")
 			password := r.URL.Query().Get("password")
@@ -420,11 +453,11 @@ func main() {
 
 			guid := xid.New()
 			token := guid.String()
-			if db.userSessionTokens == nil {
-				db.userSessionTokens = make(map[string]time.Time)
+			if s.db.userSessionTokens == nil {
+				s.db.userSessionTokens = make(map[string]time.Time)
 			}
-			db.userSessionTokens[token] = time.Now()
-			err = json.NewEncoder(w).Encode(map[string]string{"token": token})
+			s.db.userSessionTokens[token] = time.Now()
+			err := json.NewEncoder(w).Encode(map[string]string{"token": token})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -433,7 +466,7 @@ func main() {
 		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(globalLogger, r)
+			logger := loggerWithUserID(s.log, r)
 			logger.Info("Recommendations requested")
 			token := r.Header.Get("Authorization")
 			if token == "" {
@@ -442,12 +475,12 @@ func main() {
 			}
 
 			token = strings.TrimPrefix(token, "Bearer ")
-			if _, ok := db.userSessionTokens[token]; !ok {
+			if _, ok := s.db.userSessionTokens[token]; !ok {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]pizza.Pizza{"pizzas": db.lastRecommendations})
+			err := json.NewEncoder(w).Encode(map[string][]pizza.Pizza{"pizzas": s.db.lastRecommendations})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -456,11 +489,7 @@ func main() {
 		})
 	})
 
-	r.Handle("/metrics", promhttp.Handler())
-
-	globalLogger.Info("Starting QuickPizza. Listening on :3333")
-	http.ListenAndServe(":3333", r)
-
+	return s
 }
 
 // From: https://www.liip.ch/en/blog/embed-sveltekit-into-a-go-binary
