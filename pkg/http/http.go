@@ -25,6 +25,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -246,9 +248,9 @@ type PizzaRecommendation struct {
 }
 
 type Server struct {
-	db  *InMemoryDatabase
-	log *zap.Logger
-
+	db     *InMemoryDatabase
+	log    *zap.Logger
+	trace  trace.TracerProvider
 	router chi.Router
 	melody *melody.Melody
 }
@@ -275,7 +277,6 @@ func NewServer(logger *zap.Logger) (*Server, error) {
 
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
-	router.Use(PrometheusMiddleware)
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -285,11 +286,10 @@ func NewServer(logger *zap.Logger) (*Server, error) {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}).Handler)
 
-	router.Handle("/metrics", promhttp.Handler())
-
 	return &Server{
 		db:     db,
 		log:    logger,
+		trace:  trace.NewNoopTracerProvider(),
 		router: router,
 		melody: melody.New(),
 	}, nil
@@ -299,13 +299,43 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(rw, r)
 }
 
+// WithTracing registers the specified TracerProvider within the Server.
+// Subsequent handlers can use s.trace to create more detailed traces than what it would be possible if we
+// applied the same tracing middleware to the whole server.
+func (s *Server) WithTracing(provider trace.TracerProvider) *Server {
+	s.trace = provider
+
+	return s
+}
+
+func (s *Server) WithPrometheus() *Server {
+	// Add MW with .With instead of .Use, as .Use does not allow registering MWs after routes.
+	s.router = s.router.With(PrometheusMiddleware)
+	s.router.Handle("/metrics", promhttp.Handler())
+
+	return s
+}
+
 func (s *Server) WithFrontend() *Server {
-	s.router.Handle("/*", SvelteKitHandler("/*"))
+	s.router.Group(func(r chi.Router) {
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				"http_serve_static",
+				otelhttp.WithTracerProvider(s.trace),
+				// We keep the default name formatter, which defaults to `operation`, to avoid increasing cardinality
+				// with static URIs.
+			)
+		})
+
+		r.Handle("/*", SvelteKitHandler("/*"))
+	})
 
 	return s
 }
 
 func (s *Server) WithWS() *Server {
+	// TODO: Add tracing for websockets.
 	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		err := s.melody.HandleRequest(w, r)
 		if err != nil {
@@ -325,7 +355,20 @@ func (s *Server) WithWS() *Server {
 
 func (s *Server) WithAPI() *Server {
 	s.router.Group(func(r chi.Router) {
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				"http_api",
+				otelhttp.WithTracerProvider(s.trace),
+				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
+					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+				}),
+			)
+		})
+
 		r.Use(ValidateUserMiddleware)
+
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(s.log, r)
 			logger.Info("Received pizza recommendation request")
