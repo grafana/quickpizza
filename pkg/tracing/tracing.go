@@ -30,6 +30,8 @@ func OTLPProvider(ctx context.Context, endpointUrl string) (trace.TracerProvider
 		client = otlptracehttp.NewClient(otlptracehttp.WithEndpoint(u.Host))
 	case "grpc":
 		client = otlptracegrpc.NewClient(otlptracegrpc.WithEndpoint(u.Host))
+	default:
+		return nil, fmt.Errorf("unsupported protocol %q", u.Scheme)
 	}
 
 	exporter, err := otlptrace.New(ctx, client)
