@@ -31,6 +31,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "pizza_recommendations_total",
@@ -60,12 +61,16 @@ var (
 	}, []string{"method", "path", "status"})
 )
 
+// PizzaRecommendation is the object returned by the /api/pizza endpoint.
 type PizzaRecommendation struct {
 	Pizza      pizza.Pizza `json:"pizza"`
 	Calories   int         `json:"calories"`
 	Vegetarian bool        `json:"vegetarian"`
 }
 
+// Server is the object that handles HTTP requests and computes pizza recommendations.
+// Routes are divided into serveral groups that can be instantiated independently as microservices, or all together
+// as one single big service.
 type Server struct {
 	log    *zap.Logger
 	trace  trace.TracerProvider
@@ -74,19 +79,6 @@ type Server struct {
 }
 
 func NewServer(logger *zap.Logger) (*Server, error) {
-	// Start session cleanup goroutine.
-	// TODO: Encapsulate this with a mutex, as concurrent map writes will panic in runtime.
-	//go func() {
-	//	for {
-	//		time.Sleep(time.Minute)
-	//		for token, creation := range db.userSessionTokens {
-	//			if time.Since(creation) > 1*time.Hour {
-	//				delete(db.userSessionTokens, token)
-	//			}
-	//		}
-	//	}
-	//}()
-
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
 	router.Use(cors.New(cors.Options{
@@ -119,6 +111,7 @@ func (s *Server) WithTracing(provider trace.TracerProvider) *Server {
 	return s
 }
 
+// WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
 func (s *Server) WithPrometheus() *Server {
 	// Add MW with .With instead of .Use, as .Use does not allow registering MWs after routes.
 	s.router = s.router.With(PrometheusMiddleware)
@@ -127,6 +120,7 @@ func (s *Server) WithPrometheus() *Server {
 	return s
 }
 
+// WithFrontend enables serving the embedded Svelte frontend.
 func (s *Server) WithFrontend() *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
@@ -148,6 +142,7 @@ func (s *Server) WithFrontend() *Server {
 	return s
 }
 
+// WithWS enables serving and handle websockets.
 func (s *Server) WithWS() *Server {
 	// TODO: Add tracing for websockets.
 	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -167,8 +162,12 @@ func (s *Server) WithWS() *Server {
 	return s
 }
 
+// WithCatalog enables routes related to the ingredients, doughs, and tools. An database.InMemoryDatabase is required to
+// enable this endpoint group.
+// This database is safe to be used concurrently and thus may be shared with other endpoint groups.
 func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 	s.router.Group(func(r chi.Router) {
+		// Set tracing middleware. This will generate traces for incoming requests.
 		r.Use(func(handler http.Handler) http.Handler {
 			return otelhttp.NewHandler(
 				handler,
@@ -177,11 +176,13 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 				// Get trace context from requests.
 				otelhttp.WithPropagators(propagation.TraceContext{}),
 				// Identify requests as public based on the presence of the secret `X-Internal-Token`.
+				// If the request is considered public, any Parent trace ID present in the request header is considered
+				// untrusted and a weaker relation is established.
 				otelhttp.WithPublicEndpointFn(func(r *http.Request) bool {
 					return r.Header.Get("X-Internal-Token") != "secret"
 				}),
+				// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 				}),
 			)
@@ -344,6 +345,7 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 	return s
 }
 
+// WithCopy enables copy (i.e. prose) related endpoints.
 func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
@@ -357,8 +359,8 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 				otelhttp.WithPublicEndpointFn(func(r *http.Request) bool {
 					return r.Header.Get("X-Internal-Token") != "secret"
 				}),
+				// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 				}),
 			)
@@ -421,6 +423,8 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 	return s
 }
 
+// WithRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
+// the URLs for the Catalog and Copy services.
 func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 	catalogClient := CatalogClient{CatalogUrl: catalogUrl}
 	copyClient := CopyClient{CopyURL: copyUrl}
@@ -437,8 +441,8 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 				otelhttp.WithPublicEndpointFn(func(r *http.Request) bool {
 					return r.Header.Get("X-Internal-Token") != "secret"
 				}),
+				// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 				}),
 			)
@@ -447,6 +451,10 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 		r.Use(ValidateUserMiddleware)
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
+			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
+			// by the server (if any), which allows clients to both generate traces for outgoing client-type traces
+			// without explicitly configuring a tracer, and to link said client traces with the server trace that is
+			// generated in this request.
 			catalogClient = catalogClient.WithRequestContext(r.Context())
 			copyClient = copyClient.WithRequestContext(r.Context())
 
@@ -472,6 +480,7 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 				return
 			}
 
+			// Retrieve list of ingredients from Catalog.
 			var validOliveOils []pizza.Ingredient
 			for _, oliveOil := range oils {
 				if !contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
@@ -542,6 +551,7 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 				return
 			}
 
+			// Retrieve adjectives and names from Copy.
 			adjectives, err := copyClient.Adjectives()
 			if err != nil {
 				logger.Error("Requesting adjectives", zap.Error(err))

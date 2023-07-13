@@ -18,6 +18,7 @@ func main() {
 		panic(err)
 	}
 
+	// Create InMemoryDatabase. This database is used by the Catalog and Copy services.
 	db := &database.InMemoryDatabase{}
 	err = db.PopulateFromFile("data.json")
 	if err != nil {
@@ -29,6 +30,8 @@ func main() {
 		globalLogger.Fatal("Cannot create server", zap.Error(err))
 	}
 
+	// If QUICKPIZZA_OTLP_ENDPOINT is set, set up tracing outputting to it.
+	// If it is not set, no tracing will be performed.
 	if otlpEndpoint, _ := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); otlpEndpoint != "" {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -44,6 +47,11 @@ func main() {
 	// Always add prometheus middleware.
 	server = server.WithPrometheus()
 
+	// Enable services in this instance. Services are enabled with the following logic:
+	// If QUICKPIZZA_ALL_SERVICES is either _not set_ or set to a truthy value, all services are enabled. This is the
+	// default behavior.
+	// If QUICKPIZZA_ALL_SERVICES is set to a falsy values, services are opted-in by setting the environment variables
+	// below to a truty value.
 	if envServe("QUICKPIZZA_FRONTEND") {
 		server = server.WithFrontend()
 	}
@@ -60,6 +68,9 @@ func main() {
 		server = server.WithCopy(db)
 	}
 
+	// Recommendations service needs to know the URL where the Catalog and Copy services are located.
+	// This URL is automatically set to `localhost` if Recommendations is enabled at the same time as either of those.
+	// If they are not, URLs are sourced from QUICKPIZZA_CATALOG_ENDPOINT and QUICKPIZZA_COPY_ENDPOINT.
 	if envServe("QUICKPIZZA_RECOMMENDATIONS") {
 		server = server.WithRecommendations(
 			envEndpoint("QUICKPIZZA_CATALOG"),
@@ -75,6 +86,7 @@ func main() {
 	}
 }
 
+// envServe returns whether a service should be enabled.
 func envServe(name string) bool {
 	allSvcs, present := os.LookupEnv("QUICKPIZZA_ALL_SERVICES")
 	allSvcsB, _ := strconv.ParseBool(allSvcs)
@@ -88,6 +100,8 @@ func envServe(name string) bool {
 	return allSvcsB || envBool(name)
 }
 
+// envEndpoint returns the endpoint for a given service. If the service is enabled in this instance, it returns
+// `localhost`. If it isn't, it returns the value of QUICKPIZZA_SERVICENAME_ENDPOINT.fs
 func envEndpoint(name string) string {
 	if envServe(name) {
 		return "http://localhost:3333"
@@ -97,6 +111,7 @@ func envEndpoint(name string) string {
 	return endpoint
 }
 
+// envBool returns true if an env var is set and has a truthy value.
 func envBool(name string) bool {
 	v, found := os.LookupEnv(name)
 	if !found {

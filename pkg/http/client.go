@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// CatalogClient is a client that queries the Catalog service.
 type CatalogClient struct {
 	CatalogUrl     string
 	TracerProvider trace.TracerProvider
@@ -22,7 +23,7 @@ type CatalogClient struct {
 
 // WithRequestContext returns a copy of the CatalogClient that will use the supplied context.
 // This context should come from a http.Request, and if provided, CatalogClient will:
-// - Extract parent trace IDs from it and propagate it to the requests it makes.
+// - Extract parent tracer and trace IDs from it and propagate it to the requests it makes.
 // - Extract the QuickPizza user ID from it and propagate it as well.
 func (c CatalogClient) WithRequestContext(ctx context.Context) CatalogClient {
 	c.Ctx = ctx
@@ -73,6 +74,7 @@ func (c CatalogClient) RecordRecommendation(p pizza.Pizza) error {
 	return postJSON(c.Ctx, c.CatalogUrl+"/api/internal/recommendations", p)
 }
 
+// CopyClient is a client that queries the Copy service.
 type CopyClient struct {
 	CopyURL string
 	Ctx     context.Context
