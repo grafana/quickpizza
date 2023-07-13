@@ -566,8 +566,16 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 				return
 			}
 
+			_, pizzaSpan := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("").Start(
+				r.Context(),
+				"pizza-generation",
+			)
 			var p pizza.Pizza
 			for i := 0; i < 10; i++ {
+				_, nameSpan := pizzaSpan.TracerProvider().Tracer("").Start(
+					r.Context(),
+					"name-generation",
+				)
 				var randomName string
 				for {
 					randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
@@ -587,6 +595,7 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 						break
 					}
 				}
+				nameSpan.End()
 
 				p = pizza.Pizza{
 					Name:        randomName,
@@ -614,6 +623,7 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 
 				break
 			}
+			pizzaSpan.End()
 
 			pizzaRecommendation := PizzaRecommendation{
 				Pizza:      p,
