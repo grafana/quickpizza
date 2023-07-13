@@ -43,3 +43,17 @@ type Restrictions struct {
 	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
 	MinNumberOfToppings int      `json:"minNumberOfToppings"`
 }
+
+func (r Restrictions) WithDefaults() Restrictions {
+	if r.MaxCaloriesPerSlice == 0 {
+		r.MaxCaloriesPerSlice = 1000
+	}
+	if r.MaxNumberOfToppings == 0 {
+		r.MaxNumberOfToppings = 5
+	}
+	if r.MinNumberOfToppings == 0 {
+		r.MinNumberOfToppings = 3
+	}
+
+	return r
+}
