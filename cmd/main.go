@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/grafana/quickpizza/pkg/database"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/grafana/quickpizza/pkg/tracing"
 	"go.uber.org/zap"
@@ -17,12 +18,18 @@ func main() {
 		panic(err)
 	}
 
+	db := &database.InMemoryDatabase{}
+	err = db.PopulateFromFile("data.json")
+	if err != nil {
+		globalLogger.Fatal("loading data from disk", zap.Error(err))
+	}
+
 	server, err := qphttp.NewServer(globalLogger)
 	if err != nil {
 		globalLogger.Fatal("Cannot create server", zap.Error(err))
 	}
 
-	if otlpEndpoint, _ := os.LookupEnv("OTLP_ENDPOINT"); otlpEndpoint != "" {
+	if otlpEndpoint, _ := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); otlpEndpoint != "" {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -45,9 +52,19 @@ func main() {
 		server = server.WithWS()
 	}
 
-	// TODO: Split this further in subsequent PRs.
-	if envServe("QUICKPIZZA_API") {
-		server = server.WithAPI()
+	if envServe("QUICKPIZZA_CATALOG") {
+		server = server.WithCatalog(db)
+	}
+
+	if envServe("QUICKPIZZA_COPY") {
+		server = server.WithCopy(db)
+	}
+
+	if envServe("QUICKPIZZA_RECOMMENDATIONS") {
+		server = server.WithRecommendations(
+			envEndpoint("QUICKPIZZA_CATALOG"),
+			envEndpoint("QUICKPIZZA_COPY"),
+		)
 	}
 
 	listen := ":3333"
@@ -59,7 +76,25 @@ func main() {
 }
 
 func envServe(name string) bool {
-	return envBool("QUICKPIZZA_ALL_SERVICES") || envBool(name)
+	allSvcs, present := os.LookupEnv("QUICKPIZZA_ALL_SERVICES")
+	allSvcsB, _ := strconv.ParseBool(allSvcs)
+
+	// If QUICKPIZZA_ALL_SERVICES is not defined (default), serve everything.
+	if !present {
+		return true
+	}
+
+	// Otherwise, serve this service if explicitly enabled or if QUICKPIZZA_ALL_SERVICES == 1.
+	return allSvcsB || envBool(name)
+}
+
+func envEndpoint(name string) string {
+	if envServe(name) {
+		return "http://localhost:3333"
+	}
+
+	endpoint, _ := os.LookupEnv(name + "_ENDPOINT")
+	return endpoint
 }
 
 func envBool(name string) bool {

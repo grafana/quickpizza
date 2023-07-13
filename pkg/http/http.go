@@ -12,12 +12,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/grafana/quickpizza/pkg/database"
 	"github.com/grafana/quickpizza/pkg/pizza"
 	"github.com/grafana/quickpizza/pkg/web"
 	"github.com/olahol/melody"
@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -59,188 +60,6 @@ var (
 	}, []string{"method", "path", "status"})
 )
 
-type Data struct {
-	Doughs []pizza.Dough `json:"doughs"`
-
-	// Ingredients
-	OliveOils   []pizza.Ingredient `json:"olive_oils"`
-	Tomatoes    []pizza.Ingredient `json:"tomatoes"`
-	Mozzarellas []pizza.Ingredient `json:"mozzarellas"`
-	Toppings    []pizza.Ingredient `json:"toppings"`
-
-	// Important stuff
-	Tools []string `json:"tools"`
-
-	// Naming
-	Adjectives   []string `json:"adjectives"`
-	ClassicNames []string `json:"classic_names"`
-
-	// Quotes
-	Quotes []string `json:"quotes"`
-}
-
-type InMemoryDatabase struct {
-	mx                  sync.Mutex
-	data                Data
-	lastRecommendations []pizza.Pizza
-	userSessionTokens   map[string]time.Time
-}
-
-func (db *InMemoryDatabase) GeneratePizza(restrictions pizza.Restrictions) pizza.Pizza {
-	db.mx.Lock()
-	defer db.mx.Unlock()
-
-	if restrictions.MaxCaloriesPerSlice == 0 {
-		restrictions.MaxCaloriesPerSlice = 1000
-	}
-	if restrictions.MaxNumberOfToppings == 0 {
-		restrictions.MaxNumberOfToppings = 5
-	}
-	if restrictions.MinNumberOfToppings == 0 {
-		restrictions.MinNumberOfToppings = 3
-	}
-
-	var validOliveOils []pizza.Ingredient
-	for _, oliveOil := range db.data.OliveOils {
-		if !contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
-			validOliveOils = append(validOliveOils, oliveOil)
-		}
-	}
-
-	var validTomatoes []pizza.Ingredient
-	for _, tomato := range db.data.Tomatoes {
-		if !contains(restrictions.ExcludedIngredients, tomato.Name) && (!restrictions.MustBeVegetarian || tomato.Vegetarian) {
-			validTomatoes = append(validTomatoes, tomato)
-		}
-	}
-
-	var validMozzarellas []pizza.Ingredient
-	for _, mozzarella := range db.data.Mozzarellas {
-		if !contains(restrictions.ExcludedIngredients, mozzarella.Name) && (!restrictions.MustBeVegetarian || mozzarella.Vegetarian) {
-			validMozzarellas = append(validMozzarellas, mozzarella)
-		}
-	}
-
-	var validToppings []pizza.Ingredient
-	for _, topping := range db.data.Toppings {
-		if !contains(restrictions.ExcludedIngredients, topping.Name) && (!restrictions.MustBeVegetarian || topping.Vegetarian) {
-			validToppings = append(validToppings, topping)
-		}
-	}
-
-	var validTools []string
-	for _, tool := range db.data.Tools {
-		if !contains(restrictions.ExcludedTools, tool) {
-			validTools = append(validTools, tool)
-		}
-	}
-
-	var p pizza.Pizza
-	for i := 0; i < 10; i++ {
-		var randomName string
-		for {
-			randomName = fmt.Sprintf("%s %s", db.data.Adjectives[rand.Intn(len(db.data.Adjectives))], db.data.ClassicNames[rand.Intn(len(db.data.ClassicNames))])
-			if strings.HasPrefix(randomName, "A") || strings.HasPrefix(randomName, "E") || strings.HasPrefix(randomName, "I") || strings.HasPrefix(randomName, "O") || strings.HasPrefix(randomName, "U") {
-				randomName = fmt.Sprintf("An %s", randomName)
-			} else {
-				if rand.Intn(100) < 50 {
-					randomName = fmt.Sprintf("The %s", randomName)
-				} else {
-					randomName = fmt.Sprintf("A %s", randomName)
-				}
-			}
-
-			// Measure how funny the name is. It fails if the name is too funny or too unfunny
-			if rand.Intn(100) < 50 {
-				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-				break
-			}
-		}
-
-		p = pizza.Pizza{
-			Name:        randomName,
-			Dough:       db.data.Doughs[rand.Intn(len(db.data.Doughs))],
-			Ingredients: []pizza.Ingredient{validOliveOils[rand.Intn(len(validOliveOils))], validTomatoes[rand.Intn(len(validTomatoes))], validMozzarellas[rand.Intn(len(validMozzarellas))]},
-			Tool:        validTools[rand.Intn(len(validTools))],
-		}
-
-		for j := 0; j < rand.Intn(restrictions.MaxNumberOfToppings-restrictions.MinNumberOfToppings)+restrictions.MinNumberOfToppings; j++ {
-			p.Ingredients = append(p.Ingredients, validToppings[rand.Intn(len(validToppings))])
-		}
-
-		uniqueIngredients := make(map[string]pizza.Ingredient)
-		for _, ingredient := range p.Ingredients {
-			uniqueIngredients[ingredient.Name] = ingredient
-		}
-		p.Ingredients = make([]pizza.Ingredient, 0)
-		for _, ingredient := range uniqueIngredients {
-			p.Ingredients = append(p.Ingredients, ingredient)
-		}
-
-		if p.CalculateCalories() > restrictions.MaxCaloriesPerSlice {
-			continue
-		}
-		break
-	}
-
-	return p
-}
-
-func (db *InMemoryDatabase) PopulateFromFile(path string) error {
-	db.mx.Lock()
-	defer db.mx.Unlock()
-
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&db.data)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *InMemoryDatabase) PersistToFile(path string) error {
-	d.mx.Lock()
-	defer d.mx.Unlock()
-
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(&d.data)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (db *InMemoryDatabase) SetLatestPizza(pizza pizza.Pizza) {
-	db.mx.Lock()
-	defer db.mx.Unlock()
-
-	// TODO: Store only the last 10 pizzas
-	db.lastRecommendations = append(db.lastRecommendations, pizza)
-}
-
-func contains(slice []string, value string) bool {
-	for _, item := range slice {
-		if item == value {
-			return true
-		}
-	}
-	return false
-}
-
 type PizzaRecommendation struct {
 	Pizza      pizza.Pizza `json:"pizza"`
 	Calories   int         `json:"calories"`
@@ -248,7 +67,6 @@ type PizzaRecommendation struct {
 }
 
 type Server struct {
-	db     *InMemoryDatabase
 	log    *zap.Logger
 	trace  trace.TracerProvider
 	router chi.Router
@@ -256,24 +74,18 @@ type Server struct {
 }
 
 func NewServer(logger *zap.Logger) (*Server, error) {
-	db := &InMemoryDatabase{}
-	err := db.PopulateFromFile("/data.json")
-	if err != nil {
-		return nil, fmt.Errorf("loading database: %w", err)
-	}
-
 	// Start session cleanup goroutine.
 	// TODO: Encapsulate this with a mutex, as concurrent map writes will panic in runtime.
-	go func() {
-		for {
-			time.Sleep(time.Minute)
-			for token, creation := range db.userSessionTokens {
-				if time.Since(creation) > 1*time.Hour {
-					delete(db.userSessionTokens, token)
-				}
-			}
-		}
-	}()
+	//go func() {
+	//	for {
+	//		time.Sleep(time.Minute)
+	//		for token, creation := range db.userSessionTokens {
+	//			if time.Since(creation) > 1*time.Hour {
+	//				delete(db.userSessionTokens, token)
+	//			}
+	//		}
+	//	}
+	//}()
 
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
@@ -287,7 +99,6 @@ func NewServer(logger *zap.Logger) (*Server, error) {
 	}).Handler)
 
 	return &Server{
-		db:     db,
 		log:    logger,
 		trace:  trace.NewNoopTracerProvider(),
 		router: router,
@@ -325,6 +136,9 @@ func (s *Server) WithFrontend() *Server {
 				otelhttp.WithTracerProvider(s.trace),
 				// We keep the default name formatter, which defaults to `operation`, to avoid increasing cardinality
 				// with static URIs.
+				// No need for trace propagators in the frontend.
+				// Frontend requests are always public.
+				otelhttp.WithPublicEndpoint(),
 			)
 		})
 
@@ -353,13 +167,19 @@ func (s *Server) WithWS() *Server {
 	return s
 }
 
-func (s *Server) WithAPI() *Server {
+func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
 			return otelhttp.NewHandler(
 				handler,
-				"http_api",
+				"http_catalog",
 				otelhttp.WithTracerProvider(s.trace),
+				// Get trace context from requests.
+				otelhttp.WithPropagators(propagation.TraceContext{}),
+				// Identify requests as public based on the presence of the secret `X-Internal-Token`.
+				otelhttp.WithPublicEndpointFn(func(r *http.Request) bool {
+					return r.Header.Get("X-Internal-Token") != "secret"
+				}),
 				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
 					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
 					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
@@ -369,63 +189,28 @@ func (s *Server) WithAPI() *Server {
 
 		r.Use(ValidateUserMiddleware)
 
-		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(s.log, r)
-			logger.Info("Received pizza recommendation request")
-			var restrictions pizza.Restrictions
-
-			dec := json.NewDecoder(r.Body)
-			dec.DisallowUnknownFields()
-			err := dec.Decode(&restrictions)
-			if err != nil {
-				logger.Error("Failed to decode request body", zap.Error(err))
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			pizza := s.db.GeneratePizza(restrictions)
-			s.db.SetLatestPizza(pizza)
-
-			pizzaRecommendation := PizzaRecommendation{
-				Pizza:      pizza,
-				Calories:   pizza.CalculateCalories(),
-				Vegetarian: pizza.IsVegetarian(),
-			}
-
-			pizzaRecommendations.With(prometheus.Labels{
-				"vegetarian": strconv.FormatBool(pizzaRecommendation.Vegetarian),
-				"tool":       pizzaRecommendation.Pizza.Tool,
-			}).Inc()
-			numberOfIngredientsPerPizza.Observe(float64(len(pizza.Ingredients)))
-			pizzaCaloriesPerSlice.Observe(float64(pizzaRecommendation.Calories))
-
-			logger.Info("New pizza recommendation", zap.String("user", r.Context().Value("user").(string)), zap.Any("pizza", pizzaRecommendation.Pizza.Name))
-
-			err = json.NewEncoder(w).Encode(pizzaRecommendation)
-			if err != nil {
-				logger.Error("Failed to encode pizza recommendation", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		})
-
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(s.log, r)
 			ingredientType := chi.URLParam(r, "type")
 			isVegetarian := r.URL.Query().Get("is_vegetarian")
 
 			var ingredients []pizza.Ingredient
-			switch ingredientType {
-			case "olive_oil":
-				ingredients = s.db.data.OliveOils
-			case "tomato":
-				ingredients = s.db.data.Tomatoes
-			case "mozzarella":
-				ingredients = s.db.data.Mozzarellas
-			case "topping":
-				ingredients = s.db.data.Toppings
-			default:
+			db.Transaction(func(data *database.Data) {
+				switch ingredientType {
+				case "olive_oil":
+					ingredients = append(ingredients, data.OliveOils...)
+				case "tomato":
+					ingredients = append(ingredients, data.Tomatoes...)
+				case "mozzarella":
+					ingredients = append(ingredients, data.Mozzarellas...)
+				case "topping":
+					ingredients = append(ingredients, data.Toppings...)
+				}
+			})
+
+			if len(ingredients) == 0 {
 				w.WriteHeader(http.StatusBadRequest)
+				_, _ = fmt.Fprintf(w, "Unknown ingredient %q", ingredientType)
 				return
 			}
 
@@ -450,7 +235,13 @@ func (s *Server) WithAPI() *Server {
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(s.log, r)
 			logger.Info("Doughs requested")
-			err := json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": s.db.data.Doughs})
+
+			var doughs []pizza.Dough
+			db.Transaction(func(data *database.Data) {
+				doughs = append(doughs, data.Doughs...)
+			})
+
+			err := json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": doughs})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -461,7 +252,13 @@ func (s *Server) WithAPI() *Server {
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(s.log, r)
 			logger.Info("Tools requested")
-			err := json.NewEncoder(w).Encode(map[string][]string{"tools": s.db.data.Tools})
+
+			var tools []string
+			db.Transaction(func(data *database.Data) {
+				tools = append(tools, data.Tools...)
+			})
+
+			err := json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -469,15 +266,48 @@ func (s *Server) WithAPI() *Server {
 			}
 		})
 
-		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			logger := loggerWithUserID(s.log, r)
-			logger.Info("Quotes requested")
-			err := json.NewEncoder(w).Encode(map[string][]string{"quotes": s.db.data.Quotes})
+			logger.Info("Recommendations requested")
+			token := r.Header.Get("Authorization")
+			if token == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			//token = strings.TrimPrefix(token, "Bearer ")
+			//if _, ok := s.db.userSessionTokens[token]; !ok {
+			//	w.WriteHeader(http.StatusUnauthorized)
+			//	return
+			//}
+
+			err := json.NewEncoder(w).Encode(map[string][]pizza.Pizza{"pizzas": db.History()})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+		})
+
+		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-Internal-Token") != "secret" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			var latestRecommendation pizza.Pizza
+
+			dec := json.NewDecoder(r.Body)
+			dec.DisallowUnknownFields()
+			err := dec.Decode(&latestRecommendation)
+			if err != nil {
+				s.log.Error("Failed to decode request", zap.Error(err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			db.SetLatestPizza(latestRecommendation)
+			w.WriteHeader(http.StatusCreated)
 		})
 
 		r.Get("/api/login", func(w http.ResponseWriter, r *http.Request) {
@@ -498,34 +328,11 @@ func (s *Server) WithAPI() *Server {
 
 			guid := xid.New()
 			token := guid.String()
-			if s.db.userSessionTokens == nil {
-				s.db.userSessionTokens = make(map[string]time.Time)
-			}
-			s.db.userSessionTokens[token] = time.Now()
+			//if s.db.userSessionTokens == nil {
+			//	s.db.userSessionTokens = make(map[string]time.Time)
+			//}
+			//s.db.userSessionTokens[token] = time.Now()
 			err := json.NewEncoder(w).Encode(map[string]string{"token": token})
-			if err != nil {
-				logger.Error("Failed to encode response", zap.Error(err))
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		})
-
-		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			logger := loggerWithUserID(s.log, r)
-			logger.Info("Recommendations requested")
-			token := r.Header.Get("Authorization")
-			if token == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			token = strings.TrimPrefix(token, "Bearer ")
-			if _, ok := s.db.userSessionTokens[token]; !ok {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			err := json.NewEncoder(w).Encode(map[string][]pizza.Pizza{"pizzas": s.db.lastRecommendations})
 			if err != nil {
 				logger.Error("Failed to encode response", zap.Error(err))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -535,6 +342,310 @@ func (s *Server) WithAPI() *Server {
 	})
 
 	return s
+}
+
+func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
+	s.router.Group(func(r chi.Router) {
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				"http_copy",
+				otelhttp.WithTracerProvider(s.trace),
+				// Get trace context from requests.
+				otelhttp.WithPropagators(propagation.TraceContext{}),
+				// Identify requests as public based on the presence of the secret `X-Internal-Token`.
+				otelhttp.WithPublicEndpointFn(func(r *http.Request) bool {
+					return r.Header.Get("X-Internal-Token") != "secret"
+				}),
+				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
+					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+				}),
+			)
+		})
+
+		r.Use(ValidateUserMiddleware)
+
+		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
+			logger := loggerWithUserID(s.log, r)
+			logger.Info("Quotes requested")
+
+			var quotes []string
+			db.Transaction(func(data *database.Data) {
+				quotes = append(quotes, data.Quotes...)
+			})
+
+			err := json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
+			if err != nil {
+				logger.Error("Failed to encode response", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		})
+
+		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
+			logger := loggerWithUserID(s.log, r)
+			logger.Info("Names requested")
+
+			var names []string
+			db.Transaction(func(data *database.Data) {
+				names = append(names, data.ClassicNames...)
+			})
+
+			err := json.NewEncoder(w).Encode(map[string][]string{"names": names})
+			if err != nil {
+				logger.Error("Failed to encode response", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		})
+
+		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
+			logger := loggerWithUserID(s.log, r)
+			logger.Info("Adjectives requested")
+
+			var adjs []string
+			db.Transaction(func(data *database.Data) {
+				adjs = append(adjs, data.Adjectives...)
+			})
+
+			err := json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
+			if err != nil {
+				logger.Error("Failed to encode response", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		})
+	})
+
+	return s
+}
+
+func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
+	catalogClient := CatalogClient{CatalogUrl: catalogUrl}
+	copyClient := CopyClient{CopyURL: copyUrl}
+
+	s.router.Group(func(r chi.Router) {
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				"recommendation_api",
+				otelhttp.WithTracerProvider(s.trace),
+				// Get trace context from requests.
+				otelhttp.WithPropagators(propagation.TraceContext{}),
+				// Identify requests as public based on the presence of the secret `X-Internal-Token`.
+				otelhttp.WithPublicEndpointFn(func(r *http.Request) bool {
+					return r.Header.Get("X-Internal-Token") != "secret"
+				}),
+				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+					// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
+					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+				}),
+			)
+		})
+
+		r.Use(ValidateUserMiddleware)
+
+		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
+			catalogClient = catalogClient.WithRequestContext(r.Context())
+			copyClient = copyClient.WithRequestContext(r.Context())
+
+			logger := loggerWithUserID(s.log, r)
+			logger.Info("Received pizza recommendation request")
+			var restrictions pizza.Restrictions
+
+			dec := json.NewDecoder(r.Body)
+			dec.DisallowUnknownFields()
+			err := dec.Decode(&restrictions)
+			if err != nil {
+				logger.Error("Failed to decode request body", zap.Error(err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			restrictions = restrictions.WithDefaults()
+
+			oils, err := catalogClient.Ingredients("olive_oil")
+			if err != nil {
+				logger.Error("Requesting ingredients", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var validOliveOils []pizza.Ingredient
+			for _, oliveOil := range oils {
+				if !contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
+					validOliveOils = append(validOliveOils, oliveOil)
+				}
+			}
+
+			tomatoes, err := catalogClient.Ingredients("tomato")
+			if err != nil {
+				logger.Error("Requesting ingredients", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var validTomatoes []pizza.Ingredient
+			for _, tomato := range tomatoes {
+				if !contains(restrictions.ExcludedIngredients, tomato.Name) && (!restrictions.MustBeVegetarian || tomato.Vegetarian) {
+					validTomatoes = append(validTomatoes, tomato)
+				}
+			}
+
+			mozzarellas, err := catalogClient.Ingredients("mozzarella")
+			if err != nil {
+				logger.Error("Requesting ingredients", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var validMozzarellas []pizza.Ingredient
+			for _, mozzarella := range mozzarellas {
+				if !contains(restrictions.ExcludedIngredients, mozzarella.Name) && (!restrictions.MustBeVegetarian || mozzarella.Vegetarian) {
+					validMozzarellas = append(validMozzarellas, mozzarella)
+				}
+			}
+
+			toppings, err := catalogClient.Ingredients("topping")
+			if err != nil {
+				logger.Error("Requesting ingredients", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var validToppings []pizza.Ingredient
+			for _, topping := range toppings {
+				if !contains(restrictions.ExcludedIngredients, topping.Name) && (!restrictions.MustBeVegetarian || topping.Vegetarian) {
+					validToppings = append(validToppings, topping)
+				}
+			}
+
+			tools, err := catalogClient.Tools()
+			if err != nil {
+				logger.Error("Requesting tools", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var validTools []string
+			for _, tool := range tools {
+				if !contains(restrictions.ExcludedTools, tool) {
+					validTools = append(validTools, tool)
+				}
+			}
+
+			doughs, err := catalogClient.Doughs()
+			if err != nil {
+				logger.Error("Requesting doughs", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			adjectives, err := copyClient.Adjectives()
+			if err != nil {
+				logger.Error("Requesting adjectives", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			names, err := copyClient.Names()
+			if err != nil {
+				logger.Error("Requesting names", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var p pizza.Pizza
+			for i := 0; i < 10; i++ {
+				var randomName string
+				for {
+					randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
+					if strings.HasPrefix(randomName, "A") || strings.HasPrefix(randomName, "E") || strings.HasPrefix(randomName, "I") || strings.HasPrefix(randomName, "O") || strings.HasPrefix(randomName, "U") {
+						randomName = fmt.Sprintf("An %s", randomName)
+					} else {
+						if rand.Intn(100) < 50 {
+							randomName = fmt.Sprintf("The %s", randomName)
+						} else {
+							randomName = fmt.Sprintf("A %s", randomName)
+						}
+					}
+
+					// Measure how funny the name is. It fails if the name is too funny or too unfunny
+					if rand.Intn(100) < 50 {
+						time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+						break
+					}
+				}
+
+				p = pizza.Pizza{
+					Name:        randomName,
+					Dough:       doughs[rand.Intn(len(doughs))],
+					Ingredients: []pizza.Ingredient{validOliveOils[rand.Intn(len(validOliveOils))], validTomatoes[rand.Intn(len(validTomatoes))], validMozzarellas[rand.Intn(len(validMozzarellas))]},
+					Tool:        validTools[rand.Intn(len(validTools))],
+				}
+
+				for j := 0; j < rand.Intn(restrictions.MaxNumberOfToppings-restrictions.MinNumberOfToppings)+restrictions.MinNumberOfToppings; j++ {
+					p.Ingredients = append(p.Ingredients, validToppings[rand.Intn(len(validToppings))])
+				}
+
+				uniqueIngredients := make(map[string]pizza.Ingredient)
+				for _, ingredient := range p.Ingredients {
+					uniqueIngredients[ingredient.Name] = ingredient
+				}
+				p.Ingredients = make([]pizza.Ingredient, 0)
+				for _, ingredient := range uniqueIngredients {
+					p.Ingredients = append(p.Ingredients, ingredient)
+				}
+
+				if p.CalculateCalories() > restrictions.MaxCaloriesPerSlice {
+					continue
+				}
+
+				break
+			}
+
+			pizzaRecommendation := PizzaRecommendation{
+				Pizza:      p,
+				Calories:   p.CalculateCalories(),
+				Vegetarian: p.IsVegetarian(),
+			}
+
+			err = catalogClient.RecordRecommendation(p)
+			if err != nil {
+				logger.Error("Storing recommendation in catalog", zap.Error(err))
+				// Continue anyway.
+			}
+
+			pizzaRecommendations.With(prometheus.Labels{
+				"vegetarian": strconv.FormatBool(pizzaRecommendation.Vegetarian),
+				"tool":       pizzaRecommendation.Pizza.Tool,
+			}).Inc()
+
+			numberOfIngredientsPerPizza.Observe(float64(len(p.Ingredients)))
+			pizzaCaloriesPerSlice.Observe(float64(pizzaRecommendation.Calories))
+
+			logger.Info("New pizza recommendation", zap.String("user", r.Context().Value("user").(string)), zap.Any("pizza", pizzaRecommendation.Pizza.Name))
+
+			err = json.NewEncoder(w).Encode(pizzaRecommendation)
+			if err != nil {
+				logger.Error("Failed to encode pizza recommendation", zap.Error(err))
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		})
+	})
+
+	return s
+}
+
+func contains(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }
 
 // From: https://www.liip.ch/en/blog/embed-sveltekit-into-a-go-binary
