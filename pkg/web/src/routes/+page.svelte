@@ -45,7 +45,14 @@
 			});
 		const json = await res.json();
 		quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
-		socket = new WebSocket(PUBLIC_BACKEND_WS_ENDPOINT + 'ws');
+
+		let wsUrl = `${PUBLIC_BACKEND_WS_ENDPOINT}`;
+		if (wsUrl === "") {
+			// Unlike with fetch, which understands "/" as "the window's host", for WS we need to build the URI by hand.
+			const l = window.location;
+			wsUrl = ((l.protocol === "https:") ? "wss://" : "ws://") + l.hostname + (((l.port != 80) && (l.port != 443)) ? ":" + l.port : "") + "/ws";
+		}
+		socket = new WebSocket(wsUrl);
 		socket.addEventListener('message', function (event) {
 			const data = JSON.parse(event.data);
 			if (data.msg === 'new_pizza') {
