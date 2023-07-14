@@ -223,7 +223,7 @@ func (s *Server) WithWS() *Server {
 	return s
 }
 
-// WithCatalog enables routes related to the ingredients, doughs, and tools. An database.InMemoryDatabase is required to
+// WithCatalog enables routes related to the ingredients, doughs, and tools. A database.InMemoryDatabase is required to
 // enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
 func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
