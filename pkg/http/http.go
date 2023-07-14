@@ -9,6 +9,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -137,6 +139,65 @@ func (s *Server) WithFrontend() *Server {
 		})
 
 		r.Handle("/*", SvelteKitHandler("/*"))
+	})
+
+	return s
+}
+
+// WithGateway enables a gateway that routes external requests to the respective services.
+// This endpoint should be typically enabled toget with WithFrontend on a microservices-based deployment.
+// TODO: So far the gateway only handles a few endpoints.
+func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl string) *Server {
+	s.router.Group(func(r chi.Router) {
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				"http_gateway",
+				otelhttp.WithTracerProvider(s.trace),
+				// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
+				otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+					return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+				}),
+				// Gateway requests are always public.
+				otelhttp.WithPublicEndpoint(),
+			)
+		})
+
+		// Generate client traces for requests proxied by the gateway.
+		otelTransport := otelhttp.NewTransport(
+			nil,
+			// Propagator will retrieve the tracer used in the server from memory.
+			otelhttp.WithPropagators(propagation.TraceContext{}),
+		)
+
+		r.Handle("/api/*", &httputil.ReverseProxy{
+			Transport: otelTransport,
+			Rewrite: func(request *httputil.ProxyRequest) {
+				var u *url.URL
+				switch request.In.URL.Path {
+				case "/api/quotes":
+					u, _ = url.Parse(copyUrl)
+				case "/api/tools":
+					u, _ = url.Parse(catalogUrl)
+				case "/api/pizza":
+					u, _ = url.Parse(recommendationsUrl)
+				}
+
+				request.SetURL(u)
+				s.log.Info("Proxying request", zap.String("url", request.Out.URL.String()))
+
+				// Mark outgoing requests as internal so trace context is trusted.
+				request.Out.Header.Add("X-Internal-Token", "secret")
+			},
+		})
+
+		r.Handle("/ws", &httputil.ReverseProxy{
+			Transport: otelTransport,
+			Rewrite: func(request *httputil.ProxyRequest) {
+				u, _ := url.Parse(wsUrl)
+				request.SetURL(u)
+			},
+		})
 	})
 
 	return s
