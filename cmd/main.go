@@ -33,10 +33,15 @@ func main() {
 	// If QUICKPIZZA_OTLP_ENDPOINT is set, set up tracing outputting to it.
 	// If it is not set, no tracing will be performed.
 	if otlpEndpoint, _ := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); otlpEndpoint != "" {
+		serviceName, _ := os.LookupEnv("QUICKPIZZA_OTLP_SERVICE_NAME")
+		if serviceName == "" {
+			serviceName = "QuickPizza"
+		}
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		tp, err := tracing.OTLPProvider(ctx, otlpEndpoint)
+		tp, err := tracing.OTLPProvider(ctx, otlpEndpoint, serviceName)
 		if err != nil {
 			globalLogger.Fatal("Cannot create OTLP tracer", zap.Error(err))
 		}

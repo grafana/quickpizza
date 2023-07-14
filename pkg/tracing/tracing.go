@@ -16,7 +16,7 @@ import (
 
 // OTLPProvider returns a TracerProvider configured to push traces to the given OTLP endpoint.
 // HTTP, HTTPS, or GRPC transport will be used depending on the scheme specified in endpointUrl.
-func OTLPProvider(ctx context.Context, endpointUrl string) (trace.TracerProvider, error) {
+func OTLPProvider(ctx context.Context, endpointUrl, serviceName string) (trace.TracerProvider, error) {
 	u, err := url.Parse(endpointUrl)
 	if err != nil {
 		return nil, fmt.Errorf("parsing endpoint url: %w", err)
@@ -43,7 +43,7 @@ func OTLPProvider(ctx context.Context, endpointUrl string) (trace.TracerProvider
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("QuickPizza"),
+			semconv.ServiceName(serviceName),
 		),
 	)
 	if err != nil {
