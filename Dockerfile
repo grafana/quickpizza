@@ -3,10 +3,10 @@ FROM node:16.19.1-bullseye as fe-builder
 WORKDIR /app/pkg/web
 COPY pkg/web ./
 
-# TODO: Allow reading these vars in runtime.
-ARG PUBLIC_BACKEND_ENDPOINT=http://localhost:3333/
+# Define public endpoints. If empty (default), the frontend will use the hostname used to load the page.
+ARG PUBLIC_BACKEND_ENDPOINT=""
 ENV PUBLIC_BACKEND_ENDPOINT=${PUBLIC_BACKEND_ENDPOINT}
-ARG PUBLIC_BACKEND_WS_ENDPOINT=ws://localhost:3333/
+ARG PUBLIC_BACKEND_WS_ENDPOINT=""
 ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 
 RUN npm install && \
