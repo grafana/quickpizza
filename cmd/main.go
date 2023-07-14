@@ -57,8 +57,20 @@ func main() {
 	// default behavior.
 	// If QUICKPIZZA_ALL_SERVICES is set to a falsy values, services are opted-in by setting the environment variables
 	// below to a truty value.
+
 	if envServe("QUICKPIZZA_FRONTEND") {
 		server = server.WithFrontend()
+	}
+
+	// If we're deploying as microservices, the deployment serving the frontend should also serve the gateway, which
+	// allows reaching public-facing endpoints from the outside.
+	if envServe("QUICKPIZZA_FRONTEND") && !envServeAll() {
+		server = server.WithGateway(
+			envEndpoint("QUICKPIZZA_CATALOG"),
+			envEndpoint("QUICKPIZZA_COPY"),
+			envEndpoint("QUICKPIZZA_WS"),
+			envEndpoint("QUICKPIZZA_RECOMMENDATIONS"),
+		)
 	}
 
 	if envServe("QUICKPIZZA_WS") {
@@ -91,8 +103,7 @@ func main() {
 	}
 }
 
-// envServe returns whether a service should be enabled.
-func envServe(name string) bool {
+func envServeAll() bool {
 	allSvcs, present := os.LookupEnv("QUICKPIZZA_ALL_SERVICES")
 	allSvcsB, _ := strconv.ParseBool(allSvcs)
 
@@ -101,8 +112,13 @@ func envServe(name string) bool {
 		return true
 	}
 
-	// Otherwise, serve this service if explicitly enabled or if QUICKPIZZA_ALL_SERVICES == 1.
-	return allSvcsB || envBool(name)
+	// Otherwise, serve all if QUICKPIZZA_ALL_SERVICES is truthy.
+	return allSvcsB
+}
+
+// envServe returns whether a service should be enabled.
+func envServe(name string) bool {
+	return envServeAll() || envBool(name)
 }
 
 // envEndpoint returns the endpoint for a given service. If the service is enabled in this instance, it returns
