@@ -257,16 +257,16 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 			isVegetarian := r.URL.Query().Get("is_vegetarian")
 
 			var ingredients []pizza.Ingredient
-			db.Transaction(func(data *database.Data) {
+			db.Transaction(func(data database.Data) {
 				switch ingredientType {
 				case "olive_oil":
-					ingredients = append(ingredients, data.OliveOils...)
+					ingredients = data.OliveOils
 				case "tomato":
-					ingredients = append(ingredients, data.Tomatoes...)
+					ingredients = data.Tomatoes
 				case "mozzarella":
-					ingredients = append(ingredients, data.Mozzarellas...)
+					ingredients = data.Mozzarellas
 				case "topping":
-					ingredients = append(ingredients, data.Toppings...)
+					ingredients = data.Toppings
 				}
 			})
 
@@ -299,8 +299,8 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 			logger.Info("Doughs requested")
 
 			var doughs []pizza.Dough
-			db.Transaction(func(data *database.Data) {
-				doughs = append(doughs, data.Doughs...)
+			db.Transaction(func(data database.Data) {
+				doughs = data.Doughs
 			})
 
 			err := json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": doughs})
@@ -316,8 +316,8 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 			logger.Info("Tools requested")
 
 			var tools []string
-			db.Transaction(func(data *database.Data) {
-				tools = append(tools, data.Tools...)
+			db.Transaction(func(data database.Data) {
+				tools = data.Tools
 			})
 
 			err := json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
@@ -434,8 +434,8 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 			logger.Info("Quotes requested")
 
 			var quotes []string
-			db.Transaction(func(data *database.Data) {
-				quotes = append(quotes, data.Quotes...)
+			db.Transaction(func(data database.Data) {
+				quotes = data.Quotes
 			})
 
 			err := json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
@@ -451,8 +451,8 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 			logger.Info("Names requested")
 
 			var names []string
-			db.Transaction(func(data *database.Data) {
-				names = append(names, data.ClassicNames...)
+			db.Transaction(func(data database.Data) {
+				names = data.ClassicNames
 			})
 
 			err := json.NewEncoder(w).Encode(map[string][]string{"names": names})
@@ -468,8 +468,8 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 			logger.Info("Adjectives requested")
 
 			var adjs []string
-			db.Transaction(func(data *database.Data) {
-				adjs = append(adjs, data.Adjectives...)
+			db.Transaction(func(data database.Data) {
+				adjs = data.Adjectives
 			})
 
 			err := json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
