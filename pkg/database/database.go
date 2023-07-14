@@ -35,11 +35,21 @@ type InMemoryDatabase struct {
 }
 
 // Transaction provides a thread-safe, read-only view of the data in the database.
-func (db *InMemoryDatabase) Transaction(readF func(data *Data)) {
+func (db *InMemoryDatabase) Transaction(readF func(data Data)) {
 	db.mx.Lock()
-	defer db.mx.Unlock()
+	dataCopy := Data{}
+	dataCopy.Doughs = append(dataCopy.Doughs, db.data.Doughs...)
+	dataCopy.OliveOils = append(dataCopy.OliveOils, db.data.OliveOils...)
+	dataCopy.Tomatoes = append(dataCopy.Tomatoes, db.data.Tomatoes...)
+	dataCopy.Mozzarellas = append(dataCopy.Mozzarellas, db.data.Mozzarellas...)
+	dataCopy.Toppings = append(dataCopy.Toppings, db.data.Toppings...)
+	dataCopy.Tools = append(dataCopy.Tools, db.data.Tools...)
+	dataCopy.Adjectives = append(dataCopy.Adjectives, db.data.Adjectives...)
+	dataCopy.ClassicNames = append(dataCopy.ClassicNames, db.data.ClassicNames...)
+	dataCopy.Quotes = append(dataCopy.Quotes, db.data.Quotes...)
+	db.mx.Unlock()
 
-	readF(&db.data)
+	readF(dataCopy)
 }
 
 func (db *InMemoryDatabase) PopulateFromFile(path string) error {
