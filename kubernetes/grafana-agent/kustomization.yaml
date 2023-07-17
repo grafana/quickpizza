@@ -1,0 +1,9 @@
+resources:
+  - ./resources/deployment.yaml
+  - ./resources/service.yaml
+  - ./resources/quickpizza-env.yaml
+
+configMapGenerator:
+  - name: agent-config
+    files:
+      - ./config/grafana-agent.river
