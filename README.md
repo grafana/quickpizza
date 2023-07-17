@@ -24,7 +24,7 @@ If you are running the xk6-disruptor test, Kubernetes needs to be setup and `min
 To run the app locally with Docker, run the command:
 
 ```bash
-docker run -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
+docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
 ```
 
 That's it!
@@ -97,6 +97,24 @@ docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus
              --web.enable-remote-write-receiver
 ```
 
+## Enable tracing in Docker
+
+QuickPizza will automatically push traces in OTLP format to the URL specified in `QUICKPIZZA_OTLP_ENDPOINT`, if any. A common pattern to forward traces to your tracing backend of choice (e.g. Grafana Tempo, Grafana Cloud) is by running an Opentelemetry collector container as a forwarder. We can easily set this up with the following commands:
+
+```shell
+# Create a docker network so both containers can talk to each other:
+docker network create quickpizza
+# Configure URL, user, and API key for your tracing backend:
+# For Grafana cloud, see https://grafana.com/docs/opentelemetry/collector/send-otlp-to-grafana-cloud-databases/
+ export TRACES_ENDPOINT=your-tracing-endpoint.grafana.net:443
+ export TEMPO_USER=12345
+ export TEMPO_API_KEY=changeme
+# Run the opentelemetry collector. The Kubernetes config for the collector works well in Docker as well.
+docker run --name otelcol --rm -i -v ./kubernetes/otelcol/config/otelcol.yaml:/etc/otelcol-contrib/config.yaml --network quickpizza -e TRACES_ENDPOINT -e TEMPO_USER -e TEMPO_API_KEY otel/opentelemetry-collector-contrib
+# On a different terminal, run the QuickPizza container on this network and tracing enabled:
+docker run --rm -i -p 3333:3333 -e QUICKPIZZA_OTLP_ENDPOINT=http://otelcol:4318 --network quickpizza ghcr.io/grafana/quickpizza-local:latest
+```
+
 ## Deploy application to Kubernetes
 
 If you want to run a test that uses xk6-disruptor, you need to deploy QuickPizza to Kubernetes.
@@ -156,12 +174,27 @@ The external IP should be assigned:
 kubectl get services
 
 NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)          AGE
-# ...
 quickpizza-frontend   LoadBalancer   10.99.177.165    10.99.177.165   3333:30333/TCP   3m9s
-#                                                     ⬆️ Note this ⬆️
 ```
 
-You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `10.99.177.165`.
+You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `10.99.177.165`. Depending on the OS you're using, it might be `127.0.0.1`, which is also fine.
+
+We can save this IP on an environment variable for using it later on tests:
+
+```shell
+export BASE_URL="http://$(kubectl get svc quickpizza-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):3333"
+echo $BASE_URL
+# You should see something like:
+# http://10.99.177.165:3333
+```
+
+### Enable tracing in Kubernetes
+
+Distributed tracing support can be enabled when deploying in Kubernetes by editing the `kubernetes/kustomization.yaml` file and following the instructions in the comments present on that file.
+
+![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/quickpizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
+
+Please note that the included tracing setup assumes you already have an endpoint capable of working with OTLP traces, such as Grafana Tempo. If this is not the case, you will need to adapt the opentelemetry-collector config present in `kubernetes/otelcol/config/otelcol.yaml`.
 
 ### Running xk6-disruptor tests
 
