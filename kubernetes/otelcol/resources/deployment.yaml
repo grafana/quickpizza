@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  labels:
+    app.k8s.io/name: opentelemetry-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.k8s.io/name: opentelemetry-collector
+  template:
+    metadata:
+      name: otel-collector
+      labels:
+        app.k8s.io/name: opentelemetry-collector
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: otelcol
+          image: otel/opentelemetry-collector-contrib:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: otelcol-credentials
+          ports:
+            - name: grpc
+              containerPort: 4317
+            - name: http
+              containerPort: 4318
+          volumeMounts:
+            - mountPath: /etc/otelcol-contrib/config.yaml
+              name: otelcol-config
+              subPath: otelcol.yaml
+      volumes:
+        - name: otelcol-config
+          configMap:
+            name: otelcol-config

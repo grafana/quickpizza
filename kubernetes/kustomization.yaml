@@ -1,0 +1,23 @@
+# Uncomment the following line to deploy the application on a non-default namespace
+#namespace: quickpizza
+
+# TODO: Remove this after releasing.
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    newName: ghcr.io/roobre/quickpizza-local
+
+resources:
+  - ./resources/deployments.yaml
+  - ./resources/services.yaml
+  # Uncomment the line below if you want tracing functionality. This will deploy a local opentelemetry-collector
+  # and configure QuickPizza to use it.
+  #- ./otelcol
+
+# If you want tracing functionality, change the following lines to match your OTLP endpoint and username/password.
+# For Grafana cloud, see https://grafana.com/docs/opentelemetry/collector/send-otlp-to-grafana-cloud-databases/
+secretGenerator:
+  - name: otelcol-credentials
+    literals:
+      - TRACES_ENDPOINT=your-tracing-endpoint.grafana.net:443
+      - TEMPO_USER=12345
+      - TEMPO_API_KEY=your-api-key

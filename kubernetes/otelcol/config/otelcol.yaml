@@ -1,0 +1,31 @@
+receivers:
+  otlp:
+    protocols:
+      grpc: {}
+      http: {}
+
+exporters:
+  otlp:
+    endpoint: "${TRACES_ENDPOINT}"
+    auth:
+      authenticator: basicauth/tempo
+
+processors:
+  batch: {}
+
+extensions:
+  basicauth/tempo:
+    client_auth:
+      username: "${TEMPO_USER}"
+      password: "${TEMPO_API_KEY}"
+
+service:
+  extensions: [ basicauth/tempo ]
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        -  otlp
