@@ -24,7 +24,7 @@ If you are running the xk6-disruptor test, Kubernetes needs to be setup and `min
 To run the app locally with Docker, run the command:
 
 ```bash
-docker run -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
+docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
 ```
 
 That's it!
@@ -97,13 +97,35 @@ docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus
              --web.enable-remote-write-receiver
 ```
 
+## Enable tracing in Docker
+
+A common pattern to set up tracing is to configure your application to forward traces to an agent, which in turn forwards them to your tracing backend, such as a Grafana Stack. QuickPizza can be configured to do this by setting `QUICKPIZZA_OTLP_ENDPOINT` to the URL of said agent (in this case, we will use the [grafana/agent](https://github.com/grafana/agent)), which in turn can be configured through environment variables.
+
+If you have a QuickPizza container running from previous steps, you can stop it now, as we will need to launch it again with tracing enabled. To do so, you can run the following commands:
+
+```shell
+# Configure URL, user, and API key for your tracing backend.
+# If you use Grafana Cloud, you can get your credentials following these steps: https://grafana.com/docs/agent/latest/flow/getting-started/opentelemetry-to-lgtm-stack/#grafana-tempo
+ export TRACES_ENDPOINT=your-tracing-endpoint.grafana.local:443
+ export TRACES_USER=12345
+ export TRACES_API_KEY=your-api-key
+# Create a docker network so quickpizza and grafana-agent containers can talk to each other:
+docker network create quickpizza
+# Run the grafana agent. The provided config is not kubernetes-specific and works in Docker as well.
+docker run --name grafana-agent --rm -i -v ./kubernetes/grafana-agent/config/grafana-agent.river:/grafana-agent.river --network quickpizza -e TRACES_ENDPOINT -e TRACES_USER -e TRACES_API_KEY -e AGENT_MODE=flow grafana/agent run /grafana-agent.river
+# On a different terminal, run the QuickPizza container on the same network with tracing enabled:
+docker run --rm -i -p 3333:3333 -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 --network quickpizza ghcr.io/grafana/quickpizza-local:latest
+```
+
 ## Deploy application to Kubernetes
 
-If you want to run a test that uses xk6-disruptor, you need to deploy QuickPizza to Kubernetes.
+If you want to run a test that uses xk6-disruptor, or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. This section explains how to deploy QuickPizza to a local Kubernetes cluster using minikube, which you can run on your own machine if you use Linux, MacOS, or Windows.
 
-If you are already running the app with Docker, make sure you stop the `QuickPizza` container first.
+Minikube is available in the software distribution channel for your OS of choice: `apt` or similar for Linux, `brew` for macOS, and `winget` or chocolatey for Windows. For more details on how to install Minikube, you can check the "Installation" section on the [Minikube documentation](https://minikube.sigs.k8s.io/docs/start/).
 
-Then, start minikube by running the command:
+We recommend that you use the latest version of Kubernetes available. We have verified the following instructions for kubernetes 1.19 and above. Keep in mind that `xk6-disruptor` requires Kubernetes 1.25 or above.
+
+After installing minikube, you can start a local cluster with the following command:
 
 ```bash
 minikube start
@@ -117,7 +139,7 @@ kubectl apply -k kubernetes/
 
 The `kubernetes/kustomization.yaml` file contains some commented lines that, if enabled, will configure tracing for the quickpizza app. Feel free to uncomment those lines and input your OTLP credentials if you want this functionality.
 
-When deployed in Kubernetes, the QuickPizza application will deploy a number of different pods, each one being a microservice for the application:
+When deployed in Kubernetes, the QuickPizza manifests locates in `./kubernetes` will deploy a number of different pods, each one being a microservice for the application:
 
 ```
 kubectl get pods
@@ -144,24 +166,40 @@ quickpizza-recs       ClusterIP      10.103.37.197    <none>        3333/TCP    
 quickpizza-ws         ClusterIP      10.106.51.76     <none>        3333/TCP         6s
 ```
 
-A service of particular interest is `quickpizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to [assign the external IP of the cluster](https://k6.io/docs/javascript-api/xk6-disruptor/get-started/expose-your-application/). Using `minikube`, open another terminal window and run:
+A service of particular interest is `quickpizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to [expose it](https://k6.io/docs/javascript-api/xk6-disruptor/get-started/expose-your-application/). To do this with minikube, open another terminal window and run:
 
 ```bash
 minikube tunnel
 ```
 
-The external IP should be assigned:
+The command will stay running in the foreground, forwarding traffic to the cluster.
+
+The external IP should now be assigned:
 
 ```bash
 kubectl get services
 
 NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)          AGE
-# ...
 quickpizza-frontend   LoadBalancer   10.99.177.165    10.99.177.165   3333:30333/TCP   3m9s
-#                                                     ⬆️ Note this ⬆️
+# Other services elided for brevity
 ```
 
-You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `10.99.177.165`.
+You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `10.99.177.165`. Depending on the OS you're using, it might be `127.0.0.1`, which is also fine.
+
+We can save this IP on an environment variable for using it later on tests:
+
+```shell
+export BASE_URL="http://$(kubectl get svc quickpizza-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):3333"
+echo $BASE_URL
+# You should see something like:
+# http://10.99.177.165:3333
+```
+
+### Enable tracing in Kubernetes
+
+Distributed tracing support can be enabled when deploying in Kubernetes by editing the `kubernetes/kustomization.yaml` file and following the instructions in the comments present on that file. You will need a backend capable of ingesting OTLP traces, such as a Grafana Cloud Stack, or a Tempo deployment.
+
+![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/quickpizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
 
 ### Running xk6-disruptor tests
 
