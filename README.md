@@ -112,19 +112,39 @@ minikube start
 To deploy the application, run: 
 
 ```bash
-kubectl apply -f pizza-info.yaml --namespace=pizza-ns
+kubectl apply -k kubernetes/
 ```
 
-The IP of the service should be `pending`:
+The `kubernetes/kustomization.yaml` file contains some commented lines that, if enabled, will configure tracing for the quickpizza app. Feel free to uncomment those lines and input your OTLP credentials if you want this functionality.
 
-```bash
-kubectl get all -n pizza-ns
+When deployed in Kubernetes, the QuickPizza application will deploy a number of different pods, each one being a microservice for the application:
 
-NAME                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-service/pizza-info   LoadBalancer   10.108.142.101   <pending>     3333:30076/TCP   13s
+```
+kubectl get pods
+
+NAME                                  READY   STATUS    RESTARTS   AGE
+quickpizza-catalog-749d46c785-4q6s5   1/1     Running   0          7s
+quickpizza-copy-7f879947c5-rslhg      1/1     Running   0          7s
+quickpizza-frontend-bf447c76-9nb8f    1/1     Running   0          7s
+quickpizza-recs-644d498964-6l48p      1/1     Running   0          7s
+quickpizza-ws-7d444d9cd6-mkkmd        1/1     Running   0          7s
 ```
 
-The next step is to [assign the external IP of the cluster](https://k6.io/docs/javascript-api/xk6-disruptor/get-started/expose-your-application/). Using `minikube`, open another terminal window and run:
+You should also see a bunch of services associated with these pods:
+
+```
+kubectl get services
+
+NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+kubernetes            ClusterIP      10.96.0.1        <none>        443/TCP          1s
+quickpizza-catalog    ClusterIP      10.104.201.242   <none>        3333/TCP         6s
+quickpizza-copy       ClusterIP      10.97.255.59     <none>        3333/TCP         6s
+quickpizza-frontend   LoadBalancer   10.99.177.165    <pending>     3333:30333/TCP   6s
+quickpizza-recs       ClusterIP      10.103.37.197    <none>        3333/TCP         6s
+quickpizza-ws         ClusterIP      10.106.51.76     <none>        3333/TCP         6s
+```
+
+A service of particular interest is `quickpizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to [assign the external IP of the cluster](https://k6.io/docs/javascript-api/xk6-disruptor/get-started/expose-your-application/). Using `minikube`, open another terminal window and run:
 
 ```bash
 minikube tunnel
@@ -133,13 +153,15 @@ minikube tunnel
 The external IP should be assigned:
 
 ```bash
-kubectl get all -n pizza-ns
+kubectl get services
 
-NAME                 TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-service/pizza-info   LoadBalancer   10.108.142.101   127.0.0.1     3333:30076/TCP   39s
+NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)          AGE
+# ...
+quickpizza-frontend   LoadBalancer   10.99.177.165    10.99.177.165   3333:30333/TCP   3m9s
+#                                                     ⬆️ Note this ⬆️
 ```
 
-Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
+You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `10.99.177.165`.
 
 ### Running xk6-disruptor tests
 

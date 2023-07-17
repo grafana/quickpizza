@@ -1,0 +1,18 @@
+# Uncomment the following line to deploy the application on a non-default namespace
+#namespace: quickpizza
+
+resources:
+  - ./resources/deployments.yaml
+  - ./resources/services.yaml
+  # Uncomment the line below if you want tracing functionality. This will deploy the grafana agent and configure
+  # QuickPizza to push traces to it.
+  #- ./grafana-agent
+
+# For full tracing functionality, change the following lines to match your OTLP endpoint and username/password.
+# For Grafana cloud, see https://grafana.com/docs/agent/latest/flow/getting-started/opentelemetry-to-lgtm-stack/#grafana-tempo
+secretGenerator:
+  - name: grafana-agent-credentials
+    literals:
+      - TRACES_ENDPOINT=your-tracing-endpoint.grafana.net:443
+      - TRACES_USER=12345
+      - TRACES_API_KEY=your-api-key
