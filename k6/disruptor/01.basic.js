@@ -17,6 +17,7 @@ const scenarios = {
     startTime: "10s",
   },
 };
+
 if (__ENV.DISABLE_DISRUPT) {
   delete scenarios["disrupt"];
 }
@@ -26,7 +27,7 @@ export const options = {
 };
 
 export function disrupt(data) {
-  const disruptor = new ServiceDisruptor("pizza-info", "pizza-ns");
+  const disruptor = new ServiceDisruptor("quickpizza-catalog", "default");
   const targets = disruptor.targets();
   if (targets.length == 0) {
     throw new Error("expected list to have one target");
@@ -44,6 +45,7 @@ export default function () {
     max_number_of_toppings: 6,
     min_number_of_toppings: 2,
   };
+
   let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
     headers: {
       "Content-Type": "application/json",
@@ -51,10 +53,12 @@ export default function () {
     },
   });
   check(res, { "status is 200": (res) => res.status === 200 });
+
   console.log(
     `${res.json().pizza.name} (${
       res.json().pizza.ingredients.length
     } ingredients)`
   );
+
   sleep(1);
 }
