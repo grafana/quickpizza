@@ -487,10 +487,7 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 
 // WithRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
 // the URLs for the Catalog and Copy services.
-func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
-	catalogClient := client.HTTPCatalogClient{CatalogUrl: catalogUrl}
-	copyClient := client.HTTPCopyClient{CopyURL: copyUrl}
-
+func (s *Server) WithRecommendations(catalogClient client.Catalog, copyClient client.Copy) *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
 			return otelhttp.NewHandler(
@@ -517,8 +514,8 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 			// by the server (if any), which allows clients to both generate traces for outgoing client-type traces
 			// without explicitly configuring a tracer, and to link said client traces with the server trace that is
 			// generated in this request.
-			catalogClient = catalogClient.WithRequestContext(r.Context())
-			copyClient = copyClient.WithRequestContext(r.Context())
+			catalogClient = catalogClient.WithContext(r.Context())
+			copyClient = copyClient.WithContext(r.Context())
 
 			logger := loggerWithUserID(s.log, r)
 			logger.Info("Received pizza recommendation request")
