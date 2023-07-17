@@ -6,18 +6,26 @@ import (
 
 	"github.com/grafana/quickpizza/pkg/database"
 	"github.com/grafana/quickpizza/pkg/pizza"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type CatalogDB struct {
 	Database *database.InMemoryDatabase
+	Ctx      context.Context
 }
 
-// WithContext returns the same CatalogDB client as it does not use the context for anything.
-func (c CatalogDB) WithContext(_ context.Context) Catalog {
+func (c CatalogDB) WithContext(ctx context.Context) Catalog {
+	c.Ctx = ctx
 	return c
 }
 
 func (c CatalogDB) Ingredients(ingredientType string) ([]pizza.Ingredient, error) {
+	_, span := trace.SpanFromContext(c.Ctx).TracerProvider().Tracer("").Start(
+		c.Ctx,
+		"db-ingredients",
+	)
+	defer span.End()
+
 	var ingredients []pizza.Ingredient
 	var err error
 	c.Database.Transaction(func(data database.Data) {
@@ -42,6 +50,12 @@ func (c CatalogDB) Ingredients(ingredientType string) ([]pizza.Ingredient, error
 }
 
 func (c CatalogDB) Tools() ([]string, error) {
+	_, span := trace.SpanFromContext(c.Ctx).TracerProvider().Tracer("").Start(
+		c.Ctx,
+		"db-tools",
+	)
+	defer span.End()
+
 	var tools []string
 	c.Database.Transaction(func(data database.Data) {
 		tools = data.Tools
@@ -51,6 +65,12 @@ func (c CatalogDB) Tools() ([]string, error) {
 }
 
 func (c CatalogDB) Doughs() ([]pizza.Dough, error) {
+	_, span := trace.SpanFromContext(c.Ctx).TracerProvider().Tracer("").Start(
+		c.Ctx,
+		"db-doughs",
+	)
+	defer span.End()
+
 	var doughs []pizza.Dough
 	c.Database.Transaction(func(data database.Data) {
 		doughs = data.Doughs
@@ -60,20 +80,33 @@ func (c CatalogDB) Doughs() ([]pizza.Dough, error) {
 }
 
 func (c CatalogDB) RecordRecommendation(p pizza.Pizza) error {
+	_, span := trace.SpanFromContext(c.Ctx).TracerProvider().Tracer("").Start(
+		c.Ctx,
+		"db-store-recommendation",
+	)
+	defer span.End()
+
 	c.Database.SetLatestPizza(p)
 	return nil
 }
 
 type CopyDB struct {
 	Database *database.InMemoryDatabase
+	Ctx      context.Context
 }
 
-// WithContext returns the same CopyDB client as it does not use the context for anything.
-func (c CopyDB) WithContext(_ context.Context) Copy {
+func (c CopyDB) WithContext(ctx context.Context) Copy {
+	c.Ctx = ctx
 	return c
 }
 
 func (c CopyDB) Adjectives() ([]string, error) {
+	_, span := trace.SpanFromContext(c.Ctx).TracerProvider().Tracer("").Start(
+		c.Ctx,
+		"db-adjectives",
+	)
+	defer span.End()
+
 	var adjs []string
 	c.Database.Transaction(func(data database.Data) {
 		adjs = data.Adjectives
@@ -83,6 +116,12 @@ func (c CopyDB) Adjectives() ([]string, error) {
 }
 
 func (c CopyDB) Names() ([]string, error) {
+	_, span := trace.SpanFromContext(c.Ctx).TracerProvider().Tracer("").Start(
+		c.Ctx,
+		"db-names",
+	)
+	defer span.End()
+
 	var names []string
 	c.Database.Transaction(func(data database.Data) {
 		names = data.ClassicNames

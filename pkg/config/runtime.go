@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"os"
 	"strconv"
 
@@ -44,7 +45,7 @@ func (r Runtime) CatalogClient(db *database.InMemoryDatabase) client.Catalog {
 		return client.CatalogDB{Database: db}
 	}
 
-	return client.CatalogHTTP{CatalogUrl: r.Endpoint(ENV_SERVICE_CATALOG)}
+	return client.CatalogHTTP{CatalogUrl: r.Endpoint(ENV_SERVICE_CATALOG), Ctx: context.Background()}
 }
 
 func (r Runtime) CopyClient(db *database.InMemoryDatabase) client.Copy {
@@ -52,7 +53,7 @@ func (r Runtime) CopyClient(db *database.InMemoryDatabase) client.Copy {
 		return client.CopyDB{Database: db}
 	}
 
-	return client.CopyHTTP{CopyURL: r.Endpoint(ENV_SERVICE_COPY)}
+	return client.CopyHTTP{CopyURL: r.Endpoint(ENV_SERVICE_COPY), Ctx: context.Background()}
 }
 
 // Endpoint returns the endpoint for a given service. If the service is enabled in this instance, it returns
