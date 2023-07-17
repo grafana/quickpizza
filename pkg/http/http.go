@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/grafana/quickpizza/pkg/client"
 	"github.com/grafana/quickpizza/pkg/database"
 	"github.com/grafana/quickpizza/pkg/pizza"
 	"github.com/grafana/quickpizza/pkg/web"
@@ -487,8 +488,8 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 // WithRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
 // the URLs for the Catalog and Copy services.
 func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
-	catalogClient := CatalogClient{CatalogUrl: catalogUrl}
-	copyClient := CopyClient{CopyURL: copyUrl}
+	catalogClient := client.CatalogClient{CatalogUrl: catalogUrl}
+	copyClient := client.CopyClient{CopyURL: copyUrl}
 
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {

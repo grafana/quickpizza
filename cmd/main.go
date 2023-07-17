@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	http "net/http"
+	"net/http"
 	"os"
 	"strconv"
 
