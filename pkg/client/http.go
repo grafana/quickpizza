@@ -14,23 +14,23 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// CatalogClient is a client that queries the Catalog service.
-type CatalogClient struct {
+// CatalogHTTP is a client that queries the Catalog service's HTTP endpoint.
+type CatalogHTTP struct {
 	CatalogUrl     string
 	TracerProvider trace.TracerProvider
 	Ctx            context.Context
 }
 
-// WithRequestContext returns a copy of the CatalogClient that will use the supplied context.
-// This context should come from a http.Request, and if provided, CatalogClient will:
+// WithContext returns a copy of the CatalogHTTP that will use the supplied context.
+// This context should come from a http.Request, and if provided, CatalogHTTP will:
 // - Extract parent tracer and trace IDs from it and propagate it to the requests it makes.
 // - Extract the QuickPizza user ID from it and propagate it as well.
-func (c CatalogClient) WithRequestContext(ctx context.Context) CatalogClient {
+func (c CatalogHTTP) WithContext(ctx context.Context) Catalog {
 	c.Ctx = ctx
 	return c
 }
 
-func (c CatalogClient) Ingredients(ingredientType string) ([]pizza.Ingredient, error) {
+func (c CatalogHTTP) Ingredients(ingredientType string) ([]pizza.Ingredient, error) {
 	var ingredients struct {
 		Ingredients []pizza.Ingredient
 	}
@@ -44,7 +44,7 @@ func (c CatalogClient) Ingredients(ingredientType string) ([]pizza.Ingredient, e
 	return ingredients.Ingredients, nil
 }
 
-func (c CatalogClient) Tools() ([]string, error) {
+func (c CatalogHTTP) Tools() ([]string, error) {
 	var tools struct {
 		Tools []string
 	}
@@ -57,7 +57,7 @@ func (c CatalogClient) Tools() ([]string, error) {
 	return tools.Tools, nil
 }
 
-func (c CatalogClient) Doughs() ([]pizza.Dough, error) {
+func (c CatalogHTTP) Doughs() ([]pizza.Dough, error) {
 	var doughs struct {
 		Doughs []pizza.Dough
 	}
@@ -70,22 +70,22 @@ func (c CatalogClient) Doughs() ([]pizza.Dough, error) {
 	return doughs.Doughs, nil
 }
 
-func (c CatalogClient) RecordRecommendation(p pizza.Pizza) error {
+func (c CatalogHTTP) RecordRecommendation(p pizza.Pizza) error {
 	return postJSON(c.Ctx, c.CatalogUrl+"/api/internal/recommendations", p)
 }
 
-// CopyClient is a client that queries the Copy service.
-type CopyClient struct {
+// CopyHTTP is a client that queries the Copy service's HTTP endpoint.
+type CopyHTTP struct {
 	CopyURL string
 	Ctx     context.Context
 }
 
-func (c CopyClient) WithRequestContext(ctx context.Context) CopyClient {
+func (c CopyHTTP) WithContext(ctx context.Context) Copy {
 	c.Ctx = ctx
 	return c
 }
 
-func (c CopyClient) Adjectives() ([]string, error) {
+func (c CopyHTTP) Adjectives() ([]string, error) {
 	var adjs struct {
 		Adjectives []string
 	}
@@ -99,7 +99,7 @@ func (c CopyClient) Adjectives() ([]string, error) {
 	return adjs.Adjectives, nil
 }
 
-func (c CopyClient) Names() ([]string, error) {
+func (c CopyHTTP) Names() ([]string, error) {
 	var names struct {
 		Names []string
 	}
