@@ -40,6 +40,9 @@ func (r Runtime) Serve(envName string) bool {
 	return r.ServeAll() || r.envBool(envName)
 }
 
+// CatalogClient returns a database-backed client.Catalog if the catalog service is enabled, and a http-backed client
+// if it is not. In the latter case, the catalog endpoint is obtained from the QUICKPIZZA_CATALOG_ENDPOINT environment
+// variable and the supplied db instance is ignored.
 func (r Runtime) CatalogClient(db *database.InMemoryDatabase) client.Catalog {
 	if r.Serve(ENV_SERVICE_CATALOG) {
 		return client.CatalogDB{Database: db}
@@ -48,6 +51,9 @@ func (r Runtime) CatalogClient(db *database.InMemoryDatabase) client.Catalog {
 	return client.CatalogHTTP{CatalogUrl: r.Endpoint(ENV_SERVICE_CATALOG), Ctx: context.Background()}
 }
 
+// CopyClient returns a database-backed client.Copy if the catalog service is enabled, and a http-backed client
+// if it is not. In the latter case, the catalog endpoint is obtained from the QUICKPIZZA_COPY_ENDPOINT environment
+// variable and the supplied db instance is ignored.
 func (r Runtime) CopyClient(db *database.InMemoryDatabase) client.Copy {
 	if r.Serve(ENV_SERVICE_COPY) {
 		return client.CopyDB{Database: db}
