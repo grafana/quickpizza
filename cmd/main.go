@@ -88,8 +88,7 @@ func main() {
 	}
 
 	// Recommendations service needs to know the URL where the Catalog and Copy services are located.
-	// This URL is automatically set to `localhost` if Recommendations is enabled at the same time as either of those.
-	// If they are not, URLs are sourced from QUICKPIZZA_CATALOG_ENDPOINT and QUICKPIZZA_COPY_ENDPOINT.
+	// config.Runtime will supply db-backed clients to the
 	if runtimeConfig.Serve(config.ENV_SERVICE_RECOMMENDATIONS) {
 		server = server.WithRecommendations(
 			runtimeConfig.CatalogClient(db),
