@@ -5,10 +5,14 @@ import (
 	http "net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/grafana/quickpizza/pkg/database"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/grafana/quickpizza/pkg/tracing"
+	"github.com/hashicorp/go-retryablehttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +27,15 @@ func main() {
 	err = db.PopulateFromFile("data.json")
 	if err != nil {
 		globalLogger.Fatal("loading data from disk", zap.Error(err))
+	}
+
+	// Create an HTTP client configured from env vars.
+	// If no specific env vars are set, this will return a http client that does not perform any retries.
+	httpCli := clientFromEnv()
+
+	httpRequestTimeout := time.Duration(envInt("QUICKPIZZA_TIMEOUT_MS")) * time.Millisecond
+	if httpRequestTimeout == 0 {
+		httpRequestTimeout = 1000 * time.Millisecond
 	}
 
 	server, err := qphttp.NewServer(globalLogger)
@@ -89,10 +102,10 @@ func main() {
 	// This URL is automatically set to `localhost` if Recommendations is enabled at the same time as either of those.
 	// If they are not, URLs are sourced from QUICKPIZZA_CATALOG_ENDPOINT and QUICKPIZZA_COPY_ENDPOINT.
 	if envServe("QUICKPIZZA_RECOMMENDATIONS") {
-		server = server.WithRecommendations(
-			envEndpoint("QUICKPIZZA_CATALOG"),
-			envEndpoint("QUICKPIZZA_COPY"),
-		)
+		catalogClient := qphttp.NewCatalogClient(envEndpoint("QUICKPIZZA_CATALOG")).WithClient(httpCli)
+		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_COPY")).WithClient(httpCli)
+
+		server = server.WithRecommendations(catalogClient, copyClient)
 	}
 
 	listen := ":3333"
@@ -101,6 +114,46 @@ func main() {
 	if err != nil {
 		globalLogger.Error("Running HTTP server", zap.Error(err))
 	}
+}
+
+// clientFromEnv returns an *http.Client implementation according to the retries and backoff specified in env vars.
+func clientFromEnv() *http.Client {
+	// Configure an underlying client with otel transport.
+	// Otel transport takes care of generating spans for outcoming requests, as well as propagating trace IDs on those
+	// requests.
+	httpClient := &http.Client{
+		Transport: otelhttp.NewTransport(
+			nil, // Default transport.
+			// Propagator will retrieve the tracer used in the server from memory.
+			otelhttp.WithPropagators(propagation.TraceContext{}),
+		),
+	}
+
+	timeout := envDuration("QUICKPIZZA_TIMEOUT")
+	if timeout == 0 {
+		timeout = time.Second
+	}
+
+	httpClient.Timeout = timeout
+
+	retriableClient := retryablehttp.NewClient()
+	retriableClient.Logger = nil
+	// Configure retryablehttp to use the instrumented client.
+	// Retries occur at the retriableClient layer, so instrumentation will see failures from httpClient.
+	retriableClient.HTTPClient = httpClient
+
+	retriableClient.RetryMax = envInt("QUICKPIZZA_RETRIES")
+
+	if retryMin := envDuration("QUICKPIZZA_BACKOFF_MIN"); retryMin != 0 {
+		retriableClient.RetryWaitMin = retryMin
+	}
+
+	if retryMax := envDuration("QUICKPIZZA_BACKOFF_MAX"); retryMax != 0 {
+		retriableClient.RetryWaitMax = retryMax
+	}
+
+	// Return a stdlib client that uses retryablehttp as transport.
+	return retriableClient.StandardClient()
 }
 
 func envServeAll() bool {
@@ -145,4 +198,34 @@ func envBool(name string) bool {
 	}
 
 	return b
+}
+
+// envInt returns the 32-bit integer value for the specified env var, or 0 if it is not set or cannot be parsed.
+func envInt(name string) int {
+	v, found := os.LookupEnv(name)
+	if !found {
+		return 0
+	}
+
+	b, err := strconv.ParseInt(v, 10, 32)
+	if err != nil {
+		return 0
+	}
+
+	return int(b)
+}
+
+// envInt returns the time.Duration value for the specified env var, or 0 if it is not set or cannot be parsed.
+func envDuration(name string) time.Duration {
+	v, found := os.LookupEnv(name)
+	if !found {
+		return 0
+	}
+
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return 0
+	}
+
+	return d
 }

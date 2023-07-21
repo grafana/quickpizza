@@ -486,10 +486,7 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 
 // WithRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
 // the URLs for the Catalog and Copy services.
-func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
-	catalogClient := CatalogClient{CatalogUrl: catalogUrl}
-	copyClient := CopyClient{CopyURL: copyUrl}
-
+func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient CopyClient) *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
 			return otelhttp.NewHandler(
