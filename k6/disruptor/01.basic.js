@@ -1,64 +1,58 @@
 import http from "k6/http";
-import { check, sleep } from "k6";
-import { ServiceDisruptor } from "k6/x/disruptor";
+import {check, sleep} from "k6";
+import {ServiceDisruptor} from "k6/x/disruptor";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
 
 const scenarios = {
-  disrupt: {
-    executor: "shared-iterations",
-    iterations: 1,
-    exec: "disrupt",
-  },
-  load: {
-    executor: "constant-vus",
-    vus: 5,
-    duration: "30s",
-    startTime: "10s",
-  },
+    disrupt: {
+        executor: "shared-iterations",
+        iterations: 1,
+        exec: "disrupt",
+    },
+    load: {
+        executor: "constant-vus",
+        vus: 5,
+        duration: "30s",
+        startTime: "5s",
+    },
 };
 
 if (__ENV.DISABLE_DISRUPT) {
-  delete scenarios["disrupt"];
+    delete scenarios["disrupt"];
 }
 
 export const options = {
-  scenarios: scenarios,
+    scenarios: scenarios,
 };
 
 export function disrupt(data) {
-  const disruptor = new ServiceDisruptor("quickpizza-catalog", "default");
-  const targets = disruptor.targets();
-  if (targets.length == 0) {
-    throw new Error("expected list to have one target");
-  }
+    const disruptor = new ServiceDisruptor("quickpizza-catalog", "default");
+    const targets = disruptor.targets();
+    if (targets.length === 0) {
+        throw new Error("expected list to have one target");
+    }
 
-  disruptor.injectHTTPFaults({ averageDelay: "1000ms" }, "40s");
+    disruptor.injectHTTPFaults({errorRate: 0.1, errorCode: 503}, "40s");
 }
 
 export default function () {
-  let restrictions = {
-    max_calories_pers_slice: 500,
-    must_be_vegetarian: false,
-    excluded_ingredients: ["pepperoni"],
-    excluded_tools: ["knife"],
-    max_number_of_toppings: 6,
-    min_number_of_toppings: 2,
-  };
+    const restrictions = {
+        "maxCaloriesPerSlice": 500,
+        "mustBeVegetarian": false,
+        "excludedIngredients": ["pepperoni"],
+        "excludedTools": ["knife"],
+        "maxNumberOfToppings": 6,
+        "minNumberOfToppings": 2
+    }
 
-  let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
-    headers: {
-      "Content-Type": "application/json",
-      "X-User-ID": 23423,
-    },
-  });
-  check(res, { "status is 200": (res) => res.status === 200 });
+    let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
+        headers: {
+            "Content-Type": "application/json",
+            "X-User-ID": 23423,
+        },
+    });
+    check(res, {"status is 200": (res) => res.status === 200});
 
-  console.log(
-    `${res.json().pizza.name} (${
-      res.json().pizza.ingredients.length
-    } ingredients)`
-  );
-
-  sleep(1);
+    sleep(1);
 }
