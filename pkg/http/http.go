@@ -516,8 +516,8 @@ func (s *Server) WithRecommendations(catalogUrl, copyUrl string) *Server {
 			// by the server (if any), which allows clients to both generate traces for outgoing client-type traces
 			// without explicitly configuring a tracer, and to link said client traces with the server trace that is
 			// generated in this request.
-			catalogClient = catalogClient.WithRequestContext(r.Context())
-			copyClient = copyClient.WithRequestContext(r.Context())
+			catalogClient := catalogClient.WithRequestContext(r.Context())
+			copyClient := copyClient.WithRequestContext(r.Context())
 
 			logger := loggerWithUserID(s.log, r)
 			logger.Info("Received pizza recommendation request")
