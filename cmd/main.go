@@ -33,11 +33,6 @@ func main() {
 	// If no specific env vars are set, this will return a http client that does not perform any retries.
 	httpCli := clientFromEnv()
 
-	httpRequestTimeout := time.Duration(envInt("QUICKPIZZA_TIMEOUT_MS")) * time.Millisecond
-	if httpRequestTimeout == 0 {
-		httpRequestTimeout = 1000 * time.Millisecond
-	}
-
 	server, err := qphttp.NewServer(globalLogger)
 	if err != nil {
 		globalLogger.Fatal("Cannot create server", zap.Error(err))
