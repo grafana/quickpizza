@@ -516,6 +516,8 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
+			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+
 			logger := loggerWithUserID(s.log, r)
 			logger.Info("Received pizza recommendation request")
 			var restrictions pizza.Restrictions
@@ -624,16 +626,10 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				return
 			}
 
-			_, pizzaSpan := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("").Start(
-				r.Context(),
-				"pizza-generation",
-			)
+			pizzaCtx, pizzaSpan := tracer.Start(r.Context(), "pizza-generation")
 			var p pizza.Pizza
 			for i := 0; i < 10; i++ {
-				_, nameSpan := pizzaSpan.TracerProvider().Tracer("").Start(
-					r.Context(),
-					"name-generation",
-				)
+				_, nameSpan := tracer.Start(pizzaCtx, "name-generation")
 				var randomName string
 				for {
 					randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
