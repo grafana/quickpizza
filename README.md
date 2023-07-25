@@ -199,6 +199,12 @@ echo $BASE_URL
 
 Distributed tracing support can be enabled when deploying in Kubernetes by editing the `kubernetes/kustomization.yaml` file and following the instructions in the comments present on that file. You will need a backend capable of ingesting OTLP traces, such as a Grafana Cloud Stack, or a Tempo deployment.
 
+After making the changes `kubernetes/kustomization.yaml`, you may need to restart the QuickPizza pods for them to pick up the new configuration:
+
+```shell
+kubectl delete pods -l app.k8s.io/name=quickpizza
+```
+
 ![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/quickpizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
 
 ### Running xk6-disruptor tests
