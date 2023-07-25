@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: otel-endpoint
-data:
-  QUICKPIZZA_OTLP_ENDPOINT: "http://grafana-agent:4318"

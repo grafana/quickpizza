@@ -1,9 +1,11 @@
 resources:
   - ./resources/deployment.yaml
   - ./resources/service.yaml
-  - ./resources/quickpizza-env.yaml
 
 configMapGenerator:
   - name: agent-config
     files:
       - ./config/grafana-agent.river
+  - name: tracing-env
+    literals:
+      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318

@@ -29,8 +29,10 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: otel-endpoint
+                name: tracing-env
                 optional: true
+            - configMapRef:
+                name: extra-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -80,8 +82,10 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: otel-endpoint
+                name: tracing-env
                 optional: true
+            - configMapRef:
+                name: extra-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -123,8 +127,10 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: otel-endpoint
+                name: tracing-env
                 optional: true
+            - configMapRef:
+                name: extra-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -166,8 +172,10 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: otel-endpoint
+                name: tracing-env
                 optional: true
+            - configMapRef:
+                name: extra-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -209,8 +217,10 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: otel-endpoint
+                name: tracing-env
                 optional: true
+            - configMapRef:
+                name: extra-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
