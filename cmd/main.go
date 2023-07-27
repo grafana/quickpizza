@@ -55,6 +55,10 @@ func main() {
 		}
 
 		server = server.WithTracing(tp)
+
+		if envBool("QUICKPIZZA_TRACING_INSECURE") {
+			server = server.WithInsecureTraceContext()
+		}
 	}
 
 	// Always add prometheus middleware.
