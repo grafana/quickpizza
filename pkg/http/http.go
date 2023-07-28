@@ -658,7 +658,13 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 					Tool:        validTools[rand.Intn(len(validTools))],
 				}
 
-				for j := 0; j < rand.Intn(restrictions.MaxNumberOfToppings-restrictions.MinNumberOfToppings)+restrictions.MinNumberOfToppings; j++ {
+				// Compute how many extra toppings we are allowed to add. If any, randomize that number.
+				extraToppings := restrictions.MaxNumberOfToppings - restrictions.MinNumberOfToppings
+				if extraToppings > 0 {
+					extraToppings = rand.Intn(extraToppings + 1)
+				}
+
+				for j := 0; j < extraToppings+restrictions.MinNumberOfToppings; j++ {
 					p.Ingredients = append(p.Ingredients, validToppings[rand.Intn(len(validToppings))])
 				}
 
