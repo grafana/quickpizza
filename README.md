@@ -19,6 +19,14 @@ If you are running the xk6-disruptor test, Kubernetes needs to be setup and `min
 
 - [Minikube](https://minikube.sigs.k8s.io/docs/start/)
 
+## Enable Grafana Faro
+
+To enable Grafana Faro and monitor frontend observability, simply add the Grafana Faro SDK URL in your .env file
+
+```
+# copy to pkg/web .env file
+PUBLIC_FARO_WEBSDK_URL=<your faro web URL>
+```
 ## Run locally with Docker
 
 To run the app locally with Docker, run the command:
