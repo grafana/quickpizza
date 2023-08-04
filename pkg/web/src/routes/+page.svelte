@@ -33,6 +33,7 @@
 
 	let socket: WebSocket;
 	onMount(async () => {
+
 		userID.subscribe((value) => user = value);
 		if (user === 0) {
             userID.set(Math.floor(100000 + Math.random() * 900000));
