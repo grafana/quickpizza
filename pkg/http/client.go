@@ -88,7 +88,7 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any) er
 // The supplied request is expected to include on its context the k6 user.
 func (hc httpClient) do(request *http.Request) (*http.Response, error) {
 	// Authenticate request with the super-secret internal token.
-	request.Header.Add("X-Internal-Token", "secret")
+	request.Header.Add("X-Is-Internal", "1")
 
 	// Propagate X-User-ID if present in request context.
 	if user, ok := request.Context().Value("user").(string); ok {

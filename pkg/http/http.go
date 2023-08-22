@@ -133,15 +133,15 @@ func (s *Server) WithInsecureTraceContext() *Server {
 
 // isPublic returns whether an endpoint should be configured public for purposes of trace linking.
 // isPublic returns false (trusted endpoint) for all endpoints if server is configured WithInsecureTraceContext.
-// Otherwise, isPublic returns false (trusted endpoint) if the X-Internal-Token header equals the secret value "secret",
-// and true (untrusted endpoint) for all remaining cases.
+// Otherwise, isPublic returns false (trusted endpoint) if the X-Is-Internal header is set, and true
+// (untrusted endpoint) for all remaining cases.
 func (s *Server) isPublic(r *http.Request) bool {
 	if s.insecureTracing {
-		return false
+		return false // Nothing is considered public if insecureTracing is on.
 	}
 
-	if r.Header.Get("X-Internal-Token") == "secret" {
-		return false
+	if r.Header.Get("X-Is-Internal") != "" {
+		return false // Internal header is set, request is not public.
 	}
 
 	return true
@@ -225,7 +225,7 @@ func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl stri
 				s.log.Info("Proxying request", zap.String("url", request.Out.URL.String()))
 
 				// Mark outgoing requests as internal so trace context is trusted.
-				request.Out.Header.Add("X-Internal-Token", "secret")
+				request.Out.Header.Add("X-Is-Internal", "1")
 			},
 		})
 
@@ -378,7 +378,7 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 		})
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("X-Internal-Token") != "secret" {
+			if r.Header.Get("X-Is-Internal") == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
