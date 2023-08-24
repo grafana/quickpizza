@@ -102,7 +102,7 @@ func (db *InMemoryDatabase) History() []pizza.Pizza {
 	db.mx.Lock()
 	defer db.mx.Unlock()
 
-	var history []pizza.Pizza
+	history := make([]pizza.Pizza, len(db.lastRecommendations))
 	copy(history, db.lastRecommendations)
 	return history
 }
