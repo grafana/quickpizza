@@ -67,7 +67,7 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any) er
 
 	resp, err := hc.do(request)
 	if err != nil {
-		return fmt.Errorf("making http request: %w", enc)
+		return fmt.Errorf("making http request: %w", err)
 	}
 
 	defer func() {
