@@ -56,7 +56,7 @@ func main() {
 
 		server = server.WithTracing(tp)
 
-		if envBool("QUICKPIZZA_TRACING_INSECURE") {
+		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
 			server = server.WithInsecureTraceContext()
 		}
 	}

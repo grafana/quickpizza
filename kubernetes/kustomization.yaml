@@ -19,6 +19,9 @@ secretGenerator:
 
 # You can use the following generator to add additional environment variables to all QuickPizza pods.
 configMapGenerator:
-  - name: extra-env
-    literals: []
-    #- CUSTOM_ENV=CUSTOM_VALUE
+  - name: quickpizza-env
+    literals:
+      # Trust all incoming TraceIDs for demo purposes.
+      - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
+      # You can change other settings by adding entries to this list:
+      #- CUSTOM_ENV=CUSTOM_VALUE

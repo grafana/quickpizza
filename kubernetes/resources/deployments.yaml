@@ -32,7 +32,7 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
-                name: extra-env
+                name: quickpizza-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -85,7 +85,7 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
-                name: extra-env
+                name: quickpizza-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -130,7 +130,7 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
-                name: extra-env
+                name: quickpizza-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -175,7 +175,7 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
-                name: extra-env
+                name: quickpizza-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"
@@ -220,7 +220,7 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
-                name: extra-env
+                name: quickpizza-env
           env:
             - name: QUICKPIZZA_ALL_SERVICES
               value: "0"

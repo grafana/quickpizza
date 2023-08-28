@@ -114,8 +114,10 @@ docker network create quickpizza
 # Run the grafana agent. The provided config is not kubernetes-specific and works in Docker as well.
 docker run --name grafana-agent --rm -i -v ./kubernetes/grafana-agent/config/grafana-agent.river:/grafana-agent.river --network quickpizza -e TRACES_ENDPOINT -e TRACES_USER -e TRACES_API_KEY -e AGENT_MODE=flow grafana/agent run /grafana-agent.river
 # On a different terminal, run the QuickPizza container on the same network with tracing enabled:
-docker run --rm -i -p 3333:3333 -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 --network quickpizza ghcr.io/grafana/quickpizza-local:latest
+docker run --rm -i -p 3333:3333 -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 -e QUICKPIZZA_TRUST_CLIENT_TRACEID=1 --network quickpizza ghcr.io/grafana/quickpizza-local:latest
 ```
+
+The `QUICKPIZZA_TRUST_CLIENT_TRACEID` environment variable instructs QuickPizza to trust client-provided Trace IDs, so all client-generated spans (if any) will show up in the trace.
 
 ## Deploy application to Kubernetes
 
