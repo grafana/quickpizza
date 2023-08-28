@@ -35,6 +35,7 @@ func main() {
 	server, err := qphttp.NewServer()
 	if err != nil {
 		slog.Error("Cannot create server", "err", err)
+		os.Exit(1)
 	}
 
 	// If QUICKPIZZA_OTLP_ENDPOINT is set, set up tracing outputting to it.
@@ -112,6 +113,7 @@ func main() {
 	err = http.ListenAndServe(listen, server)
 	if err != nil {
 		slog.Error("Running HTTP server", "err", err)
+		os.Exit(1)
 	}
 }
 
