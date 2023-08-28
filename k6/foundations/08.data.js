@@ -49,12 +49,12 @@ export function setup() {
 
 export function getPizza() {
   let restrictions = {
-    max_calories_pers_slice: 500,
-    must_be_vegetarian: false,
-    excluded_ingredients: ["pepperoni"],
-    excluded_tools: ["knife"],
-    max_number_of_toppings: 6,
-    min_number_of_toppings: 2
+    maxCaloriesPerSlice: 500,
+    mustBeVegetarian: false,
+    excludedIngredients: ["pepperoni"],
+    excludedTools: ["knife"],
+    maxNumberOfToppings: 6,
+    minNumberOfToppings: 2
   }
   let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
     headers: {

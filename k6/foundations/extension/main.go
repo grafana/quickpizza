@@ -19,12 +19,12 @@ type Internal struct {
 }
 
 type GojaRestrictions struct {
-	MaxCaloriesPerSlice int      `json:"max_calories_per_slice"`
-	MustBeVegetarian    bool     `json:"must_be_vegetarian"`
-	ExcludedIngredients []string `json:"excluded_ingredients"`
-	ExcludedTools       []string `json:"excluded_tools"`
-	MinNumberOfToppings int      `json:"min_number_of_toppings"`
-	MaxNumberOfToppings int      `json:"max_number_of_toppings"`
+	MaxCaloriesPerSlice int      `json:"maxCaloriesPerSlice"`
+	MustBeVegetarian    bool     `json:"mustBeVegetarian"`
+	ExcludedIngredients []string `json:"excludedIngredients"`
+	ExcludedTools       []string `json:"excludedTools"`
+	MinNumberOfToppings int      `json:"minNumberOfToppings"`
+	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
 }
 
 // CheckRestrictions checks if the given pizza satisfies the given restrictions.
