@@ -775,9 +775,9 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(ww, r)
 		duration := time.Since(start)
-		httpRequests.WithLabelValues(r.Method, r.URL.Path, http.StatusText(ww.Status())).Inc()
-		httpRequestDuration.WithLabelValues(r.Method, r.URL.Path, http.StatusText(ww.Status())).Observe(duration.Seconds())
+		httpRequests.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(ww.Status())).Inc()
+		httpRequestDuration.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
 	})
 }
