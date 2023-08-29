@@ -46,6 +46,53 @@ spec:
               value: http://quickpizza-ws:3333
             - name: QUICKPIZZA_RECOMMENDATIONS_ENDPOINT
               value: http://quickpizza-recs:3333
+            - name: QUICKPIZZA_CONFIG_ENDPOINT
+              value: http://quickpizza-config:3333
+            - name: QUICKPIZZA_OTLP_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quickpizza-config
+  labels:
+    app.k8s.io/name: quickpizza
+    app.kubernetes.io/component: service
+    app.kubernetes.io/instance: config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.k8s.io/name: quickpizza
+      app.kubernetes.io/instance: config
+  template:
+    metadata:
+      name: quickpizza-config
+      labels:
+        app.k8s.io/name: quickpizza
+        app.kubernetes.io/instance: config
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: quickpizza
+          image: ghcr.io/grafana/quickpizza-local:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3333
+          envFrom:
+            - configMapRef:
+                name: tracing-env
+                optional: true
+            - configMapRef:
+                name: quickpizza-env
+          env:
+            - name: QUICKPIZZA_ALL_SERVICES
+              value: "0"
+            - name: QUICKPIZZA_CONFIG
+              value: "1"
             - name: QUICKPIZZA_OTLP_SERVICE_NAME
               valueFrom:
                 fieldRef:
