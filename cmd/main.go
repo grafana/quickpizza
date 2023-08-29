@@ -13,29 +13,29 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
-	"go.uber.org/zap"
+	"golang.org/x/exp/slog"
 )
 
 func main() {
-	globalLogger, err := zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
+	// write logs as logfmt
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
 	// Create InMemoryDatabase. This database is used by the Catalog and Copy services.
 	db := &database.InMemoryDatabase{}
-	err = db.PopulateFromFile("data.json")
+	err := db.PopulateFromFile("data.json")
 	if err != nil {
-		globalLogger.Fatal("loading data from disk", zap.Error(err))
+		slog.Error("loading data from disk", "err", err)
+		os.Exit(1)
 	}
 
 	// Create an HTTP client configured from env vars.
 	// If no specific env vars are set, this will return a http client that does not perform any retries.
 	httpCli := clientFromEnv()
 
-	server, err := qphttp.NewServer(globalLogger)
+	server, err := qphttp.NewServer()
 	if err != nil {
-		globalLogger.Fatal("Cannot create server", zap.Error(err))
+		slog.Error("Cannot create server", "err", err)
+		os.Exit(1)
 	}
 
 	// If QUICKPIZZA_OTLP_ENDPOINT is set, set up tracing outputting to it.
@@ -51,7 +51,8 @@ func main() {
 
 		tp, err := tracing.OTLPProvider(ctx, otlpEndpoint, serviceName)
 		if err != nil {
-			globalLogger.Fatal("Cannot create OTLP tracer", zap.Error(err))
+			slog.Error("Cannot create OTLP tracer", "err", err)
+			os.Exit(1)
 		}
 
 		server = server.WithTracing(tp)
@@ -108,10 +109,11 @@ func main() {
 	}
 
 	listen := ":3333"
-	globalLogger.Info("Starting QuickPizza", zap.String("listenAddress", listen))
+	slog.Info("Starting QuickPizza", "listenAddress", listen)
 	err = http.ListenAndServe(listen, server)
 	if err != nil {
-		globalLogger.Error("Running HTTP server", zap.Error(err))
+		slog.Error("Running HTTP server", "err", err)
+		os.Exit(1)
 	}
 }
 
