@@ -191,10 +191,34 @@ func (s *Server) WithFrontend() *Server {
 	return s
 }
 
+// WithConfig enables serving the config server.
+func (s *Server) WithConfig(config map[string]string) *Server {
+	s.router.Group(func(r chi.Router) {
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				"http_gateway",
+				s.apiTracingOptions()...,
+			)
+		})
+
+		r.Get("/api/config", func(rw http.ResponseWriter, r *http.Request) {
+			rw.Header().Set("content-type", "application/json")
+
+			err := json.NewEncoder(rw).Encode(config)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "serving config JSON", "err", err)
+			}
+		})
+	})
+
+	return s
+}
+
 // WithGateway enables a gateway that routes external requests to the respective services.
 // This endpoint should be typically enabled toget with WithFrontend on a microservices-based deployment.
 // TODO: So far the gateway only handles a few endpoints.
-func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl string) *Server {
+func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
 			return otelhttp.NewHandler(
@@ -222,6 +246,8 @@ func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl stri
 					u, _ = url.Parse(catalogUrl)
 				case "/api/pizza":
 					u, _ = url.Parse(recommendationsUrl)
+				case "/api/config":
+					u, _ = url.Parse(configUrl)
 				}
 
 				request.SetURL(u)
