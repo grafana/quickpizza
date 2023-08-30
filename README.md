@@ -19,14 +19,6 @@ If you are running the xk6-disruptor test, Kubernetes needs to be setup and `min
 
 - [Minikube](https://minikube.sigs.k8s.io/docs/start/)
 
-## Enable Grafana Faro
-
-To enable Grafana Faro and monitor frontend observability, simply add the Grafana Faro SDK URL in your .env file
-
-```
-# copy to pkg/web .env file
-PUBLIC_FARO_WEBSDK_URL=<your faro web URL>
-```
 ## Run locally with Docker
 
 To run the app locally with Docker, run the command:
@@ -126,6 +118,15 @@ docker run --rm -i -p 3333:3333 -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent
 ```
 
 The `QUICKPIZZA_TRUST_CLIENT_TRACEID` environment variable instructs QuickPizza to trust client-provided Trace IDs, so all client-generated spans (if any) will show up in the trace.
+
+## Enable Grafana Faro
+
+To enable Grafana Faro and monitor frontend observability, stop the QuickPizza container if it's already running and set `QUICKPIZZA_CONF_FARO_URL` to your Faro web URL:
+
+```bash
+ export QUICKPIZZA_CONF_FARO_URL="<your faro url>"
+docker run --rm -it -p 3333:3333 -e QUICKPIZZA_CONF_FARO_URL ghcr.io/grafana/quickpizza-local:latest
+```
 
 ## Deploy application to Kubernetes
 
