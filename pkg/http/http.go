@@ -20,7 +20,8 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/grafana/quickpizza/pkg/database"
-	"github.com/grafana/quickpizza/pkg/pizza"
+	"github.com/grafana/quickpizza/pkg/logging"
+	"github.com/grafana/quickpizza/pkg/model"
 	"github.com/grafana/quickpizza/pkg/web"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
@@ -65,9 +66,33 @@ var (
 
 // PizzaRecommendation is the object returned by the /api/pizza endpoint.
 type PizzaRecommendation struct {
-	Pizza      pizza.Pizza `json:"pizza"`
+	Pizza      model.Pizza `json:"pizza"`
 	Calories   int         `json:"calories"`
 	Vegetarian bool        `json:"vegetarian"`
+}
+
+// Restrictions are sent by the client to further specify how the target pizza should look like
+type Restrictions struct {
+	MaxCaloriesPerSlice int      `json:"maxCaloriesPerSlice"`
+	MustBeVegetarian    bool     `json:"mustBeVegetarian"`
+	ExcludedIngredients []string `json:"excludedIngredients"`
+	ExcludedTools       []string `json:"excludedTools"`
+	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
+	MinNumberOfToppings int      `json:"minNumberOfToppings"`
+}
+
+func (r Restrictions) WithDefaults() Restrictions {
+	if r.MaxCaloriesPerSlice == 0 {
+		r.MaxCaloriesPerSlice = 1000
+	}
+	if r.MaxNumberOfToppings == 0 {
+		r.MaxNumberOfToppings = 5
+	}
+	if r.MinNumberOfToppings == 0 {
+		r.MinNumberOfToppings = 3
+	}
+
+	return r
 }
 
 // Server is the object that handles HTTP requests and computes pizza recommendations.
@@ -84,7 +109,7 @@ type Server struct {
 
 func NewServer() (*Server, error) {
 
-	logger := slog.New(NewContextLogger(slog.Default().Handler()))
+	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	router := chi.NewRouter()
 	router.Use(middleware.Recoverer)
@@ -298,7 +323,7 @@ func (s *Server) WithWS() *Server {
 // WithCatalog enables routes related to the ingredients, doughs, and tools. A database.InMemoryDatabase is required to
 // enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
-func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
+func (s *Server) WithCatalog(db *database.Catalog) *Server {
 	s.router.Group(func(r chi.Router) {
 		// Set tracing middleware. This will generate traces for incoming requests.
 		r.Use(func(handler http.Handler) http.Handler {
@@ -313,39 +338,24 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
 			ingredientType := chi.URLParam(r, "type")
-			isVegetarian := r.URL.Query().Get("is_vegetarian")
-
-			var ingredients []pizza.Ingredient
-			db.Transaction(func(data database.Data) {
-				switch ingredientType {
-				case "olive_oil":
-					ingredients = data.OliveOils
-				case "tomato":
-					ingredients = data.Tomatoes
-				case "mozzarella":
-					ingredients = data.Mozzarellas
-				case "topping":
-					ingredients = data.Toppings
-				}
-			})
+			isVegetarian := r.URL.Query().Get("is_vegetarian") == "true"
+			ingredients, err := db.GetIngredients(r.Context(), ingredientType, isVegetarian)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to get ingredients from database", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
 			if len(ingredients) == 0 {
 				w.WriteHeader(http.StatusBadRequest)
+				slog.Warn("Did not find any ingredients", "type", ingredientType)
 				_, _ = fmt.Fprintf(w, "Unknown ingredient %q", ingredientType)
 				return
 			}
 
-			var filteredIngredients []pizza.Ingredient
-			for _, ingredient := range ingredients {
-				if isVegetarian != "" && ingredient.Vegetarian != (isVegetarian == "true") {
-					continue
-				}
-				filteredIngredients = append(filteredIngredients, ingredient)
-			}
-
 			s.log.InfoContext(r.Context(), "Ingredients requested", "type", ingredientType)
 
-			err := json.NewEncoder(w).Encode(map[string][]pizza.Ingredient{"ingredients": filteredIngredients})
+			err = json.NewEncoder(w).Encode(map[string][]model.Ingredient{"ingredients": ingredients})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -356,12 +366,14 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Doughs requested")
 
-			var doughs []pizza.Dough
-			db.Transaction(func(data database.Data) {
-				doughs = data.Doughs
-			})
+			doughs, err := db.GetDoughs(r.Context())
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to get doughs from database", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-			err := json.NewEncoder(w).Encode(map[string][]pizza.Dough{"doughs": doughs})
+			err = json.NewEncoder(w).Encode(map[string][]model.Dough{"doughs": doughs})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -372,12 +384,14 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Tools requested")
 
-			var tools []string
-			db.Transaction(func(data database.Data) {
-				tools = data.Tools
-			})
+			tools, err := db.GetTools(r.Context())
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to get tools from database", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-			err := json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
+			err = json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
 			if err != nil {
 				slog.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -399,7 +413,14 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 			//	return
 			//}
 
-			err := json.NewEncoder(w).Encode(map[string][]pizza.Pizza{"pizzas": db.History()})
+			history, err := db.GetHistory(r.Context(), 10)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			err = json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -413,7 +434,7 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 				return
 			}
 
-			var latestRecommendation pizza.Pizza
+			var latestRecommendation model.Pizza
 
 			dec := json.NewDecoder(r.Body)
 			dec.DisallowUnknownFields()
@@ -424,7 +445,11 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 				return
 			}
 
-			db.SetLatestPizza(latestRecommendation)
+			if err := db.CreatePizza(r.Context(), latestRecommendation); err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to save recommendation", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 			w.WriteHeader(http.StatusCreated)
 		})
 
@@ -462,7 +487,7 @@ func (s *Server) WithCatalog(db *database.InMemoryDatabase) *Server {
 }
 
 // WithCopy enables copy (i.e. prose) related endpoints.
-func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
+func (s *Server) WithCopy(db *database.Copy) *Server {
 	s.router.Group(func(r chi.Router) {
 		r.Use(func(handler http.Handler) http.Handler {
 			return otelhttp.NewHandler(
@@ -477,12 +502,12 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Quotes requested")
 
-			var quotes []string
-			db.Transaction(func(data database.Data) {
-				quotes = data.Quotes
-			})
-
-			err := json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
+			quotes, err := db.GetQuotes(r.Context())
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch quotes from db", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			err = json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -493,12 +518,13 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Names requested")
 
-			var names []string
-			db.Transaction(func(data database.Data) {
-				names = data.ClassicNames
-			})
+			names, err := db.GetClassicalNames(r.Context())
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch names from db", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 
-			err := json.NewEncoder(w).Encode(map[string][]string{"names": names})
+			err = json.NewEncoder(w).Encode(map[string][]string{"names": names})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -509,12 +535,13 @@ func (s *Server) WithCopy(db *database.InMemoryDatabase) *Server {
 		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Adjectives requested")
 
-			var adjs []string
-			db.Transaction(func(data database.Data) {
-				adjs = data.Adjectives
-			})
+			adjs, err := db.GetAdjectives(r.Context())
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch names from db", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 
-			err := json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
+			err = json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -551,7 +578,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
 
 			s.log.InfoContext(r.Context(), "Received pizza recommendation request")
-			var restrictions pizza.Restrictions
+			var restrictions Restrictions
 
 			dec := json.NewDecoder(r.Body)
 			dec.DisallowUnknownFields()
@@ -572,7 +599,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			}
 
 			// Retrieve list of ingredients from Catalog.
-			var validOliveOils []pizza.Ingredient
+			var validOliveOils []model.Ingredient
 			for _, oliveOil := range oils {
 				if !contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
 					validOliveOils = append(validOliveOils, oliveOil)
@@ -586,7 +613,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				return
 			}
 
-			var validTomatoes []pizza.Ingredient
+			var validTomatoes []model.Ingredient
 			for _, tomato := range tomatoes {
 				if !contains(restrictions.ExcludedIngredients, tomato.Name) && (!restrictions.MustBeVegetarian || tomato.Vegetarian) {
 					validTomatoes = append(validTomatoes, tomato)
@@ -600,7 +627,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				return
 			}
 
-			var validMozzarellas []pizza.Ingredient
+			var validMozzarellas []model.Ingredient
 			for _, mozzarella := range mozzarellas {
 				if !contains(restrictions.ExcludedIngredients, mozzarella.Name) && (!restrictions.MustBeVegetarian || mozzarella.Vegetarian) {
 					validMozzarellas = append(validMozzarellas, mozzarella)
@@ -614,7 +641,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				return
 			}
 
-			var validToppings []pizza.Ingredient
+			var validToppings []model.Ingredient
 			for _, topping := range toppings {
 				if !contains(restrictions.ExcludedIngredients, topping.Name) && (!restrictions.MustBeVegetarian || topping.Vegetarian) {
 					validToppings = append(validToppings, topping)
@@ -658,7 +685,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			}
 
 			pizzaCtx, pizzaSpan := tracer.Start(r.Context(), "pizza-generation")
-			var p pizza.Pizza
+			var p model.Pizza
 			for i := 0; i < 10; i++ {
 				_, nameSpan := tracer.Start(pizzaCtx, "name-generation")
 				var randomName string
@@ -682,10 +709,10 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				}
 				nameSpan.End()
 
-				p = pizza.Pizza{
+				p = model.Pizza{
 					Name:        randomName,
 					Dough:       doughs[rand.Intn(len(doughs))],
-					Ingredients: []pizza.Ingredient{validOliveOils[rand.Intn(len(validOliveOils))], validTomatoes[rand.Intn(len(validTomatoes))], validMozzarellas[rand.Intn(len(validMozzarellas))]},
+					Ingredients: []model.Ingredient{validOliveOils[rand.Intn(len(validOliveOils))], validTomatoes[rand.Intn(len(validTomatoes))], validMozzarellas[rand.Intn(len(validMozzarellas))]},
 					Tool:        validTools[rand.Intn(len(validTools))],
 				}
 
@@ -699,11 +726,11 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 					p.Ingredients = append(p.Ingredients, validToppings[rand.Intn(len(validToppings))])
 				}
 
-				uniqueIngredients := make(map[string]pizza.Ingredient)
+				uniqueIngredients := make(map[string]model.Ingredient)
 				for _, ingredient := range p.Ingredients {
 					uniqueIngredients[ingredient.Name] = ingredient
 				}
-				p.Ingredients = make([]pizza.Ingredient, 0)
+				p.Ingredients = make([]model.Ingredient, 0)
 				for _, ingredient := range uniqueIngredients {
 					p.Ingredients = append(p.Ingredients, ingredient)
 				}

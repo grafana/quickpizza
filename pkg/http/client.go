@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/grafana/quickpizza/pkg/pizza"
+	"github.com/grafana/quickpizza/pkg/model"
 )
 
 // httpClient is a convenience wrapper for an HTTP client that GETs and POSTs JSON requests with QuickPizza-specifics.
@@ -129,9 +129,9 @@ func (c CatalogClient) WithRequestContext(ctx context.Context) CatalogClient {
 	return c
 }
 
-func (c CatalogClient) Ingredients(ingredientType string) ([]pizza.Ingredient, error) {
+func (c CatalogClient) Ingredients(ingredientType string) ([]model.Ingredient, error) {
 	var ingredients struct {
-		Ingredients []pizza.Ingredient
+		Ingredients []model.Ingredient
 	}
 
 	url := c.catalogUrl + "/api/ingredients/" + ingredientType
@@ -156,9 +156,9 @@ func (c CatalogClient) Tools() ([]string, error) {
 	return tools.Tools, nil
 }
 
-func (c CatalogClient) Doughs() ([]pizza.Dough, error) {
+func (c CatalogClient) Doughs() ([]model.Dough, error) {
 	var doughs struct {
-		Doughs []pizza.Dough
+		Doughs []model.Dough
 	}
 	url := c.catalogUrl + "/api/doughs"
 	err := c.client.getJSON(c.ctx, url, &doughs)
@@ -169,7 +169,7 @@ func (c CatalogClient) Doughs() ([]pizza.Dough, error) {
 	return doughs.Doughs, nil
 }
 
-func (c CatalogClient) RecordRecommendation(p pizza.Pizza) error {
+func (c CatalogClient) RecordRecommendation(p model.Pizza) error {
 	return c.client.postJSON(c.ctx, c.catalogUrl+"/api/internal/recommendations", p)
 }
 

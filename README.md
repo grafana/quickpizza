@@ -90,6 +90,16 @@ docker plugin install grafana/loki-docker-driver:2.9.1 --alias loki --grant-all-
 
 > Note that Docker plugins are not supported on Windows, meaning QuickPizza logs won't be sent to Loki with the Docker Compose setup. When executing `docker compose up` on Windows, either pass the env. variable: `LOGGING_DRIVER=none`, or remove the `services/quickpizza/logging` section from the `docker-compose-*.yaml` files.
 
+## Enabling debug logging
+
+If you encounter any issues during operation, you can enable debug logging by setting the following evironment variable:
+
+```shell
+export QUICKPIZZA_LOG_LEVEL=debug
+```
+
+## Running a Prometheus instance
+
 ### Local Setup
 
 The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Agent containers.
@@ -197,6 +207,18 @@ For deployments on remote servers, you need to pass the `BASE_URL` environment v
 
 ```bash
 k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
+```
+
+## Use an external database
+
+By default, QuickPizza stores all its data in an in-memory SQLite database. This allows for a quick start while still closely resembling a real world application. If you want to add an external database, you can set the `QUICKPIZZA_DB` environment variable to a supported connection string. Currently only PostgreSQL and SQLite is supported.
+
+Example connection strings:
+```shell
+# a remote PostgreSQL instance
+export QUICKPIZZA_DB="postgres://user:password@localhost:5432/database?sslmode=disable"
+# a local sqlite3 database
+export QUICKPIZZA_DB="quickpizza.db"
 ```
 
 ## Deploy application to Kubernetes

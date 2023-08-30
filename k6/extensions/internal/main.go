@@ -5,7 +5,7 @@ import (
 
 	"go.k6.io/k6/js/modules"
 
-	"github.com/grafana/quickpizza/pkg/pizza"
+	"github.com/grafana/quickpizza/pkg/model"
 )
 
 // init is called by the Go runtime at application startup.
@@ -28,7 +28,7 @@ type GojaRestrictions struct {
 }
 
 // CheckRestrictions checks if the given pizza satisfies the given restrictions.
-func (i *Internal) CheckRestrictions(pizza pizza.Pizza, restrictions GojaRestrictions) bool {
+func (i *Internal) CheckRestrictions(pizza model.Pizza, restrictions GojaRestrictions) bool {
 	if restrictions.MustBeVegetarian && !pizza.IsVegetarian() {
 		i.CheckResult = "Pizza is not vegetarian"
 		return false

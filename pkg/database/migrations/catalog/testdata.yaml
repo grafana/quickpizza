@@ -1,0 +1,218 @@
+- model: Dough
+  rows:
+    - id: 1
+      name: Thin
+      calories_per_slice: 100
+    - id: 2
+      name: Thick
+      calories_per_slice: 200
+    - id: 3
+      name: Stuffed
+      calories_per_slice: 300
+- model: Tool
+  rows:
+    - name: Knife
+    - name: Pizza cutter
+    - name: Scissors
+- model: Ingredient
+  rows:
+    - id: 1
+      name: "Extra virgin olive oil"
+      calories_per_slice: 50
+      vegetarian: true
+      type: "olive_oil"
+    - id: 2
+      name: "Olive oil"
+      calories_per_slice: 100
+      vegetarian: true
+      type: "olive_oil"
+    - id: 3
+      name: "San Marzano tomatoes"
+      calories_per_slice: 50
+      vegetarian: true
+      type: "tomato"
+    - id: 4
+      name: "Bianco di Nizza tomatoes"
+      calories_per_slice: 50
+      vegetarian: true
+      type: "tomato"
+    - id: 5
+      name: "Roma tomatoes"
+      calories_per_slice: 50
+      vegetarian: true
+      type: "tomato"
+    - id: 6
+      name: "Mozzarella"
+      calories_per_slice: 100
+      vegetarian: true
+      type: "mozzarella"
+    - id: 7
+      name: "Mozzarella di bufala"
+      calories_per_slice: 150
+      vegetarian: true
+      type: "mozzarella"
+    - id: 8
+      name: "Mozzarella fior di latte"
+      calories_per_slice: 150
+      vegetarian: true
+      type: "mozzarella"
+    - id: 9
+      calories_per_slice: 100
+      name: Pepperoni
+      type: topping
+      vegetarian: false
+    - id: 10
+      calories_per_slice: 50
+      name: Mushrooms
+      type: topping
+      vegetarian: true
+    - id: 11
+      calories_per_slice: 50
+      name: Onions
+      type: topping
+      vegetarian: true
+    - id: 12
+      calories_per_slice: 200
+      name: Sausage
+      type: topping
+      vegetarian: false
+    - id: 13
+      calories_per_slice: 250
+      name: Bacon
+      type: topping
+      vegetarian: false
+    - id: 14
+      calories_per_slice: 100
+      name: Extra cheese
+      type: topping
+      vegetarian: true
+    - id: 15
+      calories_per_slice: 50
+      name: Black olives
+      type: topping
+      vegetarian: true
+    - id: 16
+      calories_per_slice: 50
+      name: Green peppers
+      type: topping
+      vegetarian: true
+    - id: 17
+      calories_per_slice: 75
+      name: Pineapple
+      type: topping
+      vegetarian: true
+    - id: 18
+      calories_per_slice: 25
+      name: Spinach
+      type: topping
+      vegetarian: true
+    - id: 19
+      calories_per_slice: 25
+      name: Garlic
+      type: topping
+      vegetarian: true
+    - id: 20
+      calories_per_slice: 50
+      name: Jalapenos
+      type: topping
+      vegetarian: true
+    - id: 21
+      calories_per_slice: 50
+      name: Roasted red peppers
+      type: topping
+      vegetarian: true
+    - id: 22
+      calories_per_slice: 100
+      name: Feta cheese
+      type: topping
+      vegetarian: true
+    - id: 23
+      calories_per_slice: 100
+      name: Prosciutto
+      type: topping
+      vegetarian: false
+    - id: 24
+      calories_per_slice: 100
+      name: Ricotta cheese
+      type: topping
+      vegetarian: true
+    - id: 25
+      calories_per_slice: 100
+      name: Salami
+      type: topping
+      vegetarian: false
+    - id: 26
+      calories_per_slice: 50
+      name: Zucchini
+      type: topping
+      vegetarian: true
+    - id: 27
+      calories_per_slice: 150
+      name: Buffalo mozzarella
+      type: topping
+      vegetarian: true
+    - id: 28
+      calories_per_slice: 50
+      name: Eggplant
+      type: topping
+      vegetarian: true
+    - id: 29
+      calories_per_slice: 50
+      name: Kalamata olives
+      type: topping
+      vegetarian: true
+    - id: 30
+      calories_per_slice: 100
+      name: Parmesan cheese
+      type: topping
+      vegetarian: true
+    - id: 31
+      calories_per_slice: 100
+      name: Shrimp
+      type: topping
+      vegetarian: false
+    - id: 32
+      calories_per_slice: 100
+      name: Chicken
+      type: topping
+      vegetarian: false
+    - id: 33
+      calories_per_slice: 100
+      name: Beef
+      type: topping
+      vegetarian: false
+    - id: 34
+      calories_per_slice: 100
+      name: Ham
+      type: topping
+      vegetarian: false
+    - id: 35
+      calories_per_slice: 50
+      name: Asparagus
+      type: topping
+      vegetarian: true
+    - id: 36
+      calories_per_slice: 50
+      name: Broccoli
+      type: topping
+      vegetarian: true
+    - id: 37
+      calories_per_slice: 50
+      name: Caramelized onions
+      type: topping
+      vegetarian: true
+    - id: 38
+      calories_per_slice: 50
+      name: Cherry tomatoes
+      type: topping
+      vegetarian: true
+    - id: 39
+      calories_per_slice: 25
+      name: Fresh basil
+      type: topping
+      vegetarian: true
+    - id: 40
+      calories_per_slice: 25
+      name: Fresh oregano
+      type: topping
+      vegetarian: true
