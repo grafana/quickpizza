@@ -118,6 +118,11 @@ func (s *Server) WithPrometheus() *Server {
 	return s
 }
 
+func (s *Server) WithProfiling() *Server {
+	s.router.Mount("/debug", middleware.Profiler())
+	return s
+}
+
 // WithTracing registers the specified TracerProvider within the Server.
 // Subsequent handlers can use s.trace to create more detailed traces than what it would be possible if we
 // applied the same tracing middleware to the whole server.
