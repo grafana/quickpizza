@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/grafana/quickpizza/pkg/logging"
@@ -19,6 +20,9 @@ func initializeDB(connString string) (*bun.DB, error) {
 	var db *bun.DB
 	if strings.HasPrefix(connString, "postgres://") {
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
+		maxOpenConns := 4 * runtime.GOMAXPROCS(0)
+		sqldb.SetMaxOpenConns(maxOpenConns)
+		sqldb.SetMaxIdleConns(maxOpenConns)
 		err := sqldb.Ping()
 		if err != nil {
 			return nil, fmt.Errorf("connecting to postgresql: %w", err)
