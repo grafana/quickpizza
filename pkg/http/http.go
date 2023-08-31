@@ -445,7 +445,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			if err := db.CreatePizza(r.Context(), latestRecommendation); err != nil {
+			if err := db.RecordRecommendation(r.Context(), latestRecommendation); err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to save recommendation", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return

@@ -30,6 +30,10 @@ func initializeDB(connString string) (*bun.DB, error) {
 			return nil, err
 		}
 		db = bun.NewDB(sqldb, sqlitedialect.New())
+		_, err = db.Exec("PRAGMA foreign_keys = ON")
+		if err != nil {
+			return nil, err
+		}
 	}
 	db.AddQueryHook(logging.NewBunSlogHook(slog.Default()))
 	db.AddQueryHook(bunotel.NewQueryHook(

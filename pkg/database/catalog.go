@@ -59,11 +59,11 @@ func (c *Catalog) GetTools(ctx context.Context) ([]string, error) {
 
 func (c *Catalog) GetHistory(ctx context.Context, limit int) ([]model.Pizza, error) {
 	var history []model.Pizza
-	err := c.db.NewSelect().Model(&history).Relation("Dough").Relation("Ingredients").Order("CreatedAt DESC").Limit(limit).Scan(ctx)
+	err := c.db.NewSelect().Model(&history).Relation("Dough").Relation("Ingredients").Order("created_at DESC").Limit(limit).Scan(ctx)
 	return history, err
 }
 
-func (c *Catalog) CreatePizza(ctx context.Context, pizza model.Pizza) error {
+func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) error {
 	pizza.DoughID = pizza.Dough.ID
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewInsert().Model(&pizza).Exec(ctx)
@@ -76,6 +76,14 @@ func (c *Catalog) CreatePizza(ctx context.Context, pizza model.Pizza) error {
 				return err
 			}
 		}
-		return nil
+		_, err = tx.NewDelete().
+			Model((*model.Pizza)(nil)).
+			Where("id NOT IN (?)", tx.NewSelect().
+				Model((*model.Pizza)(nil)).
+				Order("created_at DESC").
+				Column("id").
+				Limit(100)).
+			Exec(ctx)
+		return err
 	})
 }
