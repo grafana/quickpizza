@@ -338,8 +338,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
 			ingredientType := chi.URLParam(r, "type")
-			isVegetarian := r.URL.Query().Get("is_vegetarian") == "true"
-			ingredients, err := db.GetIngredients(r.Context(), ingredientType, isVegetarian)
+			ingredients, err := db.GetIngredients(r.Context(), ingredientType)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to get ingredients from database", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)

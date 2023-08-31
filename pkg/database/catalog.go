@@ -37,11 +37,9 @@ func NewCatalog(connString string) (*Catalog, error) {
 	}, nil
 }
 
-func (c *Catalog) GetIngredients(ctx context.Context, t string, vegetarian bool) ([]model.Ingredient, error) {
+func (c *Catalog) GetIngredients(ctx context.Context, t string) ([]model.Ingredient, error) {
 	var ingredients []model.Ingredient
-	err := c.db.NewSelect().Model(&ingredients).Where("type = ?", t).WhereGroup(" AND ", func(q *bun.SelectQuery) *bun.SelectQuery {
-		return q.Where("NOT ?", vegetarian).WhereOr("vegetarian = true")
-	}).Scan(ctx)
+	err := c.db.NewSelect().Model(&ingredients).Where("type = ?", t).Scan(ctx)
 	return ingredients, err
 }
 
