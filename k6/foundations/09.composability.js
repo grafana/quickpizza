@@ -3,7 +3,7 @@ import { check, sleep } from "k6";
 import { Trend, Counter } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 import { SharedArray } from 'k6/data';
-import { chromium } from 'k6/experimental/browser';
+import { browser } from "k6/experimental/browser";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
@@ -30,7 +30,12 @@ export const options = {
       exec: "checkFrontend",
       executor: "constant-vus",
       vus: 1,
-      duration: "30s"
+      duration: "30s",
+        options: {
+          browser: {
+            type: "chromium",
+          },
+      },
     }
   },
   thresholds: {
@@ -77,11 +82,7 @@ export function getPizza() {
 }
 
 export async function checkFrontend() {
-  const browser = chromium.launch({ headless: true });
-  const context = browser.newContext(
-    { viewport: { width: 1920, height: 1080 } },
-  );
-  const page = context.newPage();
+  const page = browser.newPage();
 
   try {
     await page.goto(BASE_URL)
@@ -97,7 +98,6 @@ export async function checkFrontend() {
     });
   } finally {
     page.close();
-    browser.close();
   }
 }
 
