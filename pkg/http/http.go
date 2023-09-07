@@ -536,7 +536,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 
 			adjs, err := db.GetAdjectives(r.Context())
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to fetch names from db", "err", err)
+				s.log.ErrorContext(r.Context(), "Failed to fetch adjectives from db", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
