@@ -63,6 +63,9 @@ func main() {
 		}
 	}
 
+	// Always add profiling middleware.
+	server = server.WithProfiling()
+
 	// Always add prometheus middleware.
 	server = server.WithPrometheus()
 
