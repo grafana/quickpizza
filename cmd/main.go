@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	http "net/http"
 	"os"
 	"strconv"
@@ -158,6 +161,26 @@ func clientFromEnv() *http.Client {
 
 	retriableClient := retryablehttp.NewClient()
 	retriableClient.Logger = nil
+	retriableClient.ErrorHandler = func(resp *http.Response, err error, numTries int) (*http.Response, error) {
+		var errResp qphttp.ErrorResponse
+		defer resp.Body.Close()
+		decErr := json.NewDecoder(resp.Body).Decode(&errResp)
+		if decErr != nil {
+			return resp, fmt.Errorf("Giving up after %d tries: Last error %w", numTries, err)
+		}
+		if errResp.Error != "" {
+			if err != nil {
+				return resp, fmt.Errorf("%w: %s: %s", err, errResp.Message, errResp.Error)
+			} else {
+				return resp, fmt.Errorf("%s: %s", errResp.Message, errResp.Error)
+			}
+		}
+		if err != nil {
+			return resp, fmt.Errorf("%w: %s", err, errResp.Message)
+		} else {
+			return resp, errors.New(errResp.Message)
+		}
+	}
 	// Configure retryablehttp to use the instrumented client.
 	// Retries occur at the retriableClient layer, so instrumentation will see failures from httpClient.
 	retriableClient.HTTPClient = httpClient

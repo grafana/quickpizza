@@ -95,6 +95,11 @@ func (r Restrictions) WithDefaults() Restrictions {
 	return r
 }
 
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Error   string `json:"error,omitempty"`
+}
+
 // Server is the object that handles HTTP requests and computes pizza recommendations.
 // Routes are divided into serveral groups that can be instantiated independently as microservices, or all together
 // as one single big service.
@@ -132,6 +137,22 @@ func NewServer() (*Server, error) {
 
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(rw, r)
+}
+
+func (s *Server) WriteErrorResponse(ctx context.Context, w http.ResponseWriter, message string, error error, code int) {
+	s.log.ErrorContext(ctx, message, "err", error)
+	w.WriteHeader(code)
+	emsg := ""
+	if error != nil {
+		emsg = error.Error()
+	}
+	err := json.NewEncoder(w).Encode(ErrorResponse{
+		Message: message,
+		Error:   emsg,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to write error response, giving up", "err", err)
+	}
 }
 
 // WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
@@ -306,10 +327,7 @@ func (s *Server) WithWS() *Server {
 	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		err := s.melody.HandleRequest(w, r)
 		if err != nil {
-			s.log.ErrorContext(r.Context(), "Upgrading request to WS", "err", err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = fmt.Fprint(w, err)
+			s.WriteErrorResponse(r.Context(), w, "Uprading request to WS", err, http.StatusInternalServerError)
 		}
 	})
 
@@ -340,26 +358,19 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			ingredientType := chi.URLParam(r, "type")
 			ingredients, err := db.GetIngredients(r.Context(), ingredientType)
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to get ingredients from database", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to get ingredients from database", err, http.StatusInternalServerError)
 				return
 			}
 
 			if len(ingredients) == 0 {
-				w.WriteHeader(http.StatusBadRequest)
 				slog.Warn("Did not find any ingredients", "type", ingredientType)
-				_, _ = fmt.Fprintf(w, "Unknown ingredient %q", ingredientType)
+				s.WriteErrorResponse(r.Context(), w, "Unable to find ingredients", nil, http.StatusBadRequest)
 				return
 			}
 
 			s.log.InfoContext(r.Context(), "Ingredients requested", "type", ingredientType)
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Ingredient{"ingredients": ingredients})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(map[string][]model.Ingredient{"ingredients": ingredients})
 		})
 
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
@@ -367,17 +378,11 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 			doughs, err := db.GetDoughs(r.Context())
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to get doughs from database", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to get doughs from database", err, http.StatusInternalServerError)
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Dough{"doughs": doughs})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(map[string][]model.Dough{"doughs": doughs})
 		})
 
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
@@ -385,17 +390,11 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 			tools, err := db.GetTools(r.Context())
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to get tools from database", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to get tools from database", err, http.StatusInternalServerError)
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
-			if err != nil {
-				slog.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
 		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -406,25 +405,13 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			//token = strings.TrimPrefix(token, "Bearer ")
-			//if _, ok := s.db.userSessionTokens[token]; !ok {
-			//	w.WriteHeader(http.StatusUnauthorized)
-			//	return
-			//}
-
 			history, err := db.GetHistory(r.Context(), 10)
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to fetch history from db", err, http.StatusInternalServerError)
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
 		})
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -439,14 +426,12 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			dec.DisallowUnknownFields()
 			err := dec.Decode(&latestRecommendation)
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request", err)
-				w.WriteHeader(http.StatusBadRequest)
+				s.WriteErrorResponse(r.Context(), w, "Failed to decode request", err, http.StatusBadRequest)
 				return
 			}
 
 			if err := db.RecordRecommendation(r.Context(), latestRecommendation); err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to save recommendation", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to save recommendation", err, http.StatusBadRequest)
 				return
 			}
 			w.WriteHeader(http.StatusCreated)
@@ -458,27 +443,18 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			password := r.URL.Query().Get("password")
 
 			if user == "" || password == "" {
-				w.WriteHeader(http.StatusBadRequest)
+				s.WriteErrorResponse(r.Context(), w, "Username and password must be specified", nil, http.StatusBadRequest)
 				return
 			}
 
 			if user != "admin" || password != "admin" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.WriteErrorResponse(r.Context(), w, "Invalid username or password", nil, http.StatusUnauthorized)
 				return
 			}
 
 			guid := xid.New()
 			token := guid.String()
-			//if s.db.userSessionTokens == nil {
-			//	s.db.userSessionTokens = make(map[string]time.Time)
-			//}
-			//s.db.userSessionTokens[token] = time.Now()
-			err := json.NewEncoder(w).Encode(map[string]string{"token": token})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(map[string]string{"token": token})
 		})
 	})
 
@@ -503,15 +479,10 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 
 			quotes, err := db.GetQuotes(r.Context())
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to fetch quotes from db", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-			err = json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to fetch quotes from db", err, http.StatusInternalServerError)
 				return
 			}
+			json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
 		})
 
 		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
@@ -519,16 +490,11 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 
 			names, err := db.GetClassicalNames(r.Context())
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to fetch names from db", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			err = json.NewEncoder(w).Encode(map[string][]string{"names": names})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to fetch names from db", err, http.StatusInternalServerError)
 				return
 			}
+
+			json.NewEncoder(w).Encode(map[string][]string{"names": names})
 		})
 
 		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
@@ -536,16 +502,10 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 
 			adjs, err := db.GetAdjectives(r.Context())
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to fetch adjectives from db", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Failed to fetch adjectives from db", err, http.StatusInternalServerError)
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
 		})
 	})
 
@@ -583,8 +543,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			dec.DisallowUnknownFields()
 			err := dec.Decode(&restrictions)
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request body", "err", err)
-				w.WriteHeader(http.StatusBadRequest)
+				s.WriteErrorResponse(r.Context(), w, "Failed to decode request body", err, http.StatusBadRequest)
 				return
 			}
 
@@ -592,8 +551,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			oils, err := catalogClient.Ingredients("olive_oil")
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting ingredients", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting olive_oil from catalog", err, http.StatusInternalServerError)
 				return
 			}
 
@@ -607,8 +565,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			tomatoes, err := catalogClient.Ingredients("tomato")
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting ingredients", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting tomatos from catalog", err, http.StatusInternalServerError)
 				return
 			}
 
@@ -621,8 +578,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			mozzarellas, err := catalogClient.Ingredients("mozzarella")
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting ingredients", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting mozarella from catalog", err, http.StatusInternalServerError)
 				return
 			}
 
@@ -635,8 +591,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			toppings, err := catalogClient.Ingredients("topping")
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting ingredients", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting toppings from catalog", err, http.StatusInternalServerError)
 				return
 			}
 
@@ -649,8 +604,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			tools, err := catalogClient.Tools()
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting tools", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting tools from catalog", err, http.StatusInternalServerError)
 				return
 			}
 
@@ -663,23 +617,20 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			doughs, err := catalogClient.Doughs()
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting doughs", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting doughs from catalog", err, http.StatusInternalServerError)
 				return
 			}
 
 			// Retrieve adjectives and names from Copy.
 			adjectives, err := copyClient.Adjectives()
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting adjectives", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting adjectives from copy service", err, http.StatusInternalServerError)
 				return
 			}
 
 			names, err := copyClient.Names()
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Requesting names", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
+				s.WriteErrorResponse(r.Context(), w, "Requesting names from copy service", err, http.StatusInternalServerError)
 				return
 			}
 
@@ -764,12 +715,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			s.log.InfoContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
 
-			err = json.NewEncoder(w).Encode(pizzaRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode pizza recommendation", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			json.NewEncoder(w).Encode(pizzaRecommendation)
 		})
 	})
 

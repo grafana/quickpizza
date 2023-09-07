@@ -137,7 +137,7 @@ func (c CatalogClient) Ingredients(ingredientType string) ([]model.Ingredient, e
 	url := c.catalogUrl + "/api/ingredients/" + ingredientType
 	err := c.client.getJSON(c.ctx, url, &ingredients)
 	if err != nil {
-		return nil, fmt.Errorf("querying %s: %w", url, err)
+		return nil, err
 	}
 
 	return ingredients.Ingredients, nil
@@ -150,7 +150,7 @@ func (c CatalogClient) Tools() ([]string, error) {
 	url := c.catalogUrl + "/api/tools"
 	err := c.client.getJSON(c.ctx, url, &tools)
 	if err != nil {
-		return nil, fmt.Errorf("querying %s: %w", url, err)
+		return nil, err
 	}
 
 	return tools.Tools, nil
@@ -163,7 +163,7 @@ func (c CatalogClient) Doughs() ([]model.Dough, error) {
 	url := c.catalogUrl + "/api/doughs"
 	err := c.client.getJSON(c.ctx, url, &doughs)
 	if err != nil {
-		return nil, fmt.Errorf("querying %s: %w", url, err)
+		return nil, err
 	}
 
 	return doughs.Doughs, nil
@@ -209,7 +209,7 @@ func (c CopyClient) Adjectives() ([]string, error) {
 	url := c.copyURL + "/api/adjectives"
 	err := c.client.getJSON(c.ctx, url, &adjs)
 	if err != nil {
-		return nil, fmt.Errorf("querying %s: %w", url, err)
+		return nil, err
 	}
 
 	return adjs.Adjectives, nil
@@ -223,7 +223,7 @@ func (c CopyClient) Names() ([]string, error) {
 	url := c.copyURL + "/api/names"
 	err := c.client.getJSON(c.ctx, url, &names)
 	if err != nil {
-		return nil, fmt.Errorf("querying %s: %w", url, err)
+		return nil, err
 	}
 
 	return names.Names, nil
