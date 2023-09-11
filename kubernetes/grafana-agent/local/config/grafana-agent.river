@@ -1,0 +1,92 @@
+// Traces
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = []
+    logs = []
+    traces = [
+      otelcol.exporter.otlp.default.input,
+    ]
+  }
+}
+
+// Metrics
+discovery.kubernetes "application_pods" {
+  selectors {
+    label = "app.k8s.io/name=quickpizza"
+    role = "pod"
+  }
+  role = "pod"
+  namespaces {
+    own_namespace = true
+  }
+}
+prometheus.scrape "default" {
+  forward_to = [
+    prometheus.remote_write.default.receiver,
+  ]
+  targets = discovery.relabel.relabel_targets.output
+}
+
+discovery.relabel "relabel_targets" {
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
+    ]
+  }
+  rule {
+    target_label = "service_name"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
+    ]
+  }
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_kubernetes_pod_name",
+    ]
+  }
+  targets = discovery.kubernetes.application_pods.targets
+}
+
+pyroscope.scrape "scrape_profiles" {
+  forward_to = [
+    pyroscope.write.default.receiver,
+  ]
+  targets = discovery.relabel.relabel_targets.output
+}
+
+otelcol.exporter.otlp "default" {
+  client {
+    // TODO: Replace this with the endpoint for your trace receiver
+    endpoint = env("TRACES_ENDPOINT")
+  }
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    // TODO: Replace this with your prometheus-compatible metrics store
+    url = env("METRICS_ENDPOINT")
+  }
+}
+
+pyroscope.write "default" {
+  endpoint {
+    // TODO: Replace this with your pyroscpoe instance endpoint
+    url = env("PROFILES_ENDPOINT")
+  }
+}

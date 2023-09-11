@@ -1,0 +1,74 @@
+// Receive traces
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = []
+    logs = []
+    traces = [
+      otelcol.exporter.otlp.default.input,
+    ]
+  }
+}
+
+// Scrape Metrics
+prometheus.scrape "default" {
+  forward_to = [
+    prometheus.remote_write.default.receiver,
+  ]
+  targets = [
+    {
+      "__address__" = env("QUICKPIZZA_HOST"),
+      "job" = "quickpizza",
+      "instance" = "local",
+    },
+  ]
+}
+
+
+// Collect profiles
+pyroscope.scrape "scrape_profiles" {
+  forward_to = [
+    pyroscope.write.default.receiver,
+  ]
+  targets = [
+    {
+      "__address__" = env("QUICKPIZZA_HOST"),
+      "service_name" = "quickpizza",
+      "instance" = "local",
+    },
+  ]
+}
+
+otelcol.exporter.otlp "default" {
+  client {
+    // TODO: Replace this with the endpoint for your trace receiver
+    endpoint = env("TRACES_ENDPOINT")
+  }
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    // TODO: Replace this with your prometheus-compatible metrics store
+    url = env("METRICS_ENDPOINT")
+  }
+}
+
+pyroscope.write "default" {
+  endpoint {
+    // TODO: Replace this with your pyroscpoe instance endpoint
+    url = env("PROFILES_ENDPOINT")
+  }
+}

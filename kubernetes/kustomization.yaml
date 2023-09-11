@@ -4,18 +4,22 @@
 resources:
   - resources/deployments.yaml
   - resources/services.yaml
-  # Uncomment the line below if you want tracing functionality. This will deploy the grafana agent and configure
+  # Uncomment one of the lines below if you want to enable telemetry. This will deploy the grafana agent and configure
   # QuickPizza to push traces to it.
-  #- grafana-agent
+  # - grafana-agent/cloud
+  # - grafana-agent/local
 
-# For tracing functionality, change the following lines to match your OTLP endpoint and username/password.
-# For Grafana cloud, see https://grafana.com/docs/agent/latest/flow/getting-started/opentelemetry-to-lgtm-stack/#grafana-tempo
+# For telemetry functionality, change the following lines to match your configuration.
 secretGenerator:
   - name: grafana-agent-credentials
     literals:
-      - TRACES_ENDPOINT=your-tracing-endpoint.grafana.net:443
-      - TRACES_USER=12345
-      - TRACES_API_KEY=your-api-key
+      # Required for grafana-agent/cloud to send telmetry to grafana cloud
+      - GRAFANA_CLOUD_STACK=your-cloud-stack
+      - GRAFANA_CLOUD_TOKEN=your-cloud-token
+      # Required for grafana-agent/local to send to your local stack
+      - TRACES_ENDPOINT=your-tempo-instance:443
+      - METRICS_ENDPOINT=http://your-prometheus-remote-write-endpoint:9090/api/v1/write
+      - PROFILES_ENDPOINT=your-pyroscope-instance
 
 # You can use the following generator to add additional environment variables to all QuickPizza pods.
 configMapGenerator:

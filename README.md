@@ -85,48 +85,80 @@ To run the test that uses an extension, you can run the following command:
 K6_BROWSER_ENABLED=true ./extension/k6 run 11.extension.js
 ```
 
-## Running a Prometheus instance
+## Collecting telemetry
 
-If you want to stream the metrics to a Prometheus instance, you need, well, a Prometheus instance. You can use the following command to run a local one:
+Testing something you can't observe is only half the fun. QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. You can either collect and store this data locally or send it to [Grafana Cloud](https://grafana.com/products/cloud/) directly.
+
+### Grafana Cloud
+
+To send telemetry collected from a local instance to Grafana Cloud, use the [agent-cloud.river](./contrib/agent-cloud.river) configuration file. The following command can be used to start the agent with the configuration file using docker:
 
 ```bash
-docker run -p 9090:9090 prom/prometheus --config.file=/etc/prometheus/prometheus.yml \
-             --storage.tsdb.path=/prometheus \
-             --web.console.libraries=/usr/share/prometheus/console_libraries \
-             --web.console.templates=/usr/share/prometheus/consoles \
-             --web.enable-remote-write-receiver
+docker run --name grafana-agent --rm -i \
+  --network quickpizza \
+  -v ./contrib/agent-cloud.river:/grafana-agent.river:Z \
+  -e GRAFANA_CLOUD_STACK="<your cloud stack name>" \
+  -e GRAFANA_CLOUD_TOKEN="<your grafana cloud token>" \
+  -e QUICKPIZZA_HOST="quickpizza:3333" \
+  -e AGENT_MODE=flow \
+  grafana/agent run /grafana-agent.river
 ```
 
-## Enable tracing in Docker
+For this to work, make sure that:
+* The quickpizza container runs in the same network as the agent
+* The token has the correct access rights. See [the autoconfigure module](https://github.com/grafana/agent-modules/tree/main/modules/grafana-cloud/autoconfigure) for more information.
 
-A common pattern to set up tracing is to configure your application to forward traces to an agent, which in turn forwards them to your tracing backend, such as a Grafana Stack. QuickPizza can be configured to do this by setting `QUICKPIZZA_OTLP_ENDPOINT` to the URL of said agent (in this case, we will use the [grafana/agent](https://github.com/grafana/agent)), which in turn can be configured through environment variables.
+Afterwards, you can start the quickpizza container and supply it with the required configuraiton to enable tracing:
 
-If you have a QuickPizza container running from previous steps, you can stop it now, as we will need to launch it again with tracing enabled. To do so, you can run the following commands:
-
-```shell
-# Configure URL, user, and API key for your tracing backend.
-# If you use Grafana Cloud, you can get your credentials following these steps: https://grafana.com/docs/agent/latest/flow/getting-started/opentelemetry-to-lgtm-stack/#grafana-tempo
- export TRACES_ENDPOINT=your-tracing-endpoint.grafana.local:443
- export TRACES_USER=12345
- export TRACES_API_KEY=your-api-key
-# Create a docker network so quickpizza and grafana-agent containers can talk to each other:
-docker network create quickpizza
-# Run the grafana agent. The provided config is not kubernetes-specific and works in Docker as well.
-docker run --name grafana-agent --rm -i -v ./kubernetes/grafana-agent/config/grafana-agent.river:/grafana-agent.river --network quickpizza -e TRACES_ENDPOINT -e TRACES_USER -e TRACES_API_KEY -e AGENT_MODE=flow grafana/agent run /grafana-agent.river
-# On a different terminal, run the QuickPizza container on the same network with tracing enabled:
-docker run --rm -i -p 3333:3333 -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 -e QUICKPIZZA_TRUST_CLIENT_TRACEID=1 --network quickpizza ghcr.io/grafana/quickpizza-local:latest
+```bash
+docker run --name quickpizza --rm -i -p 3333:3333 \
+  --network quickpizza \
+  -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 \
+  -e QUICKPIZZA_TRUST_CLIENT_TRACEID=1 \
+  ghcr.io/grafana/quickpizza-local:latest
 ```
 
-The `QUICKPIZZA_TRUST_CLIENT_TRACEID` environment variable instructs QuickPizza to trust client-provided Trace IDs, so all client-generated spans (if any) will show up in the trace.
+#### Enable Grafana Faro
 
-## Enable Grafana Faro
+> NOTE: Frontend observability is only available in Grafana Cloud
 
 To enable Grafana Faro and monitor frontend observability, stop the QuickPizza container if it's already running and set `QUICKPIZZA_CONF_FARO_URL` to your Faro web URL:
 
 ```bash
- export QUICKPIZZA_CONF_FARO_URL="<your faro url>"
+export QUICKPIZZA_CONF_FARO_URL="<your faro url>"
 docker run --rm -it -p 3333:3333 -e QUICKPIZZA_CONF_FARO_URL ghcr.io/grafana/quickpizza-local:latest
 ```
+
+### Local Setup
+
+When storing telemetry data locally, the [agent-local.river](./contrib/agent-local.river) configuration file provides you with a starting point to adapt based on your specific infrastructure.
+
+You can either supply the configuration using environment variables (default) or modify the file directly.
+
+To start the agent with a local configuration stack, use the following command:
+
+```bash
+docker run --name grafana-agent --rm -i \
+  --network quickpizza \
+  -v ./contrib/agent-local.river:/grafana-agent.river:Z \
+  -e AGENT_MODE=flow \
+  -e TRACES_ENDPOINT=<your OTLP trace receiver endpoint>
+  -e METRICS_ENDPOINT=<your prometheus remote write endpoint>
+  -e PROFILES_ENDPOINT=<your pyroscope endpoint>
+  -e QUICKPIZZA_HOST="quickpizza:3333" \
+  grafana/agent run /grafana-agent.river
+```
+
+Afterwards, you can start the quickpizza container and supply it with the required configuraiton to enable tracing:
+
+```bash
+docker run --name quickpizza --rm -i -p 3333:3333 \
+  --network quickpizza \
+  -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 \
+  -e QUICKPIZZA_TRUST_CLIENT_TRACEID=1 \
+  ghcr.io/grafana/quickpizza-local:latest
+```
+
 
 ## Deploy application to Kubernetes
 
@@ -206,9 +238,9 @@ echo $BASE_URL
 # http://10.99.177.165:3333
 ```
 
-### Enable tracing in Kubernetes
+### Enable telemtry in Kubernetes
 
-Distributed tracing support can be enabled when deploying in Kubernetes by editing the `kubernetes/kustomization.yaml` file and following the instructions in the comments present on that file. You will need a backend capable of ingesting OTLP traces, such as a Grafana Cloud Stack, or a Tempo deployment.
+To collect telemetry information, enable the `grafana-agent/cloud` (or `grafana-agent/local`) resource in `kubernetes/kustomization.yaml` and set the required configuration options.
 
 After making the changes `kubernetes/kustomization.yaml`, you may need to restart the QuickPizza pods for them to pick up the new configuration:
 
@@ -217,6 +249,8 @@ kubectl delete pods -l app.k8s.io/name=quickpizza
 ```
 
 ![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/quickpizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
+
+To ingest logs from Kubernetes, take a look at the [Grafana Cloud Kubernetes Integration](https://grafana.com/solutions/kubernetes) or use the [`loki.source.kubernetes`](https://grafana.com/docs/agent/latest/flow/reference/components/loki.source.kubernetes/)/[`loki.source.file`](https://grafana.com/docs/agent/latest/flow/reference/components/local.file_match/#send-kubernetes-pod-logs-to-loki) agent components.
 
 ### Running xk6-disruptor tests
 

@@ -1,0 +1,10 @@
+resources:
+  - ../base/
+
+configMapGenerator:
+  - name: agent-config
+    files:
+      - ./config/grafana-agent.river
+  - name: tracing-env
+    literals:
+      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318
