@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  quickpizza:
+    image: ghcr.io/grafana/quickpizza-local:latest
+    ports:
+      - "3333:3333"
+    environment:
+      QUICKPIZZA_OTLP_ENDPOINT: http://agent:4318
+      QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    command:
+      - --web.enable-remote-write-receiver
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  tempo:
+    image: grafana/tempo:2.1.0
+    command:
+      - "-storage.trace.backend=local"                  # tell tempo where to permanently put traces
+      - "-storage.trace.local.path=/tmp/tempo/traces"
+      - "-storage.trace.wal.path=/tmp/tempo/wal"        # tell tempo where to store the wal
+      - "-auth.enabled=false"                           # disables the requirement for the X-Scope-OrgID header
+      - "-server.http-listen-port=3200"
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+
+  grafana:
+    image: grafana/grafana:10.1.2
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/
+
+  agent:
+    image: grafana/agent:latest
+    volumes:
+      - "./contrib/agent-local.river:/grafana-agent.river:Z"
+    command: [
+      "run",
+      "/grafana-agent.river",
+    ]
+    environment:
+      AGENT_MODE: flow
+      QUICKPIZZA_HOST: quickpizza:3333
+      METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
+      TRACES_ENDPOINT: http://tempo:4317
+      PROFILES_ENDPOINT: http://pyroscope:4040
+    depends_on:
+      - prometheus
+      - quickpizza
+      - tempo
