@@ -26,3 +26,11 @@ datasources:
     editable: false
     apiVersion: 1
     uid: tempo
+  - name: Pyroscope
+    type: 'phlare'
+    access: 'proxy'
+    orgId: 1
+    uid: pyroscope
+    url: http://pyroscope:4040
+    isDefault: false
+    editable: false

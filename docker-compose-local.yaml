@@ -2,7 +2,10 @@ version: '3.8'
 
 services:
   quickpizza:
-    image: ghcr.io/grafana/quickpizza-local:latest
+    # image: ghcr.io/grafana/quickpizza-local:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3333:3333"
     environment:
@@ -16,6 +19,11 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    ports:
+      - "4040:4040"
 
   tempo:
     image: grafana/tempo:2.1.0
