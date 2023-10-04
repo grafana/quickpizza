@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  quickpizza:
+    image: ghcr.io/grafana/quickpizza-local:latest
+    ports:
+      - "3333:3333"
+    environment:
+      QUICKPIZZA_OTLP_ENDPOINT: http://agent:4318
+      QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
+      # must be set with an .env file
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
+
+  agent:
+    image: grafana/agent:latest
+    volumes:
+      - "./contrib/agent-cloud.river:/grafana-agent.river:Z"
+    command: [
+      "run",
+      "/grafana-agent.river",
+    ]
+    environment:
+      AGENT_MODE: flow
+      QUICKPIZZA_HOST: quickpizza:3333
+      # must be set with an .env file
+      GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
+      # must be set with an .env file
+      GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+    depends_on:
+      - quickpizza
