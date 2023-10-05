@@ -15,16 +15,18 @@ The tests written for `QuickPizza` demonstrates the basic and advanced functiona
 - [Docker](https://docs.docker.com/get-docker/)
 - [Grafana k6](https://k6.io/docs/get-started/installation/) (v.0.46.0 or higher)
 
-If you are running the xk6-disruptor test, Kubernetes needs to be setup and `minikube` to be downloaded. 
-
-- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
-
 ## Run locally with Docker
 
 To run the app locally with Docker, run the command:
 
 ```bash
 docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
+```
+
+or build image from the repo:
+
+```bash
+docker run --rm -it -p 3333:3333 $(docker build -q .)
 ```
 
 That's it!
@@ -36,8 +38,8 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 All tests live in the `k6` folder. Within this folder, you will find the following folders:
 
 - [foundations](k6/foundations/) - covers the basic functionalities of k6.
-- [browser](k6/browser/) - covers a more deep-dive look on how to use the k6 browser module for browser and web performance testing.
-- [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use xk6-disruptor for failure injection testing.
+- [browser](k6/browser/) - covers a more deep-dive look on how to use the [k6 browser module](https://k6.io/docs/using-k6-browser/overview/) for browser and web performance testing.
+- [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/) for failure injection testing.
 - [advanced](k6/advanced) - covers tests that are more advanced such as hybrid tests, tracing, etc.
 
 To run tests on the `foundations` folder, you can use the following commands:
@@ -53,14 +55,13 @@ If you want to run one iteration with one virtual user, you can use the followin
 k6 run --iterations 1 --vus 1 01.basic.js
 ```
 
-If QuickPizza is available remotely, then pass the hostname and port through the `BASE_URL` environment variable as follows:
+If QuickPizza is [available remotely](#deploy-the-docker-image), then pass the hostname and port through the `BASE_URL` environment variable as follows:
 
 ```bash
 k6 run -e BASE_URL=https://acmecorp.dev 01.basic.js
 # or 
 k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 ```
-
 
 If the test uses an extension, you need to build it first via xk6. To build the extension using Docker, you can run the following command:
 
@@ -77,7 +78,7 @@ Note that the `GOOS` variable is for Mac. Please refer to [Build a k6 binary usi
 To run the test that uses an extension, you can run the following command:
 
 ```bash
-K6_BROWSER_ENABLED=true ./extension/k6 run 11.extension.js
+./extension/k6 run 11.extension.js
 ```
 
 ## Collecting telemetry
@@ -157,7 +158,7 @@ docker run --name quickpizza --rm -i -p 3333:3333 \
 
 ## Deploy application to Kubernetes
 
-If you want to run a test that uses xk6-disruptor, or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. This section explains how to deploy QuickPizza to a local Kubernetes cluster using minikube, which you can run on your own machine if you use Linux, MacOS, or Windows.
+If you want to run a test that uses xk6-disruptor, or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. This section explains how to deploy QuickPizza to a local Kubernetes cluster using [minikube](https://minikube.sigs.k8s.io/docs/start/), which you can run on your own machine if you use Linux, MacOS, or Windows.
 
 Minikube is available in the software distribution channel for your OS of choice: `apt` or similar for Linux, `brew` for macOS, and `winget` or chocolatey for Windows. For more details on how to install Minikube, you can check the "Installation" section on the [Minikube documentation](https://minikube.sigs.k8s.io/docs/start/).
 
@@ -268,13 +269,21 @@ To run a basic xk6-disruptor test, run the following command on the `k6/disrupto
 To run an example hybrid test of browser and xk6-disruptor, run the following command:
 
 ```bash
-K6_BROWSER_ENABLED=true ./k6 run ../advanced/01.browser-with-disruptor.js
+./k6 run ../advanced/01.browser-with-disruptor.js
 ```
 
-## Deploy to Fly.io
+## Deploy the Docker image
+
+You can deploy the Docker image on multiple cloud providers. For simplicity, here are the `Fly.io` instructions:
 
 [Authenticate using the fly CLI](https://fly.io/docs/speedrun/). Then, run the CLI to deploy the application and set up the internal port `3333` that the server listens to.
 
 ```bash
 fly launch --internal-port 3333 --now
+```
+
+When running the tests, pass the `BASE_URL` environment variable as:
+
+```bash
+k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 ```
