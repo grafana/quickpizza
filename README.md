@@ -1,6 +1,6 @@
 # QuickPizza
 
-![Screenshot from 2023-03-18 15-29-05](https://user-images.githubusercontent.com/8228060/226112255-fe2d4cdc-193e-4c23-8a36-3d8f60baaf03.png)
+![QuickPizza screenshot](./docs/images/quickpizza-screenshot.png)
 
 ## What is QuickPizza? 🍕🍕🍕
 
@@ -58,8 +58,6 @@ k6 run --iterations 1 --vus 1 01.basic.js
 If QuickPizza is [available remotely](#deploy-the-docker-image), then pass the hostname and port through the `BASE_URL` environment variable as follows:
 
 ```bash
-k6 run -e BASE_URL=https://acmecorp.dev 01.basic.js
-# or 
 k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 ```
 
@@ -98,6 +96,10 @@ docker compose -f docker-compose-local.yaml up -d --build
 ```
 
 Like before, Quickpizza is available at [localhost:3333](http://localhost:3333). You can now visit [localhost:3000](http://localhost:3333) to access the Grafana instance.
+
+![Pyroscope Data Source](./docs/images/local-grafana-with-pyroscope.png)
+
+Please refer to [agent-local.river](./contrib/agent-local.river) to find the labels applied to the telemetry data.
 
 ### Grafana Cloud
 
