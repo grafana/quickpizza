@@ -31,7 +31,12 @@ export const options = {
       exec: "checkFrontend",
       executor: "constant-vus",
       vus: 1,
-      duration: "30s"
+      duration: "30s",
+      options: {
+        browser: {
+          type: "chromium",
+        },
+      },
     }
   },
   thresholds: {

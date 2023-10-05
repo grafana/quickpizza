@@ -13,7 +13,7 @@ The tests written for `QuickPizza` demonstrates the basic and advanced functiona
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [Grafana k6](https://k6.io/docs/get-started/installation/) (v.0.43.1 or higher)
+- [Grafana k6](https://k6.io/docs/get-started/installation/) (v.0.46.0 or higher)
 
 If you are running the xk6-disruptor test, Kubernetes needs to be setup and `minikube` to be downloaded. 
 
@@ -61,11 +61,6 @@ k6 run -e BASE_URL=https://acmecorp.dev 01.basic.js
 k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 ```
 
-If the test uses the [browser module](https://k6.io/docs/javascript-api/k6-browser/), you need to pass the `K6_BROWSER_ENABLED=true` environment variable:
-
-```bash
-K6_BROWSER_ENABLED=true k6 run --iterations 1 --vus 1 browser.js
-```
 
 If the test uses an extension, you need to build it first via xk6. To build the extension using Docker, you can run the following command:
 

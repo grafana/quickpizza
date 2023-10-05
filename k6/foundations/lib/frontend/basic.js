@@ -1,12 +1,8 @@
-import { chromium } from 'k6/experimental/browser';
+import { browser } from 'k6/experimental/browser';
 import { check } from "k6";
 
 export async function LoadAndCheck(url, headless) {
-  const browser = chromium.launch({ headless: headless });
-  const context = browser.newContext(
-    { viewport: { width: 1920, height: 1080 } },
-  );
-  const page = context.newPage();
+  const page = browser.newPage();
   
   try {
     await page.goto(url)
@@ -22,6 +18,5 @@ export async function LoadAndCheck(url, headless) {
     });
   } finally {
     page.close();
-    browser.close();
   }
 }
