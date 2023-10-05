@@ -1,8 +1,5 @@
 package main
 
-import _ "net/http/pprof"
-import _ "github.com/grafana/pyroscope-go/godeltaprof/http/pprof"
-
 import (
 	"context"
 	http "net/http"
