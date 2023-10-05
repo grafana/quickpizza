@@ -69,45 +69,6 @@ pyroscope.scrape "scrape_profiles" {
   forward_to = [
     pyroscope.write.default.receiver,
   ]
-  profiling_config {
-    profile.goroutine {
-      enabled = true
-      path = "/debug/pprof/goroutine"
-      delta = false
-    }
-    profile.process_cpu {
-      enabled = true
-      path = "/debug/pprof/profile"
-      delta = true
-    }
-    profile.godeltaprof_memory {
-      enabled = true
-      path = "/debug/pprof/delta_heap"
-    }
-    profile.memory {
-      enabled = false
-      path = "/debug/pprof/memory"
-      delta = false
-    }
-    profile.godeltaprof_mutex {
-      enabled = true
-      path = "/debug/pprof/delta_mutex"
-    }
-    profile.mutex {
-      enabled = false
-      path = "/debug/pprof/mutex"
-      delta = false
-    }
-    profile.godeltaprof_block {
-      enabled = true
-      path = "/debug/pprof/delta_block"
-    }
-    profile.block {
-      enabled = false
-      path = "/debug/pprof/block"
-      delta = false
-    }
-  } 
 }
 
 pyroscope.write "default" {
