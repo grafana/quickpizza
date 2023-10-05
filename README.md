@@ -83,7 +83,21 @@ To run the test that uses an extension, you can run the following command:
 
 ## Collecting telemetry
 
-Testing something you can't observe is only half the fun. QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. You can either collect and store this data locally or send it to [Grafana Cloud](https://grafana.com/products/cloud/) directly.
+Testing something you can't observe is only half the fun. QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. You can either collect and [store this data locally](#local-setup) or send it to [Grafana Cloud](#grafana-cloud).
+
+### Local Setup
+
+[docker-compose-local.yaml](./docker-compose-local.yaml) is set up to run the QuickPizza, Grafana, Tempo, Prometheus, Pyroscope, and Grafana Agent containers.
+
+The Grafana Agent collects observability data from the QuickPizza app and forwards it to the Tempo, Prometheus, and Pyroscope services. Then, you can visualize and correlate the data with the local Grafana instance.
+
+To start the local environment, use the following command:
+
+```bash
+docker compose -f docker-compose-local.yaml up -d --build
+```
+
+Like before, Quickpizza is available at [localhost:3333](http://localhost:3333). You can now visit [localhost:3000](http://localhost:3333) to access the Grafana instance.
 
 ### Grafana Cloud
 
@@ -125,35 +139,6 @@ export QUICKPIZZA_CONF_FARO_URL="<your faro url>"
 docker run --rm -it -p 3333:3333 -e QUICKPIZZA_CONF_FARO_URL ghcr.io/grafana/quickpizza-local:latest
 ```
 
-### Local Setup
-
-When storing telemetry data locally, the [agent-local.river](./contrib/agent-local.river) configuration file provides you with a starting point to adapt based on your specific infrastructure.
-
-You can either supply the configuration using environment variables (default) or modify the file directly.
-
-To start the agent with a local configuration stack, use the following command:
-
-```bash
-docker run --name grafana-agent --rm -i \
-  --network quickpizza \
-  -v ./contrib/agent-local.river:/grafana-agent.river:Z \
-  -e AGENT_MODE=flow \
-  -e TRACES_ENDPOINT=<your OTLP trace receiver endpoint>
-  -e METRICS_ENDPOINT=<your prometheus remote write endpoint>
-  -e PROFILES_ENDPOINT=<your pyroscope endpoint>
-  -e QUICKPIZZA_HOST="quickpizza:3333" \
-  grafana/agent run /grafana-agent.river
-```
-
-Afterwards, you can start the quickpizza container and supply it with the required configuraiton to enable tracing:
-
-```bash
-docker run --name quickpizza --rm -i -p 3333:3333 \
-  --network quickpizza \
-  -e QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318 \
-  -e QUICKPIZZA_TRUST_CLIENT_TRACEID=1 \
-  ghcr.io/grafana/quickpizza-local:latest
-```
 
 
 ## Deploy application to Kubernetes
