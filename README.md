@@ -106,7 +106,7 @@ docker run --name grafana-agent --rm -i \
 
 For this to work, make sure that:
 * The quickpizza container runs in the same network as the agent
-* The token has the correct access rights. See [the autoconfigure module](https://github.com/grafana/agent-modules/tree/main/modules/grafana-cloud/autoconfigure) for more information.
+* The [Access Policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) of your token includes the following scopes for the specified Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`. See [the autoconfigure module](https://github.com/grafana/agent-modules/tree/main/modules/grafana-cloud/autoconfigure) for more information.
 
 Afterwards, you can start the quickpizza container and supply it with the required configuraiton to enable tracing:
 
