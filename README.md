@@ -1,6 +1,6 @@
 # QuickPizza
 
-![QuickPizza screenshot](./docs/images/QuickPizza-screenshot.png)
+![QuickPizza screenshot](./docs/images/quickpizza-screenshot.png)
 
 ## What is QuickPizza? 🍕🍕🍕
 
