@@ -16,6 +16,7 @@ spec:
         app.k8s.io/name: grafana-agent
     spec:
       restartPolicy: Always
+      serviceAccountName: grafana-agent
       containers:
         - name: grafana-agent
           image: grafana/agent:v0.35.0

@@ -1,6 +1,5 @@
 resources:
-  - ./resources/deployment.yaml
-  - ./resources/service.yaml
+  - ../base/
 
 configMapGenerator:
   - name: agent-config

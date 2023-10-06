@@ -15,7 +15,12 @@ const scenarios = {
     vus: 1,
     duration: "10s",
     startTime: "10s",
-    exec: "browser"
+    exec: "browser",
+    options: {
+      browser: {
+        type: "chromium",
+      },
+    },
   },
 };
 

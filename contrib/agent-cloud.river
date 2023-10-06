@@ -1,0 +1,62 @@
+// Receive traces
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = []
+    logs = []
+    traces = [
+      module.git.grafana_cloud.exports.traces_receiver,
+    ]
+  }
+}
+
+// Scrape Metrics
+prometheus.scrape "default" {
+  forward_to = [
+    module.git.grafana_cloud.exports.metrics_receiver,
+  ]
+  targets = [
+    {
+      "__address__" = env("QUICKPIZZA_HOST"),
+      "job" = "quickpizza",
+      "instance" = "local",
+    },
+  ]
+}
+
+pyroscope.scrape "scrape_profiles" {
+  targets = [
+    {
+      "__address__" = env("QUICKPIZZA_HOST"),
+      "service_name" = "quickpizza",
+      "instance" = "local",
+    },
+  ]
+  forward_to = [
+    module.git.grafana_cloud.exports.profiles_receiver,
+  ]
+}
+
+module.git "grafana_cloud" {
+  repository = "https://github.com/grafana/agent-modules.git"
+  path = "modules/grafana-cloud/autoconfigure/module.river"
+  revision = "main"
+  pull_frequency = "0s"
+  arguments {
+    stack_name = env("GRAFANA_CLOUD_STACK")
+    token = env("GRAFANA_CLOUD_TOKEN")
+  }
+}
