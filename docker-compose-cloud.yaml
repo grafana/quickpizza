@@ -5,6 +5,18 @@ services:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `docker build -t image_name .`
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    logging:
+      driver: loki
+      options:
+        loki-url: "https://${GRAFANA_CLOUD_LOKI_USER}:${GRAFANA_CLOUD_TOKEN}@${GRAFANA_CLOUD_LOKI_HOST}/loki/api/v1/push"
+        loki-relabel-config: |
+          - action: replace
+            source_labels: ["compose_service"]
+            separator: "/"
+            target_label: job
+          - action: replace
+            source_labels: ["container_name"]
+            target_label: instance
     ports:
       - "3333:3333"
     environment:
