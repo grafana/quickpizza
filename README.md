@@ -89,7 +89,7 @@ First, we need to install the [Loki docker plugin](https://grafana.com/docs/loki
 docker plugin install grafana/loki-docker-driver:2.9.1 --alias loki --grant-all-permissions
 ```
 
-> Note that Docker plugins are not supported on Windows. For Windows, you'll need to remove the `services/quickpizza/logging` section from the `docker-compose-*.yaml` files, and logs won't be collected.
+> Note that Docker plugins are not supported on Windows, meaning QuickPizza logs won't be sent to Loki with the Docker Compose setup. When executing `docker compose up` on Windows, either pass the env. variable: `LOGGING_DRIVER=none`, or remove the `services/quickpizza/logging` section from the `docker-compose-*.yaml` files.
 
 ### Local Setup
 
