@@ -20,7 +20,7 @@ The tests written for `QuickPizza` demonstrates the basic and advanced functiona
 To run the app locally with Docker, run the command:
 
 ```bash
-docker run --rm -it -p 3333:3333  ghcr.io/grafana/QuickPizza-local:latest
+docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
 ```
 
 or build image from the repo:
@@ -92,7 +92,7 @@ The Grafana Agent collects observability data from the QuickPizza app and forwar
 To start the local environment, use the following command:
 
 ```bash
-docker compose -f docker-compose-local.yaml up -d --build
+docker compose -f docker-compose-local.yaml up -d
 ```
 
 Like before, QuickPizza is available at [localhost:3333](http://localhost:3333). It's time to discover some fancy pizzas!
@@ -123,7 +123,7 @@ GRAFANA_CLOUD_TOKEN=
 Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file as before:
 
 ```bash
-docker compose -f docker-compose-cloud.yaml up -d --build
+docker compose -f docker-compose-cloud.yaml up -d
 ```
 
 QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
