@@ -15,6 +15,7 @@ services:
     image: prom/prometheus:v2.47.0
     command:
       - --web.enable-remote-write-receiver
+      - --enable-feature=native-histograms
       - --config.file=/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"

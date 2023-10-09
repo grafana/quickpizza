@@ -103,6 +103,21 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 
 Please refer to [agent-local.river](./contrib/agent-local.river) to find the labels applied to the telemetry data.
 
+**Send k6 results to Prometheus and Visualize with the k6-Prometheus Dashboards**
+
+To send k6 results to the Prometheus instance, execute the `k6 run` command with the value of the `output` flag set to `experimental-prometheus-rw` as follows:
+
+```bash
+k6 run -o experimental-prometheus-rw 01.basic.js
+```
+
+The local Grafana instance includes the [k6 Prometheus](https://grafana.com/grafana/dashboards/19665-k6-prometheus/) and [k6 Prometheus (Native Histogram)](https://grafana.com/grafana/dashboards/18030-k6-prometheus-native-histograms/) dashboards to help visualize, query, and correlate k6 results with telemetry data.
+
+![k6 provisioned dashboards](./docs/images/provisioned-k6-prometheus-dashboards.png)
+
+For detailed instructions about the different options of the k6 Prometheus output, refer to the [k6 output guide for Prometheus remote write](https://k6.io/docs/results-output/real-time/prometheus-remote-write).
+
+
 ### Grafana Cloud
 
 The [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) file is set up to run the QuickPizza and Grafana Agent containers. 
@@ -141,6 +156,19 @@ QuickPizza_CONF_FARO_URL=
 Restart the `docker-compose-cloud.yaml` environment.
 
 ![Frontend Observability](./docs/images/grafana-cloud-frontend-observability.png)
+
+**Send k6 results to Grafana Cloud Prometheus and visualize with the k6-Prometheus Dashboards**
+
+Just like in the local setup, we can output k6 result metrics to a Prometheus instance; in this case, it is provided by our Grafana Cloud Stack. 
+
+```bash
+K6_PROMETHEUS_RW_USERNAME=USERNAME \
+K6_PROMETHEUS_RW_PASSWORD=API_KEY \
+K6_PROMETHEUS_RW_SERVER_URL=REMOTE_WRITE_ENDPOINT \
+k6 run -o experimental-prometheus-rw script.js
+```
+
+For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prometheus](https://k6.io/docs/results-output/real-time/grafana-cloud-prometheus/).
 
 ## Deploy QuickPizza Docker image
 
