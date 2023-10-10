@@ -103,7 +103,7 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 
 Please refer to [agent-local.river](./contrib/agent-local.river) to find the labels applied to the telemetry data.
 
-**Send k6 results to Prometheus and Visualize with the k6-Prometheus Dashboards**
+**Send k6 results to Prometheus and visualize them with prebuilt dashboards**
 
 To send k6 results to the Prometheus instance, execute the `k6 run` command with the value of the `output` flag set to `experimental-prometheus-rw` as follows:
 
@@ -157,7 +157,7 @@ Restart the `docker-compose-cloud.yaml` environment.
 
 ![Frontend Observability](./docs/images/grafana-cloud-frontend-observability.png)
 
-**Send k6 results to Grafana Cloud Prometheus and visualize with the k6-Prometheus Dashboards**
+**Send k6 results to Grafana Cloud Prometheus and visualize them with prebuilt dashboards**
 
 Just like in the local setup, we can output k6 result metrics to a Prometheus instance; in this case, it is provided by our Grafana Cloud Stack. 
 
