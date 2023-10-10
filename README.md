@@ -79,17 +79,26 @@ To run the test that uses an extension, you can run the following command:
 ./extension/k6 run 11.extension.js
 ```
 
-## Collect telemetry 
+## Collect telemetry (Docker Compose)
 
 Testing something you can't observe is only half the fun. QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. You can either collect and [store this data locally](#local-setup) or send it to [Grafana Cloud](#grafana-cloud).
 
+First, we need to install the [Loki docker plugin](https://grafana.com/docs/loki/latest/send-data/docker-driver/) to be able to read the logs from the QuickPizza container. Run the following command, updating the release version if needed:
+
+```bash
+docker plugin install grafana/loki-docker-driver:2.9.1 --alias loki --grant-all-permissions
+```
+
+> Note that Docker plugins are not supported on Windows, meaning QuickPizza logs won't be sent to Loki with the Docker Compose setup. When executing `docker compose up` on Windows, either pass the env. variable: `LOGGING_DRIVER=none`, or remove the `services/quickpizza/logging` section from the `docker-compose-*.yaml` files.
+
 ### Local Setup
 
-The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Prometheus, Pyroscope, and Grafana Agent containers.
+The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Agent containers.
 
-The Grafana Agent collects observability data from the QuickPizza app and forwards it to the Tempo, Prometheus, and Pyroscope services. Then, you can visualize and correlate the data with a local running Grafana instance.
+The Grafana Agent collects traces, metrics, and profiling data from the QuickPizza app, forwarding them to the Tempo, Prometheus, and Pyroscope services. The Loki Docker plugin reads the logs and forwards them to the Loki service. Finally, you can visualize and correlate data stored in these containers with the locally running Grafana instance. 
 
-To start the local environment, use the following command:
+
+First, if you haven't done so in the previous step, install the `Loki Docker plugin`. To start the local environment, use the following command:
 
 ```bash
 docker compose -f docker-compose-local.yaml up -d
@@ -99,9 +108,9 @@ Like before, QuickPizza is available at [localhost:3333](http://localhost:3333).
 
 Then, you can visit the Grafana instance running at [localhost:3000](http://localhost:3000) to access QuickPizza data.
 
-![Pyroscope Data Source](./docs/images/local-grafana-with-pyroscope.png)
+![Pyroscope Data Source](./docs/images/local-env-grafana-with-pyroscope.png)
 
-Please refer to [agent-local.river](./contrib/agent-local.river) to find the labels applied to the telemetry data.
+Please refer to [agent-local.river](./contrib/agent-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml) to find the labels applied to the telemetry data.
 
 ### Grafana Cloud
 
@@ -112,15 +121,18 @@ In this setup, the Grafana Agent collects observability data from the QuickPizza
 You will need the following settings:
 1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored. 
 2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
+3. Loki user and Loki host for basic authentication. Navigate to the Grafana Cloud Stack on the [Cloud Portal](https://grafana.com/docs/grafana-cloud/fundamentals/cloud-portal/) and click the Loki `Details`. 
 
 Then, create an `.env` file with the following environment variables and the values of the previous settings:
 
 ```bash
-GRAFANA_CLOUD_STACK=
+GRAFANA_CLOUD_STACK=name
 GRAFANA_CLOUD_TOKEN=
+GRAFANA_CLOUD_LOKI_USER=123456
+GRAFANA_CLOUD_LOKI_HOST=logs-prod-XYZ.grafana.net
 ```
 
-Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file as before:
+Before running Docker Compose, install the `Loki Docker plugin` if you haven't done so previously. Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file, just as in the local setup:
 
 ```bash
 docker compose -f docker-compose-cloud.yaml up -d
@@ -128,7 +140,7 @@ docker compose -f docker-compose-cloud.yaml up -d
 
 QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
 
-Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and explore QuickPizza's telemetry data on the Prometheus, Tempo, and Pyroscope instances of your Grafana Cloud Stack. Refer to [agent-cloud.river](./contrib/agent-cloud.river) to find the labels applied to the telemetry data.
+Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and explore QuickPizza's telemetry data on the Prometheus, Tempo, Loki, and Pyroscope instances of your Grafana Cloud Stack. Refer to [agent-cloud.river](./contrib/agent-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) to find the labels applied to the telemetry data.
 
 ***Enable Frontend observability (Grafana Faro)***
 
