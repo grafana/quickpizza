@@ -1,4 +1,4 @@
-module github.com/grafana/quickpizza/k6/extension
+module github.com/grafana/quickpizza/extensions/internal
 
 go 1.20
 
