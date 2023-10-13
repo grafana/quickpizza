@@ -4,6 +4,7 @@ import { Trend, Counter } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 import { SharedArray } from 'k6/data';
 import { LoadAndCheck } from "./lib/frontend/basic.js";
+import { StressStages, SmokeOptions } from "./lib/load-options.js";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
@@ -12,17 +13,13 @@ export const options = {
     smoke: {
       exec: "getPizza",
       executor: "constant-vus",
-      vus: 1,
-      duration: "10s",
+      vus: SmokeOptions.vus,
+      duration: SmokeOptions.duration,
     },
     stress: {
       exec: "getPizza",
       executor: "ramping-vus",
-      stages: [
-        { duration: '5s', target: 5 },
-        { duration: '10s', target: 5 },
-        { duration: '5s', target: 0 },
-      ],
+      stages: StressStages,
       gracefulRampDown: "5s",
       startTime: "10s",
     },
