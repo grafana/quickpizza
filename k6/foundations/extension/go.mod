@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/grafana/quickpizza v0.0.5
-	go.k6.io/k6 v0.45.0
+	go.k6.io/k6 v0.46.0
 )
 
 require (

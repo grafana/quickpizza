@@ -14,6 +14,7 @@ fly.toml
 summary.json
 screenshot.png
 screenshots
-k6/extension/k6
+k6/k6
+k6/foundations/extension/k6
 
 .vscode

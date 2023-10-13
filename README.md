@@ -61,22 +61,20 @@ If QuickPizza is [deployed remotely](#deploy-quickpizza-docker-image), then pass
 k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 ```
 
-If the test uses an extension, you need to build it first via xk6. To build the extension using Docker, you can run the following command:
+If the test uses an extension, you need to build a k6 binary that includes the required extension/s. For detailed instructions, refer to k6 docs:
+- [Build a k6 binary using Go](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-go/)
+- [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/)
 
 ```bash
 cd k6/foundations/extension
 
-docker run --rm -e GOOS=darwin -u "$(id -u):$(id -g)" -v "${PWD}:/xk6" \
-  grafana/xk6 build  \
-  --with xk6-internal=.
+xk6 build --with xk6-internal=.
 ```
-
-Note that the `GOOS` variable is for Mac. Please refer to [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/) for more information.
 
 To run the test that uses an extension, you can run the following command:
 
 ```bash
-./extension/k6 run 11.extension.js
+./k6 run ../11.extension.js
 ```
 
 ## Collect telemetry (Docker Compose)
