@@ -38,7 +38,8 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 All tests live in the `k6` folder. Within this folder, you will find the following folders:
 
 - [foundations](k6/foundations/) - covers the basic functionalities of k6.
-- [browser](k6/browser/) - covers a more deep-dive look on how to use the [k6 browser module](https://k6.io/docs/using-k6-browser/overview/) for browser and web performance testing.
+- [browser](k6/browser/) - covers the [k6 browser module](https://k6.io/docs/using-k6-browser/overview/) for browser and web performance testing.
+- [extensions](k6/extensions/) - covers basic tests using [k6 extensions](https://k6.io/docs/extensions/).
 - [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/) for failure injection testing.
 - [advanced](k6/advanced) - covers tests that are more advanced such as hybrid tests, tracing, etc.
 
@@ -66,15 +67,15 @@ If the test uses an extension, you need to build a k6 binary that includes the r
 - [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/)
 
 ```bash
-cd k6/foundations/extension
+cd k6/extensions
 
-xk6 build --with xk6-internal=.
+xk6 build --with xk6-internal=../internal
 ```
 
-To run the test that uses an extension, you can run the following command:
+To run the test that uses the `k6/x/internal` module, use  previously created k6 binary in the `k6/extensions` folder:
 
 ```bash
-./k6 run ../11.extension.js
+./k6 run 01.basic-internal.js
 ```
 
 ## Collect telemetry (Docker Compose)

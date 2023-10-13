@@ -15,6 +15,7 @@ summary.json
 screenshot.png
 screenshots
 k6/k6
-k6/foundations/extension/k6
+k6/extensions/internal/k6
+k6/extensions/k6
 
 .vscode
