@@ -50,6 +50,11 @@ export default function () {
   sleep(1);
 }
 
+export function teardown(){
+  // TODO: Send notification to Slack
+  console.log("That's all folks!")
+}
+
 export function handleSummary(data) {
   return {
     'summary.json': JSON.stringify(data, null, 2),

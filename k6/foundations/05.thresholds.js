@@ -48,3 +48,8 @@ export default function () {
   ingredients.add(res.json().pizza.ingredients.length);
   sleep(1);
 }
+
+export function teardown(){
+  // TODO: Send notification to Slack
+  console.log("That's all folks!")
+}
