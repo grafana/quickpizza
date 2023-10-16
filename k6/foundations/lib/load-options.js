@@ -11,10 +11,12 @@ export const StressStages = [
   { duration: "5s", target: 0 },
 ];
 
-export const PeakStages = [
-  { duration: "1m", target: 10 },
-  { duration: "20m", target: 10 },
-  { duration: "5m", target: 0 },
+export const SpikeStages = [
+  { duration: "30s", target: 100 },
+  { duration: "2m", target: 100 },
+  { duration: "30s", target: 50 },
+  { duration: "2m", target: 50 },
+  { duration: "10s", target: 0 },
 ];
 
 export const SoakStages = [
