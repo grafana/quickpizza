@@ -158,7 +158,7 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 ***Enable Frontend observability (Grafana Faro)***
 
-Frontend observability is available exclusively in Grafana Cloud. To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/) for QuickPizza, add the `QuickPizza_CONF_FARO_URL` variable to the `.env` file, setting its value to your Faro web URL:
+Frontend observability is available exclusively in Grafana Cloud. To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/) for QuickPizza, add the `QUICKPIZZA_CONF_FARO_URL` variable to the `.env` file, setting its value to your Faro web URL:
 
 ```bash
 QUICKPIZZA_CONF_FARO_URL=
