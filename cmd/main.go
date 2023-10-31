@@ -10,11 +10,8 @@ import (
 
 	"github.com/grafana/quickpizza/pkg/database"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
-	"github.com/grafana/quickpizza/pkg/tracing"
-
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"golang.org/x/exp/slog"
 )
@@ -35,32 +32,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// If QUICKPIZZA_OTLP_ENDPOINT is set, set up tracing outputting to it.
-	// If it is not set, no tracing will be performed.
-	if otlpEndpoint, _ := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); otlpEndpoint != "" {
-		serviceName, _ := os.LookupEnv("QUICKPIZZA_OTLP_SERVICE_NAME")
-		if serviceName == "" {
-			serviceName = "QuickPizza"
-		}
-
+	if otlpEndpoint, tracingEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); tracingEnabled {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		tp, err := tracing.OTLPProvider(ctx, otlpEndpoint, serviceName)
+		installer, err := qphttp.NewTraceInstaller(ctx, otlpEndpoint)
 		if err != nil {
-			slog.Error("Cannot create OTLP tracer", "err", err)
+			slog.Error("creating otlp trace installer", "err", err)
 			os.Exit(1)
 		}
 
-		// setting the global trace provider is required for the database tracing layer
-		otel.SetTracerProvider(tp)
-		server = server.WithTracing(tp)
-
 		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
-			server = server.WithInsecureTraceContext()
+			installer.Insecure()
 		}
-	}
 
+		server = server.WithTraceInstaller(installer)
+	}
 	// Always add profiling middleware.
 	server = server.WithProfiling()
 
