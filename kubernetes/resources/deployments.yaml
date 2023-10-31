@@ -48,10 +48,6 @@ spec:
               value: http://quickpizza-recs:3333
             - name: QUICKPIZZA_CONFIG_ENDPOINT
               value: http://quickpizza-config:3333
-            - name: QUICKPIZZA_OTLP_SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -93,10 +89,6 @@ spec:
               value: "0"
             - name: QUICKPIZZA_CONFIG
               value: "1"
-            - name: QUICKPIZZA_OTLP_SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -138,10 +130,6 @@ spec:
               value: "0"
             - name: QUICKPIZZA_WS
               value: "1"
-            - name: QUICKPIZZA_OTLP_SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -183,10 +171,6 @@ spec:
               value: "0"
             - name: QUICKPIZZA_CATALOG
               value: "1"
-            - name: QUICKPIZZA_OTLP_SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -228,10 +212,6 @@ spec:
               value: "0"
             - name: QUICKPIZZA_COPY
               value: "1"
-            - name: QUICKPIZZA_OTLP_SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -277,7 +257,3 @@ spec:
               value: http://quickpizza-catalog:3333
             - name: QUICKPIZZA_COPY_ENDPOINT
               value: http://quickpizza-copy:3333
-            - name: QUICKPIZZA_OTLP_SERVICE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.labels['app.kubernetes.io/instance']
