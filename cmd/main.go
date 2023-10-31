@@ -11,23 +11,19 @@ import (
 	"github.com/grafana/quickpizza/pkg/database"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/grafana/quickpizza/pkg/tracing"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"golang.org/x/exp/slog"
 )
 
 func main() {
 	// write logs as logfmt
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
-
-	// Create InMemoryDatabase. This database is used by the Catalog and Copy services.
-	db := &database.InMemoryDatabase{}
-	err := db.PopulateFromFile("data.json")
-	if err != nil {
-		slog.Error("loading data from disk", "err", err)
-		os.Exit(1)
-	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: getLogLevel(),
+	})))
 
 	// Create an HTTP client configured from env vars.
 	// If no specific env vars are set, this will return a http client that does not perform any retries.
@@ -56,6 +52,8 @@ func main() {
 			os.Exit(1)
 		}
 
+		// setting the global trace provider is required for the database tracing layer
+		otel.SetTracerProvider(tp)
 		server = server.WithTracing(tp)
 
 		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
@@ -102,10 +100,20 @@ func main() {
 	}
 
 	if envServe("QUICKPIZZA_CATALOG") {
+		db, err := database.NewCatalog(envDBConnString())
+		if err != nil {
+			slog.Error("setting up database connection", "err", err)
+			os.Exit(1)
+		}
 		server = server.WithCatalog(db)
 	}
 
 	if envServe("QUICKPIZZA_COPY") {
+		db, err := database.NewCopy(envDBConnString())
+		if err != nil {
+			slog.Error("setting up database connection", "err", err)
+			os.Exit(1)
+		}
 		server = server.WithCopy(db)
 	}
 
@@ -266,4 +274,26 @@ func envConfig(prefix string) map[string]string {
 	}
 
 	return config
+}
+
+// envDBUrl returns the specified db connection string from QUICKPIZZA_DB. It defaults to an in-memory sqlite instance
+func envDBConnString() string {
+	v, found := os.LookupEnv("QUICKPIZZA_DB")
+	if !found {
+		return "file::memory:?cache=shared"
+	}
+	return v
+}
+
+func getLogLevel() slog.Level {
+	switch strings.ToLower(os.Getenv("QUICKPIZZA_LOG_LEVEL")) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }

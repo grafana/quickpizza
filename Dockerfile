@@ -23,7 +23,6 @@ RUN go generate pkg/web/web.go && \
 FROM gcr.io/distroless/static-debian11
 
 COPY --from=builder /bin/quickpizza /bin
-COPY data.json .
 
 EXPOSE 3333
 ENTRYPOINT [ "/bin/quickpizza" ]
