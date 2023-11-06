@@ -15,6 +15,8 @@ secretGenerator:
     literals:
       # Required for grafana-agent/cloud to send telmetry to grafana cloud
       - GRAFANA_CLOUD_STACK=your-cloud-stack
+      # An Access Policy Token that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
+      # IMPORTANT: make sure the `stacks:read` scope is present. Otherwise the agent can't deduce the url of your backends automatically
       - GRAFANA_CLOUD_TOKEN=your-cloud-token
       # Required for grafana-agent/local to send to your local stack
       - TRACES_ENDPOINT=your-tempo-instance:443
