@@ -7,7 +7,7 @@ function setupFaro() {
     then(data => data.json()).
     then(config => {
         const url = config.faro_url;
-        if (url === undefined) {
+        if (!url) {
             console.warn("Grafana faro is not configured.")
             return
         }
