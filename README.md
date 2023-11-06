@@ -145,18 +145,15 @@ In this setup, the Grafana Agent collects observability data from the QuickPizza
 You will need the following settings:
 1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored. 
 2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
-3. Loki user and Loki host for basic authentication. Navigate to the Grafana Cloud Stack on the [Cloud Portal](https://grafana.com/docs/grafana-cloud/fundamentals/cloud-portal/) and click the Loki `Details`. 
 
 Then, create an `.env` file with the following environment variables and the values of the previous settings:
 
 ```bash
 GRAFANA_CLOUD_STACK=name
 GRAFANA_CLOUD_TOKEN=
-GRAFANA_CLOUD_LOKI_USER=123456
-GRAFANA_CLOUD_LOKI_HOST=logs-prod-XYZ.grafana.net
 ```
 
-Before running Docker Compose, install the `Loki Docker plugin` if you haven't done so previously. Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file, just as in the local setup:
+Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file, just as in the local setup:
 
 ```bash
 docker compose -f docker-compose-cloud.yaml up -d
