@@ -6,18 +6,6 @@ services:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `docker build -t image_name .`
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
-    logging:
-      driver: ${LOGGING_DRIVER:-loki}
-      options:
-        loki-url: http://localhost:3100/loki/api/v1/push
-        loki-relabel-config: |
-          - action: replace
-            source_labels: ["namespace","compose_service"]
-            separator: "/"
-            target_label: job
-          - action: replace
-            source_labels: ["container_name"]
-            target_label: instance
     ports:
       - "3333:3333"
     environment:
@@ -71,15 +59,16 @@ services:
     image: grafana/agent:latest
     volumes:
       - "./contrib/agent-local.river:/grafana-agent.river:Z"
-    command: [
-      "run",
-      "/grafana-agent.river",
-    ]
+      - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
+    command: ["run", "/grafana-agent.river", "--server.http.listen-addr=0.0.0.0:12345"]
+    ports:
+      - "12345:12345"
     environment:
       AGENT_MODE: flow
       QUICKPIZZA_HOST: quickpizza:3333
       METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
       TRACES_ENDPOINT: http://tempo:4317
+      LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
       PROFILES_ENDPOINT: http://pyroscope:4040
     depends_on:
       - prometheus

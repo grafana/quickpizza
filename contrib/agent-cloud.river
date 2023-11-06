@@ -53,6 +53,7 @@ pyroscope.scrape "scrape_profiles" {
 discovery.docker "all_containers" {
   host = "unix:///var/run/docker.sock"
 }
+
 discovery.relabel "quickpizza" {
   rule {
     target_label = "instance"
