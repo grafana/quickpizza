@@ -59,6 +59,7 @@ discovery.relabel "quickpizza" {
     source_labels = [
       "__meta_docker_container_name",
     ]
+    regex ="/(.*)"
     action = "replace"
   }
   rule {
