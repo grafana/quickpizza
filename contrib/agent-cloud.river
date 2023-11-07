@@ -50,6 +50,36 @@ pyroscope.scrape "scrape_profiles" {
   ]
 }
 
+discovery.docker "all_containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "quickpizza" {
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex ="/(.*)"
+    action = "replace"
+  }
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_docker_container_label_com_docker_compose_project",
+    ]
+    regex = ".*quickpizza.*"
+    action = "keep"
+  }
+  targets = discovery.docker.all_containers.targets
+}
+
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.quickpizza.output
+  forward_to = [module.git.grafana_cloud.exports.logs_receiver]
+}
+
 module.git "grafana_cloud" {
   repository = "https://github.com/grafana/agent-modules.git"
   path = "modules/grafana-cloud/autoconfigure/module.river"

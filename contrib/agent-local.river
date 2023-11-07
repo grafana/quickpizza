@@ -77,3 +77,39 @@ pyroscope.write "default" {
     url = env("PROFILES_ENDPOINT")
   }
 }
+
+discovery.docker "all_containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "quickpizza" {
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex ="/(.*)"
+    action = "replace"
+  }
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_docker_container_label_com_docker_compose_project",
+    ]
+    regex = ".*quickpizza.*"
+    action = "keep"
+  }
+  targets = discovery.docker.all_containers.targets
+}
+
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.quickpizza.output
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = env("LOGS_ENDPOINT")
+  }
+}
