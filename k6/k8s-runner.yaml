@@ -1,0 +1,35 @@
+---
+apiVersion: k6.io/v1alpha1
+kind: TestRun
+metadata:
+  name: k6-pod
+spec:
+  # How many k6 instances to run. Each will execute equal load. 
+  parallelism: 4
+  script:
+    configMap:
+      name: foundations
+      file: 01.basic.js
+  # `k6 run` arguments 
+  arguments: -d 30s -u 100
+  runner:
+    env:
+      - name: BASE_URL
+        value: https://pizza.grafana.fun
+
+# Run distributed k6 tests using `k6-operator`
+# 
+#
+# kubectl create namespace k6
+# 
+# kubectl create configmap foundations -n k6 --from-file=./foundations
+#    alternatively, use persistent volumes when importing local modules
+#
+# kubectl apply -n k6 -f k8s-runner.yaml
+# 
+# kubectl get pod -n k6
+#
+# kubectl logs -f -n k6 XYZ
+#
+# kubectl delete -n k6 -f k8s-runner.yaml
+#    alternatively, set `cleanup: post`
