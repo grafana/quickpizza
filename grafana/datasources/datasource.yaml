@@ -6,6 +6,7 @@ apiVersion: 1
 datasources:
   - name: prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     orgId: 1
     url: http://prometheus:9090
@@ -14,7 +15,11 @@ datasources:
     jsonData:
       tlsAuth: false
       tlsAuthWithCACert: false
+      exemplarTraceIdDestinations:
+      - name: TraceID
+        datasourceUid: tempo
     editable: false
+
   - name: Tempo
     type: tempo
     access: proxy
@@ -26,6 +31,34 @@ datasources:
     editable: false
     apiVersion: 1
     uid: tempo
+    jsonData:
+      httpMethod: GET
+      tracesToLogsV2:
+        datasourceUid: 'loki'
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '-1h'
+        tags: [{ key: 'job', value: 'job' }] 
+        filterByTraceID: false
+        filterBySpanID: false
+        customQuery: true
+        query: '{compose_service="quickpizza"} |= `$${__span.traceId}`'
+      tracesToMetrics:
+        datasourceUid: 'prometheus'
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '-1h'
+        tags: [{ key: 'job', value: 'service.job' }, { key: 'instance'}, { key: 'method'}, { key: 'status'}, { key: 'path'}] 
+        queries:
+        - name: 'Request Rate'
+          query: 'sum by(client, server) (rate(traces_service_graph_request_total[$$__rate_interval]))'
+        - name: 'Error Rate'
+          query: 'sum by(client, server) (rate(traces_service_graph_request_failed_total[$$__rate_interval]))'
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: 'loki'
+      serviceMap:
+        datasourceUid: 'prometheus'
+
   - name: Pyroscope
     type: 'phlare'
     access: 'proxy'
@@ -34,8 +67,10 @@ datasources:
     url: http://pyroscope:4040
     isDefault: false
     editable: false
+
   - name: Loki
     type: loki
+    uid: loki
     access: proxy 
     orgId: 1
     url: http://loki:3100
