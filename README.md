@@ -41,7 +41,6 @@ All tests live in the `k6` folder. Within this folder, you will find the followi
 - [browser](k6/browser/) - covers the [k6 browser module](https://k6.io/docs/using-k6-browser/overview/) for browser and web performance testing.
 - [extensions](k6/extensions/) - covers basic tests using [k6 extensions](https://k6.io/docs/extensions/).
 - [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/) for failure injection testing.
-- [advanced](k6/advanced) - covers tests that are more advanced such as hybrid tests, tracing, etc.
 
 To run tests on the `foundations` folder, you can use the following commands:
 
