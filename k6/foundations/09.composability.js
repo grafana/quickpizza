@@ -23,7 +23,6 @@ export const options = {
         { duration: '10s', target: 5 },
         { duration: '5s', target: 0 },
       ],
-      gracefulRampDown: "5s",
       startTime: "10s",
     },
     browser: {

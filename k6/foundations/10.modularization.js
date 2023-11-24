@@ -20,7 +20,6 @@ export const options = {
       exec: "getPizza",
       executor: "ramping-vus",
       stages: StressStages,
-      gracefulRampDown: "5s",
       startTime: "10s",
     },
     browser: {
