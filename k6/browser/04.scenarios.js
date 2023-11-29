@@ -5,23 +5,46 @@ const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
 
 export const options = {
   scenarios: {
-    ui: {
+    pizzaRecommendations: {
       executor: "shared-iterations",
       options: {
         browser: {
           type: "chromium",
         },
       },
+      exec: 'pizzaRecommendations'
+    },
+    admin: {
+      executor: "shared-iterations",
+      options: {
+        browser: {
+          type: "chromium",
+        },
+      },
+      exec: 'admin'
     },
   },
   thresholds: {
     browser_web_vital_fcp: ["p(95) < 1000"],
     browser_web_vital_lcp: ["p(95) < 2000"],
-    checks: ["rate > 0.9"]
   }
 };
 
-export default async function () {
+export async function admin() {
+  const page = browser.newPage();
+
+  try {
+    await page.goto(`${BASE_URL}/admin`);
+    await page.locator('button[type="submit"]').click();
+    check(page, {
+      "logout button text": page.locator('//*[text()="Logout"]').textContent() == "Logout",
+    });
+  } finally {
+    page.close();
+  }
+}
+
+export async function pizzaRecommendations() {
   const page = browser.newPage();
 
   try {

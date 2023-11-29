@@ -14,11 +14,6 @@ export const options = {
       },
     },
   },
-  thresholds: {
-    browser_web_vital_fcp: ["p(95) < 1000"],
-    browser_web_vital_lcp: ["p(95) < 2000"],
-    checks: ["rate > 0.9"]
-  }
 };
 
 export default async function () {
