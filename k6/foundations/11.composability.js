@@ -1,8 +1,9 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Trend, Counter } from "k6/metrics";
-import { SharedArray } from 'k6/data';
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
+import { SharedArray } from 'k6/data';
+import { browser } from "k6/experimental/browser";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
@@ -24,6 +25,17 @@ export const options = {
       ],
       startTime: "10s",
     },
+    browser: {
+      exec: "checkFrontend",
+      executor: "constant-vus",
+      vus: 1,
+      duration: "30s",
+      options: {
+        browser: {
+          type: "chromium",
+        },
+      },
+    }
   },
   thresholds: {
     http_req_failed: ['rate<0.01'],
@@ -67,6 +79,26 @@ export function getPizza() {
   pizzas.add(1);
   ingredients.add(res.json().pizza.ingredients.length);
   sleep(1);
+}
+
+export async function checkFrontend() {
+  const page = browser.newPage();
+
+  try {
+    await page.goto(BASE_URL)
+    check(page, {
+      'header': page.locator('h1').textContent() == 'Looking to break out of your pizza routine?',
+    });
+
+    await page.locator('//button[. = "Pizza, Please!"]').click();
+    page.waitForTimeout(500);
+    page.screenshot({ path: `screenshots/${__ITER}.png` });
+    check(page, {
+      'recommendation': page.locator('div#recommendations').textContent() != '',
+    });
+  } finally {
+    page.close();
+  }
 }
 
 export function teardown() {
