@@ -400,10 +400,18 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 			guid := xid.New()
 			token := guid.String()
-			//if s.db.userSessionTokens == nil {
-			//	s.db.userSessionTokens = make(map[string]time.Time)
-			//}
-			//s.db.userSessionTokens[token] = time.Now()
+			// TODO: Develop an authentication microservice. Perhaps overengineer it with JWT.
+			// if s.db.userSessionTokens == nil {
+			// 	s.db.userSessionTokens = make(map[string]time.Time)
+			// }
+			// s.db.userSessionTokens[token] = time.Now()
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "admin_token",
+				Value:    token,
+				SameSite: http.SameSiteStrictMode,
+				Path:     "/", // Required for /admin to be able to use a cookie returned by /api.
+			})
 			err := json.NewEncoder(w).Encode(map[string]string{"token": token})
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
