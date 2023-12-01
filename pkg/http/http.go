@@ -333,6 +333,12 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			s.log.InfoContext(r.Context(), "Recommendations requested")
 			token := r.Header.Get("Authorization")
 			if token == "" {
+				if tokenCookie, err := r.Cookie("admin_token"); err == nil {
+					token = tokenCookie.Value
+				}
+			}
+
+			if token == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
