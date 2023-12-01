@@ -14,25 +14,39 @@ onMount(async () => {
         if (user === 0) {
             userID.set(Math.floor(100000 + Math.random() * 900000));
         }
+
+        token = tokenFromCookie();
 });
+
+function tokenFromCookie() {
+    const tokenCookie = document.cookie.split("; ").filter(c => c.startsWith("admin_token"));
+    if (tokenCookie.length == 0) {
+        return "";
+    }
+
+    return tokenCookie[0].split("=")[1];
+}
 
 async function handleSubmit() {
     const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/login?user=admin&password=${password}`, {
 			method: 'GET',
             headers: {
 					'X-User-ID': user.toString()
-			}
+			},
+      credentials: 'same-origin', // Honor Set-Cookie header returned by /api/login.
 	},);
     if (!res.ok) {
         loginError = 'Login failed: ' + res.statusText;
         return;
     }
-	const json = await res.json();
-    token = json.token;
+
+    token = tokenFromCookie();
 }
 
 async function handleLogout() {
-    token = '';
+    // Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
+    document.cookie = "admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    token = "";
 }
 
 $: if (token) {
