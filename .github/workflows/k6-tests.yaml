@@ -1,0 +1,72 @@
+name: k6 - Test Suite 
+on: [push]
+
+jobs:
+  runner-job:
+    runs-on: ubuntu-latest
+
+    services:
+      quickpizza:
+        image: ghcr.io/grafana/quickpizza-local:latest
+        ports:
+          - 3333:3333
+          
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+    
+      # Enable cache for system files: https://github.com/actions/toolkit/issues/946
+      - name: root suid tar
+        run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
+
+      - name: Cache k6
+        id: cache-k6
+        uses: actions/cache@v3
+        with:
+          path: /usr/bin/k6
+          key: ${{ runner.os }}-k6
+
+      # cannot use the k6 docker image because it does not allow executing shell commands
+      - name: Install k6 in Ubuntu
+        if: steps.cache-k6.outputs.cache-hit != 'true'
+        run: |  
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+      
+      # The default ACT image does not include Chrome or snapd for its installation. Therefore, we need to install Chrome along with ACT.
+      #
+      # Note: If you plan to run ACT on Apple Silicon, be aware that Chrome has not yet released an arm64 version. In this case, you should:
+      # 1. Enable the option on Docker Desktop: `Use Rosetta for x86/amd64 emulation on Apple Silicon`
+      # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example: 
+      #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
+      - name: Cache Chrome
+        if: ${{ env.ACT }}
+        id: cache-chrome
+        uses: actions/cache@v3
+        with:
+          path: /tmp/google-chrome-stable_current_amd64.deb
+          key: ${{ runner.os }}-chrome
+
+      - name: Download chrome stable
+        if: ${{ env.ACT && steps.cache-chrome.outputs.cache-hit != 'true' }}
+        run: |  
+          wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" -P /tmp
+
+      - name: Install chrome
+        if: ${{ env.ACT }}
+        run: |  
+          sudo apt-get update &&
+          sudo apt-get install -y "/tmp/google-chrome-stable_current_amd64.deb" -f
+
+      - name: Run k6 foundations tests
+        run: ./run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
+        env:
+          ACT: ${{ env.ACT }}
+
+      - name: Run k6 browser tests
+        run: ./run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
+        env:
+          ACT: ${{ env.ACT }}
