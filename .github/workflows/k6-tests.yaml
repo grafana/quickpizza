@@ -36,8 +36,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install k6
       
-      # Install Chrome when using ACT because the default ACT image does not include Chrome or snapd for its installation. 
-      # Also, running the browser in a container like Snap or Flatpak is not supported.
+      # Install Chrome (or chromium) when using ACT, as the default ACT image does not include it.
+      # Note that running the browser in a container like Snap or Flatpak is not supported.
       - name: Install chrome
         if: ${{ env.ACT }}
         run: |  
@@ -45,7 +45,7 @@ jobs:
           sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
           sudo apt update && sudo apt install -y google-chrome-stable
 
-      # Note: If you plan to run ACT on Apple Silicon, be aware that Chrome has not yet released an arm64 version. In this case, you have to:
+      # If you plan to run ACT on Apple Silicon, be aware that Chrome has not yet released an arm64 version. In this case, you have to:
       # 1. Enable the option on Docker Desktop: `Use Rosetta for x86/amd64 emulation on Apple Silicon`
       # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example: 
       #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
