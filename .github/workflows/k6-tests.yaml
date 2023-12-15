@@ -36,30 +36,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install k6
       
-      # The default ACT image does not include Chrome or snapd for its installation. Therefore, we need to install Chrome along with ACT.
-      #
-      # Note: If you plan to run ACT on Apple Silicon, be aware that Chrome has not yet released an arm64 version. In this case, you should:
-      # 1. Enable the option on Docker Desktop: `Use Rosetta for x86/amd64 emulation on Apple Silicon`
-      # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example: 
-      #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
-      - name: Cache Chrome
-        if: ${{ env.ACT }}
-        id: cache-chrome
-        uses: actions/cache@v3
-        with:
-          path: /tmp/google-chrome-stable_current_amd64.deb
-          key: ${{ runner.os }}-chrome
-
-      - name: Download chrome stable
-        if: ${{ env.ACT && steps.cache-chrome.outputs.cache-hit != 'true' }}
-        run: |  
-          wget "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" -P /tmp
-
+      # Install Chrome when using ACT because the default ACT image does not include Chrome or snapd for its installation. 
+      # Also, running the browser in a container like Snap or Flatpak is not supported.
       - name: Install chrome
         if: ${{ env.ACT }}
         run: |  
-          sudo apt-get update &&
-          sudo apt-get install -y "/tmp/google-chrome-stable_current_amd64.deb" -f
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt update && sudo apt install -y google-chrome-stable
+
+      # Note: If you plan to run ACT on Apple Silicon, be aware that Chrome has not yet released an arm64 version. In this case, you have to:
+      # 1. Enable the option on Docker Desktop: `Use Rosetta for x86/amd64 emulation on Apple Silicon`
+      # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example: 
+      #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
 
       - name: Run k6 foundations tests
         run: ./run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
