@@ -61,21 +61,45 @@ If QuickPizza is [deployed remotely](#deploy-quickpizza-docker-image), then pass
 k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 ```
 
-If the test uses an extension, you need to build a k6 binary that includes the required extension/s. For detailed instructions, refer to k6 docs:
-- [Build a k6 binary using Go](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-go/)
-- [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/)
+<details>
+  <summary>Using k6 extensions</summary>
+  If the test uses an extension, you need to build a k6 binary that includes the required extension/s. For detailed instructions, refer to k6 docs:
 
-```bash
-cd k6/extensions
+  - [Build a k6 binary using Go](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-go/)
+  - [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/)
 
-xk6 build --with xk6-internal=../internal
-```
+  ```bash
+  cd k6/extensions
 
-To run the test that uses the `k6/x/internal` module, use  previously created k6 binary in the `k6/extensions` folder:
+  xk6 build --with xk6-internal=../internal
+  ```
 
-```bash
-./k6 run 01.basic-internal.js
-```
+  To run the test that uses the `k6/x/internal` module, use  previously created k6 binary in the `k6/extensions` folder:
+
+  ```bash
+  ./k6 run 01.basic-internal.js
+  ```
+</details>
+
+<details>
+  <summary>Using the k6 Docker image</summary>
+  
+  If you want to use the [k6 Docker image](https://hub.docker.com/r/grafana/k6) to run k6, you need to run the Quickpizza and k6 containers within the same network.
+
+  First, create a Docker network. Then, run Quickpizza, assigning a hostname and connecting to the created network.
+
+  ```bash
+    docker network create quickpizza_network
+    docker run --network=quickpizza_network --hostname=quickpizza --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
+  ```
+
+  Next, you can use the k6 Docker image to execute the k6 test. Run the k6 Docker container within the same network (`quickpizza_network`) and pass the `BASE_URL` environment variable with the value of the Quickpizza container's hostname as follows:
+
+  ```bash
+  docker run -i --network=quickpizza_network -e BASE_URL=http://quickpizza:3333 grafana/k6 run  - <01.basic.js
+  ```
+</details>
+
 
 ## Collect telemetry (Docker Compose)
 
