@@ -8,7 +8,7 @@
 
 The app is built using [SvelteKit](https://kit.svelte.dev/) for the frontend and [Go](https://go.dev/) for the backend.
 
-The tests written for `QuickPizza` demonstrates the basic and advanced functionalities of k6, ranging from a basic load test to using different modules and extensions.
+The tests written for `QuickPizza` demonstrates the basic and advanced functionalities of k6, ranging from a basic load test to using different modules and extensions. QuickPizza is used in the the [k6-oss-workshop](https://github.com/grafana/k6-oss-workshop).
 
 ## Requirements
 
