@@ -65,6 +65,11 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any) er
 		return fmt.Errorf("building http request: %w", err)
 	}
 
+	injectedError := parentCtx.Value("error")
+	if injectedError != nil {
+		request.Header.Add("X-Error", injectedError.(string))
+	}
+
 	resp, err := hc.do(request)
 	if err != nil {
 		return fmt.Errorf("making http request: %w", err)

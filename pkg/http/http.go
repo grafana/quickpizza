@@ -266,6 +266,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		s.traceInstaller.Install(r, "catalog")
 
 		r.Use(ValidateUserMiddleware)
+		r.Use(InjectErrorMiddleware)
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
 			ingredientType := chi.URLParam(r, "type")
@@ -436,6 +437,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 		s.traceInstaller.Install(r, "copy")
 
 		r.Use(ValidateUserMiddleware)
+		r.Use(InjectErrorMiddleware)
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Quotes requested")
@@ -498,6 +500,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 		s.traceInstaller.Install(r, "recommendations")
 
 		r.Use(ValidateUserMiddleware)
+		r.Use(InjectErrorMiddleware)
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
@@ -684,7 +687,8 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			err = catalogClient.RecordRecommendation(p)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Storing recommendation in catalog", "err", err)
-				// Continue anyway.
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			pizzaRecommendations.With(prometheus.Labels{
@@ -747,6 +751,13 @@ func ValidateUserMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), "user", userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func InjectErrorMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), "error", r.Header.Get("X-Error"))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

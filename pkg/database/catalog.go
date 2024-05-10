@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/grafana/quickpizza/pkg/database/migrations"
 	"github.com/grafana/quickpizza/pkg/model"
@@ -62,6 +64,16 @@ func (c *Catalog) GetHistory(ctx context.Context, limit int) ([]model.Pizza, err
 }
 
 func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) error {
+	// Inject an artificial error for testing purposes if X-Error header is db
+	injectedError := ctx.Value("error")
+	switch injectedError {
+	case "catalog-error-inserting":
+		return fmt.Errorf("error inserting pizza: %d", pizza.ID)
+	case "catalog-timeout-inserting":
+		// wait for a minute
+		time.Sleep(time.Minute)
+	}
+
 	pizza.DoughID = pizza.Dough.ID
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewInsert().Model(&pizza).Exec(ctx)
