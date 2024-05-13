@@ -226,7 +226,6 @@ func envInt(name string) int {
 func envDuration(name string) time.Duration {
 	v, found := os.LookupEnv(name)
 	if !found {
-		println("HOLA not found")
 		return 0
 	}
 
@@ -234,7 +233,6 @@ func envDuration(name string) time.Duration {
 
 	d, err := time.ParseDuration(v)
 	if err != nil {
-		println("HOLA error parsing duration")
 		return 0
 	}
 
