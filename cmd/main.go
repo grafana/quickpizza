@@ -229,8 +229,6 @@ func envDuration(name string) time.Duration {
 		return 0
 	}
 
-	println(v)
-
 	d, err := time.ParseDuration(v)
 	if err != nil {
 		return 0
