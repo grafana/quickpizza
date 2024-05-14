@@ -237,3 +237,16 @@ export QUICKPIZZA_DB="quickpizza.db"
 If you want to run a test that uses [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. 
 
 For a detailed setup instructions, see the [QuickPizza Kubernetes guide](./docs/kubernetes-setup.md).
+
+## Injecting Errors from Client
+
+To introduce errors, utilize the header `x-Error`. Presently, the supported errors are as follows:
+
+- **catalog-error-inserting**: This error triggers a 500 Internal error when attempting to insert a new pizza into the catalog.
+- **catalog-timeout-inserting**: This error introduces a one-minute delay in the response, resulting in a timeout error.
+
+Example of header usage:
+
+```
+curl -v -X POST localhost:3333/api/pizza -H "X-Error: catalog-timeout-inserting" -H "X-User-Id: 123" -d '{}'
+```
