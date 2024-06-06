@@ -2,15 +2,14 @@ package database
 
 import (
 	"context"
-	"fmt"
-	"time"
-
-	"github.com/grafana/quickpizza/pkg/database/migrations"
-	"github.com/grafana/quickpizza/pkg/model"
-	"golang.org/x/exp/slog"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
+	"golang.org/x/exp/slog"
+
+	"github.com/grafana/quickpizza/pkg/database/migrations"
+	"github.com/grafana/quickpizza/pkg/errorinjector"
+	"github.com/grafana/quickpizza/pkg/model"
 )
 
 type Catalog struct {
@@ -40,8 +39,14 @@ func NewCatalog(connString string) (*Catalog, error) {
 }
 
 func (c *Catalog) GetIngredients(ctx context.Context, t string) ([]model.Ingredient, error) {
+	// Inject an artificial error for testing purposes
+	err := errorinjector.InjectErrors(ctx, "get-ingredients")
+	if err != nil {
+		return nil, err
+	}
+
 	var ingredients []model.Ingredient
-	err := c.db.NewSelect().Model(&ingredients).Where("type = ?", t).Scan(ctx)
+	err = c.db.NewSelect().Model(&ingredients).Where("type = ?", t).Scan(ctx)
 	return ingredients, err
 }
 
@@ -64,14 +69,10 @@ func (c *Catalog) GetHistory(ctx context.Context, limit int) ([]model.Pizza, err
 }
 
 func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) error {
-	// Inject an artificial error for testing purposes if X-Error header is db
-	injectedError := ctx.Value("error")
-	switch injectedError {
-	case "catalog-error-inserting":
-		return fmt.Errorf("error inserting pizza: %d", pizza.ID)
-	case "catalog-timeout-inserting":
-		// wait for a minute
-		time.Sleep(time.Minute)
+	// Inject an artificial error for testing purposes
+	err := errorinjector.InjectErrors(ctx, "record-recommendation")
+	if err != nil {
+		return err
 	}
 
 	pizza.DoughID = pizza.Dough.ID

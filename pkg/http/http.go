@@ -19,10 +19,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/grafana/quickpizza/pkg/database"
-	"github.com/grafana/quickpizza/pkg/logging"
-	"github.com/grafana/quickpizza/pkg/model"
-	"github.com/grafana/quickpizza/pkg/web"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -32,6 +28,12 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
+
+	"github.com/grafana/quickpizza/pkg/database"
+	"github.com/grafana/quickpizza/pkg/errorinjector"
+	"github.com/grafana/quickpizza/pkg/logging"
+	"github.com/grafana/quickpizza/pkg/model"
+	"github.com/grafana/quickpizza/pkg/web"
 )
 
 // Variables storing prometheus metrics.
@@ -266,7 +268,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		s.traceInstaller.Install(r, "catalog")
 
 		r.Use(ValidateUserMiddleware)
-		r.Use(InjectErrorMiddleware)
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
 			ingredientType := chi.URLParam(r, "type")
@@ -437,7 +439,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 		s.traceInstaller.Install(r, "copy")
 
 		r.Use(ValidateUserMiddleware)
-		r.Use(InjectErrorMiddleware)
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Quotes requested")
@@ -500,7 +502,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 		s.traceInstaller.Install(r, "recommendations")
 
 		r.Use(ValidateUserMiddleware)
-		r.Use(InjectErrorMiddleware)
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
@@ -751,13 +753,6 @@ func ValidateUserMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), "user", userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func InjectErrorMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), "error", r.Header.Get("X-Error"))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

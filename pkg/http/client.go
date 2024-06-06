@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/model"
 )
 
@@ -26,6 +27,9 @@ func (hc httpClient) getJSON(parentCtx context.Context, url string, dest any) er
 	}
 
 	request.Header.Add("Content-Type", "application/json")
+
+	errorinjector.AddErrorHeaders(parentCtx, request)
+
 	resp, err := hc.do(request)
 	if err != nil {
 		return err
@@ -65,10 +69,7 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any) er
 		return fmt.Errorf("building http request: %w", err)
 	}
 
-	injectedError := parentCtx.Value("error")
-	if injectedError != nil {
-		request.Header.Add("X-Error", injectedError.(string))
-	}
+	errorinjector.AddErrorHeaders(parentCtx, request)
 
 	resp, err := hc.do(request)
 	if err != nil {
