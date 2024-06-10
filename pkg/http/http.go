@@ -19,10 +19,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/grafana/quickpizza/pkg/database"
-	"github.com/grafana/quickpizza/pkg/logging"
-	"github.com/grafana/quickpizza/pkg/model"
-	"github.com/grafana/quickpizza/pkg/web"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -32,6 +28,12 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
+
+	"github.com/grafana/quickpizza/pkg/database"
+	"github.com/grafana/quickpizza/pkg/errorinjector"
+	"github.com/grafana/quickpizza/pkg/logging"
+	"github.com/grafana/quickpizza/pkg/model"
+	"github.com/grafana/quickpizza/pkg/web"
 )
 
 // Variables storing prometheus metrics.
@@ -266,6 +268,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		s.traceInstaller.Install(r, "catalog")
 
 		r.Use(ValidateUserMiddleware)
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
 			ingredientType := chi.URLParam(r, "type")
@@ -436,6 +439,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 		s.traceInstaller.Install(r, "copy")
 
 		r.Use(ValidateUserMiddleware)
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Quotes requested")
@@ -498,6 +502,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 		s.traceInstaller.Install(r, "recommendations")
 
 		r.Use(ValidateUserMiddleware)
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
@@ -684,7 +689,8 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			err = catalogClient.RecordRecommendation(p)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Storing recommendation in catalog", "err", err)
-				// Continue anyway.
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			pizzaRecommendations.With(prometheus.Labels{
