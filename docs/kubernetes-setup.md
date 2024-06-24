@@ -1,7 +1,7 @@
 
 ## Deploy QuickPizza to Kubernetes
 
-If you want to run a test that uses [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. 
+If you want to run a test that uses [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. 
 
 
 This section explains how to deploy QuickPizza to a local Kubernetes cluster using [minikube](https://minikube.sigs.k8s.io/docs/start/), which you can run on your own machine if you use Linux, MacOS, or Windows.
@@ -51,7 +51,7 @@ QuickPizza-recs       ClusterIP      10.103.37.197    <none>        3333/TCP    
 QuickPizza-ws         ClusterIP      10.106.51.76     <none>        3333/TCP         6s
 ```
 
-A service of particular interest is `QuickPizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to [expose it](https://k6.io/docs/javascript-api/xk6-disruptor/get-started/expose-your-application/). To do this with minikube, open another terminal window and run:
+A service of particular interest is `QuickPizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to [expose it](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/expose-your-application/). To do this with minikube, open another terminal window and run:
 
 ```bash
 minikube tunnel
