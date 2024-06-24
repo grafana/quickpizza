@@ -13,7 +13,7 @@ The tests written for `QuickPizza` demonstrates the basic and advanced functiona
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [Grafana k6](https://k6.io/docs/get-started/installation/) (v.0.46.0 or higher)
+- [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v.0.46.0 or higher)
 
 ## Run locally with Docker
 
@@ -38,9 +38,9 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 All tests live in the `k6` folder. Within this folder, you will find the following folders:
 
 - [foundations](k6/foundations/) - covers the basic functionalities of k6.
-- [browser](k6/browser/) - covers the [k6 browser module](https://k6.io/docs/using-k6-browser/overview/) for browser and web performance testing.
-- [extensions](k6/extensions/) - covers basic tests using [k6 extensions](https://k6.io/docs/extensions/).
-- [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/) for failure injection testing.
+- [browser](k6/browser/) - covers the [k6 browser module](https://grafana.com/docs/k6/latest/using-k6-browser/) for browser and web performance testing.
+- [extensions](k6/extensions/) - covers basic tests using [k6 extensions](https://grafana.com/docs/k6/latest/extensions/).
+- [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/) for failure injection testing.
 
 To run tests on the `foundations` folder, you can use the following commands:
 
@@ -65,8 +65,8 @@ k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
   <summary>Using k6 extensions</summary>
   If the test uses an extension, you need to build a k6 binary that includes the required extension/s. For detailed instructions, refer to k6 docs:
 
-  - [Build a k6 binary using Go](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-go/)
-  - [Build a k6 binary using Docker](https://k6.io/docs/extensions/guides/build-a-k6-binary-using-docker/)
+  - [Build a k6 binary using Go](https://grafana.com/docs/k6/latest/extensions/build-k6-binary-using-go/)
+  - [Build a k6 binary using Docker](https://grafana.com/docs/k6/latest/extensions/build-k6-binary-using-docker/)
 
   ```bash
   cd k6/extensions
@@ -147,7 +147,7 @@ The local Grafana instance includes the [k6 Prometheus](https://grafana.com/graf
 
 ![k6 provisioned dashboards](./docs/images/provisioned-k6-prometheus-dashboards.png)
 
-For detailed instructions about the different options of the k6 Prometheus output, refer to the [k6 output guide for Prometheus remote write](https://k6.io/docs/results-output/real-time/prometheus-remote-write).
+For detailed instructions about the different options of the k6 Prometheus output, refer to the [k6 output guide for Prometheus remote write](https://grafana.com/docs/k6/latest/results-output/real-time/prometheus-remote-write/).
 
 
 ### Grafana Cloud
@@ -200,7 +200,7 @@ K6_PROMETHEUS_RW_SERVER_URL=REMOTE_WRITE_ENDPOINT \
 k6 run -o experimental-prometheus-rw script.js
 ```
 
-For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prometheus](https://k6.io/docs/results-output/real-time/grafana-cloud-prometheus/).
+For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prometheus](https://grafana.com/docs/k6/latest/results-output/real-time/grafana-cloud-prometheus/).
 
 ## Deploy QuickPizza Docker image
 
@@ -234,7 +234,7 @@ export QUICKPIZZA_DB="quickpizza.db"
 
 ## Deploy application to Kubernetes
 
-If you want to run a test that uses [xk6-disruptor](https://k6.io/docs/javascript-api/xk6-disruptor/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. 
+If you want to run a test that uses [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. 
 
 For a detailed setup instructions, see the [QuickPizza Kubernetes guide](./docs/kubernetes-setup.md).
 

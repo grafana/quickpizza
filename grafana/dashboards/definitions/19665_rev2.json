@@ -80,7 +80,7 @@
       "title": "Grafana k6 OSS Docs: Prometheus Remote Write",
       "tooltip": "Open docs in a new tab",
       "type": "link",
-      "url": "https://k6.io/docs/results-output/real-time/prometheus-remote-write/"
+      "url": "https://grafana.com/docs/k6/latest/results-output/real-time/prometheus-remote-write/"
     }
   ],
   "liveNow": false,
@@ -835,7 +835,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Select a different Stat to change the query\n\n<a href=\"https://k6.io/docs/using-k6/metrics/reference/#http\" target=\"_blank\">HTTP-specific built-in metrics</a>",
+      "description": "Select a different Stat to change the query\n\n<a href=\"https://grafana.com/docs/k6/latest/using-k6/metrics/reference/#http\" target=\"_blank\">HTTP-specific built-in metrics</a>",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1955,7 +1955,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "### Visualize other k6 results  \n\nAt the top of the dashboard, click `Add` and select `Visualization` from the dropdown menu. Choose the visualization type and input the PromQL queries for the `k6_` metric(s).\n\nAlternatively, click on the `Explore` icon on the menu bar and input the queries for the `k6_` metric(s). From `Explore`, you can add new Panels to this dashboard. \n\nNote that all <a href=\"https://k6.io/docs/using-k6/metrics/\" target=\"_blank\">k6 metrics</a> are prefixed with the `k6_` namespace when sent to Prometheus.",
+        "content": "### Visualize other k6 results  \n\nAt the top of the dashboard, click `Add` and select `Visualization` from the dropdown menu. Choose the visualization type and input the PromQL queries for the `k6_` metric(s).\n\nAlternatively, click on the `Explore` icon on the menu bar and input the queries for the `k6_` metric(s). From `Explore`, you can add new Panels to this dashboard. \n\nNote that all <a href=\"https://grafana.com/docs/k6/latest/using-k6/metrics/\" target=\"_blank\">k6 metrics</a> are prefixed with the `k6_` namespace when sent to Prometheus.",
         "mode": "markdown"
       },
       "pluginVersion": "10.1.2",
