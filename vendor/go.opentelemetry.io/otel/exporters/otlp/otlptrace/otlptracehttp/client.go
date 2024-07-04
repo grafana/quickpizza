@@ -1,16 +1,5 @@
 // Copyright The OpenTelemetry Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package otlptracehttp // import "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 
@@ -18,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -30,11 +20,10 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/internal"
-	"go.opentelemetry.io/otel/exporters/otlp/internal/retry"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	otinternal "go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/otlpconfig"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp/internal"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp/internal/otlpconfig"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp/internal/retry"
 	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -85,10 +74,17 @@ func NewClient(opts ...Option) otlptrace.Client {
 		Transport: ourTransport,
 		Timeout:   cfg.Traces.Timeout,
 	}
-	if cfg.Traces.TLSCfg != nil {
-		transport := ourTransport.Clone()
-		transport.TLSClientConfig = cfg.Traces.TLSCfg
-		httpClient.Transport = transport
+
+	if cfg.Traces.TLSCfg != nil || cfg.Traces.Proxy != nil {
+		clonedTransport := ourTransport.Clone()
+		httpClient.Transport = clonedTransport
+
+		if cfg.Traces.TLSCfg != nil {
+			clonedTransport.TLSClientConfig = cfg.Traces.TLSCfg
+		}
+		if cfg.Traces.Proxy != nil {
+			clonedTransport.Proxy = cfg.Traces.Proxy
+		}
 	}
 
 	stopCh := make(chan struct{})
@@ -153,6 +149,10 @@ func (d *client) UploadTraces(ctx context.Context, protoSpans []*tracepb.Resourc
 
 		request.reset(ctx)
 		resp, err := d.client.Do(request.Request)
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) && urlErr.Temporary() {
+			return newResponseError(http.Header{})
+		}
 		if err != nil {
 			return err
 		}
@@ -165,16 +165,19 @@ func (d *client) UploadTraces(ctx context.Context, protoSpans []*tracepb.Resourc
 			}()
 		}
 
-		switch resp.StatusCode {
-		case http.StatusOK:
+		switch sc := resp.StatusCode; {
+		case sc >= 200 && sc <= 299:
 			// Success, do not retry.
 			// Read the partial success message, if any.
 			var respData bytes.Buffer
 			if _, err := io.Copy(&respData, resp.Body); err != nil {
 				return err
 			}
+			if respData.Len() == 0 {
+				return nil
+			}
 
-			if respData.Len() != 0 {
+			if resp.Header.Get("Content-Type") == "application/x-protobuf" {
 				var respProto coltracepb.ExportTraceServiceResponse
 				if err := proto.Unmarshal(respData.Bytes(), &respProto); err != nil {
 					return err
@@ -191,7 +194,10 @@ func (d *client) UploadTraces(ctx context.Context, protoSpans []*tracepb.Resourc
 			}
 			return nil
 
-		case http.StatusTooManyRequests, http.StatusServiceUnavailable:
+		case sc == http.StatusTooManyRequests,
+			sc == http.StatusBadGateway,
+			sc == http.StatusServiceUnavailable,
+			sc == http.StatusGatewayTimeout:
 			// Retry-able failures.  Drain the body to reuse the connection.
 			if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 				otel.Handle(err)
@@ -210,7 +216,8 @@ func (d *client) newRequest(body []byte) (request, error) {
 		return request{Request: r}, err
 	}
 
-	r.Header.Set("User-Agent", otinternal.GetUserAgentHeader())
+	userAgent := "OTel OTLP Exporter Go/" + otlptrace.Version()
+	r.Header.Set("User-Agent", userAgent)
 
 	for k, v := range d.cfg.Headers {
 		r.Header.Set(k, v)
@@ -236,7 +243,7 @@ func (d *client) newRequest(body []byte) (request, error) {
 		if _, err := gz.Write(body); err != nil {
 			return req, err
 		}
-		// Close needs to be called to ensure body if fully written.
+		// Close needs to be called to ensure body is fully written.
 		if err := gz.Close(); err != nil {
 			return req, err
 		}
@@ -309,7 +316,10 @@ func evaluate(err error) (bool, time.Duration) {
 		return false, 0
 	}
 
-	rErr, ok := err.(retryableError)
+	// Do not use errors.As here, this should only be flattened one layer. If
+	// there are several chained errors, all the errors above it will be
+	// discarded if errors.As is used instead.
+	rErr, ok := err.(retryableError) //nolint:errorlint
 	if !ok {
 		return false, 0
 	}

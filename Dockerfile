@@ -12,7 +12,7 @@ ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 RUN npm install && \
     npm run build
 
-FROM golang:1.20-bullseye as builder
+FROM golang:1.21-bullseye as builder
 
 WORKDIR /app
 COPY . ./
