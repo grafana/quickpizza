@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/pyroscope-go"
 	"github.com/grafana/quickpizza/pkg/database"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/hashicorp/go-retryablehttp"
@@ -161,6 +162,40 @@ func clientFromEnv() *http.Client {
 
 	// Return a stdlib client that uses retryablehttp as transport.
 	return retriableClient.StandardClient()
+}
+
+func envPyroscopeConfig() (pyroscope.Config, bool) {
+	pyroscopeAddr, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_ADDR")
+	if !ok {
+		return pyroscope.Config{}, false
+	}
+
+	svcName, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAME")
+	if !ok {
+		return pyroscope.Config{}, false
+	}
+
+	return pyroscope.Config{
+		ApplicationName: svcName,
+		ServerAddress:   pyroscopeAddr,
+
+		// make configurable?
+		ProfileTypes: []pyroscope.ProfileType{
+			// these profile types are enabled by default:
+			pyroscope.ProfileCPU,
+			pyroscope.ProfileAllocObjects,
+			pyroscope.ProfileAllocSpace,
+			pyroscope.ProfileInuseObjects,
+			pyroscope.ProfileInuseSpace,
+
+			// these profile types are optional:
+			pyroscope.ProfileGoroutines,
+			pyroscope.ProfileMutexCount,
+			pyroscope.ProfileMutexDuration,
+			pyroscope.ProfileBlockCount,
+			pyroscope.ProfileBlockDuration,
+		},
+	}, true
 }
 
 func envServeAll() bool {
