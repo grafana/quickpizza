@@ -183,7 +183,7 @@ func envPyroscopeConfig() (pyroscope.Config, bool) {
 
 	svcName, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAME")
 	if !ok {
-		return pyroscope.Config{}, false
+		svcName = "quickpizza"
 	}
 
 	return pyroscope.Config{
