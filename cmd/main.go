@@ -179,6 +179,9 @@ func envPyroscopeConfig() (pyroscope.Config, bool) {
 		ApplicationName: svcName,
 		ServerAddress:   pyroscopeAddr,
 
+		BasicAuthUser:     os.Getenv("QUICKPIZZA_GRAFANA_CLOUD_USER"),
+		BasicAuthPassword: os.Getenv("QUICKPIZZA_GRAFANA_CLOUD_PASSWORD"),
+
 		// make configurable?
 		ProfileTypes: []pyroscope.ProfileType{
 			// these profile types are enabled by default:
