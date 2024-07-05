@@ -176,7 +176,7 @@ func clientFromEnv() *http.Client {
 }
 
 func envPyroscopeConfig() (pyroscope.Config, bool) {
-	pyroscopeAddr, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_ADDR")
+	pyroscopeAddr, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_ENDPOINT")
 	if !ok {
 		return pyroscope.Config{}, false
 	}

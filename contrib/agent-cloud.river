@@ -37,19 +37,6 @@ prometheus.scrape "default" {
   ]
 }
 
-pyroscope.scrape "scrape_profiles" {
-  targets = [
-    {
-      "__address__" = env("QUICKPIZZA_HOST"),
-      "service_name" = "quickpizza",
-      "instance" = "local",
-    },
-  ]
-  forward_to = [
-    module.git.grafana_cloud.exports.profiles_receiver,
-  ]
-}
-
 discovery.docker "all_containers" {
   host = "unix:///var/run/docker.sock"
 }
