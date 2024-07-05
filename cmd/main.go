@@ -4,6 +4,7 @@ import (
 	"context"
 	http "net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -49,8 +50,18 @@ func main() {
 
 		server = server.WithTraceInstaller(installer)
 	}
-	// Always add profiling middleware.
-	server = server.WithProfiling()
+
+	// Add profiling middleware if Pyroscope is enabled
+	if cfg, ok := envPyroscopeConfig(); ok {
+		slog.Debug("enabling Pyroscope profiling")
+
+		runtime.SetMutexProfileFraction(5)
+		runtime.SetBlockProfileRate(5)
+
+		pyroscope.Start(cfg)
+
+		server = server.WithProfiling()
+	}
 
 	// Always add prometheus middleware.
 	server = server.WithPrometheus()
