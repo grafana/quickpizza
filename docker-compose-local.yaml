@@ -1,5 +1,4 @@
-
-version: '3.8'
+version: "3.8"
 
 services:
   quickpizza:
@@ -11,6 +10,7 @@ services:
     environment:
       QUICKPIZZA_OTLP_ENDPOINT: http://agent:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
+      QUICKPIZZA_PYROSCOPE_ENDPOINT: http://pyroscope:4040
 
   loki:
     image: grafana/loki:2.8.3
@@ -34,10 +34,10 @@ services:
   tempo:
     image: grafana/tempo:2.1.0
     command:
-      - "-storage.trace.backend=local"                  # tell tempo where to permanently put traces
+      - "-storage.trace.backend=local" # tell tempo where to permanently put traces
       - "-storage.trace.local.path=/tmp/tempo/traces"
-      - "-storage.trace.wal.path=/tmp/tempo/wal"        # tell tempo where to store the wal
-      - "-auth.enabled=false"                           # disables the requirement for the X-Scope-OrgID header
+      - "-storage.trace.wal.path=/tmp/tempo/wal" # tell tempo where to store the wal
+      - "-auth.enabled=false" # disables the requirement for the X-Scope-OrgID header
       - "-server.http-listen-port=3200"
     ports:
       - "3200:3200"
@@ -60,7 +60,8 @@ services:
     volumes:
       - "./contrib/agent-local.river:/grafana-agent.river:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
-    command: ["run", "/grafana-agent.river", "--server.http.listen-addr=0.0.0.0:12345"]
+    command:
+      ["run", "/grafana-agent.river", "--server.http.listen-addr=0.0.0.0:12345"]
     ports:
       - "12345:12345"
     environment:
@@ -69,7 +70,6 @@ services:
       METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
       TRACES_ENDPOINT: http://tempo:4317
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
-      PROFILES_ENDPOINT: http://pyroscope:4040
     depends_on:
       - prometheus
       - quickpizza

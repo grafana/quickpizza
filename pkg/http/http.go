@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
+	k6 "github.com/grafana/pyroscope-go/x/k6"
 	"github.com/grafana/quickpizza/pkg/database"
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/logging"
@@ -142,8 +143,10 @@ func (s *Server) WithPrometheus() *Server {
 	return s
 }
 
+// WithProfiling adds a middleware that extracts k6 labels from the baggage and adds them to the context.
 func (s *Server) WithProfiling() *Server {
-	s.router.Mount("/debug", middleware.Profiler())
+	s.router.Use(k6.LabelsFromBaggageHandler)
+
 	return s
 }
 

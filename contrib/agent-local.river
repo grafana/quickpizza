@@ -58,26 +58,6 @@ prometheus.remote_write "default" {
   }
 }
 
-pyroscope.scrape "scrape_profiles" {
-  targets = [
-    {
-      "__address__" = env("QUICKPIZZA_HOST"),
-      "service_name" = "quickpizza",
-      "instance" = "local",
-    },
-  ]
-  forward_to = [
-    pyroscope.write.default.receiver,
-  ]
-}
-
-pyroscope.write "default" {
-  endpoint {
-    // TODO: Replace this with your pyroscpoe instance endpoint
-    url = env("PROFILES_ENDPOINT")
-  }
-}
-
 discovery.docker "all_containers" {
   host = "unix:///var/run/docker.sock"
 }

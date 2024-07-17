@@ -4,10 +4,12 @@ import (
 	"context"
 	http "net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/grafana/pyroscope-go"
 	"github.com/grafana/quickpizza/pkg/database"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/hashicorp/go-retryablehttp"
@@ -48,8 +50,18 @@ func main() {
 
 		server = server.WithTraceInstaller(installer)
 	}
-	// Always add profiling middleware.
-	server = server.WithProfiling()
+
+	// Add profiling middleware if Pyroscope is enabled
+	if cfg, ok := envPyroscopeConfig(); ok {
+		slog.Debug("enabling Pyroscope profiling")
+
+		runtime.SetMutexProfileFraction(5)
+		runtime.SetBlockProfileRate(5)
+
+		pyroscope.Start(cfg)
+
+		server = server.WithProfiling()
+	}
 
 	// Always add prometheus middleware.
 	server = server.WithPrometheus()
@@ -161,6 +173,43 @@ func clientFromEnv() *http.Client {
 
 	// Return a stdlib client that uses retryablehttp as transport.
 	return retriableClient.StandardClient()
+}
+
+func envPyroscopeConfig() (pyroscope.Config, bool) {
+	pyroscopeAddr, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_ENDPOINT")
+	if !ok {
+		return pyroscope.Config{}, false
+	}
+
+	svcName, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAME")
+	if !ok {
+		svcName = "quickpizza"
+	}
+
+	return pyroscope.Config{
+		ApplicationName: svcName,
+		ServerAddress:   pyroscopeAddr,
+
+		BasicAuthUser:     os.Getenv("QUICKPIZZA_GRAFANA_CLOUD_USER"),
+		BasicAuthPassword: os.Getenv("QUICKPIZZA_GRAFANA_CLOUD_PASSWORD"),
+
+		// make configurable?
+		ProfileTypes: []pyroscope.ProfileType{
+			// these profile types are enabled by default:
+			pyroscope.ProfileCPU,
+			pyroscope.ProfileAllocObjects,
+			pyroscope.ProfileAllocSpace,
+			pyroscope.ProfileInuseObjects,
+			pyroscope.ProfileInuseSpace,
+
+			// these profile types are optional:
+			pyroscope.ProfileGoroutines,
+			pyroscope.ProfileMutexCount,
+			pyroscope.ProfileMutexDuration,
+			pyroscope.ProfileBlockCount,
+			pyroscope.ProfileBlockDuration,
+		},
+	}, true
 }
 
 func envServeAll() bool {
