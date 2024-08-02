@@ -45,7 +45,7 @@ services:
       - "4318:4318"
 
   grafana:
-    image: grafana/grafana:10.1.2
+    image: grafana/grafana:11.1.1
     ports:
       - "3000:3000"
     environment:

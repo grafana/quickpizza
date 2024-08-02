@@ -1,4 +1,4 @@
-# For configuration options, see 
+# For configuration options, see
 #   https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file
 
 apiVersion: 1
@@ -27,16 +27,18 @@ datasources:
     apiVersion: 1
     uid: tempo
   - name: Pyroscope
-    type: 'phlare'
-    access: 'proxy'
+    type: grafana-pyroscope-datasource
+    access: proxy
     orgId: 1
     uid: pyroscope
     url: http://pyroscope:4040
     isDefault: false
     editable: false
+    jsonData:
+      minStep: "15s"
   - name: Loki
     type: loki
-    access: proxy 
+    access: proxy
     orgId: 1
     url: http://loki:3100
     basicAuth: false
