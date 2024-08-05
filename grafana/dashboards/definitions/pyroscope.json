@@ -225,6 +225,26 @@
   "templating": {
     "list": [
       {
+        "current": {
+          "selected": false,
+          "text": "pyroscope",
+          "value": "${DS_PYROSCOPE}"
+        },
+        "description": "Choose a Pyroscope Data Source",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Pyroscope DS",
+        "multi": false,
+        "name": "DS_PYROSCOPE",
+        "options": [],
+        "query": "grafana-pyroscope-datasource",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
         "current": {},
         "datasource": {
           "type": "grafana-pyroscope-datasource",
