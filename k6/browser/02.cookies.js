@@ -1,4 +1,4 @@
-import { browser } from "k6/experimental/browser";
+import { browser } from "k6/browser";
 import { check } from "k6";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
@@ -17,8 +17,8 @@ export const options = {
 };
 
 export default async function () {
-  const pizzaContext = browser.newContext();
-  pizzaContext.addCookies([
+  const pizzaContext = await browser.newContext();
+  await pizzaContext.addCookies([
     {
       name: "X-User-ID",
       value: 123456,
@@ -26,8 +26,8 @@ export default async function () {
       path: '/',
     },
   ]);
-  const pizzaPage = pizzaContext.newPage();
-  const cookies = pizzaContext.cookies();
+  const pizzaPage = await pizzaContext.newPage();
+  const cookies = await pizzaContext.cookies();
 
   await pizzaPage.goto(BASE_URL);
 
@@ -37,12 +37,12 @@ export default async function () {
     "cookie value": cookies => cookies[0].value === "123456"
   });
 
-  pizzaPage.close();
-  pizzaContext.close();
+  await pizzaPage.close();
+  await pizzaContext.close();
 
-  const anotherContext = browser.newContext();
-  const anotherPage = anotherContext.newPage();
-  const anotherCookies = anotherContext.cookies();
+  const anotherContext = await browser.newContext();
+  const anotherPage = await anotherContext.newPage();
+  const anotherCookies = await anotherContext.cookies();
 
   await anotherPage.goto('https://test.k6.io/');
 
@@ -50,5 +50,5 @@ export default async function () {
     "cookie length of k6 test page": anotherCookies => anotherCookies.length === 0,
   });
 
-  anotherPage.close();
+  await anotherPage.close();
 }

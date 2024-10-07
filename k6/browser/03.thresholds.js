@@ -1,4 +1,4 @@
-import { browser } from "k6/experimental/browser";
+import { browser } from "k6/browser";
 import { check } from "k6";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
@@ -17,27 +17,27 @@ export const options = {
   thresholds: {
     browser_web_vital_fcp: ["p(95) < 1000"],
     browser_web_vital_lcp: ["p(95) < 2000"],
-  }
+  },
 };
 
 export default async function () {
-  const page = browser.newPage();
-
+  let checkData;
+  const page = await browser.newPage();
   try {
     await page.goto(BASE_URL);
+    checkData = await page.locator("h1").textContent();
     check(page, {
-      header:
-        page.locator("h1").textContent() ==
-        "Looking to break out of your pizza routine?",
+      header: checkData == "Looking to break out of your pizza routine?",
     });
 
     await page.locator('//button[. = "Pizza, Please!"]').click();
-    page.waitForTimeout(500);
-    page.screenshot({ path: "screenshot.png" });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: "screenshot.png" });
+    checkData = await page.locator("div#recommendations").textContent();
     check(page, {
-      recommendation: page.locator("div#recommendations").textContent() != "",
+      recommendation: checkData != "",
     });
   } finally {
-    page.close();
+    await page.close();
   }
 }
