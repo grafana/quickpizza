@@ -1,6 +1,6 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
-import pyroscope from "https://jslib.k6.io/http-instrumentation-pyroscope/1.0.0/index.js";
+import pyroscope from "https://jslib.k6.io/http-instrumentation-pyroscope/1.0.1/index.js";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
 
