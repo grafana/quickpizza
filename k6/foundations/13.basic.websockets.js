@@ -1,6 +1,6 @@
 import { sleep } from 'k6';
 import { WebSocket } from 'k6/experimental/websockets';
-import { setInterval } from 'k6/experimental/timers';
+import { setInterval } from 'k6/timers';
 import { Counter } from "k6/metrics";
 
 let BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
