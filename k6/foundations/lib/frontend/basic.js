@@ -1,22 +1,25 @@
-import { browser } from 'k6/experimental/browser';
+import { browser } from 'k6/browser';
 import { check } from "k6";
 
 export async function LoadAndCheck(url, headless) {
-  const page = browser.newPage();
+  let checkData;
+  const page = await browser.newPage();
   
   try {
     await page.goto(url)
+    checkData = await page.locator("h1").textContent();
     check(page, {
-      'header': page.locator('h1').textContent() == 'Looking to break out of your pizza routine?',
+      header: checkData == "Looking to break out of your pizza routine?",
     });
   
     await page.locator('//button[. = "Pizza, Please!"]').click();
-    page.waitForTimeout(500);
-    page.screenshot({ path: `screenshots/${__ITER}.png` });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `screenshots/${__ITER}.png` });
+    checkData = await page.locator("div#recommendations").textContent();
     check(page, {
-      'recommendation': page.locator('div#recommendations').textContent() != '',
+      recommendation: checkData != "",
     });
   } finally {
-    page.close();
+    await page.close();
   }
 }
