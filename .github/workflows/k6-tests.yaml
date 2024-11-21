@@ -1,4 +1,4 @@
-name: k6 - Test Suite 
+name: k6 - Test Suite
 on: [push]
 
 jobs:
@@ -10,11 +10,11 @@ jobs:
         image: ghcr.io/grafana/quickpizza-local:latest
         ports:
           - 3333:3333
-          
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-    
+
       # Enable cache for system files: https://github.com/actions/toolkit/issues/946
       - name: root suid tar
         run: sudo chown root /bin/tar && sudo chmod u+s /bin/tar
@@ -29,25 +29,25 @@ jobs:
       # cannot use the k6 docker image because it does not allow executing shell commands
       - name: Install k6 in Ubuntu
         if: steps.cache-k6.outputs.cache-hit != 'true'
-        run: |  
+        run: |
           sudo gpg -k
           sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
           echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install k6
-      
+
       # Install Chrome (or chromium) when using ACT, as the default ACT image does not include it.
       # Note that running the browser in a container like Snap or Flatpak is not supported.
       - name: Install chrome
         if: ${{ env.ACT }}
-        run: |  
+        run: |
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
           sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
           sudo apt update && sudo apt install -y google-chrome-stable
 
       # If you plan to run ACT on Apple Silicon, be aware that Chrome has not yet released an arm64 version. In this case, you have to:
       # 1. Enable the option on Docker Desktop: `Use Rosetta for x86/amd64 emulation on Apple Silicon`
-      # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example: 
+      # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example:
       #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
 
       - name: Run k6 foundations tests
