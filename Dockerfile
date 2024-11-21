@@ -1,4 +1,4 @@
-FROM node:16.19.1-bullseye as fe-builder
+FROM node:16.19.1-bullseye AS fe-builder
 
 WORKDIR /app/pkg/web
 COPY pkg/web ./
@@ -12,13 +12,13 @@ ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 RUN npm install && \
     npm run build
 
-FROM golang:1.21-bullseye as builder
+FROM golang:1.21-bullseye AS builder
 
 WORKDIR /app
 COPY . ./
 COPY --from=fe-builder /app/pkg/web/build /app/pkg/web/build
 RUN go generate pkg/web/web.go && \
-    GO111MODULE=on CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
+    CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
 
 FROM gcr.io/distroless/static-debian11
 
