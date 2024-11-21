@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 // validate interface compliance

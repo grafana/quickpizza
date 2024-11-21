@@ -5,7 +5,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
-	"golang.org/x/exp/slog"
+	"log/slog"
 
 	"github.com/grafana/quickpizza/pkg/database/migrations"
 	"github.com/grafana/quickpizza/pkg/errorinjector"

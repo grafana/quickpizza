@@ -27,7 +27,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/exp/slog"
+	"log/slog"
 
 	k6 "github.com/grafana/pyroscope-go/x/k6"
 	"github.com/grafana/quickpizza/pkg/database"

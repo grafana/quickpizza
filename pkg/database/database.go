@@ -13,7 +13,7 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"github.com/uptrace/bun/extra/bunotel"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func initializeDB(connString string) (*bun.DB, error) {
