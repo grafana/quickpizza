@@ -3,8 +3,8 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"net"
 	"log/slog"
+	"net"
 
 	pb "github.com/grafana/quickpizza/pkg/grpc/quickpizza"
 	"google.golang.org/grpc"

@@ -3,8 +3,9 @@ package logging
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/trace"
 	"log/slog"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ContextLogger struct {

@@ -9,14 +9,15 @@ import (
 	"strings"
 	"time"
 
+	"log/slog"
+
 	"github.com/grafana/pyroscope-go"
 	"github.com/grafana/quickpizza/pkg/database"
-	qphttp "github.com/grafana/quickpizza/pkg/http"
 	qpgrpc "github.com/grafana/quickpizza/pkg/grpc"
+	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
-	"log/slog"
 )
 
 func main() {

@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/uptrace/bun"
 	"log/slog"
+
+	"github.com/uptrace/bun"
 )
 
 // validate interface compliance
