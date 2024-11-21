@@ -8,3 +8,7 @@ run:
 build:
 	go generate pkg/web/web.go
 	CGO_ENABLED=0 go build -o bin/quickpizza ./cmd
+
+.PHONY: proto
+proto:
+	protoc --go_out=. --go-grpc_out=. proto/quickpizza.proto
