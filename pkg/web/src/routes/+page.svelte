@@ -121,7 +121,7 @@
 		{#if quote}
 			<br />
 			<div class="bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm">
-				<q>{quote}</q>
+				{quote}
 			</div>
 			<br />
 		{/if}

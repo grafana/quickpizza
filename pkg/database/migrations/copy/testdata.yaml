@@ -1,8 +1,11 @@
 - model: Quote
   rows:
-    - name: "Pizza makes anything possible... - Ernest Hemingway"
-    - name: "Anyone who says that money cannot buy happiness has clearly never spent their money on pizza - Oscar Wilde"
-    - name: "Pizza is the most perfect food that exists. - John Green"
+    - name: |-
+        "Pizza makes anything possible..." - Ernest Hemingway
+    - name: |-
+        "Anyone who says that money cannot buy happiness has clearly never spent their money on pizza" - Oscar Wilde
+    - name: |-
+        "Pizza is the most perfect food that exists." - John Green
 - model: ClassicalName
   rows:
     - name: Americana
