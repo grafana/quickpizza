@@ -8,7 +8,6 @@ service GRPC {
 }
 
 message StatusRequest {
-
 }
 
 message StatusResponse {
@@ -16,9 +15,10 @@ message StatusResponse {
 }
 
 message PizzaEvaluationRequest {
-
+    repeated string ingredients = 1;
+    string dough = 2;
 }
 
 message PizzaEvaluationResponse {
-
+    int32 stars_rating = 1;
 }

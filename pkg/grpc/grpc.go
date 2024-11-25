@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"net"
 
 	pb "github.com/grafana/quickpizza/pkg/grpc/quickpizza"
@@ -24,7 +25,13 @@ func (s *serverImplementation) Status(_ context.Context, in *pb.StatusRequest) (
 }
 
 func (s *serverImplementation) EvaluatePizza(_ context.Context, in *pb.PizzaEvaluationRequest) (*pb.PizzaEvaluationResponse, error) {
-	return &pb.PizzaEvaluationResponse{}, nil
+	var rating int32
+	if len(in.Ingredients) > 0 && in.Dough != "" {
+		rating = rand.Int31n(6)
+	}
+	return &pb.PizzaEvaluationResponse{
+		StarsRating: rating,
+	}, nil
 }
 
 func NewServer(listen string) *Server {
