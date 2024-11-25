@@ -3,9 +3,10 @@ package database
 import (
 	"context"
 
+	"log/slog"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
-	"golang.org/x/exp/slog"
 
 	"github.com/grafana/quickpizza/pkg/database/migrations"
 	"github.com/grafana/quickpizza/pkg/errorinjector"

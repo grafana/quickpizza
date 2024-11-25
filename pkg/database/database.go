@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 
+	"log/slog"
+
 	"github.com/grafana/quickpizza/pkg/logging"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -13,7 +15,6 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"github.com/uptrace/bun/extra/bunotel"
-	"golang.org/x/exp/slog"
 )
 
 func initializeDB(connString string) (*bun.DB, error) {

@@ -9,13 +9,15 @@ import (
 	"strings"
 	"time"
 
+	"log/slog"
+
 	"github.com/grafana/pyroscope-go"
 	"github.com/grafana/quickpizza/pkg/database"
+	qpgrpc "github.com/grafana/quickpizza/pkg/grpc"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
-	"golang.org/x/exp/slog"
 )
 
 func main() {
@@ -124,6 +126,17 @@ func main() {
 		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_COPY")).WithClient(httpCli)
 
 		server = server.WithRecommendations(catalogClient, copyClient)
+	}
+
+	if envServe("QUICKPIZZA_GRPC") {
+		grpcServer := qpgrpc.NewServer(":3334")
+		go func() {
+			err := grpcServer.ListenAndServe()
+			if err != nil {
+				slog.Error("Running gRPC server", "err", err)
+				os.Exit(1)
+			}
+		}()
 	}
 
 	listen := ":3333"

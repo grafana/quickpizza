@@ -10,6 +10,7 @@ jobs:
         image: ghcr.io/grafana/quickpizza-local:latest
         ports:
           - 3333:3333
+          - 3334:3334
 
     steps:
       - name: Checkout
@@ -51,11 +52,11 @@ jobs:
       #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
 
       - name: Run k6 foundations tests
-        run: ./run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
+        run: ./scripts/run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
         env:
           ACT: ${{ env.ACT }}
 
       - name: Run k6 browser tests
-        run: ./run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
+        run: ./scripts/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
         env:
           ACT: ${{ env.ACT }}
