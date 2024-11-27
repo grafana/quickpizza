@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net"
+	"net/http"
 
 	pb "github.com/grafana/quickpizza/pkg/grpc/quickpizza"
 	"google.golang.org/grpc"
@@ -16,8 +17,9 @@ type serverImplementation struct {
 }
 
 type Server struct {
-	grpcServer *grpc.Server
-	listen     string
+	grpcServer    *grpc.Server
+	listen        string
+	healthzListen string
 }
 
 func (s *serverImplementation) Status(_ context.Context, in *pb.StatusRequest) (*pb.StatusResponse, error) {
@@ -34,11 +36,28 @@ func (s *serverImplementation) EvaluatePizza(_ context.Context, in *pb.PizzaEval
 	}, nil
 }
 
-func NewServer(listen string) *Server {
+func NewServer(listen string, healthzListen string) *Server {
 	s := grpc.NewServer()
 	pb.RegisterGRPCServer(s, &serverImplementation{})
 
-	return &Server{grpcServer: s, listen: listen}
+	return &Server{grpcServer: s, listen: listen, healthzListen: healthzListen}
+}
+
+func (s *Server) listenHealthz() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	health := &http.Server{
+		Addr:    s.healthzListen,
+		Handler: mux,
+	}
+
+	slog.Info("Starting QuickPizza gRPC health check server", "listenAddress", s.healthzListen)
+	if err := health.ListenAndServe(); err != nil {
+		slog.Error("Error listening for gRPC health check server", "err", err)
+	}
 }
 
 func (s *Server) ListenAndServe() error {
@@ -47,6 +66,8 @@ func (s *Server) ListenAndServe() error {
 		return fmt.Errorf("failed to listen on port: %w", err)
 	}
 
-	slog.Info("Starting QuickPizza gRPC", "listenAddress", s.listen)
+	go s.listenHealthz()
+
+	slog.Info("Starting QuickPizza gRPC server", "listenAddress", s.listen)
 	return s.grpcServer.Serve(lis)
 }

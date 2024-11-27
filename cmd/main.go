@@ -129,7 +129,7 @@ func main() {
 	}
 
 	if envServe("QUICKPIZZA_GRPC") {
-		grpcServer := qpgrpc.NewServer(":3334")
+		grpcServer := qpgrpc.NewServer(":3334", ":3335")
 		go func() {
 			err := grpcServer.ListenAndServe()
 			if err != nil {

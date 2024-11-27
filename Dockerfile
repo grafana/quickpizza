@@ -24,5 +24,5 @@ FROM gcr.io/distroless/static-debian11
 
 COPY --from=builder /bin/quickpizza /bin
 
-EXPOSE 3333 3334
+EXPOSE 3333 3334 3335
 ENTRYPOINT [ "/bin/quickpizza" ]
