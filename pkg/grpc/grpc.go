@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	pb "github.com/grafana/quickpizza/pkg/grpc/quickpizza"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 )
 
@@ -45,13 +47,13 @@ func NewServer(listen string, healthzListen string) *Server {
 
 func (s *Server) listenHealthz() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/grpchealthz", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	health := &http.Server{
 		Addr:    s.healthzListen,
-		Handler: mux,
+		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
 
 	slog.Info("Starting QuickPizza gRPC health check server", "listenAddress", s.healthzListen)
