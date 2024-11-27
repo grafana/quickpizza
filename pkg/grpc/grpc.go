@@ -28,12 +28,15 @@ func (s *serverImplementation) Status(_ context.Context, in *pb.StatusRequest) (
 	return &pb.StatusResponse{Ready: true}, nil
 }
 
-func (s *serverImplementation) EvaluatePizza(_ context.Context, in *pb.PizzaEvaluationRequest) (*pb.PizzaEvaluationResponse, error) {
+func (s *serverImplementation) RatePizza(_ context.Context, in *pb.PizzaRatingRequest) (*pb.PizzaRatingResponse, error) {
 	var rating int32
-	if len(in.Ingredients) > 0 && in.Dough != "" {
+	if len(in.Ingredients) > 0 {
 		rating = rand.Int31n(6)
 	}
-	return &pb.PizzaEvaluationResponse{
+	if in.Dough != "" && rating < 5 {
+		rating += rand.Int31n(2)
+	}
+	return &pb.PizzaRatingResponse{
 		StarsRating: rating,
 	}, nil
 }

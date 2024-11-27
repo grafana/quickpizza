@@ -4,7 +4,7 @@ package quickpizza;
 
 service GRPC {
     rpc Status(StatusRequest) returns (StatusResponse) {}
-    rpc EvaluatePizza(PizzaEvaluationRequest) returns (PizzaEvaluationResponse) {}
+    rpc RatePizza(PizzaRatingRequest) returns (PizzaRatingResponse) {}
 }
 
 message StatusRequest {
@@ -14,11 +14,11 @@ message StatusResponse {
     bool ready = 1;
 }
 
-message PizzaEvaluationRequest {
+message PizzaRatingRequest {
     repeated string ingredients = 1;
     string dough = 2;
 }
 
-message PizzaEvaluationResponse {
+message PizzaRatingResponse {
     int32 stars_rating = 1;
 }
