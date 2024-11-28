@@ -216,3 +216,21 @@
       name: Fresh oregano
       type: topping
       vegetarian: true
+- model: Pizza
+  rows:
+    - id: 1
+      name: A Funny Capricciosa
+      dough_id: 1
+      tool: Scissors
+- model: PizzaToIngredients
+  rows:
+    - pizza_id: 1
+      ingredient_id: 2
+    - pizza_id: 1
+      ingredient_id: 5
+    - pizza_id: 1
+      ingredient_id: 6
+    - pizza_id: 1
+      ingredient_id: 24
+    - pizza_id: 1
+      ingredient_id: 18

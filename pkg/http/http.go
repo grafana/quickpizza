@@ -348,12 +348,6 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			//token = strings.TrimPrefix(token, "Bearer ")
-			//if _, ok := s.db.userSessionTokens[token]; !ok {
-			//	w.WriteHeader(http.StatusUnauthorized)
-			//	return
-			//}
-
 			history, err := db.GetHistory(r.Context(), 10)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
