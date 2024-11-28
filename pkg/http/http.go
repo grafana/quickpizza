@@ -338,11 +338,9 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Recommendations requested")
-			token := r.Header.Get("Authorization")
-			if token == "" {
-				if tokenCookie, err := r.Cookie("admin_token"); err == nil {
-					token = tokenCookie.Value
-				}
+			token := ""
+			if tokenCookie, err := r.Cookie("admin_token"); err == nil {
+				token = tokenCookie.Value
 			}
 
 			if token == "" {
@@ -413,11 +411,6 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 			guid := xid.New()
 			token := guid.String()
-			// TODO: Develop an authentication microservice. Perhaps overengineer it with JWT.
-			// if s.db.userSessionTokens == nil {
-			// 	s.db.userSessionTokens = make(map[string]time.Time)
-			// }
-			// s.db.userSessionTokens[token] = time.Now()
 
 			http.SetCookie(w, &http.Cookie{
 				Name:     "admin_token",

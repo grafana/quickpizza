@@ -22,3 +22,11 @@ format:
 .PHONY: format-check
 format-check:
 	@out=$$(goimports -l $(GO_SOURCES)) && echo "$$out" && test -z "$$out"
+
+.PHONY: docker-localdev-build
+docker-localdev-build:
+	docker build . -t grafana/quickpizza:localdev
+
+.PHONY: docker-localdev-run
+docker-localdev-run:
+	docker run --rm -it -p 3333:3333 -p 3334:3334 -p 3335:3335 -v $$(pwd):/db -e QUICKPIZZA_DB=file:/db/quickpizza.db grafana/quickpizza:localdev

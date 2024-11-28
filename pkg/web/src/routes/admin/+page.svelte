@@ -6,7 +6,7 @@ import { userID } from '../../lib/stores';
 var user = 0;
 var loginError = '';
 var password = 'admin';
-var token = '';
+var adminLoggedIn = false;
 var latestPizzaRecommendations: string[] = [];
 
 onMount(async () => {
@@ -15,16 +15,16 @@ onMount(async () => {
             userID.set(Math.floor(100000 + Math.random() * 900000));
         }
 
-        token = tokenFromCookie();
+        adminLoggedIn = checkAdminLoggedIn();
 });
 
-function tokenFromCookie() {
+function checkAdminLoggedIn() {
     const tokenCookie = document.cookie.split("; ").filter(c => c.startsWith("admin_token"));
     if (tokenCookie.length == 0) {
-        return "";
+        return false;
     }
 
-    return tokenCookie[0].split("=")[1];
+    return true;
 }
 
 async function handleSubmit() {
@@ -40,24 +40,24 @@ async function handleSubmit() {
         return;
     }
 
-    token = tokenFromCookie();
+    adminLoggedIn = checkAdminLoggedIn();
 }
 
 async function handleLogout() {
     // Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
     document.cookie = "admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    token = "";
+    adminLoggedIn = false;
 }
 
-$: if (token) {
+$: if (adminLoggedIn) {
     updateRecommendations();
 }
 
 function updateRecommendations() {
+    // Admin token is sent via Cookies in headers
     fetch(`${PUBLIC_BACKEND_ENDPOINT}api/internal/recommendations`, {
             method: 'GET',
             headers: {
-                    'Authorization': 'Bearer ' + token,
                     'X-User-ID': user.toString()
             }
     },).then(res => res.json()).then(json => {
@@ -74,7 +74,7 @@ function updateRecommendations() {
 }
 </script>
 
-{#if token}
+{#if adminLoggedIn}
 
 <section class="flex flex-column justify-center items-center mt-40">
 	<div class="text-center">
