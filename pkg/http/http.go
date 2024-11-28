@@ -396,7 +396,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			w.WriteHeader(http.StatusCreated)
 		})
 
-		r.Get("/api/login", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Login requested")
 			user := r.URL.Query().Get("user")
 			password := r.URL.Query().Get("password")

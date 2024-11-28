@@ -28,12 +28,12 @@ function tokenFromCookie() {
 }
 
 async function handleSubmit() {
-    const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/login?user=admin&password=${password}`, {
+    const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/admin/login?user=admin&password=${password}`, {
 			method: 'GET',
             headers: {
 					'X-User-ID': user.toString()
 			},
-      credentials: 'same-origin', // Honor Set-Cookie header returned by /api/login.
+      credentials: 'same-origin', // Honor Set-Cookie header returned by /api/admin/login.
 	},);
     if (!res.ok) {
         loginError = 'Login failed: ' + res.statusText;
