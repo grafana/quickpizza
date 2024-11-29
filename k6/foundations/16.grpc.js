@@ -12,7 +12,7 @@ export default () => {
   });
 
   const data = { ingredients: ["Pepperoni", "Mozzarella"], dough: "Stuffed" };
-  const response = client.invoke('quickpizza.GRPC/EvaluatePizza', data);
+  const response = client.invoke('quickpizza.GRPC/RatePizza', data);
 
   check(response, {
     'status is OK': (r) => r && r.status === StatusOK,
