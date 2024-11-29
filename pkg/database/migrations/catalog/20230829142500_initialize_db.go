@@ -14,6 +14,7 @@ func init() {
 			&model.Ingredient{},
 			&model.Dough{},
 			&model.Tool{},
+			&model.User{},
 		}
 		for _, i := range models {
 			if _, err := db.NewCreateTable().Model(i).IfNotExists().Exec(ctx); err != nil {
@@ -24,6 +25,16 @@ func init() {
 			Model(&model.Pizza{}).
 			ForeignKey(`("dough_id") REFERENCES "doughs" ("id")`).
 			ForeignKey(`("tool") REFERENCES "tools" ("name")`).
+			IfNotExists().
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		_, err = db.NewCreateTable().
+			Model(&model.Rating{}).
+			ForeignKey(`("user_id") REFERENCES "users" ("id") ON DELETE CASCADE`).
+			ForeignKey(`("pizza_id") REFERENCES "pizzas" ("id") ON DELETE CASCADE`).
 			IfNotExists().
 			Exec(ctx)
 		if err != nil {

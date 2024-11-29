@@ -2,7 +2,7 @@
 	import { PUBLIC_BACKEND_ENDPOINT, PUBLIC_BACKEND_WS_ENDPOINT } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { Confetti } from 'svelte-confetti';
-	import { userID } from '../lib/stores';
+	import { userIDStore, userTokenStore } from '../lib/stores';
 	import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 
 	const defaultRestrictions = {
@@ -15,6 +15,7 @@
 	};
 
 	var user = 0;
+    var userToken = '';
 	var render = false;
 	var quote = '';
 	var pizza = '';
@@ -31,16 +32,33 @@
 		restrictions = defaultRestrictions;
 	}
 
+    function randomToken(length) {
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < length) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            counter += 1;
+        }
+        return result;
+    }
+
+
 	let socket: WebSocket;
 	onMount(async () => {
-		userID.subscribe((value) => user = value);
+		userIDStore.subscribe((value) => user = value);
 		if (user === 0) {
-            userID.set(Math.floor(100000 + Math.random() * 900000));
+            userIDStore.set(Math.floor(100000 + Math.random() * 900000));
+        }
+        userTokenStore.subscribe((value) => userToken = value);
+        if (userToken === '') {
+            userTokenStore.set(randomToken(16));
         }
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/quotes`,
 			{
 				headers: {
-					'X-User-ID': user.toString()
+					'Authorization': 'Token ' + userToken
 				}
 			});
 		const json = await res.json();
@@ -70,7 +88,7 @@
 			method: 'POST',
 			body: JSON.stringify(restrictions),
 			headers: {
-					'X-User-ID': user.toString()
+					'Authorization': 'Token ' + userToken
 			}
 		});
 		const json = await res.json();
@@ -89,7 +107,7 @@
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/tools`,
 		{
 			headers: {
-				'X-User-ID': user.toString()
+				'Authorization': 'Token ' + userToken
 			}
 		});
 		const json = await res.json();
@@ -273,7 +291,7 @@
 			<p class="text-sm">Made with ❤️ by QuickPizza Labs.</p>
 		</div>
 		<div class="flex justify-center">
-			<p class="text-xs">Your user ID is: {user}</p>
+			<p class="text-xs">Your user ID is: {user} (token: {userToken})</p>
 		</div>
 		<div class="flex justify-center mt-1 mb-8">
 			<p class="text-xs">

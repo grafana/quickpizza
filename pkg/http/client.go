@@ -96,9 +96,9 @@ func (hc httpClient) do(request *http.Request) (*http.Response, error) {
 	// Authenticate request with the super-secret internal token.
 	request.Header.Add("X-Is-Internal", "1")
 
-	// Propagate X-User-ID if present in request context.
-	if user, ok := request.Context().Value("user").(string); ok {
-		request.Header.Add("X-User-ID", user)
+	// Propagate Authorization if present in request context.
+	if auth, ok := request.Context().Value("authorization").(string); ok {
+		request.Header.Add("Authorization", auth)
 	}
 
 	return hc.client.Do(request)

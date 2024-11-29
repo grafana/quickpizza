@@ -90,7 +90,7 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) e
 		}
 		_, err = tx.NewDelete().
 			Model((*model.Pizza)(nil)).
-			Where("id NOT IN (?)", tx.NewSelect().
+			Where("id NOT IN (?) AND id > 100", tx.NewSelect().
 				Model((*model.Pizza)(nil)).
 				Order("created_at DESC").
 				Column("id").
