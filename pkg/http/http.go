@@ -335,6 +335,35 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 		})
+	})
+
+	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "admin")
+
+		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-Is-Internal") == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			var latestRecommendation model.Pizza
+
+			dec := json.NewDecoder(r.Body)
+			dec.DisallowUnknownFields()
+			err := dec.Decode(&latestRecommendation)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to decode request", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if err := db.RecordRecommendation(r.Context(), latestRecommendation); err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to save recommendation", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Recommendations requested")
@@ -361,31 +390,6 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-		})
-
-		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("X-Is-Internal") == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			var latestRecommendation model.Pizza
-
-			dec := json.NewDecoder(r.Body)
-			dec.DisallowUnknownFields()
-			err := dec.Decode(&latestRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request", err)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			if err := db.RecordRecommendation(r.Context(), latestRecommendation); err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to save recommendation", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			w.WriteHeader(http.StatusCreated)
 		})
 
 		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {

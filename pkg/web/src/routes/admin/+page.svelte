@@ -1,9 +1,7 @@
 <script lang="ts">
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 import { onMount } from 'svelte';
-import { userID } from '../../lib/stores';
 
-var user = 0;
 var loginError = '';
 var username = 'admin';
 var password = 'admin';
@@ -11,11 +9,6 @@ var adminLoggedIn = false;
 var latestPizzaRecommendations: string[] = [];
 
 onMount(async () => {
-        userID.subscribe((value) => user = value);
-        if (user === 0) {
-            userID.set(Math.floor(100000 + Math.random() * 900000));
-        }
-
         adminLoggedIn = checkAdminLoggedIn();
 });
 
@@ -30,12 +23,9 @@ function checkAdminLoggedIn() {
 
 async function handleSubmit() {
     const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/admin/login?user=${username}&password=${password}`, {
-			method: 'GET',
-            headers: {
-					'X-User-ID': user.toString()
-			},
-      credentials: 'same-origin', // Honor Set-Cookie header returned by /api/admin/login.
-	},);
+	    method: 'GET',
+        credentials: 'same-origin', // Honor Set-Cookie header returned by /api/admin/login.
+	});
     if (!res.ok) {
         loginError = 'Login failed: ' + res.statusText;
         return;
@@ -57,11 +47,8 @@ $: if (adminLoggedIn) {
 function updateRecommendations() {
     // Admin token is sent via Cookies in headers
     fetch(`${PUBLIC_BACKEND_ENDPOINT}api/internal/recommendations`, {
-            method: 'GET',
-            headers: {
-                    'X-User-ID': user.toString()
-            }
-    },).then(res => res.json()).then(json => {
+        method: 'GET',
+    }).then(res => res.json()).then(json => {
         var newRec: string[] = [];
         json.pizzas = json.pizzas.reverse();
         json.pizzas.forEach((pizza: any) => {
@@ -122,12 +109,9 @@ function updateRecommendations() {
             </div>
 	</div>
 </section>
+{/if}
 <footer>
-    <div class="flex justify-center mt-4">
-        <p class="text-xs">Your user ID is: {user}</p>
-    </div>
     <div class="flex justify-center mt-2">
         <p class="text-xs"><a class="text-blue-500" href="/">Back to main page</a></p>
     </div>
 </footer>
-{/if}
