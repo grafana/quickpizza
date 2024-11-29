@@ -38,6 +38,8 @@ import (
 	"github.com/grafana/quickpizza/pkg/web"
 )
 
+const tokenLength = 16
+
 // Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -117,7 +119,7 @@ func NewServer() (*Server, error) {
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
@@ -741,13 +743,19 @@ func SvelteKitHandler(path string) http.Handler {
 
 func ValidateUserMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Header.Get("X-User-ID")
-		if userID == "" {
+		auth := r.Header.Get("Authorization")
+		prefix, token, found := strings.Cut(auth, " ")
+		prefix = strings.ToLower(prefix)
+
+		// Here, we would actually check the token against the DB, or
+		// verify it using a private key (e.g. for JWT), but for this
+		// testing service we just check its length.
+		if !found || prefix != "token" || len(token) != tokenLength {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user", userID)
+		ctx := context.WithValue(r.Context(), "authorization", auth)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
