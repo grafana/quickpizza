@@ -51,10 +51,26 @@ var (
 		Buckets: []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
 	})
 
+	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:                            "number_of_ingredients_per_pizza_alternate",
+		Help:                            "The number of ingredients per pizza (Native Histogram)",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
+	})
+
 	pizzaCaloriesPerSlice = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "pizza_calories_per_slice",
 		Help:    "The number of calories per slice of pizza",
 		Buckets: []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000},
+	})
+
+	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "pizza_calories_per_slice_alternate",
+		Help:    "The number of calories per slice of pizza (Native Histogram)",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
 	})
 
 	httpRequests = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -703,7 +719,9 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			}).Inc()
 
 			numberOfIngredientsPerPizza.Observe(float64(len(p.Ingredients)))
+			numberOfIngredientsPerPizzaNativeHistogram.Observe(float64(len(p.Ingredients)))
 			pizzaCaloriesPerSlice.Observe(float64(pizzaRecommendation.Calories))
+			pizzaCaloriesPerSliceNativeHistogram.Observe(float64(pizzaRecommendation.Calories))
 
 			s.log.InfoContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
 
