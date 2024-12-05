@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  quickpizza:
+    # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
+    # created with `docker build -t image_name .`
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    ports:
+      - "3333:3333"
+    environment:
+      QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
+      # must be set with an .env file
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
+      QUICKPIZZA_PYROSCOPE_ENDPOINT: "${QUICKPIZZA_CONF_PYROSCOPE_ENDPOINT}"
+      QUICKPIZZA_GRAFANA_CLOUD_USER: "${QUICKPIZZA_GRAFANA_CLOUD_USER}"
+      QUICKPIZZA_GRAFANA_CLOUD_PASSWORD: "${GRAFANA_CLOUD_TOKEN}"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "${OTEL_EXPORTER_OTLP_PROTOCOL}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "${OTEL_EXPORTER_OTLP_ENDPOINT}"
+      OTEL_EXPORTER_OTLP_HEADERS: "${OTEL_EXPORTER_OTLP_HEADERS}"

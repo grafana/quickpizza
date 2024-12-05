@@ -7,4 +7,5 @@ configMapGenerator:
       - ./config/grafana-agent.river
   - name: tracing-env
     literals:
-      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-agent:4318
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://grafana-agent:4318

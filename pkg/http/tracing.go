@@ -1,19 +1,13 @@
 package http
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/go-chi/chi"
+	qpotel "github.com/grafana/quickpizza/pkg/otel"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
@@ -21,34 +15,15 @@ import (
 // An uninitialized TraceInstaller behaves like a noop, where calls to Install have no effect.
 type TraceInstaller struct {
 	insecure bool
-	exporter *otlptrace.Exporter
+	prov     *qpotel.Provider
 }
 
 // NewTraceInstaller creates a new initialized TraceInstaller that will set up traces and push them.
-func NewTraceInstaller(ctx context.Context, endpointUrl string) (*TraceInstaller, error) {
-	u, err := url.Parse(endpointUrl)
-	if err != nil {
-		return nil, fmt.Errorf("parsing endpoint url: %w", err)
-	}
-
-	var client otlptrace.Client
-	switch u.Scheme {
-	case "http":
-		client = otlptracehttp.NewClient(otlptracehttp.WithInsecure(), otlptracehttp.WithEndpoint(u.Host))
-	case "https":
-		client = otlptracehttp.NewClient(otlptracehttp.WithEndpoint(u.Host))
-	case "grpc":
-		client = otlptracegrpc.NewClient(otlptracegrpc.WithEndpoint(u.Host))
-	default:
-		return nil, fmt.Errorf("unsupported protocol %q", u.Scheme)
-	}
-
-	exporter, err := otlptrace.New(ctx, client)
-	if err != nil {
-		return nil, fmt.Errorf("building otlp exporter: %w", err)
-	}
-
-	return &TraceInstaller{exporter: exporter}, nil
+func NewTraceInstaller(prov *qpotel.Provider) (*TraceInstaller, error) {
+	return &TraceInstaller{
+		insecure: false,
+		prov:     prov,
+	}, nil
 }
 
 // Insecure instructs the TraceInstaller to trust incoming trace IDs.
@@ -59,7 +34,7 @@ func (t *TraceInstaller) Insecure() {
 // Install adds tracing middleware to the supplied chi.Router.
 // extraOpts take precedence over the default opts.
 func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...otelhttp.Option) {
-	if t.exporter == nil {
+	if t.prov == nil {
 		return
 	}
 
@@ -72,14 +47,13 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 		),
 	)
 
-	p := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(t.exporter),
-		sdktrace.WithResource(res),
-	)
+	p := t.prov.NewTracerProvider(res)
+	m := t.prov.NewMeterProvider(res)
 
 	defaultOpts := []otelhttp.Option{
 		otelhttp.WithTracerProvider(p),
-		otelhttp.WithPropagators(propagation.TraceContext{}),
+		// TODO: Fix this
+		otelhttp.WithMeterProvider(m),
 		otelhttp.WithPublicEndpointFn(t.isPublic),
 		// Use a name formatter that follows the semantic conventions for server-side span naming:
 		// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name

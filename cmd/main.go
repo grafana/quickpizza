@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	http "net/http"
 	"os"
 	"runtime"
@@ -9,22 +10,47 @@ import (
 	"strings"
 	"time"
 
-	"log/slog"
-
 	"github.com/grafana/pyroscope-go"
 	"github.com/grafana/quickpizza/pkg/database"
 	qpgrpc "github.com/grafana/quickpizza/pkg/grpc"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
+	qpotel "github.com/grafana/quickpizza/pkg/otel"
 	"github.com/hashicorp/go-retryablehttp"
+	slogmulti "github.com/samber/slog-multi"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/propagation"
 )
 
 func main() {
 	// write logs as logfmt
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	slogStdErr := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: getLogLevel(),
-	})))
+	}))
+	slog.SetDefault(slogStdErr)
+
+	prov := qpotel.Noop()
+	if otlpEndpoint, otlpEnabled := os.LookupEnv("OTEL_EXPORTER_OTLP_ENDPOINT"); otlpEnabled {
+		newProv, shutdown, err := qpotel.Setup(context.Background(), otlpEndpoint)
+		if err != nil {
+			slog.Error("failed to setup otel", "err", err)
+			os.Exit(1)
+		}
+
+		defer shutdown(context.Background())
+
+		prov = newProv
+
+		otelLogger := otelslog.NewLogger("quickpizza", otelslog.WithLoggerProvider(prov.LoggerProvider()))
+
+		slog.SetDefault(
+			slog.New(
+				slogmulti.Fanout(
+					slogStdErr.Handler(),
+					otelLogger.Handler(),
+				),
+			),
+		)
+	}
 
 	// Create an HTTP client configured from env vars.
 	// If no specific env vars are set, this will return a http client that does not perform any retries.
@@ -36,11 +62,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if otlpEndpoint, tracingEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); tracingEnabled {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		installer, err := qphttp.NewTraceInstaller(ctx, otlpEndpoint)
+	if _, tracingEnabled := os.LookupEnv("OTEL_EXPORTER_OTLP_ENDPOINT"); tracingEnabled {
+		installer, err := qphttp.NewTraceInstaller(prov)
 		if err != nil {
 			slog.Error("creating otlp trace installer", "err", err)
 			os.Exit(1)
@@ -157,7 +180,7 @@ func clientFromEnv() *http.Client {
 		Transport: otelhttp.NewTransport(
 			nil, // Default transport.
 			// Propagator will retrieve the tracer used in the server from memory.
-			otelhttp.WithPropagators(propagation.TraceContext{}),
+			// otelhttp.WithPropagators(propagation.TraceContext{}),
 		),
 	}
 

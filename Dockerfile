@@ -10,15 +10,15 @@ ARG PUBLIC_BACKEND_WS_ENDPOINT=""
 ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 
 RUN npm install && \
-    npm run build
+  npm run build
 
-FROM golang:1.21-bullseye AS builder
+FROM golang:1.23-bullseye AS builder
 
 WORKDIR /app
 COPY . ./
 COPY --from=fe-builder /app/pkg/web/build /app/pkg/web/build
 RUN go generate pkg/web/web.go && \
-    CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
+  CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
 
 FROM gcr.io/distroless/static-debian11
 

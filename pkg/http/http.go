@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
@@ -15,8 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"log/slog"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -27,7 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/trace"
 
 	k6 "github.com/grafana/pyroscope-go/x/k6"
@@ -206,7 +205,7 @@ func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, con
 		otelTransport := otelhttp.NewTransport(
 			nil,
 			// Propagator will retrieve the tracer used in the server from memory.
-			otelhttp.WithPropagators(propagation.TraceContext{}),
+			// otelhttp.WithPropagators(propagation.TraceContext{}),
 		)
 
 		r.Handle("/api/*", &httputil.ReverseProxy{
@@ -517,6 +516,9 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			copyClient := copyClient.WithRequestContext(r.Context())
 
 			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+
+			b := baggage.FromContext(r.Context())
+			s.log.Info("CHECKING BAGGAGE", "baggage", fmt.Sprintf("%s", b.String()))
 
 			s.log.InfoContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
