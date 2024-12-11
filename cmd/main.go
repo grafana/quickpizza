@@ -157,7 +157,10 @@ func clientFromEnv() *http.Client {
 		Transport: otelhttp.NewTransport(
 			nil, // Default transport.
 			// Propagator will retrieve the tracer used in the server from memory.
-			otelhttp.WithPropagators(propagation.TraceContext{}),
+			otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(
+				propagation.TraceContext{},
+				propagation.Baggage{},
+			)),
 		),
 	}
 

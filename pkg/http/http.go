@@ -18,8 +18,8 @@ import (
 
 	"log/slog"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
@@ -266,8 +266,8 @@ func (s *Server) WithWS() *Server {
 	return s
 }
 
-// WithCatalog enables routes related to the ingredients, doughs, and tools. A database.InMemoryDatabase is required to
-// enable this endpoint group.
+// WithCatalog enables routes related to the ingredients, doughs, tools, ratings and users.
+// A database.InMemoryDatabase is required to enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
 func (s *Server) WithCatalog(db *database.Catalog) *Server {
 	s.router.Group(func(r chi.Router) {
@@ -336,6 +336,10 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+		})
+
+		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
+			
 		})
 	})
 
