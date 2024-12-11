@@ -115,6 +115,7 @@ func NewServer() *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	router := chi.NewRouter()
+	router.Use(PrometheusMiddleware)
 	router.Use(middleware.Recoverer)
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -139,8 +140,6 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 // WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
 func (s *Server) WithPrometheus() *Server {
-	// Add MW with .With instead of .Use, as .Use does not allow registering MWs after routes.
-	s.router = s.router.With(PrometheusMiddleware)
 	s.router.Handle("/metrics", promhttp.Handler())
 
 	return s
