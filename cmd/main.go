@@ -29,12 +29,7 @@ func main() {
 	// Create an HTTP client configured from env vars.
 	// If no specific env vars are set, this will return a http client that does not perform any retries.
 	httpCli := clientFromEnv()
-
-	server, err := qphttp.NewServer()
-	if err != nil {
-		slog.Error("Cannot create server", "err", err)
-		os.Exit(1)
-	}
+	server := qphttp.NewServer()
 
 	if otlpEndpoint, tracingEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); tracingEnabled {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -141,7 +136,7 @@ func main() {
 
 	listen := ":3333"
 	slog.Info("Starting QuickPizza", "listenAddress", listen)
-	err = http.ListenAndServe(listen, server)
+	err := http.ListenAndServe(listen, server)
 	if err != nil {
 		slog.Error("Running HTTP server", "err", err)
 		os.Exit(1)

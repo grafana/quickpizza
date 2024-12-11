@@ -111,7 +111,7 @@ type Server struct {
 	melody         *melody.Melody
 }
 
-func NewServer() (*Server, error) {
+func NewServer() *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	router := chi.NewRouter()
@@ -130,7 +130,7 @@ func NewServer() (*Server, error) {
 		router:         router,
 		melody:         melody.New(),
 		log:            logger,
-	}, nil
+	}
 }
 
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
