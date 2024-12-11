@@ -1,14 +1,9 @@
 GO_SOURCES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-.PHONY: run
-run:
-	go generate pkg/web/web.go
-	CGO_ENABLED=0 go run ./cmd
-
 # Note: does not include frontend files, only Go code.
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build -tags=mock -o bin/quickpizza ./cmd
+	go build -tags=mock -o bin/quickpizza ./cmd
 
 .PHONY: proto
 proto:
