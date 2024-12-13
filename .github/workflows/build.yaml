@@ -1,0 +1,22 @@
+name: Check Formatting & Build
+on: [push]
+
+jobs:
+  runner-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+
+      - name: Setup Goimports
+        run: go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Check Formatting
+        run: make format-check
+
+      - name: Build Binary
+        run: make build

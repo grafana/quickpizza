@@ -1,5 +1,17 @@
-name: k6 - Test Suite
-on: [push]
+name: Run k6 Test Suite
+on:
+  push:
+    paths:
+      - 'scripts/**'
+      - 'k6/**'
+  release:
+    types:
+      - created
+
+# Important: The k6 test suite will only be run against the latest
+# release of the Quickpizza service, not against the code in the
+# commit itself. Therefore, we only run this Action when the test
+# files themselves are modified (or on a new release).
 
 jobs:
   runner-job:
@@ -22,7 +34,7 @@ jobs:
 
       - name: Cache k6
         id: cache-k6
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /usr/bin/k6
           key: ${{ runner.os }}-k6
