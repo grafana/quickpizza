@@ -35,7 +35,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"socket.io-client": "^4.6.1",
+		"socket.io-client": "^4.8.1",
 		"svelte-confetti": "^1.2.2"
 	}
 }
