@@ -22,7 +22,7 @@ jobs:
 
       - name: Cache k6
         id: cache-k6
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /usr/bin/k6
           key: ${{ runner.os }}-k6
