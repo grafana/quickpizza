@@ -6,6 +6,7 @@ package chi
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
 	"sort"
@@ -54,10 +55,10 @@ func RegisterMethod(method string) {
 		return
 	}
 	n := len(methodMap)
-	if n > strconv.IntSize-2 {
+	if n > strconv.IntSize {
 		panic(fmt.Sprintf("chi: max number of methods reached (%d)", strconv.IntSize))
 	}
-	mt := methodTyp(2 << n)
+	mt := methodTyp(math.Exp2(float64(n)))
 	methodMap[method] = mt
 	mALL |= mt
 }
@@ -429,12 +430,10 @@ func (n *node) findRoute(rctx *Context, method methodTyp, path string) *node {
 					} else {
 						continue
 					}
-				} else if ntyp == ntRegexp && p == 0 {
-					continue
 				}
 
 				if ntyp == ntRegexp && xn.rex != nil {
-					if !xn.rex.MatchString(xsearch[:p]) {
+					if !xn.rex.Match([]byte(xsearch[:p])) {
 						continue
 					}
 				} else if strings.IndexByte(xsearch[:p], '/') != -1 {
