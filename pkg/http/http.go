@@ -139,6 +139,16 @@ func NewServer() (*Server, error) {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}).Handler)
 
+	// Readiness probe
+	router.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Liveness probe
+	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	return &Server{
 		traceInstaller: &TraceInstaller{},
 		router:         router,
