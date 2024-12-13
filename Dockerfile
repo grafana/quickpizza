@@ -17,12 +17,12 @@ FROM golang:1.21-bullseye AS builder
 WORKDIR /app
 COPY . ./
 COPY --from=fe-builder /app/pkg/web/build /app/pkg/web/build
-RUN go generate pkg/web/web.go && \
-    CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
+# Disable CGO in order to build a completely static binary, allowing us to use the binary in a container
+# with uses a different distribution of libc.
+RUN CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
 
 FROM gcr.io/distroless/static-debian11
 
 COPY --from=builder /bin/quickpizza /bin
-
 EXPOSE 3333 3334 3335
 ENTRYPOINT [ "/bin/quickpizza" ]
