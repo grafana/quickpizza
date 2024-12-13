@@ -1,4 +1,4 @@
-name: k6 - Test Suite
+name: Run k6 Test Suite
 on: [push]
 
 jobs:
