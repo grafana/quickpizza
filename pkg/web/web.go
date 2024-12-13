@@ -1,3 +1,5 @@
+//go:build !mock
+
 package web
 
 import "embed"

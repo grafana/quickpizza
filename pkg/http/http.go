@@ -66,8 +66,8 @@ var (
 	})
 
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "pizza_calories_per_slice_alternate",
-		Help:    "The number of calories per slice of pizza (Native Histogram)",
+		Name:                            "pizza_calories_per_slice_alternate",
+		Help:                            "The number of calories per slice of pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
 		NativeHistogramMinResetDuration: 1 * time.Hour,
