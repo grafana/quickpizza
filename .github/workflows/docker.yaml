@@ -29,7 +29,7 @@ jobs:
             core.setOutput('tag', tag)
             core.setOutput('tag-no-v', tag_no_v)
       - name: Build Docker image and push to the Registry
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
