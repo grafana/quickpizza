@@ -29,7 +29,7 @@ func NewMergeQuery(db *DB) *MergeQuery {
 			conn: db.DB,
 		},
 	}
-	if !(q.db.dialect.Name() == dialect.MSSQL || q.db.dialect.Name() == dialect.PG) {
+	if q.db.dialect.Name() != dialect.MSSQL && q.db.dialect.Name() != dialect.PG {
 		q.err = errors.New("bun: merge not supported for current dialect")
 	}
 	return q
@@ -50,10 +50,12 @@ func (q *MergeQuery) Err(err error) *MergeQuery {
 	return q
 }
 
-// Apply calls the fn passing the MergeQuery as an argument.
-func (q *MergeQuery) Apply(fn func(*MergeQuery) *MergeQuery) *MergeQuery {
-	if fn != nil {
-		return fn(q)
+// Apply calls each function in fns, passing the MergeQuery as an argument.
+func (q *MergeQuery) Apply(fns ...func(*MergeQuery) *MergeQuery) *MergeQuery {
+	for _, fn := range fns {
+		if fn != nil {
+			q = fn(q)
+		}
 	}
 	return q
 }

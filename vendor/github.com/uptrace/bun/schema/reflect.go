@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"net"
+	"net/netip"
 	"reflect"
 	"time"
 )
@@ -14,6 +15,8 @@ var (
 	timeType           = timePtrType.Elem()
 	ipType             = reflect.TypeOf((*net.IP)(nil)).Elem()
 	ipNetType          = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+	netipPrefixType    = reflect.TypeOf((*netip.Prefix)(nil)).Elem()
+	netipAddrType      = reflect.TypeOf((*netip.Addr)(nil)).Elem()
 	jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
 
 	driverValuerType  = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
@@ -45,28 +48,4 @@ func fieldByIndex(v reflect.Value, index []int) (_ reflect.Value, ok bool) {
 		v = v.Field(idx)
 	}
 	return v, true
-}
-
-func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
-	if len(index) == 1 {
-		return v.Field(index[0])
-	}
-
-	for i, idx := range index {
-		if i > 0 {
-			v = indirectNil(v)
-		}
-		v = v.Field(idx)
-	}
-	return v
-}
-
-func indirectNil(v reflect.Value) reflect.Value {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
-		}
-		v = v.Elem()
-	}
-	return v
 }
