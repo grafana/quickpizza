@@ -274,7 +274,7 @@ Example of header usage:
 ```
 curl -X POST http://localhost:3333/api/pizza \
      -H "Content-Type: application/json" \
-     -H "X-User-ID: 23423" \
+     -H "Authorization: abcdef0123456789" \
      -H "x-error-record-recommendation: internal-error" \
      -H "x-error-record-recommendation-percentage: 20" \
      -d '{}'

@@ -54,7 +54,7 @@ export function getPizza() {
   let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
     headers: {
       'Content-Type': 'application/json',
-      'X-User-ID': 23423,
+      'Authorization': 'token abcdef0123456789',
     },
   });
   check(res, { "status is 200": (res) => res.status === 200 });

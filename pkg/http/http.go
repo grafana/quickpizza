@@ -18,8 +18,8 @@ import (
 
 	"log/slog"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,6 +37,8 @@ import (
 	"github.com/grafana/quickpizza/pkg/model"
 	"github.com/grafana/quickpizza/pkg/web"
 )
+
+const tokenLength = 16
 
 // Variables storing prometheus metrics.
 var (
@@ -125,15 +127,16 @@ type Server struct {
 	melody         *melody.Melody
 }
 
-func NewServer() (*Server, error) {
+func NewServer() *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	router := chi.NewRouter()
+	router.Use(PrometheusMiddleware)
 	router.Use(middleware.Recoverer)
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-User-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
@@ -154,7 +157,7 @@ func NewServer() (*Server, error) {
 		router:         router,
 		melody:         melody.New(),
 		log:            logger,
-	}, nil
+	}
 }
 
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -163,8 +166,6 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 // WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
 func (s *Server) WithPrometheus() *Server {
-	// Add MW with .With instead of .Use, as .Use does not allow registering MWs after routes.
-	s.router = s.router.With(PrometheusMiddleware)
 	s.router.Handle("/metrics", promhttp.Handler())
 
 	return s
@@ -290,8 +291,8 @@ func (s *Server) WithWS() *Server {
 	return s
 }
 
-// WithCatalog enables routes related to the ingredients, doughs, and tools. A database.InMemoryDatabase is required to
-// enable this endpoint group.
+// WithCatalog enables routes related to the ingredients, doughs, tools, ratings and users.
+// A database.InMemoryDatabase is required to enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
 func (s *Server) WithCatalog(db *database.Catalog) *Server {
 	s.router.Group(func(r chi.Router) {
@@ -362,40 +363,13 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			}
 		})
 
-		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Recommendations requested")
-			token := r.Header.Get("Authorization")
-			if token == "" {
-				if tokenCookie, err := r.Cookie("admin_token"); err == nil {
-					token = tokenCookie.Value
-				}
-			}
-
-			if token == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			//token = strings.TrimPrefix(token, "Bearer ")
-			//if _, ok := s.db.userSessionTokens[token]; !ok {
-			//	w.WriteHeader(http.StatusUnauthorized)
-			//	return
-			//}
-
-			history, err := db.GetHistory(r.Context(), 10)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			err = json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
+			
 		})
+	})
+
+	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "admin")
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			if r.Header.Get("X-Is-Internal") == "" {
@@ -422,7 +396,34 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			w.WriteHeader(http.StatusCreated)
 		})
 
-		r.Get("/api/login", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
+			s.log.InfoContext(r.Context(), "Recommendations requested")
+			token := ""
+			if tokenCookie, err := r.Cookie("admin_token"); err == nil {
+				token = tokenCookie.Value
+			}
+
+			if token == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			history, err := db.GetHistory(r.Context(), 10)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			err = json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		})
+
+		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
 			s.log.InfoContext(r.Context(), "Login requested")
 			user := r.URL.Query().Get("user")
 			password := r.URL.Query().Get("password")
@@ -439,11 +440,6 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 			guid := xid.New()
 			token := guid.String()
-			// TODO: Develop an authentication microservice. Perhaps overengineer it with JWT.
-			// if s.db.userSessionTokens == nil {
-			// 	s.db.userSessionTokens = make(map[string]time.Time)
-			// }
-			// s.db.userSessionTokens[token] = time.Now()
 
 			http.SetCookie(w, &http.Cookie{
 				Name:     "admin_token",
@@ -778,13 +774,19 @@ func SvelteKitHandler(path string) http.Handler {
 
 func ValidateUserMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Header.Get("X-User-ID")
-		if userID == "" {
+		auth := r.Header.Get("Authorization")
+		prefix, token, found := strings.Cut(auth, " ")
+		prefix = strings.ToLower(prefix)
+
+		// Here, we would actually check the token against the DB, or
+		// verify it using a private key (e.g. for JWT), but for this
+		// testing service we just check its length.
+		if !found || prefix != "token" || len(token) != tokenLength {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user", userID)
+		ctx := context.WithValue(r.Context(), "authorization", auth)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
