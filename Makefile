@@ -1,8 +1,14 @@
 GO_SOURCES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-# Note: does not include frontend files, only Go code.
 .PHONY: build
 build:
+	PUBLIC_BACKEND_ENDPOINT="" PUBLIC_BACKEND_WS_ENDPOINT="" cd pkg/web && \
+	npm install && npm run build
+	go build -o bin/quickpizza ./cmd
+
+# Note: does not include frontend files, only Go code.
+.PHONY: build-mock
+build-mock:
 	go build -tags=mock -o bin/quickpizza ./cmd
 
 .PHONY: proto

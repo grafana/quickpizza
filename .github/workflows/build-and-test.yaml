@@ -1,32 +1,32 @@
-name: Run k6 Test Suite
-on:
-  push:
-    paths:
-      - 'scripts/**'
-      - 'k6/**'
-  release:
-    types:
-      - created
-
-# Important: The k6 test suite will only be run against the latest
-# release of the Quickpizza service, not against the code in the
-# commit itself. Therefore, we only run this Action when the test
-# files themselves are modified (or on a new release).
+name: Build and Test
+on: [push]
 
 jobs:
   runner-job:
     runs-on: ubuntu-latest
 
-    services:
-      quickpizza:
-        image: ghcr.io/grafana/quickpizza-local:latest
-        ports:
-          - 3333:3333
-          - 3334:3334
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+
+      - name: Setup Goimports
+        run: go install golang.org/x/tools/cmd/goimports@latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Check Formatting
+        run: make format-check
+
+      - name: Build Binary
+        run: make build
+
+      - name: Start Server
+        run: ./bin/quickpizza &
 
       # Enable cache for system files: https://github.com/actions/toolkit/issues/946
       - name: root suid tar
@@ -72,3 +72,6 @@ jobs:
         run: ./scripts/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
         env:
           ACT: ${{ env.ACT }}
+
+      - name: Stop Server
+        run: pkill -9 quickpizza
