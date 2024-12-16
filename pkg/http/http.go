@@ -364,7 +364,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		})
 
 		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
-			
+
 		})
 	})
 
