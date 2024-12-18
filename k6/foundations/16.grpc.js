@@ -1,7 +1,7 @@
 import { Client, StatusOK } from 'k6/net/grpc';
 import { check, sleep } from 'k6';
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3334';
+const BASE_URL = __ENV.BASE_GRPC_URL || 'localhost:3334';
 
 const client = new Client();
 client.load(['definitions'], '../../../proto/quickpizza.proto');
