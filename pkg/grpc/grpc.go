@@ -51,9 +51,9 @@ func NewServer(listen string, healthzListen string) *Server {
 func (s *Server) listenHealthz() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/grpchealthz", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
 		w.Header().Set("grpc-status", "12")
 		w.Header().Set("grpc-message", "unimplemented")
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	health := &http.Server{
