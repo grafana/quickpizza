@@ -253,7 +253,7 @@ func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, con
 				}
 
 				request.SetURL(u)
-				s.log.InfoContext(request.In.Context(), "Proxying request", "url", request.Out.URL.String())
+				s.log.DebugContext(request.In.Context(), "Proxying request", "url", request.Out.URL.String())
 
 				// Mark outgoing requests as internal so trace context is trusted.
 				request.Out.Header.Add("X-Is-Internal", "1")
@@ -318,7 +318,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			s.log.InfoContext(r.Context(), "Ingredients requested", "type", ingredientType)
+			s.log.DebugContext(r.Context(), "Ingredients requested", "type", ingredientType)
 
 			err = json.NewEncoder(w).Encode(map[string][]model.Ingredient{"ingredients": ingredients})
 			if err != nil {
@@ -329,7 +329,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		})
 
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Doughs requested")
+			s.log.DebugContext(r.Context(), "Doughs requested")
 
 			doughs, err := db.GetDoughs(r.Context())
 			if err != nil {
@@ -347,7 +347,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		})
 
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Tools requested")
+			s.log.DebugContext(r.Context(), "Tools requested")
 
 			tools, err := db.GetTools(r.Context())
 			if err != nil {
@@ -438,7 +438,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Recommendations requested")
+			s.log.DebugContext(r.Context(), "Recommendations requested")
 			token := ""
 			if tokenCookie, err := r.Cookie("admin_token"); err == nil {
 				token = tokenCookie.Value
@@ -465,7 +465,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 		})
 
 		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Login requested")
+			s.log.DebugContext(r.Context(), "Login requested")
 			user := r.URL.Query().Get("user")
 			password := r.URL.Query().Get("password")
 
@@ -509,7 +509,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Quotes requested")
+			s.log.DebugContext(r.Context(), "Quotes requested")
 
 			quotes, err := db.GetQuotes(r.Context())
 			if err != nil {
@@ -525,7 +525,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 		})
 
 		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Names requested")
+			s.log.DebugContext(r.Context(), "Names requested")
 
 			names, err := db.GetClassicalNames(r.Context())
 			if err != nil {
@@ -542,7 +542,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 		})
 
 		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
-			s.log.InfoContext(r.Context(), "Adjectives requested")
+			s.log.DebugContext(r.Context(), "Adjectives requested")
 
 			adjs, err := db.GetAdjectives(r.Context())
 			if err != nil {
@@ -610,7 +610,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
 
-			s.log.InfoContext(r.Context(), "Received pizza recommendation request")
+			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
 
 			dec := json.NewDecoder(r.Body)
@@ -803,7 +803,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			pizzaCaloriesPerSlice.Observe(float64(pizzaRecommendation.Calories))
 			pizzaCaloriesPerSliceNativeHistogram.Observe(float64(pizzaRecommendation.Calories))
 
-			s.log.InfoContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
+			s.log.DebugContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
 
 			w.Header().Set("Content-Type", "application/json")
 
