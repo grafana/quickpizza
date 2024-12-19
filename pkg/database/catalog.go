@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"log/slog"
 
@@ -69,7 +70,16 @@ func (c *Catalog) GetHistory(ctx context.Context, limit int) ([]model.Pizza, err
 	return history, err
 }
 
-func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) error {
+func (c *Catalog) GetRecommendation(ctx context.Context, id int) (*model.Pizza, error) {
+	var pizza model.Pizza
+	err := c.db.NewSelect().Model(&pizza).Relation("Dough").Relation("Ingredients").Where("pizza.id = ?", id).Limit(1).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &pizza, err
+}
+
+func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) error {
 	// Inject an artificial error for testing purposes
 	err := errorinjector.InjectErrors(ctx, "record-recommendation")
 	if err != nil {
@@ -78,7 +88,7 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) e
 
 	pizza.DoughID = pizza.Dough.ID
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		_, err := tx.NewInsert().Model(&pizza).Exec(ctx)
+		_, err := tx.NewInsert().Model(pizza).Exec(ctx)
 		if err != nil {
 			return err
 		}
@@ -90,7 +100,7 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza model.Pizza) e
 		}
 		_, err = tx.NewDelete().
 			Model((*model.Pizza)(nil)).
-			Where("id NOT IN (?) AND id > 100", tx.NewSelect().
+			Where("id NOT IN (?) AND id > 1000", tx.NewSelect().
 				Model((*model.Pizza)(nil)).
 				Order("created_at DESC").
 				Column("id").

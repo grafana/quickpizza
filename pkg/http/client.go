@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/model"
 )
+
+var errNotFound = errors.New("Entity not found")
 
 // httpClient is a convenience wrapper for an HTTP client that GETs and POSTs JSON requests with QuickPizza-specifics.
 type httpClient struct {
@@ -40,7 +43,9 @@ func (hc httpClient) getJSON(parentCtx context.Context, url string, dest any) er
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode == http.StatusNotFound {
+		return errNotFound
+	} else if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
@@ -57,7 +62,7 @@ func (hc httpClient) getJSON(parentCtx context.Context, url string, dest any) er
 // postJSON performs an HTTP POST request, marshalling src into the request body.
 // If present in parentCtx, trace id and QuickPizza user id are propagated in the request.
 // parentCtx may not be nil.
-func (hc httpClient) postJSON(parentCtx context.Context, url string, src any) error {
+func (hc httpClient) postJSON(parentCtx context.Context, url string, src any, dest any) error {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf).Encode(src)
 	if enc != nil {
@@ -85,6 +90,13 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any) er
 
 	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	if dest != nil {
+		err = json.NewDecoder(resp.Body).Decode(dest)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -175,8 +187,26 @@ func (c CatalogClient) Doughs() ([]model.Dough, error) {
 	return doughs.Doughs, nil
 }
 
-func (c CatalogClient) RecordRecommendation(p model.Pizza) error {
-	return c.client.postJSON(c.ctx, c.catalogUrl+"/api/internal/recommendations", p)
+func (c CatalogClient) GetRecommendation(id int) (*model.Pizza, error) {
+	result := model.Pizza{}
+	err := c.client.getJSON(c.ctx, c.catalogUrl+"/api/internal/recommendations/"+fmt.Sprint(id), &result)
+	if err == errNotFound {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c CatalogClient) RecordRecommendation(p model.Pizza) (*model.Pizza, error) {
+	result := model.Pizza{}
+	err := c.client.postJSON(c.ctx, c.catalogUrl+"/api/internal/recommendations", p, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 // CopyClient is a client that queries the Copy service.

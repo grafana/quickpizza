@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -383,17 +384,57 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			dec.DisallowUnknownFields()
 			err := dec.Decode(&latestRecommendation)
 			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request", err)
+				s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
-			if err := db.RecordRecommendation(r.Context(), latestRecommendation); err != nil {
+			if err := db.RecordRecommendation(r.Context(), &latestRecommendation); err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to save recommendation", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
+			buf := bytes.Buffer{}
+			err = json.NewEncoder(&buf).Encode(&latestRecommendation)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write(buf.Bytes())
+		})
+
+		r.Get("/api/internal/recommendations/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			recommendation, err := db.GetRecommendation(r.Context(), idParam)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch recommendation from db", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if recommendation == nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			err = json.NewEncoder(w).Encode(recommendation)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
 		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -529,6 +570,35 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 		r.Use(ValidateUserMiddleware)
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
+
+		r.Get("/api/pizza/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			id, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			pizza, err := catalogClient.GetRecommendation(id)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to fetch recommendation from catalog", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if pizza == nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+
+			err = json.NewEncoder(w).Encode(pizza)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		})
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
@@ -712,12 +782,16 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				Vegetarian: p.IsVegetarian(),
 			}
 
-			err = catalogClient.RecordRecommendation(p)
+			result, err := catalogClient.RecordRecommendation(p)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Storing recommendation in catalog", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+
+			// Update the .Pizza property we received from calling the catalog client.
+			// This allows us to return the generated pizza's ID to the client.
+			pizzaRecommendation.Pizza = *result
 
 			pizzaRecommendations.With(prometheus.Labels{
 				"vegetarian": strconv.FormatBool(pizzaRecommendation.Vegetarian),
@@ -730,6 +804,8 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			pizzaCaloriesPerSliceNativeHistogram.Observe(float64(pizzaRecommendation.Calories))
 
 			s.log.InfoContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
+
+			w.Header().Set("Content-Type", "application/json")
 
 			err = json.NewEncoder(w).Encode(pizzaRecommendation)
 			if err != nil {
