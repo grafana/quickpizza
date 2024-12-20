@@ -22,8 +22,8 @@ import (
 )
 
 func main() {
-	// write logs as logfmt
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	// write logs as JSON
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 		Level: logging.GetLogLevel(),
 	})))
 
