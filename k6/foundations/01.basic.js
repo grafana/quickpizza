@@ -5,7 +5,7 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
 
 export const options = {
   vus: 5,
-  duration: '10s',
+  duration: '5s',
 };
 
 export default function () {

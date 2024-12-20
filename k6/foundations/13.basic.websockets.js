@@ -15,7 +15,7 @@ export const options = {
       executor: "ramping-vus",
       executor: 'shared-iterations',
       iterations: 1,
-      maxDuration: '1m',
+      maxDuration: '15s',
     },
     sender: {
       exec: "sender",
