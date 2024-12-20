@@ -135,6 +135,7 @@ func NewServer() *Server {
 
 	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
 		JSON:             true,
+		Writer:           os.Stderr,
 		LogLevel:         logging.GetLogLevel(),
 		Concise:          true,
 		RequestHeaders:   false,
