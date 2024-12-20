@@ -10,6 +10,7 @@ done
 
 BASE_URL="${BASE_URL:=http://localhost:3333}"
 TESTS="${TESTS:=**/k6/foundations/*.js}"
+LOGS=logs.txt
 
 export K6_BROWSER_HEADLESS=true 
 export K6_BROWSER_ARGS='no-sandbox' 
@@ -19,7 +20,15 @@ fi
 
 for test in $TESTS; do
 	# Disable thresholds because some threshold examples fail
-	k6 run --no-thresholds -e BASE_URL=$BASE_URL "$test"
+    rm -f $LOGS
+	k6 run --no-thresholds -e BASE_URL=$BASE_URL --log-output=file=$LOGS --log-format=json -w --no-summary "$test"
+
+	exit_code=$?
+	if [ $exit_code -ne 0 ]; then
+		exit $exit_code
+	fi
+
+    jq .level --raw-output < $LOGS | grep -v error
 
 	exit_code=$?
 	if [ $exit_code -ne 0 ]; then

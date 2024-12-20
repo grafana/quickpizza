@@ -63,6 +63,9 @@ jobs:
       # 2. Run ACT using the `--container-architecture linux/amd64` flag. For example:
       #    act -W .github/workflows/k6-tests.yaml --container-architecture linux/amd64
 
+      - name: Install jq
+        uses: dcarbone/install-jq-action@v3.0.1
+
       - name: Run k6 foundations tests
         run: ./scripts/run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
         env:
