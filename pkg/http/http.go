@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -140,6 +141,13 @@ func NewServer() *Server {
 		MessageFieldName: "message",
 		QuietDownRoutes:  []string{"/", "/ready", "/healthz"},
 		QuietDownPeriod:  30 * time.Second,
+		ReplaceAttrsOverride: func(groups []string, a slog.Attr) slog.Attr {
+			if slices.Contains([]string{"remoteIP", "proto", "message", "service", "requestID"}, a.Key) {
+				// Remove from log
+				return slog.Attr{}
+			}
+			return a
+		},
 	})
 
 	router := chi.NewRouter()
