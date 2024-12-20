@@ -22,6 +22,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httplog/v2"
 	"github.com/olahol/melody"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -131,8 +132,19 @@ type Server struct {
 func NewServer() *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
+	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
+		JSON:             true,
+		LogLevel:         logging.GetLogLevel(),
+		Concise:          true,
+		RequestHeaders:   false,
+		MessageFieldName: "message",
+		QuietDownRoutes:  []string{"/", "/ready", "/healthz"},
+		QuietDownPeriod:  30 * time.Second,
+	})
+
 	router := chi.NewRouter()
 	router.Use(PrometheusMiddleware)
+	router.Use(httplog.RequestLogger(reqLogger))
 	router.Use(middleware.Recoverer)
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -142,16 +154,6 @@ func NewServer() *Server {
 		AllowCredentials: true,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}).Handler)
-
-	// Readiness probe
-	router.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	// Liveness probe
-	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 
 	return &Server{
 		traceInstaller: &TraceInstaller{},
@@ -163,6 +165,20 @@ func NewServer() *Server {
 
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(rw, r)
+}
+
+func (s *Server) WithLivenessProbes() *Server {
+	// Readiness probe
+	s.router.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Liveness probe
+	s.router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	return s
 }
 
 // WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
@@ -184,7 +200,6 @@ func (s *Server) WithProfiling() *Server {
 // applied the same tracing middleware to the whole server.
 func (s *Server) WithTraceInstaller(ti *TraceInstaller) *Server {
 	s.traceInstaller = ti
-
 	return s
 }
 

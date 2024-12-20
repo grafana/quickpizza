@@ -3,10 +3,12 @@ package http
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httplog/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -15,7 +17,19 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 )
+
+func LogTraceID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		span := trace.SpanFromContext(r.Context())
+		if span.SpanContext().HasTraceID() {
+			traceID := span.SpanContext().TraceID().String()
+			httplog.LogEntrySetField(r.Context(), "traceID", slog.StringValue(traceID))
+		}
+		next.ServeHTTP(w, r.WithContext(r.Context()))
+	})
+}
 
 // TraceInstaller installs tracing middleware into a chi router.
 // An uninitialized TraceInstaller behaves like a noop, where calls to Install have no effect.
@@ -79,7 +93,7 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 
 	defaultOpts := []otelhttp.Option{
 		otelhttp.WithTracerProvider(p),
-		otelhttp.WithPropagators(propagation.TraceContext{}),
+		otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})),
 		otelhttp.WithPublicEndpointFn(t.isPublic),
 		// Use a name formatter that follows the semantic conventions for server-side span naming:
 		// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
@@ -95,6 +109,7 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 			append(defaultOpts, extraOpts...)...,
 		)
 	})
+	r.Use(LogTraceID)
 }
 
 func (t *TraceInstaller) isPublic(r *http.Request) bool {

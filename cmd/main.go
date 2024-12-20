@@ -15,6 +15,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/database"
 	qpgrpc "github.com/grafana/quickpizza/pkg/grpc"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
+	"github.com/grafana/quickpizza/pkg/logging"
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -23,7 +24,7 @@ import (
 func main() {
 	// write logs as logfmt
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: getLogLevel(),
+		Level: logging.GetLogLevel(),
 	})))
 
 	// Create an HTTP client configured from env vars.
@@ -47,6 +48,8 @@ func main() {
 
 		server = server.WithTraceInstaller(installer)
 	}
+
+	server = server.WithLivenessProbes()
 
 	// Add profiling middleware if Pyroscope is enabled
 	if cfg, ok := envPyroscopeConfig(); ok {
@@ -330,17 +333,4 @@ func envDBConnString() string {
 		return "file::memory:?cache=shared"
 	}
 	return v
-}
-
-func getLogLevel() slog.Level {
-	switch strings.ToLower(os.Getenv("QUICKPIZZA_LOG_LEVEL")) {
-	case "debug":
-		return slog.LevelDebug
-	case "warn":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
-	}
 }
