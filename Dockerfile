@@ -1,4 +1,4 @@
-FROM node:16.19.1-bullseye AS fe-builder
+FROM node:23.5.0-bullseye AS fe-builder
 
 WORKDIR /app/pkg/web
 COPY pkg/web ./
