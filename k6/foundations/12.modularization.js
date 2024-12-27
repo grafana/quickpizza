@@ -45,8 +45,8 @@ export const options = {
 const pizzas = new Counter('quickpizza_number_of_pizzas');
 const ingredients = new Trend('quickpizza_ingredients');
 
-const customers = new SharedArray('all my customers', function () {
-  return JSON.parse(open('./data/customers.json')).customers;
+const tokens = new SharedArray('all tokens', function () {
+  return JSON.parse(open('./data/tokens.json')).tokens;
 });
 
 export function setup() {
@@ -68,7 +68,7 @@ export function getPizza() {
   let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'token abcdef0123456789',
+      'Authorization': 'Token ' + tokens[Math.floor(Math.random() * tokens.length)],
     },
   });
   check(res, { "status is 200": (res) => res.status === 200 });
