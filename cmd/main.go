@@ -200,6 +200,21 @@ func envPyroscopeConfig() (pyroscope.Config, bool) {
 		svcName = "quickpizza"
 	}
 
+	svcNamespace, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAMESPACE")
+	if !ok {
+		svcNamespace = "quickpizza"
+	}
+
+	svcNamespace, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAMESPACE_LABEL_NAME")
+	if !ok {
+		svcNamespaceLabel = "namespace"
+	}
+
+	svcGitRef, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF")
+	if !ok {
+		svcGitRef = "refs/heads/main"
+	}
+
 	return pyroscope.Config{
 		ApplicationName: svcName,
 		ServerAddress:   pyroscopeAddr,
@@ -222,6 +237,12 @@ func envPyroscopeConfig() (pyroscope.Config, bool) {
 			pyroscope.ProfileMutexDuration,
 			pyroscope.ProfileBlockCount,
 			pyroscope.ProfileBlockDuration,
+		},
+
+		Tags: map[string]string{
+			svcNamespaceLabel:    svcNamespace,
+			"service_git_ref":    svcGitRef,
+			"service_repository": "https://github.com/grafana/quickpizza",
 		},
 	}, true
 }
