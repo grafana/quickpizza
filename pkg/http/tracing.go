@@ -9,7 +9,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httplog/v2"
+	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -90,6 +92,8 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 		sdktrace.WithBatcher(t.exporter),
 		sdktrace.WithResource(res),
 	)
+
+	otel.SetTracerProvider(otelpyroscope.NewTracerProvider(p))
 
 	defaultOpts := []otelhttp.Option{
 		otelhttp.WithTracerProvider(p),
