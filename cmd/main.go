@@ -205,7 +205,7 @@ func envPyroscopeConfig() (pyroscope.Config, bool) {
 		svcNamespace = "quickpizza"
 	}
 
-	svcNamespace, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAMESPACE_LABEL_NAME")
+	svcNamespaceLabel, ok := os.LookupEnv("QUICKPIZZA_PYROSCOPE_NAMESPACE_LABEL_NAME")
 	if !ok {
 		svcNamespaceLabel = "namespace"
 	}
