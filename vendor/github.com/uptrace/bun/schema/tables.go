@@ -4,51 +4,24 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+
+	"github.com/puzpuzpuz/xsync/v3"
 )
-
-type tableInProgress struct {
-	table *Table
-
-	init1Once sync.Once
-	init2Once sync.Once
-}
-
-func newTableInProgress(table *Table) *tableInProgress {
-	return &tableInProgress{
-		table: table,
-	}
-}
-
-func (inp *tableInProgress) init1() bool {
-	var inited bool
-	inp.init1Once.Do(func() {
-		inp.table.init1()
-		inited = true
-	})
-	return inited
-}
-
-func (inp *tableInProgress) init2() bool {
-	var inited bool
-	inp.init2Once.Do(func() {
-		inp.table.init2()
-		inited = true
-	})
-	return inited
-}
 
 type Tables struct {
 	dialect Dialect
-	tables  sync.Map
 
-	mu         sync.RWMutex
-	inProgress map[reflect.Type]*tableInProgress
+	mu     sync.Mutex
+	tables *xsync.MapOf[reflect.Type, *Table]
+
+	inProgress map[reflect.Type]*Table
 }
 
 func NewTables(dialect Dialect) *Tables {
 	return &Tables{
 		dialect:    dialect,
-		inProgress: make(map[reflect.Type]*tableInProgress),
+		tables:     xsync.NewMapOf[reflect.Type, *Table](),
+		inProgress: make(map[reflect.Type]*Table),
 	}
 }
 
@@ -59,59 +32,26 @@ func (t *Tables) Register(models ...interface{}) {
 }
 
 func (t *Tables) Get(typ reflect.Type) *Table {
-	return t.table(typ, false)
-}
-
-func (t *Tables) Ref(typ reflect.Type) *Table {
-	return t.table(typ, true)
-}
-
-func (t *Tables) table(typ reflect.Type, allowInProgress bool) *Table {
 	typ = indirectType(typ)
 	if typ.Kind() != reflect.Struct {
 		panic(fmt.Errorf("got %s, wanted %s", typ.Kind(), reflect.Struct))
 	}
 
 	if v, ok := t.tables.Load(typ); ok {
-		return v.(*Table)
+		return v
 	}
 
 	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	if v, ok := t.tables.Load(typ); ok {
-		t.mu.Unlock()
-		return v.(*Table)
+		return v
 	}
 
-	var table *Table
-
-	inProgress := t.inProgress[typ]
-	if inProgress == nil {
-		table = newTable(t.dialect, typ)
-		inProgress = newTableInProgress(table)
-		t.inProgress[typ] = inProgress
-	} else {
-		table = inProgress.table
-	}
-
-	t.mu.Unlock()
-
-	inProgress.init1()
-	if allowInProgress {
-		return table
-	}
-
-	if !inProgress.init2() {
-		return table
-	}
-
-	t.mu.Lock()
-	delete(t.inProgress, typ)
-	t.tables.Store(typ, table)
-	t.mu.Unlock()
+	table := t.InProgress(typ)
+	table.initRelations()
 
 	t.dialect.OnTable(table)
-
 	for _, field := range table.FieldMap {
 		if field.UserSQLType == "" {
 			field.UserSQLType = field.DiscoveredSQLType
@@ -121,15 +61,28 @@ func (t *Tables) table(typ reflect.Type, allowInProgress bool) *Table {
 		}
 	}
 
+	t.tables.Store(typ, table)
 	return table
 }
 
+func (t *Tables) InProgress(typ reflect.Type) *Table {
+	if table, ok := t.inProgress[typ]; ok {
+		return table
+	}
+
+	table := new(Table)
+	t.inProgress[typ] = table
+	table.init(t.dialect, typ)
+
+	return table
+}
+
+// ByModel gets the table by its Go name.
 func (t *Tables) ByModel(name string) *Table {
 	var found *Table
-	t.tables.Range(func(key, value interface{}) bool {
-		t := value.(*Table)
-		if t.TypeName == name {
-			found = t
+	t.tables.Range(func(typ reflect.Type, table *Table) bool {
+		if table.TypeName == name {
+			found = table
 			return false
 		}
 		return true
@@ -137,14 +90,24 @@ func (t *Tables) ByModel(name string) *Table {
 	return found
 }
 
+// ByName gets the table by its SQL name.
 func (t *Tables) ByName(name string) *Table {
 	var found *Table
-	t.tables.Range(func(key, value interface{}) bool {
-		t := value.(*Table)
-		if t.Name == name {
-			found = t
+	t.tables.Range(func(typ reflect.Type, table *Table) bool {
+		if table.Name == name {
+			found = table
 			return false
 		}
+		return true
+	})
+	return found
+}
+
+// All returns all registered tables.
+func (t *Tables) All() []*Table {
+	var found []*Table
+	t.tables.Range(func(typ reflect.Type, table *Table) bool {
+		found = append(found, table)
 		return true
 	})
 	return found
