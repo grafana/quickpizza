@@ -31,10 +31,17 @@ type Dialect interface {
 	AppendJSON(b, jsonb []byte) []byte
 	AppendBool(b []byte, v bool) []byte
 
+	// AppendSequence adds the appropriate instruction for the driver to create a sequence
+	// from which (autoincremented) values for the column will be generated.
+	AppendSequence(b []byte, t *Table, f *Field) []byte
+
 	// DefaultVarcharLen should be returned for dialects in which specifying VARCHAR length
 	// is mandatory in queries that modify the schema (CREATE TABLE / ADD COLUMN, etc).
 	// Dialects that do not have such requirement may return 0, which should be interpreted so by the caller.
 	DefaultVarcharLen() int
+
+	// DefaultSchema should returns the name of the default database schema.
+	DefaultSchema() string
 }
 
 // ------------------------------------------------------------------------------
@@ -114,7 +121,7 @@ func (BaseDialect) AppendJSON(b, jsonb []byte) []byte {
 		case '\000':
 			continue
 		case '\\':
-			if p.SkipBytes([]byte("u0000")) {
+			if p.CutPrefix([]byte("u0000")) {
 				b = append(b, `\\u0000`...)
 			} else {
 				b = append(b, '\\')
@@ -176,4 +183,12 @@ func (d *nopDialect) IdentQuote() byte {
 
 func (d *nopDialect) DefaultVarcharLen() int {
 	return 0
+}
+
+func (d *nopDialect) AppendSequence(b []byte, _ *Table, _ *Field) []byte {
+	return b
+}
+
+func (d *nopDialect) DefaultSchema() string {
+	return "nop"
 }
