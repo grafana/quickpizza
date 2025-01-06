@@ -24,23 +24,7 @@ type BeforeAppendModelHook interface {
 	BeforeAppendModel(ctx context.Context, query Query) error
 }
 
-var beforeAppendModelHookType = reflect.TypeOf((*BeforeAppendModelHook)(nil)).Elem()
-
-//------------------------------------------------------------------------------
-
-type BeforeScanHook interface {
-	BeforeScan(context.Context) error
-}
-
-var beforeScanHookType = reflect.TypeOf((*BeforeScanHook)(nil)).Elem()
-
-//------------------------------------------------------------------------------
-
-type AfterScanHook interface {
-	AfterScan(context.Context) error
-}
-
-var afterScanHookType = reflect.TypeOf((*AfterScanHook)(nil)).Elem()
+var beforeAppendModelHookType = reflect.TypeFor[BeforeAppendModelHook]()
 
 //------------------------------------------------------------------------------
 
@@ -48,7 +32,7 @@ type BeforeScanRowHook interface {
 	BeforeScanRow(context.Context) error
 }
 
-var beforeScanRowHookType = reflect.TypeOf((*BeforeScanRowHook)(nil)).Elem()
+var beforeScanRowHookType = reflect.TypeFor[BeforeScanRowHook]()
 
 //------------------------------------------------------------------------------
 
@@ -56,4 +40,4 @@ type AfterScanRowHook interface {
 	AfterScanRow(context.Context) error
 }
 
-var afterScanRowHookType = reflect.TypeOf((*AfterScanRowHook)(nil)).Elem()
+var afterScanRowHookType = reflect.TypeFor[AfterScanRowHook]()
