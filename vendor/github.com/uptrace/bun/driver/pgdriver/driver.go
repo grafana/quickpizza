@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +13,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/uptrace/bun/internal"
 )
 
 func init() {
@@ -213,15 +214,23 @@ var _ driver.ConnBeginTx = (*Conn)(nil)
 
 func (cn *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	// No need to check if the conn is closed. ExecContext below handles that.
+	isolation := sql.IsolationLevel(opts.Isolation)
 
-	if sql.IsolationLevel(opts.Isolation) != sql.LevelDefault {
-		return nil, errors.New("pgdriver: custom IsolationLevel is not supported")
+	var command string
+	switch isolation {
+	case sql.LevelDefault:
+		command = "BEGIN"
+	case sql.LevelReadUncommitted, sql.LevelReadCommitted, sql.LevelRepeatableRead, sql.LevelSerializable:
+		command = fmt.Sprintf("BEGIN; SET TRANSACTION ISOLATION LEVEL %s", isolation.String())
+	default:
+		return nil, fmt.Errorf("pgdriver: unsupported transaction isolation: %s", isolation.String())
 	}
+
 	if opts.ReadOnly {
-		return nil, errors.New("pgdriver: ReadOnly transactions are not supported")
+		command = fmt.Sprintf("%s READ ONLY", command)
 	}
 
-	if _, err := cn.ExecContext(ctx, "BEGIN", nil); err != nil {
+	if _, err := cn.ExecContext(ctx, command, nil); err != nil {
 		return nil, err
 	}
 	return tx{cn: cn}, nil
@@ -385,7 +394,9 @@ func (r *rows) Close() error {
 
 	for {
 		switch err := r.Next(nil); err {
-		case nil, io.EOF:
+		case nil:
+			// keep going
+		case io.EOF:
 			return nil
 		default: // unexpected error
 			_ = r.cn.Close()
@@ -473,7 +484,7 @@ func (r *rows) readDataRow(rd *reader, dest []driver.Value) error {
 		return err
 	}
 
-	if len(dest) != int(numCol) {
+	if dest != nil && len(dest) != int(numCol) {
 		return fmt.Errorf("pgdriver: query returned %d columns, but Scan dest has %d items",
 			numCol, len(dest))
 	}
@@ -506,7 +517,7 @@ func parseResult(b []byte) (driver.RowsAffected, error) {
 	}
 
 	b = b[i+1 : len(b)-1]
-	affected, err := strconv.ParseUint(bytesToString(b), 10, 64)
+	affected, err := strconv.ParseUint(internal.String(b), 10, 64)
 	if err != nil {
 		return 0, nil
 	}

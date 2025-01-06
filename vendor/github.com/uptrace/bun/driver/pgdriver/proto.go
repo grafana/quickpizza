@@ -18,10 +18,12 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/uptrace/bun/internal"
 	"mellium.im/sasl"
 )
 
 // https://www.postgresql.org/docs/current/protocol-message-formats.html
+//
 //nolint:deadcode,varcheck,unused
 const (
 	commandCompleteMsg  = 'C'
@@ -616,7 +618,7 @@ func (d *rowDescription) addName(name []byte) {
 
 	i := len(d.buf)
 	d.buf = append(d.buf, name...)
-	d.names = append(d.names, bytesToString(d.buf[i:]))
+	d.names = append(d.names, internal.String(d.buf[i:]))
 }
 
 func (d *rowDescription) addType(dataType int32) {
