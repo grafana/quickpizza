@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"math/rand"
@@ -311,6 +312,63 @@ func (s *Server) WithWS() *Server {
 
 	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {
 		s.melody.Broadcast(msg)
+	})
+
+	return s
+}
+
+// WithHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
+func (s *Server) WithHTTPTesting() *Server {
+	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "http-testing")
+
+		r.Get("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			status, err := strconv.Atoi(chi.URLParam(r, "status"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if status < 100 || status > 599 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(status)
+		})
+
+		r.Get("/api/delay/{delay}", func(w http.ResponseWriter, r *http.Request) {
+			param := chi.URLParam(r, "delay")
+			delay, err := time.ParseDuration(param)
+			if err != nil {
+				delay, err = time.ParseDuration(param + "s")
+				if err != nil {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+			}
+
+			time.Sleep(delay)
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Get("/api/get", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Delete("/api/delete", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+			w.WriteHeader(http.StatusOK)
+			io.Copy(w, r.Body)
+		}
+
+		r.Post("/api/post", fn)
+		r.Put("/api/put", fn)
+		r.Patch("/api/patch", fn)
 	})
 
 	return s
