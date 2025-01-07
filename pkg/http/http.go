@@ -192,6 +192,8 @@ func (s *Server) WithLivenessProbes() *Server {
 
 // WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
 func (s *Server) WithPrometheus() *Server {
+	// Add MW with .With instead of .Use, as .Use does not allow registering MWs after routes.
+	s.router = s.router.With(PrometheusMiddleware)
 	s.router.Handle("/metrics", promhttp.Handler())
 
 	return s
