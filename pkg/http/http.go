@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -224,6 +225,7 @@ func (s *Server) WithFrontend() *Server {
 			}),
 		)
 
+		r.Handle("/favicon.ico", FaviconHandler())
 		r.Handle("/*", SvelteKitHandler("/*"))
 	})
 
@@ -322,7 +324,7 @@ func (s *Server) WithHTTPTesting() *Server {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "http-testing")
 
-		r.Get("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
 			status, err := strconv.Atoi(chi.URLParam(r, "status"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -335,6 +337,22 @@ func (s *Server) WithHTTPTesting() *Server {
 			}
 
 			w.WriteHeader(status)
+		})
+
+		r.Get("/api/bytes/{n:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			n, err := strconv.Atoi(chi.URLParam(r, "n"))
+			if err != nil {
+				n = 0
+			}
+
+			data := make([]byte, n)
+			crand.Read(data)
+			println(n)
+			println(data)
+
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
 		})
 
 		r.Get("/api/delay/{delay}", func(w http.ResponseWriter, r *http.Request) {
@@ -369,6 +387,77 @@ func (s *Server) WithHTTPTesting() *Server {
 		r.Post("/api/post", fn)
 		r.Put("/api/put", fn)
 		r.Patch("/api/patch", fn)
+
+		// Cookies are a type of pizza (without cheese).
+		r.Get("/api/cookies", func(w http.ResponseWriter, r *http.Request) {
+			cookies := map[string]string{}
+
+			for _, cookie := range r.Cookies() {
+				cookies[cookie.Name] = cookie.Value
+			}
+
+			buf := bytes.Buffer{}
+			err := json.NewEncoder(&buf).Encode(map[string]any{"cookies": cookies})
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(buf.Bytes())
+		})
+
+		r.Post("/api/cookies", func(w http.ResponseWriter, r *http.Request) {
+			for key, value := range r.URL.Query() {
+				http.SetCookie(w, &http.Cookie{Name: key, Value: value[0]})
+			}
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Get("/api/basic-auth/{username}/{password}", func(w http.ResponseWriter, r *http.Request) {
+			user, pass, _ := r.BasicAuth()
+			username := chi.URLParam(r, "username")
+			password := chi.URLParam(r, "password")
+
+			result := map[string]any{
+				"user":          username,
+				"password":      password,
+				"authenticated": (user == username && pass == password),
+			}
+
+			buf := bytes.Buffer{}
+			err := json.NewEncoder(&buf).Encode(result)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(buf.Bytes())
+		})
+
+		r.Get("/api/json", func(w http.ResponseWriter, r *http.Request) {
+			data := map[string]string{}
+			for key, value := range r.URL.Query() {
+				data[key] = value[0]
+			}
+
+			buf := bytes.Buffer{}
+			err := json.NewEncoder(&buf).Encode(data)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(buf.Bytes())
+		})
 	})
 
 	return s
@@ -908,6 +997,14 @@ func contains(slice []string, value string) bool {
 		}
 	}
 	return false
+}
+
+func FaviconHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, _ := web.Static.ReadFile("static/favicon.ico")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	})
 }
 
 // From: https://www.liip.ch/en/blog/embed-sveltekit-into-a-go-binary
