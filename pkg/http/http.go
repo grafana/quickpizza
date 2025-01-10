@@ -5,6 +5,7 @@ import (
 	"context"
 	crand "crypto/rand"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -455,6 +456,35 @@ func (s *Server) WithHTTPTesting() *Server {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(buf.Bytes())
+		})
+
+		r.Get("/api/xml", func(w http.ResponseWriter, r *http.Request) {
+			type param struct {
+				Key   string `xml:"key"`
+				Value string `xml:"value"`
+				Index int    `xml:"index"`
+			}
+			type response struct {
+				Params []param `xml:"params"`
+			}
+			data := []param{}
+			i := 0
+			for key, value := range r.URL.Query() {
+				data = append(data, param{Key: key, Value: value[0], Index: i})
+				i++
+			}
+
+			buf := bytes.Buffer{}
+			err := xml.NewEncoder(&buf).Encode(response{Params: data})
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/xml")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(buf.Bytes())
 		})
