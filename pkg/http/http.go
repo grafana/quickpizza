@@ -408,6 +408,27 @@ func (s *Server) AddHTTPTesting() {
 			w.WriteHeader(http.StatusOK)
 		})
 
+		r.Get("/api/headers", func(w http.ResponseWriter, r *http.Request) {
+			headers := map[string]string{}
+
+			for key, values := range r.Header {
+				headers[key] = strings.Join(values, ",")
+			}
+			headers["Host"] = r.Host
+
+			buf := bytes.Buffer{}
+			err := json.NewEncoder(&buf).Encode(map[string]any{"headers": headers})
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(buf.Bytes())
+		})
+
 		r.Get("/api/basic-auth/{username}/{password}", func(w http.ResponseWriter, r *http.Request) {
 			user, pass, _ := r.BasicAuth()
 			username := chi.URLParam(r, "username")
