@@ -30,11 +30,14 @@ for test in $TESTS; do
 		exit $exit_code
 	fi
 
-    jq .level --raw-output < $LOGS | grep -v error > /dev/null
+    # Only check error logs if logs file is not empty.
+    if [ ! -s $LOGS ]; then
+        jq .level --raw-output < $LOGS | grep -v error > /dev/null
 
-	exit_code=$?
-	if [ $exit_code -ne 0 ]; then
-        cat $LOGS
-		exit $exit_code
-	fi
+	    exit_code=$?
+	    if [ $exit_code -ne 0 ]; then
+            cat $LOGS
+		    exit $exit_code
+	    fi
+    fi
 done
