@@ -26,10 +26,6 @@ for test in $TESTS; do
 	$K6_PATH run --no-thresholds -e BASE_URL="$BASE_URL" --log-output=file=$LOGS --log-format=json -w --no-summary "$test"
 
 	exit_code=$?
-    echo "k6 exit code: $exit_code"
-    echo "logs:"
-    cat $LOGS
-
 	if [ $exit_code -ne 0 ]; then
 		exit $exit_code
 	fi
@@ -39,8 +35,6 @@ for test in $TESTS; do
         jq .level --raw-output < $LOGS | grep -v error > /dev/null
 
 	    exit_code=$?
-        echo "grep exit code: $exit_code"
-
 	    if [ $exit_code -ne 0 ]; then
             cat $LOGS
 		    exit $exit_code
