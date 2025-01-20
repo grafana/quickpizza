@@ -147,7 +147,7 @@ type Server struct {
 	melody         *melody.Melody
 }
 
-func NewServer() *Server {
+func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
@@ -181,8 +181,12 @@ func NewServer() *Server {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}).Handler)
 
+	if profiling {
+		router.Use(k6.LabelsFromBaggageHandler)
+	}
+
 	return &Server{
-		traceInstaller: &TraceInstaller{},
+		traceInstaller: traceInstaller,
 		router:         router,
 		melody:         melody.New(),
 		log:            logger,
@@ -208,18 +212,6 @@ func (s *Server) AddLivenessProbes() {
 // AddPrometheusHandler adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
 func (s *Server) AddPrometheusHandler() {
 	s.router.Handle("/metrics", promhttp.Handler())
-}
-
-// UseProfiling adds a middleware that extracts k6 labels from the baggage and adds them to the context.
-func (s *Server) UseProfiling() {
-	s.router.Use(k6.LabelsFromBaggageHandler)
-}
-
-// UseTraceInstaller registers the specified TracerProvider within the Server.
-// Subsequent handlers can use s.trace to create more detailed traces than what it would be possible if we
-// applied the same tracing middleware to the whole server.
-func (s *Server) UseTraceInstaller(ti *TraceInstaller) {
-	s.traceInstaller = ti
 }
 
 // AddFrontend enables serving the embedded Svelte frontend.

@@ -27,39 +27,42 @@ func main() {
 		Level: logging.GetLogLevel(),
 	})))
 
-	// Create an HTTP client configured from env vars.
-	// If no specific env vars are set, this will return a http client that does not perform any retries.
-	httpCli := clientFromEnv()
-	server := qphttp.NewServer()
+	// Enable profiling middleware if Pyroscope is enabled
+	profilingConfig, profilingEnabled := envPyroscopeConfig()
+	if profilingEnabled {
+		slog.Debug("enabling Pyroscope profiling")
 
-	if otlpEndpoint, tracingEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT"); tracingEnabled {
+		runtime.SetMutexProfileFraction(5)
+		runtime.SetBlockProfileRate(5)
+
+		pyroscope.Start(profilingConfig)
+	}
+
+	// Enable tracing if configured.
+	traceInstaller := &qphttp.TraceInstaller{}
+	otlpEndpoint, tracingEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT")
+	if tracingEnabled {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		installer, err := qphttp.NewTraceInstaller(ctx, otlpEndpoint)
+		var err error
+		traceInstaller, err = qphttp.NewTraceInstaller(ctx, otlpEndpoint)
 		if err != nil {
 			slog.Error("creating otlp trace installer", "err", err)
 			os.Exit(1)
 		}
 
 		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
-			installer.Insecure()
+			traceInstaller.Insecure()
 		}
-
-		server.UseTraceInstaller(installer)
 	}
 
-	// Add profiling middleware if Pyroscope is enabled
-	if cfg, ok := envPyroscopeConfig(); ok {
-		slog.Debug("enabling Pyroscope profiling")
+	// Create an HTTP client configured from env vars.
+	// If no specific env vars are set, this will return a http client that does not perform any retries.
+	httpCli := clientFromEnv()
 
-		runtime.SetMutexProfileFraction(5)
-		runtime.SetBlockProfileRate(5)
-
-		pyroscope.Start(cfg)
-
-		server.UseProfiling()
-	}
+	// Create the QuickPizza server.
+	server := qphttp.NewServer(profilingEnabled, traceInstaller)
 
 	server.AddLivenessProbes()
 
