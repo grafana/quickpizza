@@ -49,17 +49,23 @@ const tokenLength = 16
 // Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "pizza_recommendations_total",
-		Help: "The total number of pizza recommendations",
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "pizza_recommendations_total",
+		Help:      "The total number of pizza recommendations",
 	}, []string{"vegetarian", "tool"})
 
 	numberOfIngredientsPerPizza = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "number_of_ingredients_per_pizza",
-		Help:    "The number of ingredients per pizza",
-		Buckets: []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "number_of_ingredients_per_pizza",
+		Help:      "The number of ingredients per pizza",
+		Buckets:   []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
 	})
 
 	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "k6quickpizza",
+		Subsystem:                       "server",
 		Name:                            "number_of_ingredients_per_pizza_alternate",
 		Help:                            "The number of ingredients per pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
@@ -68,12 +74,16 @@ var (
 	})
 
 	pizzaCaloriesPerSlice = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "pizza_calories_per_slice",
-		Help:    "The number of calories per slice of pizza",
-		Buckets: []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000},
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "pizza_calories_per_slice",
+		Help:      "The number of calories per slice of pizza",
+		Buckets:   []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000},
 	})
 
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "k6quickpizza",
+		Subsystem:                       "server",
 		Name:                            "pizza_calories_per_slice_alternate",
 		Help:                            "The number of calories per slice of pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
@@ -82,13 +92,17 @@ var (
 	})
 
 	httpRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "http_requests_total",
-		Help: "The total number of HTTP requests",
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "http_requests_total",
+		Help:      "The total number of HTTP requests",
 	}, []string{"method", "path", "status"})
 
 	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "http_request_duration_seconds",
-		Help: "The duration of HTTP requests",
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "http_request_duration_seconds",
+		Help:      "The duration of HTTP requests",
 	}, []string{"method", "path", "status"})
 )
 
