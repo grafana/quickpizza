@@ -157,7 +157,7 @@ func NewServer() *Server {
 		Concise:          true,
 		RequestHeaders:   false,
 		MessageFieldName: "message",
-		QuietDownRoutes:  []string{"/", "/ready", "/healthz"},
+		QuietDownRoutes:  []string{"/", "/ready", "/healthz", "/metrics"},
 		QuietDownPeriod:  30 * time.Second,
 		ReplaceAttrsOverride: func(groups []string, a slog.Attr) slog.Attr {
 			if slices.Contains([]string{"remoteIP", "proto", "message", "service", "requestID"}, a.Key) {
@@ -193,7 +193,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(rw, r)
 }
 
-func (s *Server) WithLivenessProbes() *Server {
+func (s *Server) AddLivenessProbes() {
 	// Readiness probe
 	s.router.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -203,33 +203,27 @@ func (s *Server) WithLivenessProbes() *Server {
 	s.router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-
-	return s
 }
 
-// WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
-func (s *Server) WithPrometheus() *Server {
+// AddPrometheusHandler adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
+func (s *Server) AddPrometheusHandler() {
 	s.router.Handle("/metrics", promhttp.Handler())
-
-	return s
 }
 
-// WithProfiling adds a middleware that extracts k6 labels from the baggage and adds them to the context.
-func (s *Server) WithProfiling() *Server {
+// UseProfiling adds a middleware that extracts k6 labels from the baggage and adds them to the context.
+func (s *Server) UseProfiling() {
 	s.router.Use(k6.LabelsFromBaggageHandler)
-	return s
 }
 
-// WithTracing registers the specified TracerProvider within the Server.
+// UseTraceInstaller registers the specified TracerProvider within the Server.
 // Subsequent handlers can use s.trace to create more detailed traces than what it would be possible if we
 // applied the same tracing middleware to the whole server.
-func (s *Server) WithTraceInstaller(ti *TraceInstaller) *Server {
+func (s *Server) UseTraceInstaller(ti *TraceInstaller) {
 	s.traceInstaller = ti
-	return s
 }
 
-// WithFrontend enables serving the embedded Svelte frontend.
-func (s *Server) WithFrontend() *Server {
+// AddFrontend enables serving the embedded Svelte frontend.
+func (s *Server) AddFrontend() {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "frontend",
 			// The frontend serves a lot of static files on different paths. To save on cardinality, we override the
@@ -242,12 +236,10 @@ func (s *Server) WithFrontend() *Server {
 		r.Handle("/favicon.ico", FaviconHandler())
 		r.Handle("/*", SvelteKitHandler("/*"))
 	})
-
-	return s
 }
 
-// WithConfig enables serving the config server.
-func (s *Server) WithConfig(config map[string]string) *Server {
+// AddConfigHandler enables serving the config server.
+func (s *Server) AddConfigHandler(config map[string]string) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "config")
 
@@ -260,14 +252,12 @@ func (s *Server) WithConfig(config map[string]string) *Server {
 			}
 		})
 	})
-
-	return s
 }
 
-// WithGateway enables a gateway that routes external requests to the respective services.
+// AddGateway enables a gateway that routes external requests to the respective services.
 // This endpoint should be typically enabled toget with WithFrontend on a microservices-based deployment.
 // TODO: So far the gateway only handles a few endpoints.
-func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) *Server {
+func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "gateway")
 
@@ -309,12 +299,10 @@ func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, con
 			},
 		})
 	})
-
-	return s
 }
 
-// WithWS enables serving and handle websockets.
-func (s *Server) WithWS() *Server {
+// AddWebSocket enables serving and handle websockets.
+func (s *Server) AddWebSocket() {
 	// TODO: Add tracing for websockets.
 	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		err := s.melody.HandleRequest(w, r)
@@ -329,12 +317,10 @@ func (s *Server) WithWS() *Server {
 	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {
 		s.melody.Broadcast(msg)
 	})
-
-	return s
 }
 
-// WithHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
-func (s *Server) WithHTTPTesting() *Server {
+// AddHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
+func (s *Server) AddHTTPTesting() {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "http-testing")
 
@@ -502,14 +488,12 @@ func (s *Server) WithHTTPTesting() *Server {
 			_, _ = w.Write(buf.Bytes())
 		})
 	})
-
-	return s
 }
 
-// WithCatalog enables routes related to the ingredients, doughs, tools, ratings and users.
+// AddCatalogHandler enables routes related to the ingredients, doughs, tools, ratings and users.
 // A database.InMemoryDatabase is required to enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
-func (s *Server) WithCatalog(db *database.Catalog) *Server {
+func (s *Server) AddCatalogHandler(db *database.Catalog) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "catalog")
 
@@ -710,12 +694,10 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			}
 		})
 	})
-
-	return s
 }
 
-// WithCopy enables copy (i.e. prose) related endpoints.
-func (s *Server) WithCopy(db *database.Copy) *Server {
+// AddCopyHandler enables copy (i.e. prose) related endpoints.
+func (s *Server) AddCopyHandler(db *database.Copy) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "copy")
 
@@ -772,13 +754,11 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 			}
 		})
 	})
-
-	return s
 }
 
-// WithRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
+// AddRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
 // the URLs for the Catalog and Copy services.
-func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient CopyClient) *Server {
+func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient CopyClient) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "recommendations")
 
@@ -1029,8 +1009,6 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			}
 		})
 	})
-
-	return s
 }
 
 func contains(slice []string, value string) bool {
