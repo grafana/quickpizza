@@ -35,7 +35,7 @@ for test in $TESTS; do
 	fi
 
     # Only check error logs if logs file is not empty.
-    if [ ! -s $LOGS ]; then
+    if [ -s $LOGS ]; then
         jq .level --raw-output < $LOGS | grep -v error > /dev/null
 
 	    exit_code=$?
