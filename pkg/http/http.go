@@ -216,8 +216,7 @@ func (s *Server) WithPrometheus() *Server {
 
 // WithProfiling adds a middleware that extracts k6 labels from the baggage and adds them to the context.
 func (s *Server) WithProfiling() *Server {
-	s.router = s.router.With(k6.LabelsFromBaggageHandler)
-
+	s.router.Use(k6.LabelsFromBaggageHandler)
 	return s
 }
 

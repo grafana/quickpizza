@@ -49,8 +49,6 @@ func main() {
 		server = server.WithTraceInstaller(installer)
 	}
 
-	server = server.WithLivenessProbes()
-
 	// Add profiling middleware if Pyroscope is enabled
 	if cfg, ok := envPyroscopeConfig(); ok {
 		slog.Debug("enabling Pyroscope profiling")
@@ -62,6 +60,8 @@ func main() {
 
 		server = server.WithProfiling()
 	}
+
+	server = server.WithLivenessProbes()
 
 	// Always add prometheus middleware.
 	server = server.WithPrometheus()
