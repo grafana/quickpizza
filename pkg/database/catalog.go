@@ -12,6 +12,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/database/migrations"
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/model"
+	"github.com/grafana/quickpizza/pkg/password"
 )
 
 type Catalog struct {
@@ -77,6 +78,34 @@ func (c *Catalog) GetRecommendation(ctx context.Context, id int) (*model.Pizza, 
 		return nil, nil
 	}
 	return &pizza, err
+}
+
+func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
+	passwordHash, err := password.HashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = passwordHash
+	user.Token = model.GenerateUserToken()
+
+	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		_, err := tx.NewInsert().Model(user).Exec(ctx)
+		return err
+	})
+}
+
+func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) (*model.User, error) {
+	var user model.User
+	err := c.db.NewSelect().Model(&user).Where("username = ?", username).Limit(1).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if password.CheckPassword(passwordText, user.PasswordHash) {
+		return &user, nil
+	}
+	return nil, nil
 }
 
 func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) error {

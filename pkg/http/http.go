@@ -3,9 +3,12 @@ package http
 import (
 	"bytes"
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"math/rand"
@@ -41,22 +44,26 @@ import (
 	"github.com/grafana/quickpizza/pkg/web"
 )
 
-const tokenLength = 16
-
 // Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "pizza_recommendations_total",
-		Help: "The total number of pizza recommendations",
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "pizza_recommendations_total",
+		Help:      "The total number of pizza recommendations",
 	}, []string{"vegetarian", "tool"})
 
 	numberOfIngredientsPerPizza = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "number_of_ingredients_per_pizza",
-		Help:    "The number of ingredients per pizza",
-		Buckets: []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "number_of_ingredients_per_pizza",
+		Help:      "The number of ingredients per pizza",
+		Buckets:   []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
 	})
 
 	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "k6quickpizza",
+		Subsystem:                       "server",
 		Name:                            "number_of_ingredients_per_pizza_alternate",
 		Help:                            "The number of ingredients per pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
@@ -65,12 +72,16 @@ var (
 	})
 
 	pizzaCaloriesPerSlice = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "pizza_calories_per_slice",
-		Help:    "The number of calories per slice of pizza",
-		Buckets: []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000},
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "pizza_calories_per_slice",
+		Help:      "The number of calories per slice of pizza",
+		Buckets:   []float64{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000},
 	})
 
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "k6quickpizza",
+		Subsystem:                       "server",
 		Name:                            "pizza_calories_per_slice_alternate",
 		Help:                            "The number of calories per slice of pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
@@ -79,13 +90,17 @@ var (
 	})
 
 	httpRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "http_requests_total",
-		Help: "The total number of HTTP requests",
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "http_requests_total",
+		Help:      "The total number of HTTP requests",
 	}, []string{"method", "path", "status"})
 
 	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "http_request_duration_seconds",
-		Help: "The duration of HTTP requests",
+		Namespace: "k6quickpizza",
+		Subsystem: "server",
+		Name:      "http_request_duration_seconds",
+		Help:      "The duration of HTTP requests",
 	}, []string{"method", "path", "status"})
 )
 
@@ -130,7 +145,7 @@ type Server struct {
 	melody         *melody.Melody
 }
 
-func NewServer() *Server {
+func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
@@ -140,7 +155,7 @@ func NewServer() *Server {
 		Concise:          true,
 		RequestHeaders:   false,
 		MessageFieldName: "message",
-		QuietDownRoutes:  []string{"/", "/ready", "/healthz"},
+		QuietDownRoutes:  []string{"/", "/ready", "/healthz", "/metrics"},
 		QuietDownPeriod:  30 * time.Second,
 		ReplaceAttrsOverride: func(groups []string, a slog.Attr) slog.Attr {
 			if slices.Contains([]string{"remoteIP", "proto", "message", "service", "requestID"}, a.Key) {
@@ -152,20 +167,26 @@ func NewServer() *Server {
 	})
 
 	router := chi.NewRouter()
-	router.Use(PrometheusMiddleware)
-	router.Use(httplog.RequestLogger(reqLogger))
-	router.Use(middleware.Recoverer)
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	}).Handler)
+	router.Use(
+		PrometheusMiddleware,
+		httplog.RequestLogger(reqLogger),
+		middleware.Recoverer,
+		cors.New(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300, // Maximum value not ignored by any of major browsers
+		}).Handler,
+	)
+
+	if profiling {
+		router.Use(k6.LabelsFromBaggageHandler)
+	}
 
 	return &Server{
-		traceInstaller: &TraceInstaller{},
+		traceInstaller: traceInstaller,
 		router:         router,
 		melody:         melody.New(),
 		log:            logger,
@@ -176,7 +197,57 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(rw, r)
 }
 
-func (s *Server) WithLivenessProbes() *Server {
+func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, v any) error {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	err := dec.Decode(v)
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return err
+	}
+	return nil
+}
+
+func (s *Server) writeJSONErrorResponse(w http.ResponseWriter, r *http.Request, err error, status int) {
+	s.writeJSONResponse(w, r, map[string]string{"error": err.Error()}, status)
+}
+
+func (s *Server) writeJSONResponse(w http.ResponseWriter, r *http.Request, v any, status int) {
+	buf := bytes.Buffer{}
+	err := json.NewEncoder(&buf).Encode(v)
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to encode JSON response", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to write response", "err", err)
+	}
+}
+
+func (s *Server) writeXMLResponse(w http.ResponseWriter, r *http.Request, v any, status int) {
+	buf := bytes.Buffer{}
+	err := xml.NewEncoder(&buf).Encode(v)
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to encode XML response", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/xml")
+	w.WriteHeader(status)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to write response", "err", err)
+	}
+}
+
+func (s *Server) AddLivenessProbes() {
 	// Readiness probe
 	s.router.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -186,34 +257,15 @@ func (s *Server) WithLivenessProbes() *Server {
 	s.router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-
-	return s
 }
 
-// WithPrometheus adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
-func (s *Server) WithPrometheus() *Server {
+// AddPrometheusHandler adds a /metrics endpoint and instrument subsequently enabled groups with general http-level metrics.
+func (s *Server) AddPrometheusHandler() {
 	s.router.Handle("/metrics", promhttp.Handler())
-
-	return s
 }
 
-// WithProfiling adds a middleware that extracts k6 labels from the baggage and adds them to the context.
-func (s *Server) WithProfiling() *Server {
-	s.router = s.router.With(k6.LabelsFromBaggageHandler)
-
-	return s
-}
-
-// WithTracing registers the specified TracerProvider within the Server.
-// Subsequent handlers can use s.trace to create more detailed traces than what it would be possible if we
-// applied the same tracing middleware to the whole server.
-func (s *Server) WithTraceInstaller(ti *TraceInstaller) *Server {
-	s.traceInstaller = ti
-	return s
-}
-
-// WithFrontend enables serving the embedded Svelte frontend.
-func (s *Server) WithFrontend() *Server {
+// AddFrontend enables serving the embedded Svelte frontend.
+func (s *Server) AddFrontend() {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "frontend",
 			// The frontend serves a lot of static files on different paths. To save on cardinality, we override the
@@ -223,34 +275,26 @@ func (s *Server) WithFrontend() *Server {
 			}),
 		)
 
+		r.Handle("/favicon.ico", FaviconHandler())
 		r.Handle("/*", SvelteKitHandler("/*"))
 	})
-
-	return s
 }
 
-// WithConfig enables serving the config server.
-func (s *Server) WithConfig(config map[string]string) *Server {
+// AddConfigHandler enables serving the config server.
+func (s *Server) AddConfigHandler(config map[string]string) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "config")
 
-		r.Get("/api/config", func(rw http.ResponseWriter, r *http.Request) {
-			rw.Header().Set("content-type", "application/json")
-
-			err := json.NewEncoder(rw).Encode(config)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "serving config JSON", "err", err)
-			}
+		r.Get("/api/config", func(w http.ResponseWriter, r *http.Request) {
+			s.writeJSONResponse(w, r, config, http.StatusOK)
 		})
 	})
-
-	return s
 }
 
-// WithGateway enables a gateway that routes external requests to the respective services.
+// AddGateway enables a gateway that routes external requests to the respective services.
 // This endpoint should be typically enabled toget with WithFrontend on a microservices-based deployment.
 // TODO: So far the gateway only handles a few endpoints.
-func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) *Server {
+func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "gateway")
 
@@ -292,12 +336,10 @@ func (s *Server) WithGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, con
 			},
 		})
 	})
-
-	return s
 }
 
-// WithWS enables serving and handle websockets.
-func (s *Server) WithWS() *Server {
+// AddWebSocket enables serving and handle websockets.
+func (s *Server) AddWebSocket() {
 	// TODO: Add tracing for websockets.
 	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 		err := s.melody.HandleRequest(w, r)
@@ -312,14 +354,154 @@ func (s *Server) WithWS() *Server {
 	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {
 		s.melody.Broadcast(msg)
 	})
-
-	return s
 }
 
-// WithCatalog enables routes related to the ingredients, doughs, tools, ratings and users.
+// AddHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
+func (s *Server) AddHTTPTesting() {
+	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "http-testing")
+
+		r.HandleFunc("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			status, err := strconv.Atoi(chi.URLParam(r, "status"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if status < 100 || status > 599 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(status)
+		})
+
+		r.Get("/api/bytes/{n:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			n, err := strconv.Atoi(chi.URLParam(r, "n"))
+			if err != nil {
+				n = 0
+			}
+
+			data := make([]byte, n)
+			crand.Read(data)
+			println(n)
+			println(data)
+
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
+		})
+
+		r.Get("/api/delay/{delay}", func(w http.ResponseWriter, r *http.Request) {
+			param := chi.URLParam(r, "delay")
+			delay, err := time.ParseDuration(param)
+			if err != nil {
+				delay, err = time.ParseDuration(param + "s")
+				if err != nil {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+			}
+
+			time.Sleep(delay)
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Get("/api/get", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Delete("/api/delete", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+			w.WriteHeader(http.StatusOK)
+			io.Copy(w, r.Body)
+		}
+
+		r.Post("/api/post", fn)
+		r.Put("/api/put", fn)
+		r.Patch("/api/patch", fn)
+
+		// Cookies are a type of pizza (without cheese).
+		r.Get("/api/cookies", func(w http.ResponseWriter, r *http.Request) {
+			cookies := map[string]string{}
+
+			for _, cookie := range r.Cookies() {
+				cookies[cookie.Name] = cookie.Value
+			}
+
+			s.writeJSONResponse(w, r, map[string]any{"cookies": cookies}, http.StatusOK)
+		})
+
+		r.Post("/api/cookies", func(w http.ResponseWriter, r *http.Request) {
+			for key, value := range r.URL.Query() {
+				http.SetCookie(w, &http.Cookie{Name: key, Value: value[0]})
+			}
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Get("/api/headers", func(w http.ResponseWriter, r *http.Request) {
+			headers := map[string]string{}
+
+			for key, values := range r.Header {
+				headers[key] = strings.Join(values, ",")
+			}
+			headers["Host"] = r.Host
+
+			s.writeJSONResponse(w, r, map[string]any{"headers": headers}, http.StatusOK)
+		})
+
+		r.Get("/api/basic-auth/{username}/{password}", func(w http.ResponseWriter, r *http.Request) {
+			user, pass, _ := r.BasicAuth()
+			username := chi.URLParam(r, "username")
+			password := chi.URLParam(r, "password")
+
+			result := map[string]any{
+				"user":          username,
+				"password":      password,
+				"authenticated": (user == username && pass == password),
+			}
+
+			s.writeJSONResponse(w, r, result, http.StatusOK)
+		})
+
+		r.Get("/api/json", func(w http.ResponseWriter, r *http.Request) {
+			data := map[string]string{}
+			for key, value := range r.URL.Query() {
+				data[key] = value[0]
+			}
+
+			s.writeJSONResponse(w, r, data, http.StatusOK)
+		})
+
+		r.Get("/api/xml", func(w http.ResponseWriter, r *http.Request) {
+			type param struct {
+				Key   string `xml:"key"`
+				Value string `xml:"value"`
+				Index int    `xml:"index"`
+			}
+			type response struct {
+				Params []param `xml:"params"`
+			}
+			data := []param{}
+			i := 0
+			for key, value := range r.URL.Query() {
+				data = append(data, param{Key: key, Value: value[0], Index: i})
+				i++
+			}
+
+			s.writeXMLResponse(w, r, response{Params: data}, http.StatusOK)
+		})
+	})
+}
+
+// AddCatalogHandler enables routes related to the ingredients, doughs, tools, ratings and users.
 // A database.InMemoryDatabase is required to enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
-func (s *Server) WithCatalog(db *database.Catalog) *Server {
+func (s *Server) AddCatalogHandler(db *database.Catalog) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "catalog")
 
@@ -344,12 +526,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 
 			s.log.DebugContext(r.Context(), "Ingredients requested", "type", ingredientType)
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Ingredient{"ingredients": ingredients})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]model.Ingredient{"ingredients": ingredients}, http.StatusOK)
 		})
 
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
@@ -362,12 +539,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Dough{"doughs": doughs})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]model.Dough{"doughs": doughs}, http.StatusOK)
 		})
 
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
@@ -380,20 +552,64 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
-			if err != nil {
-				slog.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		})
-
-		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
-
+			s.writeJSONResponse(w, r, map[string][]string{"tools": tools}, http.StatusOK)
 		})
 	})
 
 	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "users")
+
+		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
+			var user model.User
+			if s.decodeJSONBody(w, r, &user) != nil {
+				return
+			}
+
+			if err := user.Validate(); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			err := db.RecordUser(r.Context(), &user)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to record user", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusCreated)
+		})
+
+		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
+			type loginData struct {
+				Username string `json:"username"`
+				Password string `json:"password"`
+			}
+			var data loginData
+
+			if s.decodeJSONBody(w, r, &data) != nil {
+				return
+			}
+
+			user, err := db.LoginUser(r.Context(), data.Username, data.Password)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to login user", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if user == nil {
+				// User does not exist, or password auth failed.
+				s.writeJSONErrorResponse(w, r, errors.New("authentication failed"), http.StatusUnauthorized)
+				return
+			}
+
+			s.writeJSONResponse(w, r, map[string]string{"token": user.Token}, http.StatusOK)
+		})
+	})
+
+	s.router.Group(func(r chi.Router) {
+		// These endpoints do not have user token validation.
 		s.traceInstaller.Install(r, "admin")
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -403,13 +619,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 			}
 
 			var latestRecommendation model.Pizza
-
-			dec := json.NewDecoder(r.Body)
-			dec.DisallowUnknownFields()
-			err := dec.Decode(&latestRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
-				w.WriteHeader(http.StatusBadRequest)
+			if s.decodeJSONBody(w, r, &latestRecommendation) != nil {
 				return
 			}
 
@@ -419,17 +629,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			buf := bytes.Buffer{}
-			err = json.NewEncoder(&buf).Encode(&latestRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write(buf.Bytes())
+			s.writeJSONResponse(w, r, latestRecommendation, http.StatusCreated)
 		})
 
 		r.Get("/api/internal/recommendations/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
@@ -451,14 +651,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(recommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
+			s.writeJSONResponse(w, r, recommendation, http.StatusOK)
 		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -480,12 +673,7 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]model.Pizza{"pizzas": history}, http.StatusOK)
 		})
 
 		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
@@ -512,20 +700,14 @@ func (s *Server) WithCatalog(db *database.Catalog) *Server {
 				SameSite: http.SameSiteStrictMode,
 				Path:     "/", // Required for /admin to be able to use a cookie returned by /api.
 			})
-			err := json.NewEncoder(w).Encode(map[string]string{"token": token})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+
+			s.writeJSONResponse(w, r, map[string]string{"token": token}, http.StatusOK)
 		})
 	})
-
-	return s
 }
 
-// WithCopy enables copy (i.e. prose) related endpoints.
-func (s *Server) WithCopy(db *database.Copy) *Server {
+// AddCopyHandler enables copy (i.e. prose) related endpoints.
+func (s *Server) AddCopyHandler(db *database.Copy) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "copy")
 
@@ -540,12 +722,8 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 				s.log.ErrorContext(r.Context(), "Failed to fetch quotes from db", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
-			err = json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+
+			s.writeJSONResponse(w, r, map[string][]string{"quotes": quotes}, http.StatusOK)
 		})
 
 		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
@@ -557,12 +735,7 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"names": names})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]string{"names": names}, http.StatusOK)
 		})
 
 		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
@@ -574,21 +747,14 @@ func (s *Server) WithCopy(db *database.Copy) *Server {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]string{"adjectives": adjs}, http.StatusOK)
 		})
 	})
-
-	return s
 }
 
-// WithRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
+// AddRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
 // the URLs for the Catalog and Copy services.
-func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient CopyClient) *Server {
+func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient CopyClient) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "recommendations")
 
@@ -614,14 +780,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-
-			err = json.NewEncoder(w).Encode(pizza)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, pizza, http.StatusOK)
 		})
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
@@ -636,13 +795,7 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
-
-			dec := json.NewDecoder(r.Body)
-			dec.DisallowUnknownFields()
-			err := dec.Decode(&restrictions)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request body", "err", err)
-				w.WriteHeader(http.StatusBadRequest)
+			if s.decodeJSONBody(w, r, &restrictions) != nil {
 				return
 			}
 
@@ -828,19 +981,9 @@ func (s *Server) WithRecommendations(catalogClient CatalogClient, copyClient Cop
 			pizzaCaloriesPerSliceNativeHistogram.Observe(float64(pizzaRecommendation.Calories))
 
 			s.log.DebugContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
-
-			w.Header().Set("Content-Type", "application/json")
-
-			err = json.NewEncoder(w).Encode(pizzaRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode pizza recommendation", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, pizzaRecommendation, http.StatusOK)
 		})
 	})
-
-	return s
 }
 
 func contains(slice []string, value string) bool {
@@ -850,6 +993,14 @@ func contains(slice []string, value string) bool {
 		}
 	}
 	return false
+}
+
+func FaviconHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, _ := web.Static.ReadFile("static/favicon.ico")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	})
 }
 
 // From: https://www.liip.ch/en/blog/embed-sveltekit-into-a-go-binary
@@ -881,7 +1032,7 @@ func ValidateUserMiddleware(next http.Handler) http.Handler {
 		// Here, we would actually check the token against the DB, or
 		// verify it using a private key (e.g. for JWT), but for this
 		// testing service we just check its length.
-		if !found || prefix != "token" || len(token) != tokenLength {
+		if !found || prefix != "token" || len(token) != model.UserTokenLength {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

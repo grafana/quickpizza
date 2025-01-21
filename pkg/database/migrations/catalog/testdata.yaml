@@ -234,3 +234,14 @@
       ingredient_id: 24
     - pizza_id: 1
       ingredient_id: 18
+- model: User
+  rows:
+    - id: 1
+      username: default
+      token: ""
+- model: Rating
+  rows:
+    - id: 1
+      stars: 5
+      user_id: 1
+      pizza_id: 1
