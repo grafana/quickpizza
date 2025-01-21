@@ -202,8 +202,7 @@ func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, v any) e
 	dec.DisallowUnknownFields()
 	err := dec.Decode(v)
 	if err != nil {
-		s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
+		s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
 		return err
 	}
 	return nil
