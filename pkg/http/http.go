@@ -358,7 +358,7 @@ func (s *Server) AddWebSocket() {
 // AddHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
 func (s *Server) AddHTTPTesting() {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "http-testing")
+		s.traceInstaller.Install(r, "httptesting")
 
 		r.HandleFunc("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
 			status, err := strconv.Atoi(chi.URLParam(r, "status"))
