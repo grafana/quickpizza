@@ -79,6 +79,22 @@ func (c *Catalog) GetRecommendation(ctx context.Context, id int) (*model.Pizza, 
 	return &pizza, err
 }
 
+func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
+	if err := user.Validate(); err != nil {
+		return err
+	}
+	user.Token = model.GenerateUserToken()
+
+	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		_, err := tx.NewInsert().Model(user).Exec(ctx)
+		return err
+	})
+}
+
+func (c *Catalog) LoginUser(ctx context.Context, username, password string) (string, error) {
+	return "", nil
+}
+
 func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) error {
 	// Inject an artificial error for testing purposes
 	err := errorinjector.InjectErrors(ctx, "record-recommendation")

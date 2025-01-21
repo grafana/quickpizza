@@ -44,8 +44,6 @@ import (
 	"github.com/grafana/quickpizza/pkg/web"
 )
 
-const tokenLength = 16
-
 // Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -197,6 +195,52 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(rw, r)
 }
 
+func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, v any) error {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	err := dec.Decode(v)
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return err
+	}
+	return nil
+}
+
+func (s *Server) writeJSONResponse(w http.ResponseWriter, r *http.Request, v any, status int) {
+	buf := bytes.Buffer{}
+	err := json.NewEncoder(&buf).Encode(v)
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to encode JSON response", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to write response", "err", err)
+	}
+}
+
+func (s *Server) writeXMLResponse(w http.ResponseWriter, r *http.Request, v any, status int) {
+	buf := bytes.Buffer{}
+	err := xml.NewEncoder(&buf).Encode(v)
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to encode XML response", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/xml")
+	w.WriteHeader(status)
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		s.log.ErrorContext(r.Context(), "Failed to write response", "err", err)
+	}
+}
+
 func (s *Server) AddLivenessProbes() {
 	// Readiness probe
 	s.router.Get("/ready", func(w http.ResponseWriter, r *http.Request) {
@@ -235,13 +279,8 @@ func (s *Server) AddConfigHandler(config map[string]string) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "config")
 
-		r.Get("/api/config", func(rw http.ResponseWriter, r *http.Request) {
-			rw.Header().Set("content-type", "application/json")
-
-			err := json.NewEncoder(rw).Encode(config)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "serving config JSON", "err", err)
-			}
+		r.Get("/api/config", func(w http.ResponseWriter, r *http.Request) {
+			s.writeJSONResponse(w, r, config, http.StatusOK)
 		})
 	})
 }
@@ -388,17 +427,7 @@ func (s *Server) AddHTTPTesting() {
 				cookies[cookie.Name] = cookie.Value
 			}
 
-			buf := bytes.Buffer{}
-			err := json.NewEncoder(&buf).Encode(map[string]any{"cookies": cookies})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(buf.Bytes())
+			s.writeJSONResponse(w, r, map[string]any{"cookies": cookies}, http.StatusOK)
 		})
 
 		r.Post("/api/cookies", func(w http.ResponseWriter, r *http.Request) {
@@ -416,17 +445,7 @@ func (s *Server) AddHTTPTesting() {
 			}
 			headers["Host"] = r.Host
 
-			buf := bytes.Buffer{}
-			err := json.NewEncoder(&buf).Encode(map[string]any{"headers": headers})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(buf.Bytes())
+			s.writeJSONResponse(w, r, map[string]any{"headers": headers}, http.StatusOK)
 		})
 
 		r.Get("/api/basic-auth/{username}/{password}", func(w http.ResponseWriter, r *http.Request) {
@@ -440,17 +459,7 @@ func (s *Server) AddHTTPTesting() {
 				"authenticated": (user == username && pass == password),
 			}
 
-			buf := bytes.Buffer{}
-			err := json.NewEncoder(&buf).Encode(result)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(buf.Bytes())
+			s.writeJSONResponse(w, r, result, http.StatusOK)
 		})
 
 		r.Get("/api/json", func(w http.ResponseWriter, r *http.Request) {
@@ -459,17 +468,7 @@ func (s *Server) AddHTTPTesting() {
 				data[key] = value[0]
 			}
 
-			buf := bytes.Buffer{}
-			err := json.NewEncoder(&buf).Encode(data)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(buf.Bytes())
+			s.writeJSONResponse(w, r, data, http.StatusOK)
 		})
 
 		r.Get("/api/xml", func(w http.ResponseWriter, r *http.Request) {
@@ -488,17 +487,7 @@ func (s *Server) AddHTTPTesting() {
 				i++
 			}
 
-			buf := bytes.Buffer{}
-			err := xml.NewEncoder(&buf).Encode(response{Params: data})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/xml")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(buf.Bytes())
+			s.writeXMLResponse(w, r, response{Params: data}, http.StatusOK)
 		})
 	})
 }
@@ -531,12 +520,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			s.log.DebugContext(r.Context(), "Ingredients requested", "type", ingredientType)
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Ingredient{"ingredients": ingredients})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]model.Ingredient{"ingredients": ingredients}, http.StatusOK)
 		})
 
 		r.Get("/api/doughs", func(w http.ResponseWriter, r *http.Request) {
@@ -549,12 +533,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Dough{"doughs": doughs})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]model.Dough{"doughs": doughs}, http.StatusOK)
 		})
 
 		r.Get("/api/tools", func(w http.ResponseWriter, r *http.Request) {
@@ -567,20 +546,40 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"tools": tools})
-			if err != nil {
-				slog.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		})
-
-		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
-
+			s.writeJSONResponse(w, r, map[string][]string{"tools": tools}, http.StatusOK)
 		})
 	})
 
 	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "users")
+
+		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
+			var user model.User
+			if s.decodeJSONBody(w, r, &user) != nil {
+				return
+			}
+
+			err := db.RecordUser(r.Context(), &user)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to record user", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusCreated)
+		})
+
+		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
+			// type loginData struct {
+			// 	Username string `json:"username"`
+			// 	Password string `json:"password"`
+			// }
+			// var data loginData
+		})
+	})
+
+	s.router.Group(func(r chi.Router) {
+		// These endpoints do not have user token validation.
 		s.traceInstaller.Install(r, "admin")
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -590,13 +589,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			var latestRecommendation model.Pizza
-
-			dec := json.NewDecoder(r.Body)
-			dec.DisallowUnknownFields()
-			err := dec.Decode(&latestRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
-				w.WriteHeader(http.StatusBadRequest)
+			if s.decodeJSONBody(w, r, &latestRecommendation) != nil {
 				return
 			}
 
@@ -606,17 +599,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			buf := bytes.Buffer{}
-			err = json.NewEncoder(&buf).Encode(&latestRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write(buf.Bytes())
+			s.writeJSONResponse(w, r, latestRecommendation, http.StatusCreated)
 		})
 
 		r.Get("/api/internal/recommendations/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
@@ -638,14 +621,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(recommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
+			s.writeJSONResponse(w, r, recommendation, http.StatusOK)
 		})
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
@@ -667,12 +643,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]model.Pizza{"pizzas": history})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]model.Pizza{"pizzas": history}, http.StatusOK)
 		})
 
 		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
@@ -699,12 +670,8 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				SameSite: http.SameSiteStrictMode,
 				Path:     "/", // Required for /admin to be able to use a cookie returned by /api.
 			})
-			err := json.NewEncoder(w).Encode(map[string]string{"token": token})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+
+			s.writeJSONResponse(w, r, map[string]string{"token": token}, http.StatusOK)
 		})
 	})
 }
@@ -725,12 +692,8 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 				s.log.ErrorContext(r.Context(), "Failed to fetch quotes from db", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
-			err = json.NewEncoder(w).Encode(map[string][]string{"quotes": quotes})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+
+			s.writeJSONResponse(w, r, map[string][]string{"quotes": quotes}, http.StatusOK)
 		})
 
 		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
@@ -742,12 +705,7 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"names": names})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]string{"names": names}, http.StatusOK)
 		})
 
 		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
@@ -759,12 +717,7 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 
-			err = json.NewEncoder(w).Encode(map[string][]string{"adjectives": adjs})
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, map[string][]string{"adjectives": adjs}, http.StatusOK)
 		})
 	})
 }
@@ -797,14 +750,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-
-			err = json.NewEncoder(w).Encode(pizza)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode response", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, pizza, http.StatusOK)
 		})
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
@@ -819,13 +765,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
-
-			dec := json.NewDecoder(r.Body)
-			dec.DisallowUnknownFields()
-			err := dec.Decode(&restrictions)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to decode request body", "err", err)
-				w.WriteHeader(http.StatusBadRequest)
+			if s.decodeJSONBody(w, r, &restrictions) != nil {
 				return
 			}
 
@@ -1011,15 +951,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			pizzaCaloriesPerSliceNativeHistogram.Observe(float64(pizzaRecommendation.Calories))
 
 			s.log.DebugContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
-
-			w.Header().Set("Content-Type", "application/json")
-
-			err = json.NewEncoder(w).Encode(pizzaRecommendation)
-			if err != nil {
-				s.log.ErrorContext(r.Context(), "Failed to encode pizza recommendation", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			s.writeJSONResponse(w, r, pizzaRecommendation, http.StatusOK)
 		})
 	})
 }
@@ -1070,7 +1002,7 @@ func ValidateUserMiddleware(next http.Handler) http.Handler {
 		// Here, we would actually check the token against the DB, or
 		// verify it using a private key (e.g. for JWT), but for this
 		// testing service we just check its length.
-		if !found || prefix != "token" || len(token) != tokenLength {
+		if !found || prefix != "token" || len(token) != model.UserTokenLength {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
