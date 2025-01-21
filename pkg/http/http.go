@@ -167,17 +167,19 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 	})
 
 	router := chi.NewRouter()
-	router.Use(PrometheusMiddleware)
-	router.Use(httplog.RequestLogger(reqLogger))
-	router.Use(middleware.Recoverer)
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	}).Handler)
+	router.Use(
+		PrometheusMiddleware,
+		httplog.RequestLogger(reqLogger),
+		middleware.Recoverer,
+		cors.New(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300, // Maximum value not ignored by any of major browsers
+		}).Handler,
+	)
 
 	if profiling {
 		router.Use(k6.LabelsFromBaggageHandler)
