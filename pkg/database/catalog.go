@@ -21,10 +21,12 @@ import (
 type Catalog struct {
 	db *bun.DB
 
-	fixedPizzas int
-	maxPizzas   int
-	maxUsers    int
-	maxRatings  int
+	fixedPizzas  int
+	fixedUsers   int
+	fixedRatings int
+	maxPizzas    int
+	maxUsers     int
+	maxRatings   int
 }
 
 func NewCatalog(connString string) (*Catalog, error) {
@@ -46,16 +48,20 @@ func NewCatalog(connString string) (*Catalog, error) {
 	db.RegisterModel((*model.PizzaToIngredients)(nil))
 
 	c := &Catalog{
-		db:          db,
-		fixedPizzas: envInt("QUICKPIZZA_DB_FIXED_PIZZAS", 100),
-		maxPizzas:   envInt("QUICKPIZZA_DB_MAX_PIZZAS", 5000),
-		maxUsers:    envInt("QUICKPIZZA_DB_MAX_USERS", 5000),
-		maxRatings:  envInt("QUICKPIZZA_DB_MAX_RATINGS", 10000),
+		db:           db,
+		fixedPizzas:  envInt("QUICKPIZZA_DB_FIXED_PIZZAS", 100),
+		fixedUsers:   envInt("QUICKPIZZA_DB_FIXED_USERS", 10),
+		fixedRatings: envInt("QUICKPIZZA_DB_FIXED_RATINGS", 10),
+		maxPizzas:    envInt("QUICKPIZZA_DB_MAX_PIZZAS", 5000),
+		maxUsers:     envInt("QUICKPIZZA_DB_MAX_USERS", 5000),
+		maxRatings:   envInt("QUICKPIZZA_DB_MAX_RATINGS", 10000),
 	}
 
 	log.Info(
 		"Catalog parameters",
 		"fixedPizzas", c.fixedPizzas,
+		"fixedUsers", c.fixedUsers,
+		"fixedRatings", c.fixedRatings,
 		"maxPizzas", c.maxPizzas,
 		"maxUsers", c.maxUsers,
 		"maxRatings", c.maxRatings,
@@ -114,7 +120,11 @@ func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
 
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewInsert().Model(user).Exec(ctx)
-		return err
+		if err != nil {
+			return err
+		}
+
+		return c.enforceTableSizeLimits(ctx, tx, (*model.User)(nil), c.fixedUsers, c.maxUsers)
 	})
 }
 
@@ -150,16 +160,30 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) 
 				return err
 			}
 		}
-		_, err = tx.NewDelete().
-			Model((*model.Pizza)(nil)).
-			Where(fmt.Sprintf("id NOT IN (?) AND id > %v", c.fixedPizzas), tx.NewSelect().
-				Model((*model.Pizza)(nil)).
-				Order("created_at DESC").
-				Column("id").
-				Limit(c.maxPizzas)).
-			Exec(ctx)
-		return err
+
+		return c.enforceTableSizeLimits(ctx, tx, (*model.Pizza)(nil), c.fixedPizzas, c.maxPizzas)
 	})
+}
+
+// enforceTableSizeLimits limits the size of a table, which must have an ID row.
+// All rows will be deleted except the N newest ones, where N == maximum.
+// If fixed > 0, then the first K rows (IDs 0, 1, 2...) will never be deleted,
+// where K == fixed (even if this would make the table exceed N rows).
+// If maximum is 0 or negative, then do not enforce any limits.
+// Useful for keeping an in-memory SQLite database size below a certain number.
+func (c *Catalog) enforceTableSizeLimits(ctx context.Context, tx bun.Tx, model any, fixed, maximum int) error {
+	if maximum <= 0 {
+		return nil
+	}
+	_, err := tx.NewDelete().
+		Model(model).
+		Where(fmt.Sprintf("id NOT IN (?) AND id > %v", fixed), tx.NewSelect().
+			Model(model).
+			Order("created_at DESC").
+			Column("id").
+			Limit(maximum)).
+		Exec(ctx)
+	return err
 }
 
 func envInt(name string, defaultVal int) int {
