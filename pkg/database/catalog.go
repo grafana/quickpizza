@@ -3,6 +3,9 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"os"
+	"strconv"
 
 	"log/slog"
 
@@ -17,6 +20,11 @@ import (
 
 type Catalog struct {
 	db *bun.DB
+
+	fixedPizzas int
+	maxPizzas   int
+	maxUsers    int
+	maxRatings  int
 }
 
 func NewCatalog(connString string) (*Catalog, error) {
@@ -36,9 +44,24 @@ func NewCatalog(connString string) (*Catalog, error) {
 		return nil, err
 	}
 	db.RegisterModel((*model.PizzaToIngredients)(nil))
-	return &Catalog{
-		db: db,
-	}, nil
+
+	c := &Catalog{
+		db:          db,
+		fixedPizzas: envInt("QUICKPIZZA_DB_FIXED_PIZZAS", 100),
+		maxPizzas:   envInt("QUICKPIZZA_DB_MAX_PIZZAS", 5000),
+		maxUsers:    envInt("QUICKPIZZA_DB_MAX_USERS", 5000),
+		maxRatings:  envInt("QUICKPIZZA_DB_MAX_RATINGS", 10000),
+	}
+
+	log.Info(
+		"Catalog parameters",
+		"fixedPizzas", c.fixedPizzas,
+		"maxPizzas", c.maxPizzas,
+		"maxUsers", c.maxUsers,
+		"maxRatings", c.maxRatings,
+	)
+
+	return c, nil
 }
 
 func (c *Catalog) GetIngredients(ctx context.Context, t string) ([]model.Ingredient, error) {
@@ -129,12 +152,26 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) 
 		}
 		_, err = tx.NewDelete().
 			Model((*model.Pizza)(nil)).
-			Where("id NOT IN (?) AND id > 1000", tx.NewSelect().
+			Where(fmt.Sprintf("id NOT IN (?) AND id > %v", c.fixedPizzas), tx.NewSelect().
 				Model((*model.Pizza)(nil)).
 				Order("created_at DESC").
 				Column("id").
-				Limit(100)).
+				Limit(c.maxPizzas)).
 			Exec(ctx)
 		return err
 	})
+}
+
+func envInt(name string, defaultVal int) int {
+	v, found := os.LookupEnv(name)
+	if !found {
+		return defaultVal
+	}
+
+	b, err := strconv.Atoi(v)
+	if err != nil {
+		return defaultVal
+	}
+
+	return b
 }
