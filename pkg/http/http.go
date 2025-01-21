@@ -209,6 +209,10 @@ func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, v any) e
 	return nil
 }
 
+func (s *Server) writeJSONErrorResponse(w http.ResponseWriter, r *http.Request, err error, status int) {
+	s.writeJSONResponse(w, r, map[string]string{"error": err.Error()}, status)
+}
+
 func (s *Server) writeJSONResponse(w http.ResponseWriter, r *http.Request, v any, status int) {
 	buf := bytes.Buffer{}
 	err := json.NewEncoder(&buf).Encode(v)
@@ -561,6 +565,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
+			if err := user.Validate(); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
 			err := db.RecordUser(r.Context(), &user)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to record user", "err", err)
@@ -572,11 +581,30 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		})
 
 		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
-			// type loginData struct {
-			// 	Username string `json:"username"`
-			// 	Password string `json:"password"`
-			// }
-			// var data loginData
+			type loginData struct {
+				Username string `json:"username"`
+				Password string `json:"password"`
+			}
+			var data loginData
+
+			if s.decodeJSONBody(w, r, &data) != nil {
+				return
+			}
+
+			user, err := db.LoginUser(r.Context(), data.Username, data.Password)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to login user", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if user == nil {
+				// User does not exist, or password auth failed.
+				s.writeJSONErrorResponse(w, r, errors.New("authentication failed"), http.StatusUnauthorized)
+				return
+			}
+
+			s.writeJSONResponse(w, r, map[string]string{"token": user.Token}, http.StatusOK)
 		})
 	})
 

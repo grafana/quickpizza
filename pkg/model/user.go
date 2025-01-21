@@ -26,12 +26,14 @@ func GenerateUserToken() string {
 
 func (u *User) Validate() error {
 	switch {
-	case u.Name == "":
-		return errors.New("name field is empty")
-	case len(u.Name) > MaxNameLength:
-		return errors.New("name field is too long")
-	case u.Name == "default":
-		return errors.New("name field is invalid")
+	case u.Username == "":
+		return errors.New("username field is empty")
+	case len(u.Username) > MaxNameLength:
+		return errors.New("username field is too long")
+	case u.Username == "default":
+		return errors.New("username field is invalid")
+	case u.Password == "":
+		return errors.New("password is empty")
 	default:
 		return nil
 	}
@@ -39,8 +41,9 @@ func (u *User) Validate() error {
 
 type User struct {
 	bun.BaseModel
-	ID       int64  `bun:",pk,autoincrement"`
-	Name     string `json:"name"`
-	Token    string `json:"token"`
-	Password string `json:"-"`
+	ID           int64  `bun:",pk,autoincrement"`
+	Username     string `json:"username" bun:",unique"`
+	Token        string `json:"-" bun:",unique"`
+	Password     string `json:"password,omitempty" bun:"-"`
+	PasswordHash string `json:"-"`
 }

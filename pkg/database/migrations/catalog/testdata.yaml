@@ -237,7 +237,7 @@
 - model: User
   rows:
     - id: 1
-      name: default
+      username: default
       token: ""
 - model: Rating
   rows:
