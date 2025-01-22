@@ -91,14 +91,17 @@ function testCreateUserLogin() {
 function testTokenValidation() {
   describe("Validate a token", () => {
     var res = http.post(`${BASE_URL}/api/users/token/authenticate`, {
-      headers: {}
+      headers: {
+        "X-Is-Internal": "1",
+      }
     });
 
     expect(res.status, "response status").to.equal(401);
 
     res = http.post(`${BASE_URL}/api/users/token/authenticate`, {
       headers: {
-        "Authorization": "token tooshort"
+        "Authorization": "token tooshort",
+        "X-Is-Internal": "1",
       }
     });
 
@@ -108,7 +111,8 @@ function testTokenValidation() {
     // yield the default user (id=1). See comment in routes/+page.svelte.
     res = http.post(`${BASE_URL}/api/users/token/authenticate`, null, {
       headers: {
-        "Authorization": "token aaaaaaaaaaaaaaaa"
+        "Authorization": "token aaaaaaaaaaaaaaaa",
+        "X-Is-Internal": "1",
       }
     });
 
