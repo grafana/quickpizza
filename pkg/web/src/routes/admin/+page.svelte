@@ -23,7 +23,7 @@ function checkAdminLoggedIn() {
 
 async function handleSubmit() {
     const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/admin/login?user=${username}&password=${password}`, {
-	    method: 'GET',
+	    method: 'POST',
         credentials: 'same-origin', // Honor Set-Cookie header returned by /api/admin/login.
 	});
     if (!res.ok) {
@@ -50,13 +50,15 @@ function updateRecommendations() {
         method: 'GET',
     }).then(res => res.json()).then(json => {
         var newRec: string[] = [];
-        json.pizzas = json.pizzas.reverse();
         json.pizzas.forEach((pizza: any) => {
             newRec.push(`
                 ${pizza.name} (tool=${pizza.tool}, ingredients_number=${pizza.ingredients.length})`
             );
         });
-        newRec = newRec.slice(0, 10);
+        newRec = newRec.slice(0, 15);
+        if (newRec.length >= 0) {
+           newRec[0] = newRec[0] + " (newest)"
+        }
         latestPizzaRecommendations = newRec;
     });
 }

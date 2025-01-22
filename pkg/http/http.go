@@ -135,6 +135,29 @@ func (r Restrictions) WithDefaults() Restrictions {
 	return r
 }
 
+type authKeyType int
+type userKeyType int
+
+const (
+	authKey    authKeyType = 0
+	userKey    userKeyType = 0
+	authHeader             = "Authorization"
+)
+
+var authError = errors.New("authentication failed")
+
+func getRequestToken(r *http.Request) string {
+	auth := r.Header.Get(authHeader)
+	prefix, token, found := strings.Cut(auth, " ")
+	prefix = strings.ToLower(prefix)
+
+	if !found || prefix != "token" || len(token) != model.UserTokenLength {
+		return ""
+	}
+
+	return token
+}
+
 // Server is the object that handles HTTP requests and computes pizza recommendations.
 // Routes are divided into serveral groups that can be instantiated independently as microservices, or all together
 // as one single big service.
@@ -174,7 +197,7 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 		cors.New(cors.Options{
 			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+			AllowedHeaders:   []string{"Accept", authHeader, "Content-Type", "X-CSRF-Token"},
 			ExposedHeaders:   []string{"Link"},
 			AllowCredentials: true,
 			MaxAge:           300, // Maximum value not ignored by any of major browsers
@@ -497,6 +520,45 @@ func (s *Server) AddHTTPTesting() {
 	})
 }
 
+func (s *Server) AuthViaCatalogClientMiddleware(catalogClient CatalogClient) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Copy the Authorization header into the context, so that when making
+			// requests to other QP microservices, the header is forwarded to them
+			// (see code in client.go).
+			ctx := context.WithValue(r.Context(), authKey, r.Header.Get(authHeader))
+
+			_, err := catalogClient.WithRequestContext(ctx).Authenticate()
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func (s *Server) AuthMiddleware(db *database.Catalog) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := getRequestToken(r)
+			if token == "" {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+			user, err := db.Authenticate(r.Context(), token)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), userKey, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 // AddCatalogHandler enables routes related to the ingredients, doughs, tools, ratings and users.
 // A database.InMemoryDatabase is required to enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
@@ -504,7 +566,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "catalog")
 
-		r.Use(ValidateUserMiddleware)
+		r.Use(s.AuthMiddleware(db))
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
@@ -579,6 +641,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			w.WriteHeader(http.StatusCreated)
 		})
 
+		// Given username + password, return a user token (if credentials are valid).
 		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
 			type loginData struct {
 				Username string `json:"username"`
@@ -599,11 +662,29 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			if user == nil {
 				// User does not exist, or password auth failed.
-				s.writeJSONErrorResponse(w, r, errors.New("authentication failed"), http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
 			s.writeJSONResponse(w, r, map[string]string{"token": user.Token}, http.StatusOK)
+		})
+
+		// Given a user token, return 200 or 401 (depending on whether token is valid).
+		r.Post("/api/users/token/authenticate", func(w http.ResponseWriter, r *http.Request) {
+			token := getRequestToken(r)
+			if token == "" {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			user, err := db.Authenticate(r.Context(), token)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to check token", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			s.writeJSONResponse(w, r, user, http.StatusOK)
 		})
 	})
 
@@ -613,7 +694,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			if r.Header.Get("X-Is-Internal") == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
@@ -661,11 +742,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			if token == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
-			history, err := db.GetHistory(r.Context(), 10)
+			history, err := db.GetHistory(r.Context(), 15)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -675,7 +756,15 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			s.writeJSONResponse(w, r, map[string][]model.Pizza{"pizzas": history}, http.StatusOK)
 		})
 
-		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				// Allow using GET for admin login, in order not to break existing examples.
+				s.log.DebugContext(r.Context(), "Admin login with GET is deprecated")
+			} else if r.Method != http.MethodPost {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+
 			s.log.DebugContext(r.Context(), "Login requested")
 			user := r.URL.Query().Get("user")
 			password := r.URL.Query().Get("password")
@@ -686,7 +775,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			if user != "admin" || password != "admin" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
@@ -756,7 +845,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "recommendations")
 
-		r.Use(ValidateUserMiddleware)
+		r.Use(s.AuthViaCatalogClientMiddleware(catalogClient))
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/pizza/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
@@ -1018,25 +1107,6 @@ func SvelteKitHandler(path string) http.Handler {
 		}
 		r.URL.Path = path
 		http.FileServer(filesystem).ServeHTTP(w, r)
-	})
-}
-
-func ValidateUserMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		prefix, token, found := strings.Cut(auth, " ")
-		prefix = strings.ToLower(prefix)
-
-		// Here, we would actually check the token against the DB, or
-		// verify it using a private key (e.g. for JWT), but for this
-		// testing service we just check its length.
-		if !found || prefix != "token" || len(token) != model.UserTokenLength {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), "authorization", auth)
-		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

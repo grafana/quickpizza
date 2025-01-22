@@ -2,7 +2,7 @@
 	import { PUBLIC_BACKEND_ENDPOINT, PUBLIC_BACKEND_WS_ENDPOINT } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { Confetti } from 'svelte-confetti';
-	import { userIDStore, userTokenStore } from '../lib/stores';
+	import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
 	import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 
 	const defaultRestrictions = {
@@ -14,8 +14,18 @@
 		minNumberOfToppings: 2
 	};
 
-	var user = 0;
+    // A randomly-generated integer used to track identity of WebSocket connections.
+    // Completely unrelated to users, user tokens, authentication, etc.
+	var wsVisitorID = 0;
+
+    // A randomly-generated user token that can be used to authenticate against the QP API.
+    // Since this token is not actually stored in the database, the returned user will always
+    // be user with ID 1 (default). This is implemented like so in order to not break the
+    // way QP was set up originally (i.e. one can open the website and start creating pizzas
+    // immediately, without logging in anywhere). So technically, the user is already logged
+    // in the moment they open the page.
     var userToken = '';
+
 	var render = false;
 	var quote = '';
 	var pizza = '';
@@ -47,9 +57,9 @@
 
 	let socket: WebSocket;
 	onMount(async () => {
-		userIDStore.subscribe((value) => user = value);
-		if (user === 0) {
-            userIDStore.set(Math.floor(100000 + Math.random() * 900000));
+		wsVisitorIDStore.subscribe((value) => wsVisitorID = value);
+		if (wsVisitorID === 0) {
+            wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
         }
         userTokenStore.subscribe((value) => userToken = value);
         if (userToken === '') {
@@ -69,7 +79,7 @@
 		socket.addEventListener('message', function (event) {
 			const data = JSON.parse(event.data);
 			if (data.msg === 'new_pizza') {
-				if (data.user !== user) {
+				if (data.ws_visitor_id !== wsVisitorID) {
 					pizzaCount++;
 				}
 			}
@@ -91,7 +101,11 @@
 		if (socket.readyState <= 1) {
 			socket.send(
 				JSON.stringify({
-					user: user,
+                    // FIXME: The 'user' key is present in order not to break
+                    // existing examples using QP WS. Remove it at some point.
+                    // It has no connection to the user auth itself.
+					user: wsVisitorID,
+					ws_visitor_id: wsVisitorID,
 					msg: 'new_pizza'
 				})
 			);
@@ -286,7 +300,7 @@
 			<p class="text-sm">Made with ❤️ by QuickPizza Labs.</p>
 		</div>
 		<div class="flex justify-center">
-			<p class="text-xs">Your user ID is: {user} (token: {userToken})</p>
+			<p class="text-xs">Your user token is: {userToken} (WebSocket visitor ID: {wsVisitorID})</p>
 		</div>
 		<div class="flex justify-center mt-1 mb-8">
 			<p class="text-xs">

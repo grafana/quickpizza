@@ -74,7 +74,7 @@ function testCreateUserLogin() {
 
     expect(res.status, "response status").to.equal(401);
 
-    // Default user
+    // Cannot log in as default user
     res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: "default",
       password: "",
@@ -88,6 +88,37 @@ function testCreateUserLogin() {
   });
 }
 
+function testTokenValidation() {
+  describe("Validate a token", () => {
+    var res = http.post(`${BASE_URL}/api/users/token/authenticate`, {
+      headers: {}
+    });
+
+    expect(res.status, "response status").to.equal(401);
+
+    res = http.post(`${BASE_URL}/api/users/token/authenticate`, {
+      headers: {
+        "Authorization": "token tooshort"
+      }
+    });
+
+    expect(res.status, "response status").to.equal(401);
+
+    // A randomly-generated token with correct length of 16 will
+    // yield the default user (id=1). See comment in routes/+page.svelte.
+    res = http.post(`${BASE_URL}/api/users/token/authenticate`, null, {
+      headers: {
+        "Authorization": "token aaaaaaaaaaaaaaaa"
+      }
+    });
+
+    expect(res.status, "response status").to.equal(200);
+    expect(res.json().id, "id").to.equal(1);
+    expect(res.json().username, "username").to.equal("default");
+  });
+}
+
 export default function() {
   testCreateUserLogin();
+  testTokenValidation();
 }

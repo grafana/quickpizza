@@ -41,7 +41,7 @@ func (u *User) Validate() error {
 
 type User struct {
 	bun.BaseModel
-	ID           int64  `bun:",pk,autoincrement"`
+	ID           int64  `json:"id" bun:",pk,autoincrement"`
 	Username     string `json:"username" bun:",unique"`
 	Token        string `json:"-" bun:",unique"`
 	Password     string `json:"password,omitempty" bun:"-"`

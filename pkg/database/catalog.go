@@ -141,6 +141,20 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 	return nil, nil
 }
 
+func (c *Catalog) Authenticate(ctx context.Context, token string) (*model.User, error) {
+	var user model.User
+	err := c.db.NewSelect().Model(&user).Where("token = ?", token).Limit(1).Scan(ctx)
+
+	if err == sql.ErrNoRows {
+		// In order to support requests coming directly from the
+		// index.html (which contains a randomly-generated token not
+		// stored in the DB), return a global, default user if the
+		// token lookup failed.
+		err = c.db.NewSelect().Model(&user).Where("id = 1").Limit(1).Scan(ctx)
+	}
+	return &user, err
+}
+
 func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) error {
 	// Inject an artificial error for testing purposes
 	err := errorinjector.InjectErrors(ctx, "record-recommendation")

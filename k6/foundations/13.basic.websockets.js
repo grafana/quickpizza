@@ -34,9 +34,9 @@ export const options = {
 export function sender() {
     const ws = new WebSocket(`${BASE_URL}/ws`);
     ws.addEventListener('open', () => {
-        ws.send(JSON.stringify({ user: `VU ${__VU}`, msg: "order_pizza" }));
+        ws.send(JSON.stringify({ ws_visitor_id: `VU ${__VU}`, msg: "order_pizza" }));
         sleep(0.2);
-        ws.send(JSON.stringify({ user: `VU ${__VU}`, msg: "pizza_status?" }));
+        ws.send(JSON.stringify({ ws_visitor_id: `VU ${__VU}`, msg: "pizza_status?" }));
         sleep(0.1);
         ws.close();
     });
@@ -54,7 +54,7 @@ export function receiver () {
   ws.addEventListener('open', () => {
     ws.addEventListener('message', (e) => {
       const msg = JSON.parse(e.data);
-      console.log(`VU ${__VU} received: ${msg.user} msg: ${msg.msg}`);
+      console.log(`VU ${__VU} received: ${msg.ws_visitor_id} msg: ${msg.msg}`);
       messageCounter++;
       if (messageCounter === totalExpectedMessages) {
         ws.close();
