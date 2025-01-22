@@ -141,6 +141,10 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 	return nil, nil
 }
 
+// Authenticate finds the corresponding user for token.
+// If a user is not found, then a default user is returned, with ID 1. This is done
+// in order to simplify the testing/usage of QuickPizza in general. This function
+// will always return a user, unless it returns a non-nil error.
 func (c *Catalog) Authenticate(ctx context.Context, token string) (*model.User, error) {
 	var user model.User
 	err := c.db.NewSelect().Model(&user).Where("token = ?", token).Limit(1).Scan(ctx)
