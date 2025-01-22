@@ -710,7 +710,6 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "copy")
 
-		r.Use(ValidateUserMiddleware)
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
