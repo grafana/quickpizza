@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -28,6 +29,8 @@ type Catalog struct {
 	maxUsers     int
 	maxRatings   int
 }
+
+var ErrUsernameTaken = errors.New("username already taken")
 
 func NewCatalog(connString string) (*Catalog, error) {
 	db, err := initializeDB(connString)
@@ -117,6 +120,16 @@ func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
 
 	user.PasswordHash = passwordHash
 	user.Token = model.GenerateUserToken()
+	user.ID = 0
+
+	var tmp model.User
+	err = c.db.NewSelect().Model(&tmp).Where("username = ?", user.Username).Limit(1).Scan(ctx)
+	if err != sql.ErrNoRows {
+		if err == nil {
+			return ErrUsernameTaken
+		}
+		return err
+	}
 
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewInsert().Model(user).Exec(ctx)

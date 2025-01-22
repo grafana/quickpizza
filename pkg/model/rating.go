@@ -6,10 +6,10 @@ import (
 
 type Rating struct {
 	bun.BaseModel
-	ID      int64  `bun:",pk,autoincrement"`
+	ID      int64  `json:"id" bun:",pk,autoincrement"`
 	Stars   int    `json:"stars"`
 	UserID  int64  `json:"-"`
-	User    *User  `bun:"rel:belongs-to,join:user_id=id"`
+	User    *User  `json:"-" bun:"rel:belongs-to,join:user_id=id"`
 	PizzaID int64  `json:"-"`
-	Pizza   *Pizza `bun:"rel:belongs-to,join:pizza_id=id"`
+	Pizza   *Pizza `json:"-" bun:"rel:belongs-to,join:pizza_id=id"`
 }

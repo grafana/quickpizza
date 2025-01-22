@@ -158,6 +158,14 @@ func getRequestToken(r *http.Request) string {
 	return token
 }
 
+func contextUser(ctx context.Context) *model.User {
+	user, ok := ctx.Value(userKey).(*model.User)
+	if !ok {
+		return nil
+	}
+	return user
+}
+
 // Server is the object that handles HTTP requests and computes pizza recommendations.
 // Routes are divided into serveral groups that can be instantiated independently as microservices, or all together
 // as one single big service.
@@ -615,6 +623,19 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			s.writeJSONResponse(w, r, map[string][]string{"tools": tools}, http.StatusOK)
 		})
+
+		// Rating CRUD endpoints
+		r.Post("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+		})
+
+		r.Get("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+		})
+
+		r.Put("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+		})
+
+		r.Delete("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+		})
 	})
 
 	s.router.Group(func(r chi.Router) {
@@ -632,7 +653,9 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			err := db.RecordUser(r.Context(), &user)
-			if err != nil {
+			if err == database.ErrUsernameTaken {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+			} else if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to record user", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
