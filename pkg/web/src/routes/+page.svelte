@@ -55,12 +55,7 @@
         if (userToken === '') {
             userTokenStore.set(randomToken(16));
         }
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/quotes`,
-			{
-				headers: {
-					'Authorization': 'Token ' + userToken
-				}
-			});
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/quotes`);
 		const json = await res.json();
 		quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
 

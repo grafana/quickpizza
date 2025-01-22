@@ -202,8 +202,7 @@ func (s *Server) decodeJSONBody(w http.ResponseWriter, r *http.Request, v any) e
 	dec.DisallowUnknownFields()
 	err := dec.Decode(v)
 	if err != nil {
-		s.log.ErrorContext(r.Context(), "Failed to decode request", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
+		s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
 		return err
 	}
 	return nil
@@ -359,7 +358,7 @@ func (s *Server) AddWebSocket() {
 // AddHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
 func (s *Server) AddHTTPTesting() {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "http-testing")
+		s.traceInstaller.Install(r, "httptesting")
 
 		r.HandleFunc("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
 			status, err := strconv.Atoi(chi.URLParam(r, "status"))
@@ -711,7 +710,6 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "copy")
 
-		r.Use(ValidateUserMiddleware)
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
