@@ -14,17 +14,17 @@
 		minNumberOfToppings: 2
 	};
 
-    // A randomly-generated integer used to track identity of WebSocket connections.
-    // Completely unrelated to users, user tokens, authentication, etc.
+	// A randomly-generated integer used to track identity of WebSocket connections.
+	// Completely unrelated to users, user tokens, authentication, etc.
 	var wsVisitorID = 0;
 
-    // A randomly-generated user token that can be used to authenticate against the QP API.
-    // Since this token is not actually stored in the database, the returned user will always
-    // be user with ID 1 (default). This is implemented like so in order to not break the
-    // way QP was set up originally (i.e. one can open the website and start creating pizzas
-    // immediately, without logging in anywhere). So technically, the user is already logged
-    // in the moment they open the page.
-    var userToken = '';
+	// A randomly-generated user token that can be used to authenticate against the QP API.
+	// Since this token is not actually stored in the database, the returned user will always
+	// be user with ID 1 (default). This is implemented like so in order to not break the
+	// way QP was set up originally (i.e. one can open the website and start creating pizzas
+	// immediately, without logging in anywhere). So technically, the user is already logged
+	// in the moment they open the page.
+	var userToken = '';
 
 	var render = false;
 	var quote = '';
@@ -42,38 +42,41 @@
 		restrictions = defaultRestrictions;
 	}
 
-    function randomToken(length) {
-        let result = '';
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const charactersLength = characters.length;
-        let counter = 0;
-        while (counter < length) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            counter += 1;
-        }
-        return result;
-    }
-
+	function randomToken(length) {
+		let result = '';
+		const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		const charactersLength = characters.length;
+		let counter = 0;
+		while (counter < length) {
+			result += characters.charAt(Math.floor(Math.random() * charactersLength));
+			counter += 1;
+		}
+		return result;
+	}
 
 	let socket: WebSocket;
 	onMount(async () => {
-		wsVisitorIDStore.subscribe((value) => wsVisitorID = value);
+		wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
 		if (wsVisitorID === 0) {
-            wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
-        }
-        userTokenStore.subscribe((value) => userToken = value);
-        if (userToken === '') {
-            userTokenStore.set(randomToken(16));
-        }
+			wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
+		}
+		userTokenStore.subscribe((value) => (userToken = value));
+		if (userToken === '') {
+			userTokenStore.set(randomToken(16));
+		}
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/quotes`);
 		const json = await res.json();
 		quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
 
 		let wsUrl = `${PUBLIC_BACKEND_WS_ENDPOINT}`;
-		if (wsUrl === "") {
+		if (wsUrl === '') {
 			// Unlike with fetch, which understands "/" as "the window's host", for WS we need to build the URI by hand.
 			const l = window.location;
-			wsUrl = ((l.protocol === "https:") ? "wss://" : "ws://") + l.hostname + (((l.port != 80) && (l.port != 443)) ? ":" + l.port : "") + "/ws";
+			wsUrl =
+				(l.protocol === 'https:' ? 'wss://' : 'ws://') +
+				l.hostname +
+				(l.port != 80 && l.port != 443 ? ':' + l.port : '') +
+				'/ws';
 		}
 		socket = new WebSocket(wsUrl);
 		socket.addEventListener('message', function (event) {
@@ -93,7 +96,7 @@
 			method: 'POST',
 			body: JSON.stringify(restrictions),
 			headers: {
-					'Authorization': 'Token ' + userToken
+				Authorization: 'Token ' + userToken
 			}
 		});
 		const json = await res.json();
@@ -101,9 +104,9 @@
 		if (socket.readyState <= 1) {
 			socket.send(
 				JSON.stringify({
-                    // FIXME: The 'user' key is present in order not to break
-                    // existing examples using QP WS. Remove it at some point.
-                    // It has no connection to the user auth itself.
+					// FIXME: The 'user' key is present in order not to break
+					// existing examples using QP WS. Remove it at some point.
+					// It has no connection to the user auth itself.
 					user: wsVisitorID,
 					ws_visitor_id: wsVisitorID,
 					msg: 'new_pizza'
@@ -113,10 +116,9 @@
 	}
 
 	async function getTools() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/tools`,
-		{
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/tools`, {
 			headers: {
-				'Authorization': 'Token ' + userToken
+				Authorization: 'Token ' + userToken
 			}
 		});
 		const json = await res.json();
@@ -263,8 +265,7 @@
 			<p />
 			{#if pizzaCount > 0 && !pizza['pizza']}
 				<div class="mt-4">
-					<span
-						class="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded"
+					<span class="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded"
 						>What are you waiting for? We have already given {pizzaCount} recommendations since you opened
 						the site!</span
 					>

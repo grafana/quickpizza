@@ -19,8 +19,11 @@ jobs:
         with:
           node-version: 18
 
-      - name: Check Formatting
+      - name: Check Formatting (Go)
         run: make format-check
+
+      - name: Check Formatting (TypeScript)
+        run: cd pkg/web && npm run lint
 
       - name: Build Binary
         run: make build
