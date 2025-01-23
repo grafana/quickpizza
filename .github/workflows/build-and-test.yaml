@@ -29,6 +29,11 @@ jobs:
         run: cd pkg/web && npm run lint
 
       - name: Start Server
+        env:
+          QUICKPIZZA_DEBUG_LEVEL: "info"
+          QUICKPIZZA_OTLP_ENDPOINT: "localhost"
+          QUICKPIZZA_TRUST_CLIENT_TRACEID: "1"
+          QUICKPIZZA_PYROSCOPE_ENDPOINT: "localhost"
         run: ./bin/quickpizza &
 
       # Enable cache for system files: https://github.com/actions/toolkit/issues/946
