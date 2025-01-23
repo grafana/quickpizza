@@ -52,6 +52,8 @@ func main() {
 			os.Exit(1)
 		}
 
+		slog.Debug("enabling tracing")
+
 		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
 			traceInstaller.Insecure()
 		}
