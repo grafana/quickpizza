@@ -22,11 +22,11 @@ jobs:
       - name: Check Formatting (Go)
         run: make format-check
 
-      - name: Check Formatting (TypeScript)
-        run: cd pkg/web && npm run lint
-
       - name: Build Binary
         run: make build
+
+      - name: Check Formatting (TypeScript)
+        run: cd pkg/web && npm run lint
 
       - name: Start Server
         run: ./bin/quickpizza &
