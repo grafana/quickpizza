@@ -29,6 +29,8 @@ jobs:
         run: cd pkg/web && npm run lint
 
       - name: Start Server
+        # Use enable these features in our own deployment, so we might as well
+        # "enable" them during testing as well to simulate a more realistic setup.
         env:
           QUICKPIZZA_OTLP_ENDPOINT: "http://localhost"
           QUICKPIZZA_TRUST_CLIENT_TRACEID: "1"

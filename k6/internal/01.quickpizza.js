@@ -125,4 +125,5 @@ function testTokenValidation() {
 export default function() {
   testCreateUserLogin();
   testTokenValidation();
+  // TODO test /metrics
 }
