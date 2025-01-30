@@ -133,7 +133,7 @@
 {#if render}
 	<section class="mt-4 flow-root">
 		<div class="flex float-left">
-			<img class="w-7 h-7 mr-2" src="/images/pizza.png" alt="logo" />
+			<a href="https://quickpizza.grafana.com"><img class="w-7 h-7 mr-2" src="/images/pizza.png" alt="logo" /></a>
 			<p class="text-xl font-bold text-red-600">QuickPizza</p>
 		</div>
 		<div class="flex float-right">
@@ -303,9 +303,14 @@
 		<div class="flex justify-center">
 			<p class="text-xs">Your user token is: {userToken} (WebSocket visitor ID: {wsVisitorID})</p>
 		</div>
-		<div class="flex justify-center mt-1 mb-8">
+		<div class="flex justify-center">
 			<p class="text-xs">
 				Looking for the admin page? <a class="text-blue-500" href="/admin">Click here</a>
+			</p>
+		</div>
+		<div class="flex justify-center">
+			<p class="text-xs">
+				Contribute to QuickPizza on <a class="text-blue-500" href="https://github.com/grafana/quickpizza">GitHub</a>
 			</p>
 		</div>
 	</footer>
