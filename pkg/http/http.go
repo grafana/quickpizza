@@ -151,7 +151,7 @@ func getRequestToken(r *http.Request) string {
 	prefix, token, found := strings.Cut(auth, " ")
 	prefix = strings.ToLower(prefix)
 
-	if !found || prefix != "token" || len(token) != model.UserTokenLength {
+	if !found || (prefix != "token" && prefix != "bearer") || len(token) != model.UserTokenLength {
 		return ""
 	}
 
@@ -626,15 +626,111 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		// Rating CRUD endpoints
 		r.Post("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			var rating model.Rating
+			if err := s.decodeJSONBody(w, r, &rating); err != nil {
+				return
+			}
+
+			if err := rating.Validate(); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			rating.UserID = user.ID
+
+			if err := db.RecordRating(r.Context(), &rating); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			s.writeJSONResponse(w, r, rating, http.StatusCreated)
 		})
 
 		r.Get("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			rating, err := db.GetRating(r.Context(), user, idParam)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			} else if rating == nil {
+				s.writeJSONErrorResponse(w, r, errors.New("not found"), http.StatusNotFound)
+				return
+			}
+
+			s.writeJSONResponse(w, r, rating, http.StatusOK)
 		})
 
 		r.Put("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			var rating model.Rating
+			if err := s.decodeJSONBody(w, r, &rating); err != nil {
+				return
+			}
+
+			if err := rating.Validate(); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			rating.ID = int64(idParam)
+
+			updated, err := db.UpdateRating(r.Context(), user, &rating)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			s.writeJSONResponse(w, r, updated, http.StatusOK)
 		})
 
 		r.Delete("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			err = db.DeleteRating(r.Context(), user, idParam)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
 		})
 	})
 
@@ -655,13 +751,14 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			err := db.RecordUser(r.Context(), &user)
 			if err == database.ErrUsernameTaken {
 				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
 			} else if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to record user", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			w.WriteHeader(http.StatusCreated)
+			s.writeJSONResponse(w, r, user, http.StatusCreated)
 		})
 
 		// Given username + password, return a user token (if credentials are valid).

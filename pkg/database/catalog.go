@@ -112,6 +112,72 @@ func (c *Catalog) GetRecommendation(ctx context.Context, id int) (*model.Pizza, 
 	return &pizza, err
 }
 
+func (c *Catalog) GetRating(ctx context.Context, user *model.User, ratingID int) (*model.Rating, error) {
+	var rating model.Rating
+	err := c.db.NewSelect().Model(&rating).Relation("User").Relation("Pizza").Where("rating.id = ? AND rating.user_id = ?", ratingID, user.ID).Limit(1).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &rating, err
+}
+
+func (c *Catalog) DeleteRating(ctx context.Context, user *model.User, ratingID int) error {
+	rating, err := c.GetRating(ctx, user, ratingID)
+	if err != nil {
+		return err
+	} else if rating == nil {
+		return fmt.Errorf("rating ID %v not found", ratingID)
+	}
+
+	_, err = c.db.NewDelete().Model(rating).WherePK().Exec(ctx)
+	return err
+}
+
+func (c *Catalog) UpdateRating(ctx context.Context, user *model.User, rating *model.Rating) (*model.Rating, error) {
+	existing, err := c.GetRating(ctx, user, int(rating.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	if existing == nil || existing.UserID != user.ID {
+		return nil, fmt.Errorf("rating ID %v not found", rating.ID)
+	}
+
+	existing.Stars = rating.Stars
+	err = c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		_, err := tx.NewUpdate().Model(existing).Column("stars").WherePK().Exec(ctx)
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return existing, nil
+}
+
+func (c *Catalog) RecordRating(ctx context.Context, rating *model.Rating) error {
+	pizza, err := c.GetRecommendation(ctx, int(rating.PizzaID))
+	if err != nil {
+		return err
+	}
+
+	if pizza == nil {
+		return fmt.Errorf("pizza ID %v not found", rating.PizzaID)
+	}
+
+	rating.ID = 0
+
+	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		_, err := tx.NewInsert().Model(rating).Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		return c.enforceTableSizeLimits(ctx, tx, (*model.Rating)(nil), c.fixedRatings, c.maxRatings)
+	})
+}
+
 func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
 	passwordHash, err := password.HashPassword(user.Password)
 	if err != nil {
