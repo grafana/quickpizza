@@ -222,6 +222,14 @@
       name: A Funny Capricciosa
       dough_id: 1
       tool: Scissors
+    - id: 2
+      name: The Database Special
+      dough_id: 2
+      tool: Knife
+    - id: 3
+      name: The Deep Bolognese
+      dough_id: 3
+      tool: Knife
 - model: PizzaToIngredients
   rows:
     - pizza_id: 1
@@ -234,14 +242,36 @@
       ingredient_id: 24
     - pizza_id: 1
       ingredient_id: 18
+    - pizza_id: 2
+      ingredient_id: 3
+    - pizza_id: 2
+      ingredient_id: 5
+    - pizza_id: 2
+      ingredient_id: 7
+    - pizza_id: 2
+      ingredient_id: 22
+    - pizza_id: 3
+      ingredient_id: 3
+    - pizza_id: 3
+      ingredient_id: 6
+    - pizza_id: 3
+      ingredient_id: 9
 - model: User
   rows:
     - id: 1
       username: default
-      token: ""
+      token: "abcdef0123456789"
 - model: Rating
   rows:
     - id: 1
       stars: 5
       user_id: 1
       pizza_id: 1
+    - id: 2
+      stars: 4
+      user_id: 1
+      pizza_id: 2
+    - id: 3
+      stars: 1
+      user_id: 1
+      pizza_id: 3

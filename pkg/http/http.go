@@ -677,7 +677,23 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			s.writeJSONResponse(w, r, rating, http.StatusOK)
 		})
 
-		r.Put("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			ratings, err := db.GetRatings(r.Context(), user)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			s.writeJSONResponse(w, r, map[string]any{"ratings": ratings}, http.StatusOK)
+		})
+
+		updateRating := func(w http.ResponseWriter, r *http.Request) {
 			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -709,7 +725,10 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			s.writeJSONResponse(w, r, updated, http.StatusOK)
-		})
+		}
+
+		r.Put("/api/ratings/{id:\\d+}", updateRating)
+		r.Patch("/api/ratings/{id:\\d+}", updateRating)
 
 		r.Delete("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
 			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))

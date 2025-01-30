@@ -14,6 +14,8 @@ const (
 
 var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
+const GlobalUsername = "default"
+
 func GenerateUserToken() string {
 	data := make([]rune, UserTokenLength)
 	for i := range data {
@@ -30,7 +32,7 @@ func (u *User) Validate() error {
 		return errors.New("username field is empty")
 	case len(u.Username) > MaxNameLength:
 		return errors.New("username field is too long")
-	case u.Username == "default":
+	case u.Username == GlobalUsername:
 		return errors.New("username field is invalid")
 	case u.Password == "":
 		return errors.New("password is empty")

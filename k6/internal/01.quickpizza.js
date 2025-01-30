@@ -74,17 +74,17 @@ function testCreateUserLogin() {
 
     expect(res.status, "response status").to.equal(401);
 
-    // Cannot log in as default user
+    // Can log in as default user
     res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: "default",
-      password: "",
+      password: "foobar",
     }), {
       headers: {
         'Content-Type': 'application/json',
       }
     });
 
-    expect(res.status, "response status").to.equal(401);
+    expect(res.status, "response status").to.equal(200);
   });
 }
 
@@ -122,8 +122,17 @@ function testTokenValidation() {
   });
 }
 
+function testMetrics() {
+  describe("Metrics endpoint is available", () => {
+    var res = http.post(`${BASE_URL}/metrics`, {});
+
+    expect(res.status, "response status").to.equal(200);
+    expect(res.body.length, "response size").to.be.greaterThan(100);
+  });
+}
+
 export default function() {
   testCreateUserLogin();
   testTokenValidation();
-  // TODO test /metrics
+  testMetrics();
 }

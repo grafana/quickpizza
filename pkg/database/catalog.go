@@ -30,7 +30,10 @@ type Catalog struct {
 	maxRatings   int
 }
 
+const getRatingsMax = 50
+
 var ErrUsernameTaken = errors.New("username already taken")
+var ErrGlobalOperationNotPermitted = errors.New("operation not permitted for default user")
 
 func NewCatalog(connString string) (*Catalog, error) {
 	db, err := initializeDB(connString)
@@ -112,6 +115,15 @@ func (c *Catalog) GetRecommendation(ctx context.Context, id int) (*model.Pizza, 
 	return &pizza, err
 }
 
+func (c *Catalog) GetRatings(ctx context.Context, user *model.User) ([]*model.Rating, error) {
+	ratings := make([]*model.Rating, 0)
+	err := c.db.NewSelect().Model((*model.Rating)(nil)).Relation("User").Relation("Pizza").Where("rating.user_id = ?", user.ID).Limit(getRatingsMax).Scan(ctx, &ratings)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return ratings, err
+}
+
 func (c *Catalog) GetRating(ctx context.Context, user *model.User, ratingID int) (*model.Rating, error) {
 	var rating model.Rating
 	err := c.db.NewSelect().Model(&rating).Relation("User").Relation("Pizza").Where("rating.id = ? AND rating.user_id = ?", ratingID, user.ID).Limit(1).Scan(ctx)
@@ -122,6 +134,10 @@ func (c *Catalog) GetRating(ctx context.Context, user *model.User, ratingID int)
 }
 
 func (c *Catalog) DeleteRating(ctx context.Context, user *model.User, ratingID int) error {
+	if user.Username == model.GlobalUsername {
+		return ErrGlobalOperationNotPermitted
+	}
+
 	rating, err := c.GetRating(ctx, user, ratingID)
 	if err != nil {
 		return err
@@ -134,6 +150,10 @@ func (c *Catalog) DeleteRating(ctx context.Context, user *model.User, ratingID i
 }
 
 func (c *Catalog) UpdateRating(ctx context.Context, user *model.User, rating *model.Rating) (*model.Rating, error) {
+	if user.Username == model.GlobalUsername {
+		return nil, ErrGlobalOperationNotPermitted
+	}
+
 	existing, err := c.GetRating(ctx, user, int(rating.ID))
 	if err != nil {
 		return nil, err
@@ -214,7 +234,8 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 		return nil, nil
 	}
 
-	if password.CheckPassword(passwordText, user.PasswordHash) {
+	// Any password works for logging in as the default, global user.
+	if username == model.GlobalUsername || password.CheckPassword(passwordText, user.PasswordHash) {
 		return &user, nil
 	}
 	return nil, nil
