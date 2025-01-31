@@ -24,6 +24,20 @@ function randomString(length) {
   return result;
 }
 
+function testDatabaseCreatedUserLogin() {
+  describe("Log in as a user that was already inserted in the DB", () => {
+    let data = {username: "synthetics_multihttp_example", password: "synthetics_multihttp_example"};
+    var res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    expect(res.status, "response status").to.equal(200);
+    expect(res.json().token.length, "token").to.equal(16);
+  });
+}
+
 function testCreateUserLogin() {
   let username = randomString(32);
   let password = randomString(32);
@@ -133,6 +147,7 @@ function testMetrics() {
 
 export default function() {
   testCreateUserLogin();
+  testDatabaseCreatedUserLogin();
   testTokenValidation();
   testMetrics();
 }

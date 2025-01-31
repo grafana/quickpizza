@@ -234,6 +234,13 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 		return nil, nil
 	}
 
+	if user.PasswordPlaintext != "" {
+		if passwordText == user.PasswordPlaintext {
+			return &user, nil
+		}
+		return nil, nil
+	}
+
 	// Any password works for logging in as the default, global user.
 	if username == model.GlobalUsername || password.CheckPassword(passwordText, user.PasswordHash) {
 		return &user, nil

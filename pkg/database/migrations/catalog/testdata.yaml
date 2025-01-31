@@ -260,7 +260,11 @@
   rows:
     - id: 1
       username: default
-      token: "abcdef0123456789"
+      token: abcdef0123456789
+    - id: 2
+      username: synthetics_multihttp_example
+      password_plaintext: synthetics_multihttp_example
+      token: woSyhhrE3pQVUxMU
 - model: Rating
   rows:
     - id: 1

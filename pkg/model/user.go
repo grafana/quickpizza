@@ -43,9 +43,10 @@ func (u *User) Validate() error {
 
 type User struct {
 	bun.BaseModel
-	ID           int64  `json:"id" bun:",pk,autoincrement"`
-	Username     string `json:"username" bun:",unique"`
-	Token        string `json:"-" bun:",unique"`
-	Password     string `json:"password,omitempty" bun:"-"`
-	PasswordHash string `json:"-"`
+	ID                int64  `json:"id" bun:",pk,autoincrement"`
+	Username          string `json:"username" bun:",unique"`
+	Token             string `json:"-" bun:",unique"`
+	Password          string `json:"password,omitempty" bun:"-"` // Only used for JSON
+	PasswordHash      string `json:"-"`
+	PasswordPlaintext string `json:"-"` // Only used for users created via testdata.yaml
 }
