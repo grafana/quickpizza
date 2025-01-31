@@ -161,7 +161,7 @@
 		</div>
 		<div class="flex float-right">
 			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
-				<span class="ml-3 text-xs text-red-600 font-bold"><a href="/login">Login</a></span>
+				<span class="ml-3 text-xs text-red-600 font-bold"><a href="/login">Login/Profile</a></span>
 			</span>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">
 				<input type="checkbox" bind:checked={advanced} class="sr-only peer" />
@@ -275,6 +275,7 @@
 				<button
 					slot="label"
 					type="button"
+					name="pizza-please"
 					on:click={getPizza}
 					class="mt-6 text-white bg-gradient-to-br from-red-500 to-orange-400 hover:bg-gradient-to-bl font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
 				>
@@ -302,7 +303,7 @@
 					<div class="flex justify-center" id="recommendations">
 						<div class="w-[300px] sm:w-[500px] mt-6 bg-gray-50 border border-gray-200 rounded-lg">
 							<div class="text-left p-4">
-								<h2 class="font-medium">Our recommendation:</h2>
+								<h2 class="font-medium" id="pizza-name">Our recommendation:</h2>
 								<div class="ml-2">
 									<p>Name: {pizza['pizza']['name']}</p>
 									<p>Dough: {pizza['pizza']['dough']['name']}</p>
@@ -320,6 +321,7 @@
 					</div>
 					<button
 						type="button"
+						name="rate-1"
 						on:click={() => ratePizza(1)}
 						class="mt-6 text-white bg-gray-400 font-medium rounded-lg text-sm px-4 py-1.5 text-center mr-2 mb-2"
 					>
@@ -327,13 +329,14 @@
 					>
 					<button
 						type="button"
+						name="rate-5"
 						on:click={() => ratePizza(5)}
 						class="mt-6 text-white bg-red-400 font-medium rounded-lg text-sm px-4 py-1.5 text-center mr-2 mb-2"
 					>
 						Love it!</button
 					>
 					{#if rateResult}
-						<p class="text-base mt-1 font-bold">{rateResult}</p>
+						<p class="text-base mt-1 font-bold" id="rate-result">{rateResult}</p>
 					{/if}
 				{/if}
 			</p>
