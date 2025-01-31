@@ -133,7 +133,9 @@
 {#if render}
 	<section class="mt-4 flow-root">
 		<div class="flex float-left">
-			<a href="https://quickpizza.grafana.com"><img class="w-7 h-7 mr-2" src="/images/pizza.png" alt="logo" /></a>
+			<a href="https://quickpizza.grafana.com"
+				><img class="w-7 h-7 mr-2" src="/images/pizza.png" alt="logo" /></a
+			>
 			<p class="text-xl font-bold text-red-600">QuickPizza</p>
 		</div>
 		<div class="flex float-right">
@@ -310,7 +312,10 @@
 		</div>
 		<div class="flex justify-center">
 			<p class="text-xs">
-				Contribute to QuickPizza on <a class="text-blue-500" href="https://github.com/grafana/quickpizza">GitHub</a>
+				Contribute to QuickPizza on <a
+					class="text-blue-500"
+					href="https://github.com/grafana/quickpizza">GitHub</a
+				>
 			</p>
 		</div>
 	</footer>
