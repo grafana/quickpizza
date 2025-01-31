@@ -14,6 +14,8 @@
 		minNumberOfToppings: 2
 	};
 
+	var ratingStars = 5;
+
 	// A randomly-generated integer used to track identity of WebSocket connections.
 	// Completely unrelated to users, user tokens, authentication, etc.
 	var wsVisitorID = 0;
@@ -35,6 +37,7 @@
 	var pizzaCount = 0;
 	let restrictions = defaultRestrictions;
 	var advanced = false;
+	var rateResult = null;
 
 	$: if (advanced) {
 		pizza = '';
@@ -93,6 +96,21 @@
 		render = true;
 	});
 
+	async function ratePizza(stars) {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/ratings`, {
+			method: 'POST',
+			body: JSON.stringify({
+				pizza_id: pizza['pizza']['id'],
+				stars: stars
+			})
+		});
+		if (res.ok) {
+			rateResult = 'Rated!';
+		} else {
+			rateResult = 'Please log in first.';
+		}
+	}
+
 	async function getPizza() {
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/pizza`, {
 			method: 'POST',
@@ -103,6 +121,7 @@
 		});
 		const json = await res.json();
 		pizza = json;
+		rateResult = null;
 		if (socket.readyState <= 1) {
 			socket.send(
 				JSON.stringify({
@@ -299,6 +318,23 @@
 							</div>
 						</div>
 					</div>
+					<button
+						type="button"
+						on:click={() => ratePizza(1)}
+						class="mt-6 text-white bg-gray-400 font-medium rounded-lg text-sm px-4 py-1.5 text-center mr-2 mb-2"
+					>
+						No thanks</button
+					>
+					<button
+						type="button"
+						on:click={() => ratePizza(5)}
+						class="mt-6 text-white bg-red-400 font-medium rounded-lg text-sm px-4 py-1.5 text-center mr-2 mb-2"
+					>
+						Love it!</button
+					>
+					{#if rateResult}
+						<p class="text-base mt-1 font-bold">{rateResult}</p>
+					{/if}
 				{/if}
 			</p>
 		</div>

@@ -5,7 +5,7 @@ import (
 )
 
 type Pizza struct {
-	ID          int64        `bun:",pk,autoincrement"`
+	ID          int64        `json:"id" bun:",pk,autoincrement"`
 	CreatedAt   time.Time    `json:"-" bun:",nullzero,notnull,default:current_timestamp"`
 	Name        string       `json:"name"`
 	DoughID     int64        `json:"-"`
