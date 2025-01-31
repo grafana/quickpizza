@@ -6,6 +6,7 @@
 	var username = '';
 	var password = '';
 	var qpUserLoggedIn = false;
+	var ratings = [];
 
 	onMount(async () => {
 		qpUserLoggedIn = checkQPUserLoggedIn();
@@ -34,6 +35,39 @@
 		qpUserLoggedIn = checkQPUserLoggedIn();
 	}
 
+	$: if (qpUserLoggedIn) {
+		updateRatings();
+	}
+
+	async function updateRatings() {
+		ratings = [];
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/ratings`, {
+			method: 'GET',
+			credentials: 'same-origin'
+		});
+		if (!res.ok) {
+			ratings = ['Something went wrong retrieving your ratings.'];
+			return;
+		}
+		const json = await res.json();
+
+		var newRatings = [];
+		json.ratings.forEach((rating) => {
+			newRatings.push(
+				`Rating ID: ${rating.id} (stars=${rating.stars}, pizza_id=${rating.pizza_id})`
+			);
+		});
+		ratings = newRatings;
+	}
+
+	async function deleteRatings() {
+		await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/ratings`, {
+			method: 'DELETE',
+			credentials: 'same-origin'
+		});
+		location.reload();
+	}
+
 	async function handleLogout() {
 		document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 		qpUserLoggedIn = false;
@@ -42,15 +76,29 @@
 
 {#if qpUserLoggedIn}
 	<section class="flex flex-column justify-center items-center mt-40">
-		<div class="text-center text-xl">
-			<span class="mt-5 font-bold">Hello there! You are currently logged in.</span>
-		</div>
-	</section>
-	<section class="flex flex-column justify-center items-center mt-40">
 		<div class="text-center">
+			<div class="mt-4 mb-12">
+				<h2 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl mb-2">
+					Your Pizza Ratings:
+				</h2>
+				<ul>
+					{#if ratings.length === 0}
+						<li>No ratings yet</li>
+					{:else}
+						{#each ratings as rating}
+							<li>{rating}</li>
+						{/each}
+					{/if}
+				</ul>
+			</div>
+			<button
+				on:click={deleteRatings}
+				class="w-32 mr-2 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm text-center"
+				>Clear Ratings</button
+			>
 			<button
 				on:click={handleLogout}
-				class="w-20 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm  text-center"
+				class="w-20 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm text-center"
 				>Logout</button
 			>
 		</div>
