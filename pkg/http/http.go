@@ -142,11 +142,27 @@ const (
 	authKey    authKeyType = 0
 	userKey    userKeyType = 0
 	authHeader             = "Authorization"
+	cookieName             = "qp_user_token"
 )
 
 var authError = errors.New("authentication failed")
 
+func requestTokenFromCookie(r *http.Request) string {
+	cookie_token, err := r.Cookie(cookieName)
+	if err == nil && cookie_token != nil {
+		return cookie_token.Value
+	}
+	return ""
+}
+
 func getRequestToken(r *http.Request) string {
+	// Try extracting token from Cookies first.
+	cookie_token := requestTokenFromCookie(r)
+	if len(cookie_token) == model.UserTokenLength {
+		return cookie_token
+	}
+
+	// Otherwise, check the Authorization header.
 	auth := r.Header.Get(authHeader)
 	prefix, token, found := strings.Cut(auth, " ")
 	prefix = strings.ToLower(prefix)
@@ -414,8 +430,6 @@ func (s *Server) AddHTTPTesting() {
 
 			data := make([]byte, n)
 			crand.Read(data)
-			println(n)
-			println(data)
 
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
@@ -534,6 +548,12 @@ func (s *Server) AuthViaCatalogClientMiddleware(catalogClient CatalogClient) fun
 			// Copy the Authorization header into the context, so that when making
 			// requests to other QP microservices, the header is forwarded to them
 			// (see code in client.go).
+			auth := requestTokenFromCookie(r)
+			if auth != "" {
+				s.log.DebugContext(r.Context(), "Taking auth info from cookies")
+				r.Header.Set(authHeader, "Token "+auth)
+			}
+
 			ctx := context.WithValue(r.Context(), authKey, r.Header.Get(authHeader))
 
 			_, err := catalogClient.WithRequestContext(ctx).Authenticate()
@@ -780,7 +800,8 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			s.writeJSONResponse(w, r, user, http.StatusCreated)
 		})
 
-		// Given username + password, return a user token (if credentials are valid).
+		// Given username + password, set a Cookie with the user's
+		// token, and return the user token (if credentials are valid).
 		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
 			type loginData struct {
 				Username string `json:"username"`
@@ -803,6 +824,15 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				// User does not exist, or password auth failed.
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
+			}
+
+			if r.URL.Query().Get("set_cookie") != "" {
+				http.SetCookie(w, &http.Cookie{
+					Name:     cookieName,
+					Value:    user.Token,
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+				})
 			}
 
 			s.writeJSONResponse(w, r, map[string]string{"token": user.Token}, http.StatusOK)

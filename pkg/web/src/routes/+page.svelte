@@ -24,6 +24,8 @@
 	// way QP was set up originally (i.e. one can open the website and start creating pizzas
 	// immediately, without logging in anywhere). So technically, the user is already logged
 	// in the moment they open the page.
+	// Additionally, if the qp_user_token Cookie has been set via the /login page, the value
+	// of the Cookie will take priority over this token sent over the Authorization header.
 	var userToken = '';
 
 	var render = false;
@@ -139,12 +141,15 @@
 			<p class="text-xl font-bold text-red-600">QuickPizza</p>
 		</div>
 		<div class="flex float-right">
+			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
+				<span class="ml-3 text-xs text-red-600 font-bold"><a href="/login">Login</a></span>
+			</span>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">
 				<input type="checkbox" bind:checked={advanced} class="sr-only peer" />
 				<div
 					class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"
 				/>
-				<span class="ml-3 text-xs">Advanced</span>
+				<span class="ml-2 text-xs">Advanced</span>
 			</label>
 		</div>
 	</section>
@@ -303,7 +308,7 @@
 			<p class="text-sm">Made with ❤️ by QuickPizza Labs.</p>
 		</div>
 		<div class="flex justify-center">
-			<p class="text-xs">Your user token is: {userToken} (WebSocket visitor ID: {wsVisitorID})</p>
+			<p class="text-xs">WebSocket visitor ID: {wsVisitorID}</p>
 		</div>
 		<div class="flex justify-center">
 			<p class="text-xs">
