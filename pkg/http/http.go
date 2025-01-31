@@ -750,6 +750,22 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		r.Put("/api/ratings/{id:\\d+}", updateRating)
 		r.Patch("/api/ratings/{id:\\d+}", updateRating)
 
+		r.Delete("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			err := db.DeleteRatings(r.Context(), user)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		})
+
 		r.Delete("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
 			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
 			if err != nil {

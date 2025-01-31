@@ -133,6 +133,15 @@ func (c *Catalog) GetRating(ctx context.Context, user *model.User, ratingID int)
 	return &rating, err
 }
 
+func (c *Catalog) DeleteRatings(ctx context.Context, user *model.User) error {
+	if user.IsGlobal() {
+		return ErrGlobalOperationNotPermitted
+	}
+
+	_, err := c.db.NewDelete().Model((*model.Rating)(nil)).Where("rating.user_id = ?", user.ID).Exec(ctx)
+	return err
+}
+
 func (c *Catalog) DeleteRating(ctx context.Context, user *model.User, ratingID int) error {
 	if user.Username == model.GlobalUsername {
 		return ErrGlobalOperationNotPermitted
@@ -150,7 +159,7 @@ func (c *Catalog) DeleteRating(ctx context.Context, user *model.User, ratingID i
 }
 
 func (c *Catalog) UpdateRating(ctx context.Context, user *model.User, rating *model.Rating) (*model.Rating, error) {
-	if user.Username == model.GlobalUsername {
+	if user.IsGlobal() {
 		return nil, ErrGlobalOperationNotPermitted
 	}
 
@@ -234,6 +243,7 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 		return nil, nil
 	}
 
+	// Some pre-created users have their password stored as plaintext.
 	if user.PasswordPlaintext != "" {
 		if passwordText == user.PasswordPlaintext {
 			return &user, nil
@@ -242,7 +252,7 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 	}
 
 	// Any password works for logging in as the default, global user.
-	if username == model.GlobalUsername || password.CheckPassword(passwordText, user.PasswordHash) {
+	if user.IsGlobal() || password.CheckPassword(passwordText, user.PasswordHash) {
 		return &user, nil
 	}
 	return nil, nil

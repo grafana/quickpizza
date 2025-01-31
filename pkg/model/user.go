@@ -50,3 +50,7 @@ type User struct {
 	PasswordHash      string `json:"-"`
 	PasswordPlaintext string `json:"-"` // Only used for users created via testdata.yaml
 }
+
+func (u *User) IsGlobal() bool {
+	return u.Username == GlobalUsername
+}
