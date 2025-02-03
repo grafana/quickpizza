@@ -12,7 +12,7 @@
 		"format": "prettier --plugin-search-dir . --write ."
 	},
 	"devDependencies": {
-		"@grafana/faro-web-sdk": "^1.10.0",
+		"@grafana/faro-web-sdk": "^1.13.1",
 		"@grafana/faro-web-tracing": "^1.10.0",
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/adapter-static": "^2.0.1",
