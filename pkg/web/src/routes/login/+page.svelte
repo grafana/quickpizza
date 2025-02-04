@@ -140,10 +140,15 @@
 						</div>
 						<button
 							type="submit"
-							class="w-full text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+							class="w-full text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mt-10"
 							>Sign in</button
 						>
 					</form>
+					<p class="text-sm">
+						<b>Tip:</b> You can create a new user via the
+						<code>POST http://quickpizza.grafana.com/api/users</code>
+						endpoint. Attach a JSON payload with <code>username</code> and <code>password</code> keys.
+					</p>
 					{#if loginError}
 						<div class="text-center text-red-500">{loginError}</div>
 					{/if}
