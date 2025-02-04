@@ -747,6 +747,18 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			s.writeJSONResponse(w, r, updated, http.StatusOK)
 		}
 
+		r.Post("/api/users/token/logout", func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:     cookieName,
+				Value:    "",
+				SameSite: http.SameSiteStrictMode,
+				Path:     "/",
+				Expires:  time.Unix(0, 0),
+			})
+
+			w.WriteHeader(http.StatusOK)
+		})
+
 		r.Put("/api/ratings/{id:\\d+}", updateRating)
 		r.Patch("/api/ratings/{id:\\d+}", updateRating)
 
@@ -813,6 +825,8 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
+			user.Password = ""
+			user.Token = ""
 			s.writeJSONResponse(w, r, user, http.StatusCreated)
 		})
 
