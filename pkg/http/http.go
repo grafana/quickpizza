@@ -143,6 +143,7 @@ const (
 	userKey    userKeyType = 0
 	authHeader             = "Authorization"
 	cookieName             = "qp_user_token"
+	piDecimals             = "1415926535897932384626433832795028841971693993751058209749445923078164"
 )
 
 var authError = errors.New("authentication failed")
@@ -402,7 +403,49 @@ func (s *Server) AddWebSocket() {
 	})
 }
 
+// AddTestK6IO enables routes for replacing the legacy test.k6.io service.
+// It tries to follow https://github.com/grafana/test.k6.io as closely as possible,
+// even though the original service was implemented in PHP. For this reason, the paths
+// defined here will sometimes end in '.php'.
+func (s *Server) AddTestK6IO() {
+	filesystem := http.FS(web.TestK6IO)
+
+	staticMapping := map[string]string{
+		"/contacts.php":    "test.k6.io/contacts.html",
+		"/news.php":        "test.k6.io/news.html",
+		"/flip_coin.php":   "test.k6.io/flip_coin.html",
+		"/browser.php":     "test.k6.io/browser.html",
+		"/my_messages.php": "test.k6.io/my_messages.html",
+	}
+
+	s.router.Group(func(r chi.Router) {
+		for k, v := range staticMapping {
+			r.HandleFunc(k, func(w http.ResponseWriter, r *http.Request) {
+				p, _ := web.TestK6IO.ReadFile(v)
+				w.Write(p)
+			})
+		}
+
+		r.Get("/pi.php", func(w http.ResponseWriter, r *http.Request) {
+			arg := r.URL.Query().Get("decimals")
+			decimals, err := strconv.Atoi(arg)
+			if err != nil || decimals < 0 {
+				decimals = 2
+			} else if decimals > len(piDecimals) {
+				decimals = len(piDecimals)
+			}
+
+			w.Write([]byte("3." + piDecimals[:decimals]))
+		})
+
+		r.Get("/test.k6.io/*", func(w http.ResponseWriter, r *http.Request) {
+			http.FileServer(filesystem).ServeHTTP(w, r)
+		})
+	})
+}
+
 // AddHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
+// These are meant to replace https://github.com/grafana/httpbin (roughly).
 func (s *Server) AddHTTPTesting() {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "httptesting")
