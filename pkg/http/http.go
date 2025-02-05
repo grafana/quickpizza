@@ -416,6 +416,7 @@ func (s *Server) AddTestK6IO() {
 		"/flip_coin.php":   "test.k6.io/flip_coin.html",
 		"/browser.php":     "test.k6.io/browser.html",
 		"/my_messages.php": "test.k6.io/my_messages.html",
+		"/admin.php": "test.k6.io/admin.html",
 	}
 
 	s.router.Group(func(r chi.Router) {
@@ -438,7 +439,7 @@ func (s *Server) AddTestK6IO() {
 			w.Write([]byte("3." + piDecimals[:decimals]))
 		})
 
-		r.Get("/test.k6.io/*", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/test.k6.io/*", func(w http.ResponseWriter, r *http.Request) {
 			http.FileServer(filesystem).ServeHTTP(w, r)
 		})
 	})
