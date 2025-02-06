@@ -444,9 +444,12 @@ func (s *Server) AddTestK6IO() {
 			w.Write([]byte("3." + piDecimals[:decimals]))
 		})
 
-		r.HandleFunc("/test.k6.io/*", func(w http.ResponseWriter, r *http.Request) {
+		serveFiles := func(w http.ResponseWriter, r *http.Request) {
 			http.FileServer(filesystem).ServeHTTP(w, r)
-		})
+		}
+
+		r.HandleFunc("/test.k6.io/*", serveFiles)
+		r.HandleFunc("/test.k6.io", serveFiles)
 	})
 }
 
