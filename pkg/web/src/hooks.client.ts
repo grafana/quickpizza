@@ -3,7 +3,7 @@ import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 
 function setupFaro() {
-	fetch(`${PUBLIC_BACKEND_ENDPOINT}api/config`)
+	fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/config`)
 		.then((data) => data.json())
 		.then((config) => {
 			const url = config.faro_url;

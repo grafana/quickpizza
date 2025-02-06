@@ -22,7 +22,7 @@
 	}
 
 	async function handleSubmit() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/users/token/login?set_cookie=true`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/users/token/login?set_cookie=true`, {
 			method: 'POST',
 			body: JSON.stringify({
 				username: username,
@@ -45,7 +45,7 @@
 
 	async function updateRatings() {
 		ratings = [];
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/ratings`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 			method: 'GET',
 			credentials: 'same-origin'
 		});
@@ -65,7 +65,7 @@
 	}
 
 	async function deleteRatings() {
-		await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/ratings`, {
+		await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 			method: 'DELETE',
 			credentials: 'same-origin'
 		});

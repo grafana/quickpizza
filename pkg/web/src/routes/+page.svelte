@@ -69,7 +69,7 @@
 		if (userToken === '') {
 			userTokenStore.set(randomToken(16));
 		}
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/quotes`);
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
 		const json = await res.json();
 		quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
 
@@ -97,7 +97,7 @@
 	});
 
 	async function ratePizza(stars) {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/ratings`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 			method: 'POST',
 			body: JSON.stringify({
 				pizza_id: pizza['pizza']['id'],
@@ -112,7 +112,7 @@
 	}
 
 	async function getPizza() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/pizza`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
 			method: 'POST',
 			body: JSON.stringify(restrictions),
 			headers: {
@@ -137,7 +137,7 @@
 	}
 
 	async function getTools() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/tools`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
 			headers: {
 				Authorization: 'Token ' + userToken
 			}
@@ -264,7 +264,7 @@
 								value=""
 								class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded accent-red-600"
 							/>
-							<label for="default-checkbox" class="ml-2 text-sm  text-gray-900"
+							<label for="default-checkbox" class="ml-2 text-sm text-gray-900"
 								>Must be vegetarian</label
 							>
 						</div>

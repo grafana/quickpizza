@@ -23,7 +23,7 @@
 
 	async function handleSubmit() {
 		const res = await fetch(
-			`${PUBLIC_BACKEND_ENDPOINT}api/admin/login?user=${username}&password=${password}`,
+			`${PUBLIC_BACKEND_ENDPOINT}/api/admin/login?user=${username}&password=${password}`,
 			{
 				method: 'POST',
 				credentials: 'same-origin' // Honor Set-Cookie header returned by /api/admin/login.
@@ -49,7 +49,7 @@
 
 	function updateRecommendations() {
 		// Admin token is sent via Cookies in headers
-		fetch(`${PUBLIC_BACKEND_ENDPOINT}api/internal/recommendations`, {
+		fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/internal/recommendations`, {
 			method: 'GET'
 		})
 			.then((res) => res.json())
@@ -73,7 +73,7 @@
 		<div class="text-center">
 			<button
 				on:click={handleLogout}
-				class="w-20 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm  text-center"
+				class="w-20 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm text-center"
 				>Logout</button
 			>
 			<div class="mt-4 mb-4">
@@ -92,7 +92,7 @@
 			</div>
 			<button
 				on:click={updateRecommendations}
-				class="w-20 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm  text-center"
+				class="w-20 text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm text-center"
 				>Refresh</button
 			>
 		</div>
