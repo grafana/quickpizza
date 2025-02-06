@@ -22,7 +22,7 @@
 	}
 
 	async function handleSubmit() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/users/token/login?set_cookie=1`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/users/token/login?set_cookie=true`, {
 			method: 'POST',
 			body: JSON.stringify({
 				username: username,

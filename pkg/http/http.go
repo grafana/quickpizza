@@ -896,7 +896,9 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			if data.CSRFToken != serverCSRFToken {
+			setCookie := r.URL.Query().Get("set_cookie") != ""
+
+			if setCookie && data.CSRFToken != serverCSRFToken {
 				s.writeJSONErrorResponse(w, r, errors.New("invalid csrf token"), http.StatusUnauthorized)
 				return
 			}
@@ -914,7 +916,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				return
 			}
 
-			if r.URL.Query().Get("set_cookie") != "" {
+			if setCookie {
 				http.SetCookie(w, &http.Cookie{
 					Name:     cookieName,
 					Value:    user.Token,
