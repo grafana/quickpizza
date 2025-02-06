@@ -6,6 +6,7 @@ import chai, {
 chai.config.exitOnError = true;
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
+const CSRF = "NTQyNjg1OTc2"
 
 export const options = {
   vus: 1,
@@ -26,7 +27,7 @@ function randomString(length) {
 
 function testDatabaseCreatedUserLogin() {
   describe("Log in as a user that was already inserted in the DB", () => {
-    let data = {username: "synthetics_multihttp_example", password: "synthetics_multihttp_example"};
+    let data = {username: "synthetics_multihttp_example", password: "synthetics_multihttp_example", csrf: CSRF};
     var res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify(data), {
       headers: {
         'Content-Type': 'application/json',
@@ -52,6 +53,7 @@ function testCreateUserLogin() {
 
     expect(res.status, "response status").to.equal(201);
 
+	  data.csrf = CSRF;
     res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify(data), {
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +68,8 @@ function testCreateUserLogin() {
     // Invalid password
     var res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: username,
-      password: "foo",
+	    password: "foo",
+      csrf: CSRF,
     }), {
       headers: {
         'Content-Type': 'application/json',
@@ -80,6 +83,7 @@ function testCreateUserLogin() {
     res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: "foo",
       password: "foo",
+      csrf: CSRF,
     }), {
       headers: {
         'Content-Type': 'application/json',
@@ -92,6 +96,7 @@ function testCreateUserLogin() {
     res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: "default",
       password: "foobar",
+      csrf: CSRF,
     }), {
       headers: {
         'Content-Type': 'application/json',

@@ -1,87 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="icon" href="/test.k6.io/static/favicon.ico" sizes="32x32">
-    <link rel="stylesheet" href="/test.k6.io/static/css/site.css" type="text/css">
-    <title>k6 PHP Play</title>
-</head>
-<body>
-<main class="page">
-    <header class="header">
-        <div class="logo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="220.227" height="213.73" viewBox="0 0 220.227 213.73">
-                <path d="M220.727,213.731H.5L73.815,57.346l44.163,32.466L175.581,0Zm-80.746-33.778h.471a21.028,21.028,0,0,0,14.619-5.876,19.166,19.166,0,0,0,6.284-14.454,17.546,17.546,0,0,0-6.057-13.873,18.426,18.426,0,0,0-12.568-5.412h-.361a6.567,6.567,0,0,0-1.83.251l11.626-17.282-9.262-6.465-4.383,6.465-11.2,17.109c-1.925,2.836-3.535,5.334-4.533,7.07a40.655,40.655,0,0,0-2.663,5.726,17.816,17.816,0,0,0-1.272,6.6,19.145,19.145,0,0,0,6.206,14.3,20.709,20.709,0,0,0,14.485,5.876Zm-49.237-18.6,12.836,18.154H117.3l-15.1-21.06,13.41-18.617-8.9-6.159-3.927,5.184-12.058,17V121.674l-12.019-9.8V179.5H90.727V161.336ZM140,168.618a8.837,8.837,0,1,1,0-17.675h.079a8.639,8.639,0,0,1,6.229,2.663,8.228,8.228,0,0,1,2.663,6.127A8.978,8.978,0,0,1,140,168.6Z"
-                      transform="translate(-0.5 -0.001)" fill="#7d64ff"/>
-            </svg>
-        </div>
-        <div>
-            <h1 class="title">QuickPizza Legacy</h1>
-            <p class="description">
-              This is a replacement of the service previously found at <a href="https://test.k6.io">https://test.k6.io</a>.
-              Click <a href="/">here</a> to go back to the main QuickPizza page, which contains more functionality for writing HTTP tests.
-                <br/><br/> 
-                <i class="note">Note that this is a shared testing environment - please avoid high-load tests. This project is available <a href="https://github.com/grafana/quickpizza">here</a>.</i>
-            </p>
-        </div>
-        <ul class="header-icons">
-            <li>
-                <a href="https://github.com/grafana/quickpizza">
-                    <svg height="20" width="20" aria-hidden="true" focusable="false"
-                         viewBox="0 0 496 512">
-                        <path fill="currentColor"
-                              d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"></path>
-                    </svg>
-                </a>
-            </li>
-        </ul>
-    </header>
-    <section class="page-section">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+		<link rel="icon" href="/test.k6.io/static/favicon.ico" sizes="32x32" />
+		<link rel="stylesheet" href="/test.k6.io/static/css/site.css" type="text/css" />
+		<title>k6 PHP Play</title>
+	</head>
+	<body>
+		<main class="page">
+			<header class="header">
+				<div class="logo">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="220.227"
+						height="213.73"
+						viewBox="0 0 220.227 213.73"
+					>
+						<path
+							d="M220.727,213.731H.5L73.815,57.346l44.163,32.466L175.581,0Zm-80.746-33.778h.471a21.028,21.028,0,0,0,14.619-5.876,19.166,19.166,0,0,0,6.284-14.454,17.546,17.546,0,0,0-6.057-13.873,18.426,18.426,0,0,0-12.568-5.412h-.361a6.567,6.567,0,0,0-1.83.251l11.626-17.282-9.262-6.465-4.383,6.465-11.2,17.109c-1.925,2.836-3.535,5.334-4.533,7.07a40.655,40.655,0,0,0-2.663,5.726,17.816,17.816,0,0,0-1.272,6.6,19.145,19.145,0,0,0,6.206,14.3,20.709,20.709,0,0,0,14.485,5.876Zm-49.237-18.6,12.836,18.154H117.3l-15.1-21.06,13.41-18.617-8.9-6.159-3.927,5.184-12.058,17V121.674l-12.019-9.8V179.5H90.727V161.336ZM140,168.618a8.837,8.837,0,1,1,0-17.675h.079a8.639,8.639,0,0,1,6.229,2.663,8.228,8.228,0,0,1,2.663,6.127A8.978,8.978,0,0,1,140,168.6Z"
+							transform="translate(-0.5 -0.001)"
+							fill="#7d64ff"
+						/>
+					</svg>
+				</div>
+				<div>
+					<h1 class="title">QuickPizza Legacy</h1>
+					<p class="description">
+						This is a replacement of the service previously found at
+						<a href="https://test.k6.io">https://test.k6.io</a>. Click <a href="/">here</a> to go
+						back to the main QuickPizza page, which contains more functionality for writing HTTP
+						tests. <br /><br />
+						<i class="note"
+							>Note that this is a shared testing environment - please avoid high-load tests. This
+							project is available <a href="https://github.com/grafana/quickpizza">here</a>.</i
+						>
+					</p>
+				</div>
+				<ul class="header-icons">
+					<li>
+						<a href="https://github.com/grafana/quickpizza">
+							<svg
+								height="20"
+								width="20"
+								aria-hidden="true"
+								focusable="false"
+								viewBox="0 0 496 512"
+							>
+								<path
+									fill="currentColor"
+									d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"
+								></path>
+							</svg>
+						</a>
+					</li>
+				</ul>
+			</header>
+			<section class="page-section">
+				<h2 class="heading-underlined">Public pages</h2>
+				<table>
+					<tbody>
+						<tr>
+							<td>GET</td>
+							<td><a href="/contacts.php">/contacts.php</a></td>
+							<td>Short public page.</td>
+						</tr>
+						<tr>
+							<td>GET</td>
+							<td><a href="/news.php">/news.php</a></td>
+							<td>Longer public page (slower)</td>
+						</tr>
+						<tr>
+							<td>GET</td>
+							<td><a href="/pi.php?decimals=3">/pi.php?decimals=3</a></td>
+							<td>Calculating π decimals</td>
+						</tr>
+						<tr>
+							<td>GET</td>
+							<td><a href="/flip_coin.php">/flip_coin.php</a></td>
+							<td>Coin flip game</td>
+						</tr>
+						<tr>
+							<td>GET</td>
+							<td><a href="/browser.php">/browser.php</a></td>
+							<td>Various HTML elements</td>
+						</tr>
+					</tbody>
+				</table>
 
-        <h2 class="heading-underlined">Public pages</h2>
-        <table>
-            <tbody>
-            <tr>
-                <td>GET</td>
-                <td><a href="/contacts.php">/contacts.php</a></td>
-                <td>Short public page.</td>
-            </tr>
-            <tr>
-                <td>GET</td>
-                <td><a href="/news.php">/news.php</a></td>
-                <td>Longer public page (slower)</td>
-            </tr>
-            <tr>
-                <td>GET</td>
-                <td><a href="/pi.php?decimals=3">/pi.php?decimals=3</a></td>
-                <td>Calculating π decimals</td>
-            </tr>
-            <tr>
-                <td>GET</td>
-                <td><a href="/flip_coin.php">/flip_coin.php</a></td>
-                <td>Coin flip game</td>
-            </tr>
-            <tr>
-                <td>GET</td>
-                <td><a href="/browser.php">/browser.php</a></td>
-                <td>Various HTML elements</td>
-            </tr>
-            </tbody>
-        </table>
-
-        <h2 class="heading-underlined">Authenticated pages</h2>
-        <table>
-            <tbody>
-            <tr>
-                <td>GET+POST</td>
-                <td><a href="/my_messages.php">/my_messages.php</a></td>
-                <td>Login form + authenticated page</td>
-            </tr>
-            </tbody>
-        </table>
-    </section>
-</main>
-</body>
+				<h2 class="heading-underlined">Authenticated pages</h2>
+				<table>
+					<tbody>
+						<tr>
+							<td>GET+POST</td>
+							<td><a href="/my_messages.php">/my_messages.php</a></td>
+							<td>Login form + authenticated page</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+		</main>
+	</body>
 </html>

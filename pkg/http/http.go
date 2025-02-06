@@ -144,6 +144,11 @@ const (
 	authHeader             = "Authorization"
 	cookieName             = "qp_user_token"
 	piDecimals             = "1415926535897932384626433832795028841971693993751058209749445923078164"
+
+	// This should be generated dynamically instead.
+	// For simplicity we have one global one, because for demonstration purposes
+	// this is good enough. Note that this is also hardcoded in the login form's HTML.
+	serverCSRFToken = "NTQyNjg1OTc2"
 )
 
 var authError = errors.New("authentication failed")
@@ -416,7 +421,7 @@ func (s *Server) AddTestK6IO() {
 		"/flip_coin.php":   "test.k6.io/flip_coin.html",
 		"/browser.php":     "test.k6.io/browser.html",
 		"/my_messages.php": "test.k6.io/my_messages.html",
-		"/admin.php": "test.k6.io/admin.html",
+		"/admin.php":       "test.k6.io/admin.html",
 	}
 
 	s.router.Group(func(r chi.Router) {
@@ -878,12 +883,18 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		// token, and return the user token (if credentials are valid).
 		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
 			type loginData struct {
-				Username string `json:"username"`
-				Password string `json:"password"`
+				Username  string `json:"username"`
+				Password  string `json:"password"`
+				CSRFToken string `json:"csrf"`
 			}
 			var data loginData
 
 			if s.decodeJSONBody(w, r, &data) != nil {
+				return
+			}
+
+			if data.CSRFToken != serverCSRFToken {
+				s.writeJSONErrorResponse(w, r, errors.New("invalid csrf token"), http.StatusUnauthorized)
 				return
 			}
 

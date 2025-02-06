@@ -20,6 +20,9 @@ proto:
 format:
 	@goimports -w -l $(GO_SOURCES)
 
+format-web:
+	cd pkg/web/ && npm run format
+
 .PHONY: format-check
 format-check:
 	@out=$$(goimports -l $(GO_SOURCES)) && echo "$$out" && test -z "$$out"

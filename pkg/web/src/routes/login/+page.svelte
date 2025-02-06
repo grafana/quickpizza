@@ -24,7 +24,11 @@
 	async function handleSubmit() {
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/users/token/login?set_cookie=1`, {
 			method: 'POST',
-			body: JSON.stringify({ username: username, password: password }),
+			body: JSON.stringify({
+				username: username,
+				password: password,
+				csrf: document.getElementById('csrf-token').value
+			}),
 			credentials: 'same-origin'
 		});
 		if (!res.ok) {
@@ -112,6 +116,7 @@
 						QuickPizza User Login
 					</h1>
 					<form class="space-y-4 md:space-y-6" on:submit|preventDefault={handleSubmit}>
+						<input type="hidden" name="csrftoken" id="csrf-token" value="NTQyNjg1OTc2" />
 						<div>
 							<label for="text" class="block mb-2 text-sm font-medium text-gray-900"
 								>Username (hint: default)</label
