@@ -40,6 +40,9 @@ github.com/google/uuid
 # github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
 github.com/gorilla/websocket
+# github.com/grafana/otel-profiling-go v0.5.1
+## explicit; go 1.16
+github.com/grafana/otel-profiling-go
 # github.com/grafana/pyroscope-go v1.1.1
 ## explicit; go 1.17
 github.com/grafana/pyroscope-go
