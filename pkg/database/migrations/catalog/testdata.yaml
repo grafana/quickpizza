@@ -265,6 +265,10 @@
       username: synthetics_multihttp_example
       password_plaintext: synthetics_multihttp_example
       token: woSyhhrE3pQVUxMU
+    - id: 3
+      username: studio-user
+      password_plaintext: k6studiorocks
+      token: oBGOPc5tVtk9WAgf
 - model: Rating
   rows:
     - id: 1
