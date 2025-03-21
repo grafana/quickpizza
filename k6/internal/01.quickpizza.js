@@ -145,9 +145,26 @@ function testMetrics() {
   });
 }
 
+function testPizzaRecommendation() {
+  var res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify({
+    customName: "custompizza"
+  }), {
+    headers: {
+      "Authorization": "token abcdef0123456789",
+    }
+  });
+
+  expect(res.json().pizza.name, "pizza name").to.equal("custompizza");
+}
+
 export default function() {
   testCreateUserLogin();
   testDatabaseCreatedUserLogin();
   testTokenValidation();
+  testPizzaRecommendation();
   testMetrics();
 }
+
+/* Local Variables:    */
+/* js-indent-level: 2  */
+/* End:                */

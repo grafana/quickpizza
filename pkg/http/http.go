@@ -119,6 +119,7 @@ type Restrictions struct {
 	ExcludedTools       []string `json:"excludedTools"`
 	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
 	MinNumberOfToppings int      `json:"minNumberOfToppings"`
+	CustomName          string   `json:"customName"`
 }
 
 func (r Restrictions) WithDefaults() Restrictions {
@@ -1249,27 +1250,31 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			pizzaCtx, pizzaSpan := tracer.Start(r.Context(), "pizza-generation")
 			var p model.Pizza
 			for i := 0; i < 10; i++ {
-				_, nameSpan := tracer.Start(pizzaCtx, "name-generation")
-				var randomName string
-				for {
-					randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
-					if strings.HasPrefix(randomName, "A") || strings.HasPrefix(randomName, "E") || strings.HasPrefix(randomName, "I") || strings.HasPrefix(randomName, "O") || strings.HasPrefix(randomName, "U") {
-						randomName = fmt.Sprintf("An %s", randomName)
-					} else {
-						if rand.Intn(100) < 50 {
-							randomName = fmt.Sprintf("The %s", randomName)
+				randomName := restrictions.CustomName
+
+				if randomName == "" {
+					_, nameSpan := tracer.Start(pizzaCtx, "name-generation")
+
+					for {
+						randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
+						if strings.HasPrefix(randomName, "A") || strings.HasPrefix(randomName, "E") || strings.HasPrefix(randomName, "I") || strings.HasPrefix(randomName, "O") || strings.HasPrefix(randomName, "U") {
+							randomName = fmt.Sprintf("An %s", randomName)
 						} else {
-							randomName = fmt.Sprintf("A %s", randomName)
+							if rand.Intn(100) < 50 {
+								randomName = fmt.Sprintf("The %s", randomName)
+							} else {
+								randomName = fmt.Sprintf("A %s", randomName)
+							}
+						}
+
+						// Measure how funny the name is. It fails if the name is too funny or too unfunny
+						if rand.Intn(100) < 50 {
+							time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+							break
 						}
 					}
-
-					// Measure how funny the name is. It fails if the name is too funny or too unfunny
-					if rand.Intn(100) < 50 {
-						time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-						break
-					}
+					nameSpan.End()
 				}
-				nameSpan.End()
 
 				p = model.Pizza{
 					Name:        randomName,

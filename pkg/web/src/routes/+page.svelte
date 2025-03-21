@@ -11,7 +11,8 @@
 		excludedIngredients: [],
 		excludedTools: [],
 		maxNumberOfToppings: 5,
-		minNumberOfToppings: 2
+		minNumberOfToppings: 2,
+		customName: ''
 	};
 
 	var ratingStars = 5;
@@ -269,6 +270,16 @@
 							<label for="default-checkbox" class="ml-2 text-sm text-gray-900"
 								>Must be vegetarian</label
 							>
+						</div>
+					</div>
+					<div class="flex mt-8 justify-center items-center">
+						<div clas="flex items-center ml-16">
+							<label for="pizza-name" class="ml-2 text-sm text-gray-900">Custom Pizza Name:</label>
+							<input
+								id="pizza-name"
+								bind:value={restrictions.customName}
+								class="h-6 bg-gray-200 border-gray-900 rounded accent-red-600"
+							/>
 						</div>
 					</div>
 				</div>
