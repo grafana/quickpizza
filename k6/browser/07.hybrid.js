@@ -1,4 +1,4 @@
-import { browser } from "k6/experimental/browser";
+import { browser } from "k6/browser";
 import { check, sleep } from "k6";
 import http from "k6/http";
 import { Trend } from "k6/metrics";
@@ -80,7 +80,7 @@ export function getPizza() {
 }
 
 export async function admin() {
-  const page = browser.newPage();
+  const page = await browser.newPage();
 
   try {
     const loginPage = new LoginPage(page);
@@ -91,12 +91,12 @@ export async function admin() {
       "logout button text": loginPage.getLogoutButtonText() == "Logout",
     });
   } finally {
-    page.close();
+    await page.close();
   }
 }
 
 export async function pizzaRecommendations() {
-  const page = browser.newPage();
+  const page = await browser.newPage();
   const recommendationsPage = new RecommendationsPage(page);
   const pageUtils = new PageUtils(page);
 
@@ -121,6 +121,6 @@ export async function pizzaRecommendations() {
     const totalActionTime = pageUtils.getPerformanceDuration('total-action-time');
     myTrend.add(totalActionTime);
   } finally {
-    page.close();
+    await page.close();
   }
 }
