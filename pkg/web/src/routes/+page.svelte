@@ -161,7 +161,9 @@
 		</div>
 		<div class="flex float-right">
 			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
-				<span class="ml-3 text-xs text-red-600 font-bold"><a href="/login">Login/Profile</a></span>
+				<span class="ml-3 text-xs text-red-600 font-bold"
+					><a data-sveltekit-reload href="/login">Login/Profile</a></span
+				>
 			</span>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">
 				<input type="checkbox" bind:checked={advanced} class="sr-only peer" />
@@ -351,7 +353,9 @@
 		</div>
 		<div class="flex justify-center">
 			<p class="text-xs">
-				Looking for the admin page? <a class="text-blue-500" href="/admin">Click here</a>
+				Looking for the admin page? <a class="text-blue-500" data-sveltekit-reload href="/admin"
+					>Click here</a
+				>
 			</p>
 		</div>
 		<div class="flex justify-center">
