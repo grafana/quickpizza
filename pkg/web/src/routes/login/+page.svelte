@@ -164,6 +164,8 @@
 {/if}
 <footer>
 	<div class="flex justify-center mt-2">
-		<p class="text-xs"><a class="text-blue-500" href="/">Back to main page</a></p>
+		<p class="text-xs">
+			<a class="text-blue-500" data-sveltekit-reload href="/">Back to main page</a>
+		</p>
 	</div>
 </footer>
