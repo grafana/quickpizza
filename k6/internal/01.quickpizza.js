@@ -147,14 +147,14 @@ function testMetrics() {
 
 function testPizzaRecommendation() {
   var res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify({
-    customName: "custompizza"
+    customName: "a".repeat(100)
   }), {
     headers: {
       "Authorization": "token abcdef0123456789",
     }
   });
 
-  expect(res.json().pizza.name, "pizza name").to.equal("custompizza");
+  expect(res.json().pizza.name, "pizza name").to.equal("a".repeat(64));
 }
 
 export default function() {

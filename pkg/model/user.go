@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	UserTokenLength = 16
-	MaxNameLength   = 32
+	UserTokenLength   = 16
+	MaxUserNameLength = 32
 )
 
 var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -30,7 +30,7 @@ func (u *User) Validate() error {
 	switch {
 	case u.Username == "":
 		return errors.New("username field is empty")
-	case len(u.Username) > MaxNameLength:
+	case len(u.Username) > MaxUserNameLength:
 		return errors.New("username field is too long")
 	case u.Username == GlobalUsername:
 		return errors.New("username field is invalid")

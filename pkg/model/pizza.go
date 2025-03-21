@@ -14,6 +14,8 @@ type Pizza struct {
 	Tool        string       `json:"tool"`
 }
 
+const MaxPizzaNameLength = 64
+
 func (p Pizza) IsVegetarian() bool {
 	for _, ingredient := range p.Ingredients {
 		if !ingredient.Vegetarian {

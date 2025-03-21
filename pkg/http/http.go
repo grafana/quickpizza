@@ -1154,6 +1154,10 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			restrictions = restrictions.WithDefaults()
 
+			if len(restrictions.CustomName) > model.MaxPizzaNameLength {
+				restrictions.CustomName = restrictions.CustomName[:model.MaxPizzaNameLength]
+			}
+
 			oils, err := catalogClient.Ingredients("olive_oil")
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Requesting ingredients", "err", err)
