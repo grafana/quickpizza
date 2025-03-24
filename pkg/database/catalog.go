@@ -17,6 +17,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/model"
 	"github.com/grafana/quickpizza/pkg/password"
+	"github.com/grafana/quickpizza/pkg/util"
 )
 
 type Catalog struct {
@@ -214,7 +215,7 @@ func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
 	}
 
 	user.PasswordHash = passwordHash
-	user.Token = model.GenerateUserToken()
+	user.Token = util.GenerateAlphaNumToken(model.UserTokenLength)
 	user.ID = 0
 
 	var tmp model.User

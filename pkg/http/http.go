@@ -41,6 +41,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/logging"
 	"github.com/grafana/quickpizza/pkg/model"
+	"github.com/grafana/quickpizza/pkg/util"
 	"github.com/grafana/quickpizza/pkg/web"
 )
 
@@ -140,22 +141,19 @@ type authKeyType int
 type userKeyType int
 
 const (
-	authKey    authKeyType = 0
-	userKey    userKeyType = 0
-	authHeader             = "Authorization"
-	cookieName             = "qp_user_token"
-	piDecimals             = "1415926535897932384626433832795028841971693993751058209749445923078164"
-
-	// This should be generated dynamically instead.
-	// For simplicity we have one global one, because for demonstration purposes
-	// this is good enough. Note that this is also hardcoded in the login form's HTML.
-	serverCSRFToken = "NTQyNjg1OTc2"
+	authKey           authKeyType = 0
+	userKey           userKeyType = 0
+	authHeader                    = "Authorization"
+	qpUserTokenCookie             = "qp_user_token"
+	csrfTokenCookie               = "csrf_token"
+	piDecimals                    = "1415926535897932384626433832795028841971693993751058209749445923078164"
+	csrfTokenLength               = 32
 )
 
 var authError = errors.New("authentication failed")
 
 func requestTokenFromCookie(r *http.Request) string {
-	cookie_token, err := r.Cookie(cookieName)
+	cookie_token, err := r.Cookie(qpUserTokenCookie)
 	if err == nil && cookie_token != nil {
 		return cookie_token.Value
 	}
@@ -802,7 +800,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		r.Post("/api/users/token/logout", func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{
-				Name:     cookieName,
+				Name:     qpUserTokenCookie,
 				Value:    "",
 				SameSite: http.SameSiteStrictMode,
 				Path:     "/",
@@ -857,6 +855,15 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "users")
 
+		r.Post("/api/csrf-token", func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:     csrfTokenCookie,
+				Value:    util.GenerateAlphaNumToken(csrfTokenLength),
+				SameSite: http.SameSiteStrictMode,
+				Path:     "/",
+			})
+		})
+
 		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
 			var user model.User
 			if s.decodeJSONBody(w, r, &user) != nil {
@@ -899,9 +906,25 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			setCookie := r.URL.Query().Get("set_cookie") != ""
 
-			if setCookie && data.CSRFToken != serverCSRFToken {
-				s.writeJSONErrorResponse(w, r, errors.New("invalid csrf token"), http.StatusUnauthorized)
-				return
+			if setCookie {
+				csrfToken := ""
+				if tokenCookie, err := r.Cookie(csrfTokenCookie); err == nil {
+					csrfToken = tokenCookie.Value
+				}
+
+				if csrfToken != data.CSRFToken {
+					s.writeJSONErrorResponse(w, r, errors.New("invalid csrf token"), http.StatusUnauthorized)
+					return
+				}
+
+				// Delete the cookie containing the CSRF token
+				http.SetCookie(w, &http.Cookie{
+					Name:     csrfTokenCookie,
+					Value:    "",
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+					Expires:  time.Unix(0, 0),
+				})
 			}
 
 			user, err := db.LoginUser(r.Context(), data.Username, data.Password)
@@ -919,7 +942,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			if setCookie {
 				http.SetCookie(w, &http.Cookie{
-					Name:     cookieName,
+					Name:     qpUserTokenCookie,
 					Value:    user.Token,
 					SameSite: http.SameSiteStrictMode,
 					Path:     "/",

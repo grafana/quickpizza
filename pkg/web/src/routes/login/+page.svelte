@@ -10,15 +10,34 @@
 
 	onMount(async () => {
 		qpUserLoggedIn = checkQPUserLoggedIn();
+
+		if (!qpUserLoggedIn) {
+			await fetchCSRFToken();
+		}
 	});
 
-	function checkQPUserLoggedIn() {
-		const tokenCookie = document.cookie.split('; ').filter((c) => c.startsWith('qp_user_token'));
-		if (tokenCookie.length == 0) {
-			return false;
+	function getCookie(name) {
+		for (let cookie of document.cookie.split('; ')) {
+			const [key, value] = cookie.split('=');
+			if (key === name) {
+				return decodeURIComponent(value);
+			}
 		}
+		return null;
+	}
 
-		return true;
+	function checkQPUserLoggedIn() {
+		let token = getCookie('qp_user_token');
+		return token !== null && token.length > 0;
+	}
+
+	async function fetchCSRFToken() {
+		await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/csrf-token`, {
+			method: 'POST',
+			credentials: 'same-origin'
+		});
+
+		document.getElementById('csrf-token').value = getCookie('csrf_token') || '';
 	}
 
 	async function handleSubmit() {
@@ -116,7 +135,7 @@
 						QuickPizza User Login
 					</h1>
 					<form class="space-y-4 md:space-y-6" on:submit|preventDefault={handleSubmit}>
-						<input type="hidden" name="csrftoken" id="csrf-token" value="NTQyNjg1OTc2" />
+						<input type="hidden" name="csrftoken" id="csrf-token" value="" />
 						<div>
 							<label for="text" class="block mb-2 text-sm font-medium text-gray-900"
 								>Username (hint: default)</label

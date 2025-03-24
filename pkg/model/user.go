@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"math/rand"
 
 	"github.com/uptrace/bun"
 )
@@ -12,19 +11,7 @@ const (
 	MaxUserNameLength = 32
 )
 
-var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
 const GlobalUsername = "default"
-
-func GenerateUserToken() string {
-	data := make([]rune, UserTokenLength)
-	for i := range data {
-		// NOTE: This should use a cryptographically-safe random
-		// number generator instead.
-		data[i] = characters[rand.Intn(len(characters))]
-	}
-	return string(data)
-}
 
 func (u *User) Validate() error {
 	switch {
