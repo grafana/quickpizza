@@ -916,15 +916,6 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 					s.writeJSONErrorResponse(w, r, errors.New("invalid csrf token"), http.StatusUnauthorized)
 					return
 				}
-
-				// Delete the cookie containing the CSRF token
-				http.SetCookie(w, &http.Cookie{
-					Name:     csrfTokenCookie,
-					Value:    "",
-					SameSite: http.SameSiteStrictMode,
-					Path:     "/",
-					Expires:  time.Unix(0, 0),
-				})
 			}
 
 			user, err := db.LoginUser(r.Context(), data.Username, data.Password)
@@ -941,11 +932,21 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			if setCookie {
+				// Set the QP user token cookie
 				http.SetCookie(w, &http.Cookie{
 					Name:     qpUserTokenCookie,
 					Value:    user.Token,
 					SameSite: http.SameSiteStrictMode,
 					Path:     "/",
+				})
+
+				// Delete the cookie containing the CSRF token
+				http.SetCookie(w, &http.Cookie{
+					Name:     csrfTokenCookie,
+					Value:    "",
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+					Expires:  time.Unix(0, 0),
 				})
 			}
 
