@@ -329,7 +329,7 @@ func (s *Server) AddFrontend() {
 		)
 
 		r.Handle("/favicon.ico", FaviconHandler())
-		r.Handle("/*", SvelteKitHandler("/*"))
+		r.Handle("/*", SvelteKitHandler())
 	})
 }
 
@@ -1365,7 +1365,7 @@ func FaviconHandler() http.Handler {
 }
 
 // From: https://www.liip.ch/en/blog/embed-sveltekit-into-a-go-binary
-func SvelteKitHandler(path string) http.Handler {
+func SvelteKitHandler() http.Handler {
 	fsys, err := fs.Sub(web.EmbeddedFiles, "build")
 	if err != nil {
 		log.Fatal(err)
@@ -1373,7 +1373,7 @@ func SvelteKitHandler(path string) http.Handler {
 	filesystem := http.FS(fsys)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, path)
+		path := r.URL.Path
 		// try if file exists at path, if not append .html (SvelteKit adapter-static specific)
 		_, err := filesystem.Open(path)
 		if errors.Is(err, os.ErrNotExist) {
