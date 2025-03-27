@@ -326,6 +326,8 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 					u, _ = url.Parse(configUrl)
 				case "/api/admin/login":
 					u, _ = url.Parse(catalogUrl)
+				default:
+					u, _ = url.Parse(catalogUrl)
 				}
 
 				request.SetURL(u)
