@@ -310,6 +310,8 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 				var u *url.URL
 				s.log.Debug("Reverse Proxy Request", "endpoint", request.In.URL.Path)
 				switch request.In.URL.Path {
+				case "/api/users/token/login":
+					u, _ = url.Parse(catalogUrl)
 				case "/api/quotes":
 					u, _ = url.Parse(copyUrl)
 				case "/api/tools":
