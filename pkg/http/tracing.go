@@ -96,7 +96,7 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 	otel.SetTracerProvider(otelpyroscope.NewTracerProvider(p))
 
 	defaultOpts := []otelhttp.Option{
-		otelhttp.WithTracerProvider(p),
+		otelhttp.WithTracerProvider(otelpyroscope.NewTracerProvider(p)),
 		otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})),
 		otelhttp.WithPublicEndpointFn(t.isPublic),
 		// Use a name formatter that follows the semantic conventions for server-side span naming:
