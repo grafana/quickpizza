@@ -314,6 +314,8 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 					u, _ = url.Parse(copyUrl)
 				case "/api/tools":
 					u, _ = url.Parse(catalogUrl)
+				case "/api/ratings":
+					u, _ = url.Parse(catalogUrl)
 				case "/api/internal/recommendations":
 					u, _ = url.Parse(catalogUrl)
 				case "/api/pizza":
