@@ -3,9 +3,15 @@
     - name: |-
         "Pizza makes anything possible..." - Ernest Hemingway
     - name: |-
-        "Anyone who says that money cannot buy happiness has clearly never spent their money on pizza" - Oscar Wilde
+        "Anyone who says that money cannot buy happiness has clearly never spent their money on pizza." - Oscar Wilde
     - name: |-
         "Pizza is the most perfect food that exists." - John Green
+    - name: |-
+        "My unbiased opinion is that pizza is a great food." - Mario Pizzetti
+    - name: |-
+        "How did my name end up in a pizza website? No, seriously." - John Hamm
+    - name: |-
+        "I used Grafana's k6 to test this website, and it was great. Like pizza." - Mary D. Eveloper
 - model: ClassicalName
   rows:
     - name: Americana

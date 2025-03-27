@@ -19,13 +19,22 @@ jobs:
         with:
           node-version: 18
 
-      - name: Check Formatting
+      - name: Check Formatting (Go)
         run: make format-check
 
       - name: Build Binary
         run: make build
 
+      - name: Check Formatting (TypeScript)
+        run: cd pkg/web && npm run lint
+
       - name: Start Server
+        # Use enable these features in our own deployment, so we might as well
+        # "enable" them during testing as well to simulate a more realistic setup.
+        env:
+          QUICKPIZZA_OTLP_ENDPOINT: "http://localhost"
+          QUICKPIZZA_TRUST_CLIENT_TRACEID: "1"
+          QUICKPIZZA_PYROSCOPE_ENDPOINT: "http://localhost"
         run: ./bin/quickpizza &
 
       # Enable cache for system files: https://github.com/actions/toolkit/issues/946

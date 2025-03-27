@@ -2,7 +2,7 @@
 	import { PUBLIC_BACKEND_ENDPOINT, PUBLIC_BACKEND_WS_ENDPOINT } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { Confetti } from 'svelte-confetti';
-	import { userIDStore, userTokenStore } from '../lib/stores';
+	import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
 	import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 
 	const defaultRestrictions = {
@@ -11,11 +11,26 @@
 		excludedIngredients: [],
 		excludedTools: [],
 		maxNumberOfToppings: 5,
-		minNumberOfToppings: 2
+		minNumberOfToppings: 2,
+		customName: ''
 	};
 
-	var user = 0;
-    var userToken = '';
+	var ratingStars = 5;
+
+	// A randomly-generated integer used to track identity of WebSocket connections.
+	// Completely unrelated to users, user tokens, authentication, etc.
+	var wsVisitorID = 0;
+
+	// A randomly-generated user token that can be used to authenticate against the QP API.
+	// Since this token is not actually stored in the database, the returned user will always
+	// be user with ID 1 (default). This is implemented like so in order to not break the
+	// way QP was set up originally (i.e. one can open the website and start creating pizzas
+	// immediately, without logging in anywhere). So technically, the user is already logged
+	// in the moment they open the page.
+	// Additionally, if the qp_user_token Cookie has been set via the /login page, the value
+	// of the Cookie will take priority over this token sent over the Authorization header.
+	var userToken = '';
+
 	var render = false;
 	var quote = '';
 	var pizza = '';
@@ -23,6 +38,7 @@
 	var pizzaCount = 0;
 	let restrictions = defaultRestrictions;
 	var advanced = false;
+	var rateResult = null;
 
 	$: if (advanced) {
 		pizza = '';
@@ -32,44 +48,47 @@
 		restrictions = defaultRestrictions;
 	}
 
-    function randomToken(length) {
-        let result = '';
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const charactersLength = characters.length;
-        let counter = 0;
-        while (counter < length) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            counter += 1;
-        }
-        return result;
-    }
-
+	function randomToken(length) {
+		let result = '';
+		const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		const charactersLength = characters.length;
+		let counter = 0;
+		while (counter < length) {
+			result += characters.charAt(Math.floor(Math.random() * charactersLength));
+			counter += 1;
+		}
+		return result;
+	}
 
 	let socket: WebSocket;
 	onMount(async () => {
-		userIDStore.subscribe((value) => user = value);
-		if (user === 0) {
-            userIDStore.set(Math.floor(100000 + Math.random() * 900000));
-        }
-        userTokenStore.subscribe((value) => userToken = value);
-        if (userToken === '') {
-            userTokenStore.set(randomToken(16));
-        }
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/quotes`);
+		wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
+		if (wsVisitorID === 0) {
+			wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
+		}
+		userTokenStore.subscribe((value) => (userToken = value));
+		if (userToken === '') {
+			userTokenStore.set(randomToken(16));
+		}
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
 		const json = await res.json();
 		quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
 
 		let wsUrl = `${PUBLIC_BACKEND_WS_ENDPOINT}`;
-		if (wsUrl === "") {
+		if (wsUrl === '') {
 			// Unlike with fetch, which understands "/" as "the window's host", for WS we need to build the URI by hand.
 			const l = window.location;
-			wsUrl = ((l.protocol === "https:") ? "wss://" : "ws://") + l.hostname + (((l.port != 80) && (l.port != 443)) ? ":" + l.port : "") + "/ws";
+			wsUrl =
+				(l.protocol === 'https:' ? 'wss://' : 'ws://') +
+				l.hostname +
+				(l.port != 80 && l.port != 443 ? ':' + l.port : '') +
+				'/ws';
 		}
 		socket = new WebSocket(wsUrl);
 		socket.addEventListener('message', function (event) {
 			const data = JSON.parse(event.data);
 			if (data.msg === 'new_pizza') {
-				if (data.user !== user) {
+				if (data.ws_visitor_id !== wsVisitorID) {
 					pizzaCount++;
 				}
 			}
@@ -78,20 +97,40 @@
 		render = true;
 	});
 
+	async function ratePizza(stars) {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
+			method: 'POST',
+			body: JSON.stringify({
+				pizza_id: pizza['pizza']['id'],
+				stars: stars
+			})
+		});
+		if (res.ok) {
+			rateResult = 'Rated!';
+		} else {
+			rateResult = 'Please log in first.';
+		}
+	}
+
 	async function getPizza() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/pizza`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
 			method: 'POST',
 			body: JSON.stringify(restrictions),
 			headers: {
-					'Authorization': 'Token ' + userToken
+				Authorization: 'Token ' + userToken
 			}
 		});
 		const json = await res.json();
 		pizza = json;
+		rateResult = null;
 		if (socket.readyState <= 1) {
 			socket.send(
 				JSON.stringify({
-					user: user,
+					// FIXME: The 'user' key is present in order not to break
+					// existing examples using QP WS. Remove it at some point.
+					// It has no connection to the user auth itself.
+					user: wsVisitorID,
+					ws_visitor_id: wsVisitorID,
 					msg: 'new_pizza'
 				})
 			);
@@ -99,10 +138,9 @@
 	}
 
 	async function getTools() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}api/tools`,
-		{
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
 			headers: {
-				'Authorization': 'Token ' + userToken
+				Authorization: 'Token ' + userToken
 			}
 		});
 		const json = await res.json();
@@ -117,16 +155,23 @@
 {#if render}
 	<section class="mt-4 flow-root">
 		<div class="flex float-left">
-			<img class="w-7 h-7 mr-2" src="/images/pizza.png" alt="logo" />
+			<a href="https://quickpizza.grafana.com"
+				><img class="w-7 h-7 mr-2" src="/images/pizza.png" alt="logo" /></a
+			>
 			<p class="text-xl font-bold text-red-600">QuickPizza</p>
 		</div>
 		<div class="flex float-right">
+			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
+				<span class="ml-3 text-xs text-red-600 font-bold"
+					><a data-sveltekit-reload href="/login">Login/Profile</a></span
+				>
+			</span>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">
 				<input type="checkbox" bind:checked={advanced} class="sr-only peer" />
 				<div
 					class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"
 				/>
-				<span class="ml-3 text-xs">Advanced</span>
+				<span class="ml-2 text-xs">Advanced</span>
 			</label>
 		</div>
 	</section>
@@ -222,9 +267,19 @@
 								value=""
 								class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded accent-red-600"
 							/>
-							<label for="default-checkbox" class="ml-2 text-sm  text-gray-900"
+							<label for="default-checkbox" class="ml-2 text-sm text-gray-900"
 								>Must be vegetarian</label
 							>
+						</div>
+					</div>
+					<div class="flex mt-8 justify-center items-center">
+						<div clas="flex items-center ml-16">
+							<label for="pizza-name" class="ml-2 text-sm text-gray-900">Custom Pizza Name:</label>
+							<input
+								id="pizza-name"
+								bind:value={restrictions.customName}
+								class="h-6 bg-gray-200 border-gray-900 rounded accent-red-600"
+							/>
 						</div>
 					</div>
 				</div>
@@ -233,6 +288,7 @@
 				<button
 					slot="label"
 					type="button"
+					name="pizza-please"
 					on:click={getPizza}
 					class="mt-6 text-white bg-gradient-to-br from-red-500 to-orange-400 hover:bg-gradient-to-bl font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-2 mb-2"
 				>
@@ -249,8 +305,7 @@
 			<p />
 			{#if pizzaCount > 0 && !pizza['pizza']}
 				<div class="mt-4">
-					<span
-						class="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded"
+					<span class="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded"
 						>What are you waiting for? We have already given {pizzaCount} recommendations since you opened
 						the site!</span
 					>
@@ -261,7 +316,7 @@
 					<div class="flex justify-center" id="recommendations">
 						<div class="w-[300px] sm:w-[500px] mt-6 bg-gray-50 border border-gray-200 rounded-lg">
 							<div class="text-left p-4">
-								<h2 class="font-medium">Our recommendation:</h2>
+								<h2 class="font-medium" id="pizza-name">Our recommendation:</h2>
 								<div class="ml-2">
 									<p>Name: {pizza['pizza']['name']}</p>
 									<p>Dough: {pizza['pizza']['dough']['name']}</p>
@@ -277,6 +332,25 @@
 							</div>
 						</div>
 					</div>
+					<button
+						type="button"
+						name="rate-1"
+						on:click={() => ratePizza(1)}
+						class="mt-6 text-white bg-gray-400 font-medium rounded-lg text-sm px-4 py-1.5 text-center mr-2 mb-2"
+					>
+						No thanks</button
+					>
+					<button
+						type="button"
+						name="rate-5"
+						on:click={() => ratePizza(5)}
+						class="mt-6 text-white bg-red-400 font-medium rounded-lg text-sm px-4 py-1.5 text-center mr-2 mb-2"
+					>
+						Love it!</button
+					>
+					{#if rateResult}
+						<p class="text-base mt-1 font-bold" id="rate-result">{rateResult}</p>
+					{/if}
 				{/if}
 			</p>
 		</div>
@@ -286,11 +360,21 @@
 			<p class="text-sm">Made with ❤️ by QuickPizza Labs.</p>
 		</div>
 		<div class="flex justify-center">
-			<p class="text-xs">Your user ID is: {user} (token: {userToken})</p>
+			<p class="text-xs">WebSocket visitor ID: {wsVisitorID}</p>
 		</div>
-		<div class="flex justify-center mt-1 mb-8">
+		<div class="flex justify-center">
 			<p class="text-xs">
-				Looking for the admin page? <a class="text-blue-500" href="/admin">Click here</a>
+				Looking for the admin page? <a class="text-blue-500" data-sveltekit-reload href="/admin"
+					>Click here</a
+				>
+			</p>
+		</div>
+		<div class="flex justify-center">
+			<p class="text-xs">
+				Contribute to QuickPizza on <a
+					class="text-blue-500"
+					href="https://github.com/grafana/quickpizza">GitHub</a
+				>
 			</p>
 		</div>
 	</footer>

@@ -24,6 +24,20 @@ function randomString(length) {
   return result;
 }
 
+function testDatabaseCreatedUserLogin() {
+  describe("Log in as a user that was already inserted in the DB", () => {
+    let data = {username: "synthetics_multihttp_example", password: "synthetics_multihttp_example"};
+    var res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    expect(res.status, "response status").to.equal(200);
+    expect(res.json().token.length, "token").to.equal(16);
+  });
+}
+
 function testCreateUserLogin() {
   let username = randomString(32);
   let password = randomString(32);
@@ -52,7 +66,7 @@ function testCreateUserLogin() {
     // Invalid password
     var res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: username,
-      password: "foo",
+	  password: "foo",
     }), {
       headers: {
         'Content-Type': 'application/json',
@@ -74,20 +88,83 @@ function testCreateUserLogin() {
 
     expect(res.status, "response status").to.equal(401);
 
-    // Default user
+    // Can log in as default user
     res = http.post(`${BASE_URL}/api/users/token/login`, JSON.stringify({
       username: "default",
-      password: "",
+      password: "foobar",
     }), {
       headers: {
         'Content-Type': 'application/json',
       }
     });
 
-    expect(res.status, "response status").to.equal(401);
+    expect(res.status, "response status").to.equal(200);
   });
+}
+
+function testTokenValidation() {
+  describe("Validate a token", () => {
+    var res = http.post(`${BASE_URL}/api/users/token/authenticate`, {
+      headers: {
+        "X-Is-Internal": "1",
+      }
+    });
+
+    expect(res.status, "response status").to.equal(401);
+
+    res = http.post(`${BASE_URL}/api/users/token/authenticate`, {
+      headers: {
+        "Authorization": "token tooshort",
+        "X-Is-Internal": "1",
+      }
+    });
+
+    expect(res.status, "response status").to.equal(401);
+
+    // A randomly-generated token with correct length of 16 will
+    // yield the default user (id=1). See comment in routes/+page.svelte.
+    res = http.post(`${BASE_URL}/api/users/token/authenticate`, null, {
+      headers: {
+        "Authorization": "token aaaaaaaaaaaaaaaa",
+        "X-Is-Internal": "1",
+      }
+    });
+
+    expect(res.status, "response status").to.equal(200);
+    expect(res.json().id, "id").to.equal(1);
+    expect(res.json().username, "username").to.equal("default");
+  });
+}
+
+function testMetrics() {
+  describe("Metrics endpoint is available", () => {
+    var res = http.post(`${BASE_URL}/metrics`, {});
+
+    expect(res.status, "response status").to.equal(200);
+    expect(res.body.length, "response size").to.be.greaterThan(100);
+  });
+}
+
+function testPizzaRecommendation() {
+  var res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify({
+    customName: "a".repeat(100)
+  }), {
+    headers: {
+      "Authorization": "token abcdef0123456789",
+    }
+  });
+
+  expect(res.json().pizza.name, "pizza name").to.equal("a".repeat(64));
 }
 
 export default function() {
   testCreateUserLogin();
+  testDatabaseCreatedUserLogin();
+  testTokenValidation();
+  testPizzaRecommendation();
+  testMetrics();
 }
+
+/* Local Variables:    */
+/* js-indent-level: 2  */
+/* End:                */

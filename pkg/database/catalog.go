@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/model"
 	"github.com/grafana/quickpizza/pkg/password"
+	"github.com/grafana/quickpizza/pkg/util"
 )
 
 type Catalog struct {
@@ -28,6 +30,11 @@ type Catalog struct {
 	maxUsers     int
 	maxRatings   int
 }
+
+const getRatingsMax = 50
+
+var ErrUsernameTaken = errors.New("username already taken")
+var ErrGlobalOperationNotPermitted = errors.New("operation not permitted for default user")
 
 func NewCatalog(connString string) (*Catalog, error) {
 	db, err := initializeDB(connString)
@@ -109,6 +116,98 @@ func (c *Catalog) GetRecommendation(ctx context.Context, id int) (*model.Pizza, 
 	return &pizza, err
 }
 
+func (c *Catalog) GetRatings(ctx context.Context, user *model.User) ([]*model.Rating, error) {
+	ratings := make([]*model.Rating, 0)
+	err := c.db.NewSelect().Model((*model.Rating)(nil)).Relation("User").Relation("Pizza").Where("rating.user_id = ?", user.ID).Limit(getRatingsMax).Scan(ctx, &ratings)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return ratings, err
+}
+
+func (c *Catalog) GetRating(ctx context.Context, user *model.User, ratingID int) (*model.Rating, error) {
+	var rating model.Rating
+	err := c.db.NewSelect().Model(&rating).Relation("User").Relation("Pizza").Where("rating.id = ? AND rating.user_id = ?", ratingID, user.ID).Limit(1).Scan(ctx)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &rating, err
+}
+
+func (c *Catalog) DeleteRatings(ctx context.Context, user *model.User) error {
+	if user.IsGlobal() {
+		return ErrGlobalOperationNotPermitted
+	}
+
+	_, err := c.db.NewDelete().Model((*model.Rating)(nil)).Where("rating.user_id = ?", user.ID).Exec(ctx)
+	return err
+}
+
+func (c *Catalog) DeleteRating(ctx context.Context, user *model.User, ratingID int) error {
+	if user.Username == model.GlobalUsername {
+		return ErrGlobalOperationNotPermitted
+	}
+
+	rating, err := c.GetRating(ctx, user, ratingID)
+	if err != nil {
+		return err
+	} else if rating == nil {
+		return fmt.Errorf("rating ID %v not found", ratingID)
+	}
+
+	_, err = c.db.NewDelete().Model(rating).WherePK().Exec(ctx)
+	return err
+}
+
+func (c *Catalog) UpdateRating(ctx context.Context, user *model.User, rating *model.Rating) (*model.Rating, error) {
+	if user.IsGlobal() {
+		return nil, ErrGlobalOperationNotPermitted
+	}
+
+	existing, err := c.GetRating(ctx, user, int(rating.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	if existing == nil || existing.UserID != user.ID {
+		return nil, fmt.Errorf("rating ID %v not found", rating.ID)
+	}
+
+	existing.Stars = rating.Stars
+	err = c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		_, err := tx.NewUpdate().Model(existing).Column("stars").WherePK().Exec(ctx)
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return existing, nil
+}
+
+func (c *Catalog) RecordRating(ctx context.Context, rating *model.Rating) error {
+	pizza, err := c.GetRecommendation(ctx, int(rating.PizzaID))
+	if err != nil {
+		return err
+	}
+
+	if pizza == nil {
+		return fmt.Errorf("pizza ID %v not found", rating.PizzaID)
+	}
+
+	rating.ID = 0
+
+	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		_, err := tx.NewInsert().Model(rating).Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		return c.enforceTableSizeLimits(ctx, tx, (*model.Rating)(nil), c.fixedRatings, c.maxRatings)
+	})
+}
+
 func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
 	passwordHash, err := password.HashPassword(user.Password)
 	if err != nil {
@@ -116,7 +215,17 @@ func (c *Catalog) RecordUser(ctx context.Context, user *model.User) error {
 	}
 
 	user.PasswordHash = passwordHash
-	user.Token = model.GenerateUserToken()
+	user.Token = util.GenerateAlphaNumToken(model.UserTokenLength)
+	user.ID = 0
+
+	var tmp model.User
+	err = c.db.NewSelect().Model(&tmp).Where("username = ?", user.Username).Limit(1).Scan(ctx)
+	if err != sql.ErrNoRows {
+		if err == nil {
+			return ErrUsernameTaken
+		}
+		return err
+	}
 
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewInsert().Model(user).Exec(ctx)
@@ -135,10 +244,37 @@ func (c *Catalog) LoginUser(ctx context.Context, username, passwordText string) 
 		return nil, nil
 	}
 
-	if password.CheckPassword(passwordText, user.PasswordHash) {
+	// Some pre-created users have their password stored as plaintext.
+	if user.PasswordPlaintext != "" {
+		if passwordText == user.PasswordPlaintext {
+			return &user, nil
+		}
+		return nil, nil
+	}
+
+	// Any password works for logging in as the default, global user.
+	if user.IsGlobal() || password.CheckPassword(passwordText, user.PasswordHash) {
 		return &user, nil
 	}
 	return nil, nil
+}
+
+// Authenticate finds the corresponding user for token.
+// If a user is not found, then a default user is returned, with ID 1. This is done
+// in order to simplify the testing/usage of QuickPizza in general. This function
+// will always return a user, unless it returns a non-nil error.
+func (c *Catalog) Authenticate(ctx context.Context, token string) (*model.User, error) {
+	var user model.User
+	err := c.db.NewSelect().Model(&user).Where("token = ?", token).Limit(1).Scan(ctx)
+
+	if err == sql.ErrNoRows {
+		// In order to support requests coming directly from the
+		// index.html (which contains a randomly-generated token not
+		// stored in the DB), return a global, default user if the
+		// token lookup failed.
+		err = c.db.NewSelect().Model(&user).Where("id = 1").Limit(1).Scan(ctx)
+	}
+	return &user, err
 }
 
 func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) error {

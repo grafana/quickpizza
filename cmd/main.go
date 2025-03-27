@@ -52,6 +52,8 @@ func main() {
 			os.Exit(1)
 		}
 
+		slog.Debug("enabling tracing")
+
 		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
 			traceInstaller.Insecure()
 		}
@@ -75,12 +77,16 @@ func main() {
 	// If QUICKPIZZA_ALL_SERVICES is set to a falsy values, services are opted-in by setting the environment variables
 	// below to a truty value.
 
-	if envServe("QUICKPIZZA_FRONTEND") {
-		server.AddFrontend()
-	}
-
 	if envServe("QUICKPIZZA_HTTP_TESTING") {
 		server.AddHTTPTesting()
+	}
+
+	if envServe("QUICKPIZZA_TEST_K6_IO") {
+		server.AddTestK6IO()
+	}
+
+	if envServe("QUICKPIZZA_FRONTEND") {
+		server.AddFrontend()
 	}
 
 	if envServe("QUICKPIZZA_CONFIG") {

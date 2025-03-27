@@ -41,6 +41,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/logging"
 	"github.com/grafana/quickpizza/pkg/model"
+	"github.com/grafana/quickpizza/pkg/util"
 	"github.com/grafana/quickpizza/pkg/web"
 )
 
@@ -119,6 +120,7 @@ type Restrictions struct {
 	ExcludedTools       []string `json:"excludedTools"`
 	MaxNumberOfToppings int      `json:"maxNumberOfToppings"`
 	MinNumberOfToppings int      `json:"minNumberOfToppings"`
+	CustomName          string   `json:"customName"`
 }
 
 func (r Restrictions) WithDefaults() Restrictions {
@@ -133,6 +135,56 @@ func (r Restrictions) WithDefaults() Restrictions {
 	}
 
 	return r
+}
+
+type authKeyType int
+type userKeyType int
+
+const (
+	authKey           authKeyType = 0
+	userKey           userKeyType = 0
+	authHeader                    = "Authorization"
+	qpUserTokenCookie             = "qp_user_token"
+	csrfTokenCookie               = "csrf_token"
+	piDecimals                    = "1415926535897932384626433832795028841971693993751058209749445923078164"
+	csrfTokenLength               = 32
+)
+
+var authError = errors.New("authentication failed")
+
+func requestTokenFromCookie(r *http.Request) string {
+	cookie_token, err := r.Cookie(qpUserTokenCookie)
+	if err == nil && cookie_token != nil {
+		return cookie_token.Value
+	}
+	return ""
+}
+
+func getRequestToken(r *http.Request) string {
+	// Try extracting token from Cookies first.
+	cookie_token := requestTokenFromCookie(r)
+	if len(cookie_token) == model.UserTokenLength {
+		return cookie_token
+	}
+
+	// Otherwise, check the Authorization header.
+	auth := r.Header.Get(authHeader)
+	prefix, token, found := strings.Cut(auth, " ")
+	prefix = strings.ToLower(prefix)
+
+	if !found || (prefix != "token" && prefix != "bearer") || len(token) != model.UserTokenLength {
+		return ""
+	}
+
+	return token
+}
+
+func contextUser(ctx context.Context) *model.User {
+	user, ok := ctx.Value(userKey).(*model.User)
+	if !ok {
+		return nil
+	}
+	return user
 }
 
 // Server is the object that handles HTTP requests and computes pizza recommendations.
@@ -174,7 +226,7 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 		cors.New(cors.Options{
 			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+			AllowedHeaders:   []string{"Accept", authHeader, "Content-Type", "X-CSRF-Token"},
 			ExposedHeaders:   []string{"Link"},
 			AllowCredentials: true,
 			MaxAge:           300, // Maximum value not ignored by any of major browsers
@@ -275,7 +327,7 @@ func (s *Server) AddFrontend() {
 		)
 
 		r.Handle("/favicon.ico", FaviconHandler())
-		r.Handle("/*", SvelteKitHandler("/*"))
+		r.Handle("/*", SvelteKitHandler())
 	})
 }
 
@@ -355,7 +407,53 @@ func (s *Server) AddWebSocket() {
 	})
 }
 
+// AddTestK6IO enables routes for replacing the legacy test.k6.io service.
+// It tries to follow https://github.com/grafana/test.k6.io as closely as possible,
+// even though the original service was implemented in PHP. For this reason, the paths
+// defined here will sometimes end in '.php'.
+func (s *Server) AddTestK6IO() {
+	filesystem := http.FS(web.TestK6IO)
+
+	staticMapping := map[string]string{
+		"/contacts.php":    "test.k6.io/contacts.html",
+		"/news.php":        "test.k6.io/news.html",
+		"/flip_coin.php":   "test.k6.io/flip_coin.html",
+		"/browser.php":     "test.k6.io/browser.html",
+		"/my_messages.php": "test.k6.io/my_messages.html",
+		"/admin.php":       "test.k6.io/admin.html",
+	}
+
+	s.router.Group(func(r chi.Router) {
+		for k, v := range staticMapping {
+			r.HandleFunc(k, func(w http.ResponseWriter, r *http.Request) {
+				p, _ := web.TestK6IO.ReadFile(v)
+				w.Write(p)
+			})
+		}
+
+		r.Get("/pi.php", func(w http.ResponseWriter, r *http.Request) {
+			arg := r.URL.Query().Get("decimals")
+			decimals, err := strconv.Atoi(arg)
+			if err != nil || decimals < 0 {
+				decimals = 2
+			} else if decimals > len(piDecimals) {
+				decimals = len(piDecimals)
+			}
+
+			w.Write([]byte("3." + piDecimals[:decimals]))
+		})
+
+		serveFiles := func(w http.ResponseWriter, r *http.Request) {
+			http.FileServer(filesystem).ServeHTTP(w, r)
+		}
+
+		r.HandleFunc("/test.k6.io/*", serveFiles)
+		r.HandleFunc("/test.k6.io", serveFiles)
+	})
+}
+
 // AddHTTPTesting enables routes for simple HTTP endpoint testing, like in httpbin.org.
+// These are meant to replace https://github.com/grafana/httpbin (roughly).
 func (s *Server) AddHTTPTesting() {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "httptesting")
@@ -383,8 +481,6 @@ func (s *Server) AddHTTPTesting() {
 
 			data := make([]byte, n)
 			crand.Read(data)
-			println(n)
-			println(data)
 
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
@@ -497,6 +593,51 @@ func (s *Server) AddHTTPTesting() {
 	})
 }
 
+func (s *Server) AuthViaCatalogClientMiddleware(catalogClient CatalogClient) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Copy the Authorization header into the context, so that when making
+			// requests to other QP microservices, the header is forwarded to them
+			// (see code in client.go).
+			auth := requestTokenFromCookie(r)
+			if auth != "" {
+				s.log.DebugContext(r.Context(), "Taking auth info from cookies")
+				r.Header.Set(authHeader, "Token "+auth)
+			}
+
+			ctx := context.WithValue(r.Context(), authKey, r.Header.Get(authHeader))
+
+			_, err := catalogClient.WithRequestContext(ctx).Authenticate()
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func (s *Server) AuthMiddleware(db *database.Catalog) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := getRequestToken(r)
+			if token == "" {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+			user, err := db.Authenticate(r.Context(), token)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), userKey, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 // AddCatalogHandler enables routes related to the ingredients, doughs, tools, ratings and users.
 // A database.InMemoryDatabase is required to enable this endpoint group.
 // This database is safe to be used concurrently and thus may be shared with other endpoint groups.
@@ -504,7 +645,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "catalog")
 
-		r.Use(ValidateUserMiddleware)
+		r.Use(s.AuthMiddleware(db))
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
@@ -553,10 +694,175 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			s.writeJSONResponse(w, r, map[string][]string{"tools": tools}, http.StatusOK)
 		})
+
+		// Rating CRUD endpoints
+		r.Post("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			var rating model.Rating
+			if err := s.decodeJSONBody(w, r, &rating); err != nil {
+				return
+			}
+
+			if err := rating.Validate(); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			rating.UserID = user.ID
+
+			if err := db.RecordRating(r.Context(), &rating); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			s.writeJSONResponse(w, r, rating, http.StatusCreated)
+		})
+
+		r.Get("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			rating, err := db.GetRating(r.Context(), user, idParam)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			} else if rating == nil {
+				s.writeJSONErrorResponse(w, r, errors.New("not found"), http.StatusNotFound)
+				return
+			}
+
+			s.writeJSONResponse(w, r, rating, http.StatusOK)
+		})
+
+		r.Get("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			ratings, err := db.GetRatings(r.Context(), user)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			s.writeJSONResponse(w, r, map[string]any{"ratings": ratings}, http.StatusOK)
+		})
+
+		updateRating := func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			var rating model.Rating
+			if err := s.decodeJSONBody(w, r, &rating); err != nil {
+				return
+			}
+
+			if err := rating.Validate(); err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			rating.ID = int64(idParam)
+
+			updated, err := db.UpdateRating(r.Context(), user, &rating)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			s.writeJSONResponse(w, r, updated, http.StatusOK)
+		}
+
+		r.Post("/api/users/token/logout", func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:     qpUserTokenCookie,
+				Value:    "",
+				SameSite: http.SameSiteStrictMode,
+				Path:     "/",
+				Expires:  time.Unix(0, 0),
+			})
+
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r.Put("/api/ratings/{id:\\d+}", updateRating)
+		r.Patch("/api/ratings/{id:\\d+}", updateRating)
+
+		r.Delete("/api/ratings", func(w http.ResponseWriter, r *http.Request) {
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			err := db.DeleteRatings(r.Context(), user)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		})
+
+		r.Delete("/api/ratings/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			user := contextUser(r.Context())
+			if user == nil {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			err = db.DeleteRating(r.Context(), user, idParam)
+			if err != nil {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		})
 	})
 
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "users")
+
+		r.Post("/api/csrf-token", func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:     csrfTokenCookie,
+				Value:    util.GenerateAlphaNumToken(csrfTokenLength),
+				SameSite: http.SameSiteStrictMode,
+				Path:     "/",
+			})
+		})
 
 		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
 			var user model.User
@@ -570,24 +876,46 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			err := db.RecordUser(r.Context(), &user)
-			if err != nil {
+			if err == database.ErrUsernameTaken {
+				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				return
+			} else if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to record user", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			w.WriteHeader(http.StatusCreated)
+			user.Password = ""
+			user.Token = ""
+			s.writeJSONResponse(w, r, user, http.StatusCreated)
 		})
 
+		// Given username + password, set a Cookie with the user's
+		// token, and return the user token (if credentials are valid).
 		r.Post("/api/users/token/login", func(w http.ResponseWriter, r *http.Request) {
 			type loginData struct {
-				Username string `json:"username"`
-				Password string `json:"password"`
+				Username  string `json:"username"`
+				Password  string `json:"password"`
+				CSRFToken string `json:"csrf"`
 			}
 			var data loginData
 
 			if s.decodeJSONBody(w, r, &data) != nil {
 				return
+			}
+
+			setCookie := r.URL.Query().Get("set_cookie") != ""
+
+			if setCookie {
+				csrfToken := ""
+				if tokenCookie, err := r.Cookie(csrfTokenCookie); err == nil {
+					csrfToken = tokenCookie.Value
+				}
+
+				if csrfToken != data.CSRFToken {
+					s.writeJSONErrorResponse(w, r, errors.New("invalid csrf token"), http.StatusUnauthorized)
+					return
+				}
 			}
 
 			user, err := db.LoginUser(r.Context(), data.Username, data.Password)
@@ -599,11 +927,54 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			if user == nil {
 				// User does not exist, or password auth failed.
-				s.writeJSONErrorResponse(w, r, errors.New("authentication failed"), http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
+			if setCookie {
+				// Set the QP user token cookie
+				http.SetCookie(w, &http.Cookie{
+					Name:     qpUserTokenCookie,
+					Value:    user.Token,
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+				})
+
+				// Delete the cookie containing the CSRF token
+				http.SetCookie(w, &http.Cookie{
+					Name:     csrfTokenCookie,
+					Value:    "",
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+					Expires:  time.Unix(0, 0),
+				})
+			}
+
 			s.writeJSONResponse(w, r, map[string]string{"token": user.Token}, http.StatusOK)
+		})
+
+		// Given a user token, return 200 or 401 (depending on whether token is valid).
+		r.Post("/api/users/token/authenticate", func(w http.ResponseWriter, r *http.Request) {
+			// This endpoint is only to be used by other QP services.
+			if r.Header.Get("X-Is-Internal") == "" {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			token := getRequestToken(r)
+			if token == "" {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
+			user, err := db.Authenticate(r.Context(), token)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to check token", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			s.writeJSONResponse(w, r, user, http.StatusOK)
 		})
 	})
 
@@ -613,7 +984,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			if r.Header.Get("X-Is-Internal") == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
@@ -661,11 +1032,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			if token == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
-			history, err := db.GetHistory(r.Context(), 10)
+			history, err := db.GetHistory(r.Context(), 15)
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to fetch history from db", "err", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -675,7 +1046,15 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			s.writeJSONResponse(w, r, map[string][]model.Pizza{"pizzas": history}, http.StatusOK)
 		})
 
-		r.Get("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/api/admin/login", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				// Allow using GET for admin login, in order not to break existing examples.
+				s.log.DebugContext(r.Context(), "Admin login with GET is deprecated")
+			} else if r.Method != http.MethodPost {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+
 			s.log.DebugContext(r.Context(), "Login requested")
 			user := r.URL.Query().Get("user")
 			password := r.URL.Query().Get("password")
@@ -686,7 +1065,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			}
 
 			if user != "admin" || password != "admin" {
-				w.WriteHeader(http.StatusUnauthorized)
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
@@ -756,7 +1135,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "recommendations")
 
-		r.Use(ValidateUserMiddleware)
+		r.Use(s.AuthViaCatalogClientMiddleware(catalogClient))
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/pizza/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
@@ -798,6 +1177,10 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			}
 
 			restrictions = restrictions.WithDefaults()
+
+			if len(restrictions.CustomName) > model.MaxPizzaNameLength {
+				restrictions.CustomName = restrictions.CustomName[:model.MaxPizzaNameLength]
+			}
 
 			oils, err := catalogClient.Ingredients("olive_oil")
 			if err != nil {
@@ -895,27 +1278,31 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			pizzaCtx, pizzaSpan := tracer.Start(r.Context(), "pizza-generation")
 			var p model.Pizza
 			for i := 0; i < 10; i++ {
-				_, nameSpan := tracer.Start(pizzaCtx, "name-generation")
-				var randomName string
-				for {
-					randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
-					if strings.HasPrefix(randomName, "A") || strings.HasPrefix(randomName, "E") || strings.HasPrefix(randomName, "I") || strings.HasPrefix(randomName, "O") || strings.HasPrefix(randomName, "U") {
-						randomName = fmt.Sprintf("An %s", randomName)
-					} else {
-						if rand.Intn(100) < 50 {
-							randomName = fmt.Sprintf("The %s", randomName)
+				randomName := restrictions.CustomName
+
+				if randomName == "" {
+					_, nameSpan := tracer.Start(pizzaCtx, "name-generation")
+
+					for {
+						randomName = fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], names[rand.Intn(len(names))])
+						if strings.HasPrefix(randomName, "A") || strings.HasPrefix(randomName, "E") || strings.HasPrefix(randomName, "I") || strings.HasPrefix(randomName, "O") || strings.HasPrefix(randomName, "U") {
+							randomName = fmt.Sprintf("An %s", randomName)
 						} else {
-							randomName = fmt.Sprintf("A %s", randomName)
+							if rand.Intn(100) < 50 {
+								randomName = fmt.Sprintf("The %s", randomName)
+							} else {
+								randomName = fmt.Sprintf("A %s", randomName)
+							}
+						}
+
+						// Measure how funny the name is. It fails if the name is too funny or too unfunny
+						if rand.Intn(100) < 50 {
+							time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+							break
 						}
 					}
-
-					// Measure how funny the name is. It fails if the name is too funny or too unfunny
-					if rand.Intn(100) < 50 {
-						time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
-						break
-					}
+					nameSpan.End()
 				}
-				nameSpan.End()
 
 				p = model.Pizza{
 					Name:        randomName,
@@ -1002,7 +1389,7 @@ func FaviconHandler() http.Handler {
 }
 
 // From: https://www.liip.ch/en/blog/embed-sveltekit-into-a-go-binary
-func SvelteKitHandler(path string) http.Handler {
+func SvelteKitHandler() http.Handler {
 	fsys, err := fs.Sub(web.EmbeddedFiles, "build")
 	if err != nil {
 		log.Fatal(err)
@@ -1010,7 +1397,7 @@ func SvelteKitHandler(path string) http.Handler {
 	filesystem := http.FS(fsys)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, path)
+		path := r.URL.Path
 		// try if file exists at path, if not append .html (SvelteKit adapter-static specific)
 		_, err := filesystem.Open(path)
 		if errors.Is(err, os.ErrNotExist) {
@@ -1018,25 +1405,6 @@ func SvelteKitHandler(path string) http.Handler {
 		}
 		r.URL.Path = path
 		http.FileServer(filesystem).ServeHTTP(w, r)
-	})
-}
-
-func ValidateUserMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		prefix, token, found := strings.Cut(auth, " ")
-		prefix = strings.ToLower(prefix)
-
-		// Here, we would actually check the token against the DB, or
-		// verify it using a private key (e.g. for JWT), but for this
-		// testing service we just check its length.
-		if !found || prefix != "token" || len(token) != model.UserTokenLength {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), "authorization", auth)
-		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

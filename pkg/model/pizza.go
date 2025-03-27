@@ -5,7 +5,7 @@ import (
 )
 
 type Pizza struct {
-	ID          int64        `bun:",pk,autoincrement"`
+	ID          int64        `json:"id" bun:",pk,autoincrement"`
 	CreatedAt   time.Time    `json:"-" bun:",nullzero,notnull,default:current_timestamp"`
 	Name        string       `json:"name"`
 	DoughID     int64        `json:"-"`
@@ -13,6 +13,8 @@ type Pizza struct {
 	Ingredients []Ingredient `json:"ingredients" bun:"m2m:pizza_to_ingredients,join:Pizza=Ingredient"`
 	Tool        string       `json:"tool"`
 }
+
+const MaxPizzaNameLength = 64
 
 func (p Pizza) IsVegetarian() bool {
 	for _, ingredient := range p.Ingredients {

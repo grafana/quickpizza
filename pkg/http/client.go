@@ -64,9 +64,11 @@ func (hc httpClient) getJSON(parentCtx context.Context, url string, dest any) er
 // parentCtx may not be nil.
 func (hc httpClient) postJSON(parentCtx context.Context, url string, src any, dest any) error {
 	buf := &bytes.Buffer{}
-	enc := json.NewEncoder(buf).Encode(src)
-	if enc != nil {
-		return fmt.Errorf("encoding request: %w", enc)
+	if src != nil {
+		enc := json.NewEncoder(buf).Encode(src)
+		if enc != nil {
+			return fmt.Errorf("encoding request: %w", enc)
+		}
 	}
 
 	request, err := http.NewRequestWithContext(parentCtx, http.MethodPost, url, buf)
@@ -88,7 +90,7 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any, de
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
 
@@ -109,7 +111,7 @@ func (hc httpClient) do(request *http.Request) (*http.Response, error) {
 	request.Header.Add("X-Is-Internal", "1")
 
 	// Propagate Authorization if present in request context.
-	if auth, ok := request.Context().Value("authorization").(string); ok {
+	if auth, ok := request.Context().Value(authKey).(string); ok {
 		request.Header.Add("Authorization", auth)
 	}
 
@@ -207,6 +209,18 @@ func (c CatalogClient) RecordRecommendation(p model.Pizza) (*model.Pizza, error)
 	}
 
 	return &result, nil
+}
+
+// Authenticate authenticates the token against the /api/users/token/authenticate endpoint.
+// The token will be taken from the authentication information in c.ctx, under the authKey
+// key. Its value should be "token <TOKEN>".
+func (c CatalogClient) Authenticate() (*model.User, error) {
+	result := model.User{}
+	err := c.client.postJSON(c.ctx, c.catalogUrl+"/api/users/token/authenticate", nil, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, err
 }
 
 // CopyClient is a client that queries the Copy service.
