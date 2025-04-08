@@ -103,7 +103,10 @@
 			body: JSON.stringify({
 				pizza_id: pizza['pizza']['id'],
 				stars: stars
-			})
+			}),
+			headers: {
+				'Content-Type': 'application/json'
+			}
 		});
 		if (res.ok) {
 			rateResult = 'Rated!';
@@ -117,7 +120,8 @@
 			method: 'POST',
 			body: JSON.stringify(restrictions),
 			headers: {
-				Authorization: 'Token ' + userToken
+				Authorization: 'Token ' + userToken,
+				'Content-Type': 'application/json'
 			}
 		});
 		const json = await res.json();
