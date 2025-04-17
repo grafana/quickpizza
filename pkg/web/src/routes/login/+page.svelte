@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { faro } from '@grafana/faro-web-sdk';
 	import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 	import { onMount } from 'svelte';
 
@@ -55,9 +56,12 @@
 		});
 		if (!res.ok) {
 			loginError = 'Login failed: ' + res.statusText;
+			faro.api.pushEvent('Unsuccessful Login', {username: username});
+			faro.api.pushError(new Error('Login Error: ' + res.statusText));
 			return;
 		}
 
+		faro.api.pushEvent('Successful Login', {username: username});
 		qpUserLoggedIn = checkQPUserLoggedIn();
 	}
 
@@ -95,6 +99,7 @@
 	}
 
 	async function handleLogout() {
+		faro.api.pushEvent('User Logout');
 		document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 		qpUserLoggedIn = false;
 	}
