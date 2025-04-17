@@ -1,0 +1,1257 @@
+openapi: 3.0.3
+info:
+  title: QuickPizza API
+  description: |-
+    QuickPizza is a web application that generates new and exciting pizza combinations.
+
+    This API allows you to get random pizza recommendations, rate pizzas, and manage ingredients, tools and other pizza-related data.
+  contact:
+    email: support@quickpizza.example
+  version: 1.0.0
+servers:
+  - url: http://localhost:3333
+    description: Default local server
+  - url: https://quickpizza.grafana.com
+    description: Production server
+
+tags:
+  - name: pizza
+    description: Pizza related endpoints including recommendations, and catalog of ingredients, doughs and tools
+  - name: pizza-text
+    description: Text content for pizza naming and description
+  - name: ratings
+    description: Pizza rating operations
+  - name: users
+    description: User management
+  - name: system
+    description: Endpoints for system health and readiness checks along with metrics
+  - name: httptesting
+    description: HTTP testing endpoints similar to httpbin.org
+
+paths:
+  /api/pizza:
+    post:
+      tags:
+        - pizza
+      summary: Get a pizza recommendation
+      description: Returns a randomly generated pizza with ingredients, tool, and calories
+      operationId: getPizzaRecommendation
+      security:
+        - authToken: []
+      requestBody:
+        description: Restrictions for the pizza recommendation
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Restrictions'
+            example:
+              maxCaloriesPerSlice: 800
+              mustBeVegetarian: true
+              excludedIngredients: ["anchovies", "bacon"]
+              excludedTools: []
+              maxNumberOfToppings: 4
+              minNumberOfToppings: 2
+        required: false
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PizzaRecommendation'
+              example:
+                pizza:
+                  id: 1
+                  name: "The Savory Margherita"
+                  dough:
+                    id: 1
+                    name: "Traditional"
+                    caloriesPerSlice: 200
+                  ingredients:
+                    - id: 1
+                      name: "Extra Virgin Olive Oil"
+                      caloriesPerSlice: 120
+                      vegetarian: true
+                    - id: 2
+                      name: "San Marzano Tomatoes"
+                      caloriesPerSlice: 30
+                      vegetarian: true
+                    - id: 3
+                      name: "Buffalo Mozzarella"
+                      caloriesPerSlice: 150
+                      vegetarian: true
+                    - id: 4
+                      name: "Fresh Basil"
+                      caloriesPerSlice: 5
+                      vegetarian: true
+                  tool: "Wood Fired Oven"
+                calories: 505
+                vegetarian: true
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/pizza/{id}:
+    get:
+      tags:
+        - pizza
+      summary: Get a specific pizza recommendation
+      description: Returns a specific pizza recommendation by ID
+      operationId: getPizzaById
+      security:
+        - authToken: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the pizza to get
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pizza'
+        '404':
+          description: Pizza not found
+        '500':
+          description: Internal server error
+
+  /api/ingredients/{type}:
+    get:
+      tags:
+        - pizza
+      summary: Get ingredients by type
+      description: Returns ingredients of a specific type (olive_oil, tomato, mozzarella, topping)
+      operationId: getIngredientsByType
+      security:
+        - authToken: []
+      parameters:
+        - name: type
+          in: path
+          description: Type of ingredients to get
+          required: true
+          schema:
+            type: string
+            enum: [olive_oil, tomato, mozzarella, topping]
+          example: topping
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ingredients:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ingredient'
+              example:
+                ingredients:
+                  - id: 1
+                    name: "Pepperoni"
+                    caloriesPerSlice: 90
+                    vegetarian: false
+                  - id: 2
+                    name: "Mushrooms"
+                    caloriesPerSlice: 15
+                    vegetarian: true
+        '400':
+          description: Invalid ingredient type
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/doughs:
+    get:
+      tags:
+        - pizza
+      summary: Get all doughs
+      description: Returns all available dough types
+      operationId: getDoughs
+      security:
+        - authToken: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  doughs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Dough'
+              example:
+                doughs:
+                  - id: 1
+                    name: "Traditional"
+                    caloriesPerSlice: 200
+                  - id: 2
+                    name: "Thin Crust"
+                    caloriesPerSlice: 150
+                  - id: 3
+                    name: "Deep Dish"
+                    caloriesPerSlice: 300
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/tools:
+    get:
+      tags:
+        - pizza
+      summary: Get all tools
+      description: Returns all available pizza-making tools
+      operationId: getTools
+      security:
+        - authToken: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      type: string
+              example:
+                tools:
+                  - "Wood Fired Oven"
+                  - "Pizza Stone"
+                  - "Gas Oven"
+                  - "Electric Oven"
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/ratings:
+    post:
+      tags:
+        - ratings
+      summary: Create a new rating
+      description: Record a new pizza rating
+      operationId: createRating
+      security:
+        - authToken: []
+      requestBody:
+        description: Rating information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+            example:
+              stars: 5
+              pizza_id: 1
+        required: true
+      responses:
+        '201':
+          description: Rating created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+              example:
+                id: 1
+                stars: 5
+                pizza_id: 1
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+    get:
+      tags:
+        - ratings
+      summary: Get all ratings by user
+      description: Returns all ratings made by the current user
+      operationId: getRatings
+      security:
+        - authToken: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ratings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Rating'
+              example:
+                ratings:
+                  - id: 1
+                    stars: 5
+                    pizza_id: 1
+                  - id: 2
+                    stars: 4
+                    pizza_id: 2
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+        - ratings
+      summary: Delete all ratings
+      description: Delete all ratings for the current user
+      operationId: deleteAllRatings
+      security:
+        - authToken: []
+      responses:
+        '204':
+          description: All ratings deleted successfully
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/ratings/{id}:
+    get:
+      tags:
+        - ratings
+      summary: Get a specific rating
+      description: Get a specific rating by ID
+      operationId: getRatingById
+      security:
+        - authToken: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the rating to get
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+              example:
+                id: 1
+                stars: 5
+                pizza_id: 1
+        '401':
+          description: Unauthorized
+        '404':
+          description: Rating not found
+        '500':
+          description: Internal server error
+    put:
+      tags:
+        - ratings
+      summary: Update a rating
+      description: Update an existing rating
+      operationId: updateRating
+      security:
+        - authToken: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the rating to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      requestBody:
+        description: Updated rating
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+            example:
+              stars: 4
+              pizza_id: 1
+        required: true
+      responses:
+        '200':
+          description: Rating updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+              example:
+                id: 1
+                stars: 4
+                pizza_id: 1
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Rating not found
+    patch:
+      tags:
+        - ratings
+      summary: Partially update a rating
+      description: Partially update an existing rating
+      operationId: patchRating
+      security:
+        - authToken: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the rating to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      requestBody:
+        description: Updated rating fields
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+            example:
+              stars: 3
+        required: true
+      responses:
+        '200':
+          description: Rating updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+              example:
+                id: 1
+                stars: 3
+                pizza_id: 1
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Rating not found
+    delete:
+      tags:
+        - ratings
+      summary: Delete a rating
+      description: Delete a rating by ID
+      operationId: deleteRating
+      security:
+        - authToken: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the rating to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '204':
+          description: Rating deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Rating not found
+
+  /api/users:
+    post:
+      tags:
+        - users
+      summary: Register a new user
+      description: Create a new user account
+      operationId: registerUser
+      requestBody:
+        description: User registration information
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  maxLength: 32
+                password:
+                  type: string
+              required:
+                - username
+                - password
+            example:
+              username: "pizzalover123"
+              password: "securepassword"
+        required: true
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  username:
+                    type: string
+              example:
+                id: 1
+                username: "pizzalover123"
+        '400':
+          description: Invalid input or username already taken
+
+  /api/users/token/login:
+    post:
+      tags:
+        - users
+      summary: User login
+      description: Authenticate a user and receive an auth token
+      operationId: loginUser
+      parameters:
+        - name: set_cookie
+          in: query
+          description: Whether to set authentication cookie
+          required: false
+          schema:
+            type: boolean
+          example: true
+      requestBody:
+        description: Login information
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                csrf:
+                  type: string
+              required:
+                - username
+                - password
+            example:
+              username: "pizzalover123"
+              password: "securepassword"
+              csrf: "abc123def456ghi789"
+        required: true
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+              example:
+                token: "abcdef1234567890"
+        '401':
+          description: Invalid credentials
+
+  /api/users/token/logout:
+    post:
+      tags:
+        - users
+      summary: User logout
+      description: Invalidate the user token cookie
+      operationId: logoutUser
+      security:
+        - authToken: []
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized
+
+  /api/admin/login:
+    post:
+      tags:
+        - users
+      summary: Admin login
+      description: Login as an administrator
+      operationId: adminLogin
+      parameters:
+        - name: user
+          in: query
+          description: Admin username
+          required: true
+          schema:
+            type: string
+          example: "admin"
+        - name: password
+          in: query
+          description: Admin password
+          required: true
+          schema:
+            type: string
+          example: "admin"
+      responses:
+        '200':
+          description: Admin login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+              example:
+                token: "c7jn1o1kb71p30h7f1bg"
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: admin_token=c7jn1o1kb71p30h7f1bg; Path=/; SameSite=Strict
+        '400':
+          description: Missing credentials
+        '401':
+          description: Invalid credentials
+
+  /api/csrf-token:
+    post:
+      tags:
+        - users
+      summary: Get CSRF token
+      description: Get a CSRF token for form submissions
+      operationId: getCsrfToken
+      responses:
+        '200':
+          description: CSRF token set in cookies
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: csrf_token=abc123def456ghi789; Path=/; SameSite=Strict
+
+  /api/quotes:
+    get:
+      tags:
+        - pizza-text
+      summary: Get pizza quotes
+      description: Returns a list of pizza-related quotes
+      operationId: getQuotes
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quotes:
+                    type: array
+                    items:
+                      type: string
+              example:
+                quotes:
+                  - "Life is too short for bad pizza."
+                  - "A slice a day keeps the sadness away."
+                  - "In crust we trust."
+        '500':
+          description: Internal server error
+
+  /api/names:
+    get:
+      tags:
+        - pizza-text
+      summary: Get classical names
+      description: Returns a list of classical names for pizza naming
+      operationId: getNames
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  names:
+                    type: array
+                    items:
+                      type: string
+              example:
+                names:
+                  - "Margherita"
+                  - "Napolitana"
+                  - "Quattro Formaggi"
+                  - "Diavola"
+        '500':
+          description: Internal server error
+
+  /api/adjectives:
+    get:
+      tags:
+        - pizza-text
+      summary: Get adjectives
+      description: Returns a list of adjectives for pizza naming
+      operationId: getAdjectives
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  adjectives:
+                    type: array
+                    items:
+                      type: string
+              example:
+                adjectives:
+                  - "Savory"
+                  - "Delicious"
+                  - "Crispy"
+                  - "Amazing"
+        '500':
+          description: Internal server error
+
+  /api/config:
+    get:
+      tags:
+        - system
+      summary: Get application configuration
+      description: Get the current application configuration
+      operationId: getConfig
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+              example:
+                version: "1.0.0"
+                environment: "development"
+        '500':
+          description: Internal server error
+
+  /ready:
+    get:
+      tags:
+        - system
+      summary: Readiness probe
+      description: Check if the application is ready to accept requests
+      operationId: readinessProbe
+      responses:
+        '200':
+          description: Application is ready
+        '500':
+          description: Application is not ready
+
+  /healthz:
+    get:
+      tags:
+        - system
+      summary: Liveness probe
+      description: Check if the application is live
+      operationId: livenessProbe
+      responses:
+        '200':
+          description: Application is live
+        '500':
+          description: Application is not live
+
+  /metrics:
+    get:
+      tags:
+        - system
+      summary: Prometheus metrics
+      description: Get Prometheus metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics returned
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/status/{status}:
+    get:
+      tags:
+        - httptesting
+      summary: Return specific status code
+      description: Returns the specified HTTP status code. The status code must be between 100 and 599 (inclusive). Any values outside this range will result in a 400 Bad Request response.
+      operationId: getStatus
+      parameters:
+        - name: status
+          in: path
+          description: Status code to return (must be between 100 and 599 inclusive)
+          required: true
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 599
+          example: 418
+      responses:
+        default:
+          description: Response with the requested status code
+
+  /api/bytes/{n}:
+    get:
+      tags:
+        - httptesting
+      summary: Get random bytes
+      description: Returns n random bytes
+      operationId: getBytes
+      parameters:
+        - name: n
+          in: path
+          description: Number of bytes to return
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          example: 1024
+      responses:
+        '200':
+          description: Random bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /api/delay/{delay}:
+    get:
+      tags:
+        - httptesting
+      summary: Delayed response
+      description: Delays the response for the specified time
+      operationId: getDelay
+      parameters:
+        - name: delay
+          in: path
+          description: Delay duration (with or without unit, defaults to seconds)
+          required: true
+          schema:
+            type: string
+          example: "2s"
+      responses:
+        '200':
+          description: Response after delay
+
+  /api/get:
+    get:
+      tags:
+        - httptesting
+      summary: Simple GET endpoint
+      description: Test endpoint for GET requests
+      operationId: httpGet
+      responses:
+        '200':
+          description: OK
+
+  /api/delete:
+    delete:
+      tags:
+        - httptesting
+      summary: Simple DELETE endpoint
+      description: Test endpoint for DELETE requests
+      operationId: httpDelete
+      responses:
+        '200':
+          description: OK
+
+  /api/post:
+    post:
+      tags:
+        - httptesting
+      summary: Echo POST data
+      description: Returns the POSTed data back in the response
+      operationId: httpPost
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Request body echoed back
+          content:
+            '*/*':
+              schema:
+                type: string
+
+  /api/put:
+    put:
+      tags:
+        - httptesting
+      summary: Echo PUT data
+      description: Returns the PUT data back in the response
+      operationId: httpPut
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Request body echoed back
+          content:
+            '*/*':
+              schema:
+                type: string
+
+  /api/patch:
+    patch:
+      tags:
+        - httptesting
+      summary: Echo PATCH data
+      description: Returns the PATCH data back in the response
+      operationId: httpPatch
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Request body echoed back
+          content:
+            '*/*':
+              schema:
+                type: string
+
+  /api/cookies:
+    get:
+      tags:
+        - httptesting
+      summary: Get cookies
+      description: Returns all the cookies sent with the request
+      operationId: getCookies
+      responses:
+        '200':
+          description: Cookies in the request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cookies:
+                    type: object
+                    additionalProperties:
+                      type: string
+              example:
+                cookies:
+                  cookie1: "value1"
+                  cookie2: "value2"
+    post:
+      tags:
+        - httptesting
+      summary: Set cookies
+      description: Sets cookies according to query parameters
+      operationId: setCookies
+      parameters:
+        - name: cookieName
+          in: query
+          description: Cookie name and value (multiple query parameters allowed)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cookies have been set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "cookieName=cookieValue"
+
+  /api/headers:
+    get:
+      tags:
+        - httptesting
+      summary: Get request headers
+      description: Returns the headers sent with the request
+      operationId: getHeaders
+      responses:
+        '200':
+          description: Headers in the request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  headers:
+                    type: object
+                    additionalProperties:
+                      type: string
+              example:
+                headers:
+                  User-Agent: "curl/7.64.1"
+                  Accept: "*/*"
+                  Host: "localhost:3333"
+
+  /api/basic-auth/{username}/{password}:
+    get:
+      tags:
+        - httptesting
+      summary: Basic auth test
+      description: Test endpoint for basic auth
+      operationId: basicAuth
+      parameters:
+        - name: username
+          in: path
+          description: Expected username
+          required: true
+          schema:
+            type: string
+          example: "user"
+        - name: password
+          in: path
+          description: Expected password
+          required: true
+          schema:
+            type: string
+          example: "password"
+      responses:
+        '200':
+          description: Basic auth result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: string
+                  password:
+                    type: string
+                  authenticated:
+                    type: boolean
+              example:
+                user: "user"
+                password: "password"
+                authenticated: true
+
+  /api/json:
+    get:
+      tags:
+        - httptesting
+      summary: Query params as JSON
+      description: Returns the query parameters as JSON
+      operationId: getJson
+      parameters:
+        - name: param
+          in: query
+          description: Any query parameter (multiple allowed)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Query parameters as JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+              example:
+                param1: "value1"
+                param2: "value2"
+
+  /api/xml:
+    get:
+      tags:
+        - httptesting
+      summary: Query params as XML
+      description: Returns the query parameters as XML
+      operationId: getXml
+      parameters:
+        - name: param
+          in: query
+          description: Any query parameter (multiple allowed)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Query parameters as XML
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  params:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                        value:
+                          type: string
+                        index:
+                          type: integer
+              example: |
+                <response>
+                  <params>
+                    <key>param1</key>
+                    <value>value1</value>
+                    <index>0</index>
+                  </params>
+                  <params>
+                    <key>param2</key>
+                    <value>value2</value>
+                    <index>1</index>
+                  </params>
+                </response>
+
+components:
+  schemas:
+    PizzaRecommendation:
+      type: object
+      properties:
+        pizza:
+          $ref: '#/components/schemas/Pizza'
+        calories:
+          type: integer
+          description: Total calories per slice
+          example: 505
+        vegetarian:
+          type: boolean
+          description: Whether the pizza is vegetarian
+          example: true
+
+    Pizza:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          maxLength: 64
+          example: "The Savory Margherita"
+        dough:
+          $ref: '#/components/schemas/Dough'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        tool:
+          type: string
+          description: Tool used to make the pizza
+          example: "Wood Fired Oven"
+
+    Dough:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Traditional"
+        caloriesPerSlice:
+          type: integer
+          example: 200
+
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Extra Virgin Olive Oil"
+        caloriesPerSlice:
+          type: integer
+          example: 120
+        vegetarian:
+          type: boolean
+          example: true
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+          example: 1
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Rating score (1-5)
+          example: 5
+        pizza_id:
+          type: integer
+          format: int64
+          description: ID of the pizza being rated
+          example: 1
+      required:
+        - stars
+        - pizza_id
+
+    Restrictions:
+      type: object
+      properties:
+        maxCaloriesPerSlice:
+          type: integer
+          description: Maximum calories per slice
+          default: 1000
+          example: 800
+        mustBeVegetarian:
+          type: boolean
+          description: Whether the pizza must be vegetarian
+          default: false
+          example: true
+        excludedIngredients:
+          type: array
+          items:
+            type: string
+          description: Ingredients to exclude
+          example: ["anchovies", "bacon"]
+        excludedTools:
+          type: array
+          items:
+            type: string
+          description: Tools to exclude
+          example: []
+        maxNumberOfToppings:
+          type: integer
+          description: Maximum number of toppings
+          default: 5
+          example: 4
+        minNumberOfToppings:
+          type: integer
+          description: Minimum number of toppings
+          default: 3
+          example: 2
+        customName:
+          type: string
+          description: Custom name for the pizza
+          maxLength: 64
+          example: "My Special Pizza"
+
+  securitySchemes:
+    authToken:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Authorization token header with format "Token {16 chars}"
+
+security:
+  - authToken: []
