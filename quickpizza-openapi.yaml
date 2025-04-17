@@ -1251,7 +1251,7 @@ components:
       type: apiKey
       in: header
       name: Authorization
-      description: Authorization token header with format "TOKEN {16 chars}"
+      description: Authorization token header with format "Token {16 chars}"
 
 security:
   - authToken: []
