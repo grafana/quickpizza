@@ -218,8 +218,9 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 			"/browser.php",
 			"/my_messages.php",
 			"/admin.php",
+			"/ws",
 		},
-		QuietDownPeriod:  90 * time.Second,
+		QuietDownPeriod:  30 * time.Second,
 		ReplaceAttrsOverride: func(groups []string, a slog.Attr) slog.Attr {
 			if slices.Contains([]string{"remoteIP", "proto", "message", "service", "requestID"}, a.Key) {
 				// Remove from log
