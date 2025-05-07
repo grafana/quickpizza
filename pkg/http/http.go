@@ -436,10 +436,15 @@ func (s *Server) AddTestK6IO() {
 	}
 
 	s.router.Group(func(r chi.Router) {
+		cache := map[string][]byte{}
 		for k, v := range staticMapping {
+			data, _ := web.TestK6IO.ReadFile(v)
+			cache[k] = data
+		}
+
+		for k := range staticMapping {
 			r.HandleFunc(k, func(w http.ResponseWriter, r *http.Request) {
-				p, _ := web.TestK6IO.ReadFile(v)
-				w.Write(p)
+				w.Write(cache[k])
 			})
 		}
 
