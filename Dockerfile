@@ -1,4 +1,4 @@
-FROM node:16.19.1-bullseye AS fe-builder
+FROM node:23.10.0-bullseye AS fe-builder
 
 WORKDIR /app/pkg/web
 COPY pkg/web ./
@@ -12,7 +12,7 @@ ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 RUN npm install && \
     npm run build
 
-FROM golang:1.22-bullseye AS builder
+FROM golang:1.24-bullseye AS builder
 
 WORKDIR /app
 COPY . ./
