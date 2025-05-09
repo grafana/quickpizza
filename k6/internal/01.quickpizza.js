@@ -157,12 +157,19 @@ function testPizzaRecommendation() {
   expect(res.json().pizza.name, "pizza name").to.equal("a".repeat(64));
 }
 
+function testLegacyTestK6IOEndpoint() {
+  var res = http.get(`${BASE_URL}/flip_coin.php`);
+  expect(res.status, "response status").to.equal(200);
+  expect(res.body).to.match(/You won|You lost/);
+}
+
 export default function() {
   testCreateUserLogin();
   testDatabaseCreatedUserLogin();
   testTokenValidation();
   testPizzaRecommendation();
   testMetrics();
+  testLegacyTestK6IOEndpoint();
 }
 
 /* Local Variables:    */

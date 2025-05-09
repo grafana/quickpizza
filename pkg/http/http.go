@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -151,6 +152,7 @@ const (
 )
 
 var authError = errors.New("authentication failed")
+var templateError = errors.New("error rendering template")
 
 func requestTokenFromCookie(r *http.Request) string {
 	cookie_token, err := r.Cookie(qpUserTokenCookie)
@@ -429,7 +431,6 @@ func (s *Server) AddTestK6IO() {
 	staticMapping := map[string]string{
 		"/contacts.php":    "test.k6.io/contacts.html",
 		"/news.php":        "test.k6.io/news.html",
-		"/flip_coin.php":   "test.k6.io/flip_coin.html",
 		"/browser.php":     "test.k6.io/browser.html",
 		"/my_messages.php": "test.k6.io/my_messages.html",
 		"/admin.php":       "test.k6.io/admin.html",
@@ -447,6 +448,38 @@ func (s *Server) AddTestK6IO() {
 				w.Write(cache[k])
 			})
 		}
+
+		flipTemplate := template.Must(template.ParseFS(web.TestK6IO, "test.k6.io/flip_coin.html"))
+
+		r.Get("/flip_coin.php", func(w http.ResponseWriter, r *http.Request) {
+			bet := r.URL.Query().Get("bet")
+			if bet != "heads" && bet != "tails" {
+				bet = "heads"
+			}
+
+			var result string
+			if rand.Intn(2) == 0 {
+				result = "heads"
+			} else {
+				result = "tails"
+			}
+
+			type PageData struct {
+				Bet    string
+				Result string
+				Won    bool
+			}
+
+			data := PageData{
+				Bet:    bet,
+				Result: result,
+				Won:    (bet == result),
+			}
+
+			if err := flipTemplate.Execute(w, data); err != nil {
+				s.writeJSONErrorResponse(w, r, templateError, 500)
+			}
+		})
 
 		r.Get("/pi.php", func(w http.ResponseWriter, r *http.Request) {
 			arg := r.URL.Query().Get("decimals")
