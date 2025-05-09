@@ -374,15 +374,26 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 			Transport: otelTransport,
 			Rewrite: func(request *httputil.ProxyRequest) {
 				var u *url.URL
+				s.log.Debug("Reverse Proxy Request", "endpoint", request.In.URL.Path)
 				switch request.In.URL.Path {
+				case "/api/users/token/login":
+					u, _ = url.Parse(catalogUrl)
 				case "/api/quotes":
 					u, _ = url.Parse(copyUrl)
 				case "/api/tools":
+					u, _ = url.Parse(catalogUrl)
+				case "/api/ratings":
+					u, _ = url.Parse(catalogUrl)
+				case "/api/internal/recommendations":
 					u, _ = url.Parse(catalogUrl)
 				case "/api/pizza":
 					u, _ = url.Parse(recommendationsUrl)
 				case "/api/config":
 					u, _ = url.Parse(configUrl)
+				case "/api/admin/login":
+					u, _ = url.Parse(catalogUrl)
+				default:
+					u, _ = url.Parse(catalogUrl)
 				}
 
 				request.SetURL(u)
