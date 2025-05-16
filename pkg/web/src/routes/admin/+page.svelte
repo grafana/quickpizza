@@ -32,12 +32,12 @@
 		);
 		if (!res.ok) {
 			loginError = 'Login failed: ' + res.statusText;
-			faro.api.pushEvent('Unsuccessful Admin Login', {username: username});
+			faro.api.pushEvent('Unsuccessful Admin Login', { username: username });
 			faro.api.pushError(new Error('Admin Login Error: ' + res.statusText));
 			return;
 		}
 
-		faro.api.pushEvent('Successful Admin Login', {username: username});
+		faro.api.pushEvent('Successful Admin Login', { username: username });
 		adminLoggedIn = checkAdminLoggedIn();
 	}
 
@@ -59,7 +59,7 @@
 		})
 			.then((res) => res.json())
 			.then((json) => {
-				faro.api.pushEvent('Update Recent Pizza Recommendations',);
+				faro.api.pushEvent('Update Recent Pizza Recommendations');
 				var newRec: string[] = [];
 				json.pizzas.forEach((pizza: string) => {
 					newRec.push(`

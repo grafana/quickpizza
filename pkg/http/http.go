@@ -189,6 +189,18 @@ func contextUser(ctx context.Context) *model.User {
 	return user
 }
 
+func LogUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := contextUser(r.Context())
+		if user != nil {
+			httplog.LogEntrySetField(r.Context(), "user", slog.StringValue(user.Username))
+		} else {
+			httplog.LogEntrySetField(r.Context(), "user", slog.StringValue("NOTFOUND"))
+		}
+		next.ServeHTTP(w, r.WithContext(r.Context()))
+	})
+}
+
 // Server is the object that handles HTTP requests and computes pizza recommendations.
 // Routes are divided into serveral groups that can be instantiated independently as microservices, or all together
 // as one single big service.
@@ -668,12 +680,13 @@ func (s *Server) AuthViaCatalogClientMiddleware(catalogClient CatalogClient) fun
 
 			ctx := context.WithValue(r.Context(), authKey, r.Header.Get(authHeader))
 
-			_, err := catalogClient.WithRequestContext(ctx).Authenticate()
+			user, err := catalogClient.WithRequestContext(ctx).Authenticate()
 			if err != nil {
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
 
+			ctx = context.WithValue(ctx, userKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -707,6 +720,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		s.traceInstaller.Install(r, "catalog")
 
 		r.Use(s.AuthMiddleware(db))
+		r.Use(LogUser)
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/ingredients/{type}", func(w http.ResponseWriter, r *http.Request) {
@@ -1197,6 +1211,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 		s.traceInstaller.Install(r, "recommendations")
 
 		r.Use(s.AuthViaCatalogClientMiddleware(catalogClient))
+		r.Use(LogUser)
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Get("/api/pizza/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {

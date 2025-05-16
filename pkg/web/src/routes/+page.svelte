@@ -100,7 +100,7 @@
 	});
 
 	async function ratePizza(stars) {
-		faro.api.pushEvent('Submit Pizza Rating', {pizza_id: pizza['pizza']['id'], stars: stars});
+		faro.api.pushEvent('Submit Pizza Rating', { pizza_id: pizza['pizza']['id'], stars: stars });
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 			method: 'POST',
 			body: JSON.stringify({
@@ -120,7 +120,7 @@
 	}
 
 	async function getPizza() {
-		faro.api.pushEvent('Get Pizza Recommendation', {restrictions: restrictions});
+		faro.api.pushEvent('Get Pizza Recommendation', { restrictions: restrictions });
 		if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
 			faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
 		}
@@ -147,13 +147,13 @@
 				})
 			);
 		}
-		if (pizza['pizza']['ingredients'].find(e => e.name === 'Pineapple')) {
+		if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
 			faro.api.pushError(new Error('Bad Pizza Recommendation'));
 		}
 	}
 
 	async function getTools() {
-		faro.api.pushEvent('Get Pizza Tools', {tools: tools});
+		faro.api.pushEvent('Get Pizza Tools', { tools: tools });
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
 			headers: {
 				Authorization: 'Token ' + userToken
