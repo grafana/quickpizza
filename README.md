@@ -13,7 +13,7 @@ The tests written for `QuickPizza` demonstrates the basic and advanced functiona
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v.0.46.0 or higher)
+- [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v0.53.0 or higher)
 
 ## Run locally with Docker
 
@@ -99,22 +99,21 @@ k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
   ```
 </details>
 
-
-## Collect telemetry (Docker Compose)
+### Collect Telemetry (Docker Compose)
 
 Testing something you can't observe is only half the fun. QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. You can either collect and [store this data locally](#local-setup) or send it to [Grafana Cloud](#grafana-cloud).
 
-## Enabling debug logging
+### Enabling Debug Logging
 
-If you encounter any issues during operation, you can enable debug logging by setting the following evironment variable:
+If you encounter any issues during operation, you can enable debug logging by setting the following environment variable:
 
 ```shell
 export QUICKPIZZA_LOG_LEVEL=debug
 ```
 
-## Running a Prometheus instance
+---
 
-### Local Setup
+## Local Setup
 
 The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Agent containers.
 
@@ -132,19 +131,23 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 
 Please refer to [agent-local.river](./contrib/agent-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml) to find the labels applied to the telemetry data.
 
-**Correlate Pyroscope data with k6 tests**
+### Correlate Pyroscope Data with k6 Tests
 
-Whenever there is a Pyroscope instance endpoint provided via `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable, the QuickPizza app will emit profiling data to Pyroscope. You can visualize the profiling data with the Pyroscope data source in Grafana.
+Whenever there is a Pyroscope instance endpoint provided via the `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable, the QuickPizza app will emit and push profiling data to Pyroscope. You can visualize the profiling data with the Pyroscope data source in Grafana and the [Explore Profiles](https://grafana.com/docs/grafana/latest/explore/simplified-exploration/profiles/) Grafana [Plugin](https://grafana.com/grafana/plugins/grafana-pyroscope-app/).
+
+> [!TIP]
+> To send Data to Pyroscope directly for a Local Setup, use the value `http://pyroscope:4040` for the `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable
 
 To correlate the profiling data with the k6 test results, use the [k6 Pyroscope library](https://grafana.com/docs/k6/next/javascript-api/jslib/http-instrumentation-pyroscope/).
 
 ![Pyroscope Data Source](./docs/images/local-env-grafana-with-pyroscope.png)
 
-Additional variables are available to configure the Pyroscope data source:
-- `QUICKPIZZA_PYROSCOPE_NAME` - the name of the service in Pyroscope (uses `quickpizza` by default)
-- `QUICKPIZZA_GRAFANA_CLOUD_USER` and `QUICKPIZZA_GRAFANA_CLOUD_PASSWORD` are the Basic auth credentials to authenticate with the Grafana Cloud instance.
+Additional variables are available to configure the Tags/Labels for the Profiles:
 
-**Send k6 results to Prometheus and visualize them with prebuilt dashboards**
+- `QUICKPIZZA_PYROSCOPE_NAME` - the value of the `service_name` Label in Pyroscope (uses `quickpizza` by default).
+- `QUICKPIZZA_PYROSCOPE_NAMESPACE` - the value of the `namespace` Label in Pyroscope (uses `quickpizza` by default).
+
+### Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards
 
 To send k6 results to the Prometheus instance, execute the `k6 run` command with the value of the `output` flag set to `experimental-prometheus-rw` as follows:
 
@@ -158,22 +161,31 @@ The local Grafana instance includes the [k6 Prometheus](https://grafana.com/graf
 
 For detailed instructions about the different options of the k6 Prometheus output, refer to the [k6 output guide for Prometheus remote write](https://grafana.com/docs/k6/latest/results-output/real-time/prometheus-remote-write/).
 
-
-### Grafana Cloud
+## Grafana Cloud
 
 The [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) file is set up to run the QuickPizza and Grafana Agent containers.
 
 In this setup, the Grafana Agent collects observability data from the QuickPizza app and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
 
 You will need the following settings:
+
 1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored.
 2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
+3. The User ID and Endpoint to use for Grafana Cloud Profiles (Pyroscope) for your [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack)
 
 Then, create an `.env` file with the following environment variables and the values of the previous settings:
 
 ```bash
+# Your Grafana Cloud Stack Name (Slug)
 GRAFANA_CLOUD_STACK=name
+# Your Grafana Cloud Access Policy Token
 GRAFANA_CLOUD_TOKEN=
+# The Endpoint to use to send your Profiling Data too
+QUICKPIZZA_PYROSCOPE_ENDPOINT=
+# Your Grafana Cloud Profiles Username for your Grafana Cloud Stack
+QUICKPIZZA_GRAFANA_CLOUD_USER=
+# Your Grafana Cloud Profiles Password for your Grafana Cloud Stack (this is typically your Grafana Cloud Access Policy Token)
+QUICKPIZZA_GRAFANA_CLOUD_PASSWORD=${GRAFANA_CLOUD_TOKEN}
 ```
 
 Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file, just as in the local setup:
@@ -186,19 +198,24 @@ QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `P
 
 Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and explore QuickPizza's telemetry data on the Prometheus, Tempo, Loki, and Pyroscope instances of your Grafana Cloud Stack. Refer to [agent-cloud.river](./contrib/agent-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) to find the labels applied to the telemetry data.
 
-***Enable profiling (Grafana Pyroscope)***
+### Enable Profiling (Send profiles to Grafana Cloud Profiles / Pyroscope)
 
-To enable [Grafana Cloud Profiling](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/), add the `QUICKPIZZA_CONF_PYROSCOPE_URL` variable to the `.env` file, setting its value to your Pyroscope web URL:
+Whenever there is a Pyroscope endpoint provided via the `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable, as well as suitable Authentication Credentials, the QuickPizza app will emit and push profiling data to Grafana Cloud Profiles. You can visualize the profiling data with the Grafana Cloud Profiles data source in Grafana Cloud and the [Explore Profiles](https://grafana.com/docs/grafana/latest/explore/simplified-exploration/profiles/) feature.
 
-```bash
-QUICKPIZZA_CONF_PYROSCOPE_URL=
-```
+To enable [Grafana Cloud Profiling](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/), ensure the following Environment Variables are set in the `.env` file, with values set to match your Grafana Cloud Stack:
 
-Restart the `docker-compose-cloud.yaml` environment.
+- `QUICKPIZZA_PYROSCOPE_ENDPOINT` - The Endpoint to use to send your Profiling Data too for your Grafana Cloud Stack.
+- `QUICKPIZZA_GRAFANA_CLOUD_USER` and `QUICKPIZZA_GRAFANA_CLOUD_PASSWORD` are the Basic auth credentials to authenticate with the Grafana Cloud instance.
 
-***Enable Frontend observability (Grafana Faro)***
+Additional variables are available to configure the Tags/Labels for the Profiles, and support some Grafana Cloud Profiling Integrations;
 
-Frontend observability is available exclusively in Grafana Cloud. To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/) for QuickPizza, add the `QUICKPIZZA_CONF_FARO_URL` variable to the `.env` file, setting its value to your Faro web URL:
+- `QUICKPIZZA_PYROSCOPE_NAME` - the value of the `service_name` Label in Grafana Cloud Profiles (uses `quickpizza` by default).
+- `QUICKPIZZA_PYROSCOPE_NAMESPACE` - the value of the `namespace` Label in Grafana Cloud Profiles (uses `quickpizza` by default).
+- `QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF` - This allows you to provide the Git Ref for the QuickPizza Source in GitHub, to use with the Go Profiles [GitHub Integration](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/pyroscope-github-integration/) in Grafana Cloud.
+
+### Enable Frontend Observability (Grafana Faro)
+
+Frontend Observability is available exclusively in Grafana Cloud. To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/) for QuickPizza, add the `QUICKPIZZA_CONF_FARO_URL` variable to the `.env` file, setting its value to your Faro web URL:
 
 ```bash
 QUICKPIZZA_CONF_FARO_URL=
@@ -208,7 +225,7 @@ Restart the `docker-compose-cloud.yaml` environment.
 
 ![Frontend Observability](./docs/images/grafana-cloud-frontend-observability.png)
 
-**Send k6 results to Grafana Cloud Prometheus and visualize them with prebuilt dashboards**
+### Send k6 test results to Grafana Cloud Prometheus and visualize them with prebuilt Grafana dashboards
 
 Just like in the local setup, we can output k6 result metrics to a Prometheus instance; in this case, it is provided by our Grafana Cloud Stack.
 
@@ -221,6 +238,8 @@ k6 run -o experimental-prometheus-rw script.js
 
 For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prometheus](https://grafana.com/docs/k6/latest/results-output/real-time/grafana-cloud-prometheus/).
 
+---
+
 ## Deploy QuickPizza Docker image
 
 The [Dockerfile](./Dockerfile) contains the setup for running QuickPizza without collecting data with the Grafana agent.
@@ -229,6 +248,7 @@ You can use the Dockerfile or build a Docker image to deploy the QuickPizza app 
 
 1. [Authenticate using the fly CLI](https://fly.io/docs/speedrun/).
 2. Then, run the CLI to deploy the application and set up the internal port `3333` that the server listens to.
+
     ```bash
     fly launch --internal-port 3333 --now
     ```
@@ -244,6 +264,7 @@ k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
 By default, QuickPizza stores all its data in an in-memory SQLite database. This allows for a quick start while still closely resembling a real world application. If you want to add an external database, you can set the `QUICKPIZZA_DB` environment variable to a supported connection string. Currently only PostgreSQL and SQLite is supported.
 
 Example connection strings:
+
 ```shell
 # a remote PostgreSQL instance
 export QUICKPIZZA_DB="postgres://user:password@localhost:5432/database?sslmode=disable"
@@ -251,13 +272,14 @@ export QUICKPIZZA_DB="postgres://user:password@localhost:5432/database?sslmode=d
 export QUICKPIZZA_DB="quickpizza.db"
 ```
 
-## Deploy application to Kubernetes
+## Deploy the application to Kubernetes
 
 If you want to run a test that uses [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes.
 
 For a detailed setup instructions, see the [QuickPizza Kubernetes guide](./docs/kubernetes-setup.md).
 
 ## Injecting Errors from Client via Headers
+
 You can introduce errors from the client side using custom headers. Below is a list of the currently supported error headers:
 
 - **x-error-record-recommendation**: Triggers an error when recording a recommendation. The header value should be the error message.
@@ -271,7 +293,7 @@ You can introduce errors from the client side using custom headers. Below is a l
 
 Example of header usage:
 
-```
+```shell
 curl -X POST http://localhost:3333/api/pizza \
      -H "Content-Type: application/json" \
      -H "Authorization: abcdef0123456789" \
