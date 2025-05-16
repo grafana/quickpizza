@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { faro } from '@grafana/faro-web-sdk';
 	import { PUBLIC_BACKEND_ENDPOINT, PUBLIC_BACKEND_WS_ENDPOINT } from '$env/static/public';
 	import { onMount } from 'svelte';
 	import { Confetti } from 'svelte-confetti';
@@ -95,9 +96,11 @@
 		});
 		getTools();
 		render = true;
+		faro.api.pushEvent('Navigation', { url: window.location.href });
 	});
 
 	async function ratePizza(stars) {
+		faro.api.pushEvent('Submit Pizza Rating', {pizza_id: pizza['pizza']['id'], stars: stars});
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 			method: 'POST',
 			body: JSON.stringify({
@@ -112,10 +115,15 @@
 			rateResult = 'Rated!';
 		} else {
 			rateResult = 'Please log in first.';
+			faro.api.pushError(new Error('Unauthenticated Ratings Submission'));
 		}
 	}
 
 	async function getPizza() {
+		faro.api.pushEvent('Get Pizza Recommendation', {restrictions: restrictions});
+		if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
+			faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
+		}
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
 			method: 'POST',
 			body: JSON.stringify(restrictions),
@@ -139,9 +147,13 @@
 				})
 			);
 		}
+		if (pizza['pizza']['ingredients'].find(e => e.name === 'Pineapple')) {
+			faro.api.pushError(new Error('Bad Pizza Recommendation'));
+		}
 	}
 
 	async function getTools() {
+		faro.api.pushEvent('Get Pizza Tools', {tools: tools});
 		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
 			headers: {
 				Authorization: 'Token ' + userToken

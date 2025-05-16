@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { faro } from '@grafana/faro-web-sdk';
 	import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 	import { onMount } from 'svelte';
 
@@ -31,13 +32,17 @@
 		);
 		if (!res.ok) {
 			loginError = 'Login failed: ' + res.statusText;
+			faro.api.pushEvent('Unsuccessful Admin Login', {username: username});
+			faro.api.pushError(new Error('Admin Login Error: ' + res.statusText));
 			return;
 		}
 
+		faro.api.pushEvent('Successful Admin Login', {username: username});
 		adminLoggedIn = checkAdminLoggedIn();
 	}
 
 	async function handleLogout() {
+		faro.api.pushEvent('Admin Logout');
 		// Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
 		document.cookie = 'admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 		adminLoggedIn = false;
@@ -54,11 +59,15 @@
 		})
 			.then((res) => res.json())
 			.then((json) => {
+				faro.api.pushEvent('Update Recent Pizza Recommendations',);
 				var newRec: string[] = [];
 				json.pizzas.forEach((pizza: string) => {
 					newRec.push(`
                 ${pizza.name} (tool=${pizza.tool}, ingredients_number=${pizza.ingredients.length})`);
 				});
+				if (newRec.length >= 15) {
+					faro.api.pushError(new Error('Too Many Recommendations'));
+				}
 				newRec = newRec.slice(0, 15);
 				if (newRec.length >= 0) {
 					newRec[0] = newRec[0] + ' (newest)';
