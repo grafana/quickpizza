@@ -8,11 +8,10 @@ function setupFaro() {
 		.then((config) => {
 			const url = config.faro_url;
 			if (!url) {
-				console.warn('Grafana faro is not configured.');
-				return;
+				console.warn('Grafana Faro is not configured.');
 			}
 
-			console.log(`Initializing Grafana Faro to ${url}`);
+			console.log(`Initializing Grafana Faro to '${url}'`);
 			initializeFaro({
 				url,
 				app: {
