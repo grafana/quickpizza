@@ -56,12 +56,12 @@
 		});
 		if (!res.ok) {
 			loginError = 'Login failed: ' + res.statusText;
-			faro.api.pushEvent('Unsuccessful Login', {username: username});
+			faro.api.pushEvent('Unsuccessful Login', { username: username });
 			faro.api.pushError(new Error('Login Error: ' + res.statusText));
 			return;
 		}
 
-		faro.api.pushEvent('Successful Login', {username: username});
+		faro.api.pushEvent('Successful Login', { username: username });
 		qpUserLoggedIn = checkQPUserLoggedIn();
 	}
 
