@@ -6,10 +6,9 @@ function setupFaro() {
 	fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/config`)
 		.then((data) => data.json())
 		.then((config) => {
-			let url = config.faro_url;
+			const url = config.faro_url;
 			if (!url) {
 				console.warn('Grafana Faro is not configured.');
-				url = `${PUBLIC_BACKEND_ENDPOINT}/faro`;
 			}
 
 			console.log(`Initializing Grafana Faro to '${url}'`);
