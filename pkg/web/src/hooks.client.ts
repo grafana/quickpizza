@@ -9,7 +9,7 @@ function setupFaro() {
 			let url = config.faro_url;
 			if (!url) {
 				console.warn('Grafana Faro is not configured.');
-				url = `${PUBLIC_BACKEND_ENDPOINT}/faro`
+				url = `${PUBLIC_BACKEND_ENDPOINT}/faro`;
 			} else {
 				console.log(`Initializing Grafana Faro to '${url}'`);
 			}
