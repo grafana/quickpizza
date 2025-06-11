@@ -82,7 +82,7 @@ echo $BASE_URL
 
 ### Enable telemetry in Kubernetes
 
-To collect telemetry information, enable the `grafana-agent/cloud` (or `grafana-agent/local`) resource in `kubernetes/kustomization.yaml` and set the required configuration options.
+To collect telemetry information, enable the `grafana-alloy/cloud` (or `grafana-alloy/local`) resource in `kubernetes/kustomization.yaml` and set the required configuration options.
 
 After making the changes `kubernetes/kustomization.yaml`, you may need to restart the QuickPizza pods for them to pick up the new configuration:
 
@@ -92,7 +92,7 @@ kubectl delete pods -l app.k8s.io/name=QuickPizza
 
 ![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/QuickPizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
 
-To ingest logs from Kubernetes, take a look at the [Grafana Cloud Kubernetes Integration](https://grafana.com/solutions/kubernetes) or use the [`loki.source.kubernetes`](https://grafana.com/docs/agent/latest/flow/reference/components/loki.source.kubernetes/)/[`loki.source.file`](https://grafana.com/docs/agent/latest/flow/reference/components/local.file_match/#send-kubernetes-pod-logs-to-loki) agent components.
+To ingest logs from Kubernetes, take a look at the [Grafana Cloud Kubernetes Integration](https://grafana.com/solutions/kubernetes) or use the [`loki.source.kubernetes`](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.kubernetes/)/[`loki.source.file`](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/#file-globbing) components.
 
 ### Running xk6-disruptor tests
 

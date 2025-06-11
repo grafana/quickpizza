@@ -18,7 +18,7 @@ otelcol.processor.batch "default" {
     metrics = []
     logs = []
     traces = [
-      module.git.grafana_cloud.exports.traces_receiver,
+      grafana_cloud.stack.receivers.traces,
     ]
   }
 }
@@ -36,7 +36,7 @@ discovery.kubernetes "application_pods" {
 }
 prometheus.scrape "default" {
   forward_to = [
-    module.git.grafana_cloud.exports.metrics_receiver,
+    grafana_cloud.stack.receivers.metrics,
   ]
   targets = discovery.relabel.relabel_targets.output
 }
@@ -65,18 +65,19 @@ discovery.relabel "relabel_targets" {
 
 pyroscope.scrape "scrape_profiles" {
   forward_to = [
-    module.git.grafana_cloud.exports.profiles_receiver,
+    grafana_cloud.stack.receivers.profiles,
   ]
   targets = discovery.relabel.relabel_targets.output
 }
 
-module.git "grafana_cloud" {
-  repository = "https://github.com/grafana/agent-modules.git"
-  path = "modules/grafana-cloud/autoconfigure/module.river"
+import.git "grafana_cloud" {
+  repository = "https://github.com/grafana/alloy-modules.git"
   revision = "main"
+  path = "modules/cloud/grafana/cloud/module.alloy"
   pull_frequency = "0s"
-  arguments {
-    stack_name = env("GRAFANA_CLOUD_STACK")
-    token = env("GRAFANA_CLOUD_TOKEN")
-  }
+}
+
+grafana_cloud.stack "receivers" {
+  stack_name = env("GRAFANA_CLOUD_STACK")
+  token = env("GRAFANA_CLOUD_TOKEN")
 }
