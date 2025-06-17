@@ -8,23 +8,22 @@ services:
     ports:
       - "3333:3333"
     environment:
-      QUICKPIZZA_OTLP_ENDPOINT: http://agent:4318
+      QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
       # must be set with an .env file
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
       QUICKPIZZA_PYROSCOPE_ENDPOINT: "${QUICKPIZZA_CONF_PYROSCOPE_ENDPOINT}"
 
-  agent:
-    image: grafana/agent:latest
+  alloy:
+    image: grafana/alloy:v1.9.1
     volumes:
-      - "./contrib/agent-cloud.river:/grafana-agent.river:Z"
+      - "./contrib/alloy-cloud.river:/grafana-alloy.river:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
-      ["run", "/grafana-agent.river", "--server.http.listen-addr=0.0.0.0:12345"]
+      ["run", "/grafana-alloy.river", "--server.http.listen-addr=0.0.0.0:12345"]
     ports:
       - "12345:12345"
     environment:
-      AGENT_MODE: flow
       QUICKPIZZA_HOST: quickpizza:3333
       # must be set with an .env file
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"

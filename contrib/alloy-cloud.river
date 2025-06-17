@@ -18,7 +18,7 @@ otelcol.processor.batch "default" {
     metrics = []
     logs = []
     traces = [
-      module.git.grafana_cloud.exports.traces_receiver,
+      grafana_cloud.stack.receivers.traces,
     ]
   }
 }
@@ -26,7 +26,7 @@ otelcol.processor.batch "default" {
 // Scrape Metrics
 prometheus.scrape "default" {
   forward_to = [
-    module.git.grafana_cloud.exports.metrics_receiver,
+    grafana_cloud.stack.receivers.metrics,
   ]
   targets = [
     {
@@ -64,16 +64,17 @@ discovery.relabel "quickpizza" {
 loki.source.docker "default" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.relabel.quickpizza.output
-  forward_to = [module.git.grafana_cloud.exports.logs_receiver]
+  forward_to = [grafana_cloud.stack.receivers.logs]
 }
 
-module.git "grafana_cloud" {
-  repository = "https://github.com/grafana/agent-modules.git"
-  path = "modules/grafana-cloud/autoconfigure/module.river"
+import.git "grafana_cloud" {
+  repository = "https://github.com/grafana/alloy-modules.git"
   revision = "main"
+  path = "modules/cloud/grafana/cloud/module.alloy"
   pull_frequency = "0s"
-  arguments {
-    stack_name = env("GRAFANA_CLOUD_STACK")
-    token = env("GRAFANA_CLOUD_TOKEN")
-  }
+}
+
+grafana_cloud.stack "receivers" {
+  stack_name = env("GRAFANA_CLOUD_STACK")
+  token = env("GRAFANA_CLOUD_TOKEN")
 }

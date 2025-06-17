@@ -115,9 +115,9 @@ export QUICKPIZZA_LOG_LEVEL=debug
 
 ## Local Setup
 
-The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Agent containers.
+The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Alloy containers.
 
-The Grafana Agent collects traces, metrics, logs and profiling data from the QuickPizza app, forwarding them to the Tempo, Prometheus and Loki. Finally, you can visualize and correlate data stored in these containers with the locally running Grafana instance.
+Grafana Alloy collects traces, metrics, logs and profiling data from the QuickPizza app, forwarding them to the Tempo, Prometheus and Loki. Finally, you can visualize and correlate data stored in these containers with the locally running Grafana instance.
 
 To start the local environment, use the following command:
 
@@ -129,7 +129,7 @@ Like before, QuickPizza is available at [localhost:3333](http://localhost:3333).
 
 Then, you can visit the Grafana instance running at [localhost:3000](http://localhost:3000) to access QuickPizza data.
 
-Please refer to [agent-local.river](./contrib/agent-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml) to find the labels applied to the telemetry data.
+Please refer to [alloy-local.river](./contrib/alloy-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml) to find the labels applied to the telemetry data.
 
 ### Correlate Pyroscope Data with k6 Tests
 
@@ -163,9 +163,9 @@ For detailed instructions about the different options of the k6 Prometheus outpu
 
 ## Grafana Cloud
 
-The [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) file is set up to run the QuickPizza and Grafana Agent containers.
+The [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) file is set up to run the QuickPizza and Grafana Alloy containers.
 
-In this setup, the Grafana Agent collects observability data from the QuickPizza app and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
+In this setup, Grafana Alloy collects observability data from the QuickPizza app and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
 
 You will need the following settings:
 
@@ -196,7 +196,7 @@ docker compose -f docker-compose-cloud.yaml up -d
 
 QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
 
-Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and explore QuickPizza's telemetry data on the Prometheus, Tempo, Loki, and Pyroscope instances of your Grafana Cloud Stack. Refer to [agent-cloud.river](./contrib/agent-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) to find the labels applied to the telemetry data.
+Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and explore QuickPizza's telemetry data on the Prometheus, Tempo, Loki, and Pyroscope instances of your Grafana Cloud Stack. Refer to [alloy-cloud.river](./contrib/alloy-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) to find the labels applied to the telemetry data.
 
 ### Enable Profiling (Send profiles to Grafana Cloud Profiles / Pyroscope)
 
@@ -242,7 +242,7 @@ For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prome
 
 ## Deploy QuickPizza Docker image
 
-The [Dockerfile](./Dockerfile) contains the setup for running QuickPizza without collecting data with the Grafana agent.
+The [Dockerfile](./Dockerfile) contains the setup for running QuickPizza without collecting data with Grafana Alloy.
 
 You can use the Dockerfile or build a Docker image to deploy the QuickPizza app on any cloud provider that supports Docker deployments. For simplicity, here are the `Fly.io` instructions:
 

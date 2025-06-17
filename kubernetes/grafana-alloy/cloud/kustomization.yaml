@@ -1,0 +1,10 @@
+resources:
+  - ../base/
+
+configMapGenerator:
+  - name: alloy-config
+    files:
+      - ./config/grafana-alloy.river
+  - name: tracing-env
+    literals:
+      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318
