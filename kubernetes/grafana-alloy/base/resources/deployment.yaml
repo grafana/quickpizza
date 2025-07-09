@@ -16,7 +16,7 @@ spec:
         app.k8s.io/name: grafana-alloy
     spec:
       restartPolicy: Always
-      serviceAccountName: grafana-alloy
+      serviceAccountName: grafana-alloy-sa
       containers:
         - name: grafana-alloy
           image: grafana/alloy:v1.9.1

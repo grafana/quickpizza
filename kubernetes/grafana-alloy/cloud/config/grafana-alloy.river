@@ -1,3 +1,59 @@
+// Discovery
+discovery.kubernetes "application_pods" {
+  selectors {
+    label = "app.k8s.io/name=quickpizza"
+    role = "pod"
+  }
+  role = "pod"
+  namespaces {
+    own_namespace = true
+  }
+}
+
+discovery.relabel "relabel_targets" {
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
+    ]
+  }
+  rule {
+    target_label = "service_name"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
+    ]
+  }
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_kubernetes_pod_name",
+    ]
+  }
+  targets = discovery.kubernetes.application_pods.targets
+}
+
+// Metrics
+prometheus.scrape "default" {
+  forward_to = [
+    grafana_cloud.stack.receivers.metrics,
+  ]
+  targets = discovery.relabel.relabel_targets.output
+}
+
+// Logs
+loki.source.kubernetes "pods" {
+  targets    = discovery.kubernetes.application_pods.targets
+  forward_to = [
+    grafana_cloud.stack.receivers.logs,
+  ]
+}
+
+loki.source.kubernetes_events "k8s_event_logs" {
+  forward_to = [
+    grafana_cloud.stack.receivers.logs,
+  ]
+}
+
 // Traces
 otelcol.receiver.otlp "default" {
   grpc {
@@ -23,46 +79,7 @@ otelcol.processor.batch "default" {
   }
 }
 
-// Metrics
-discovery.kubernetes "application_pods" {
-  selectors {
-    label = "app.k8s.io/name=quickpizza"
-    role = "pod"
-  }
-  role = "pod"
-  namespaces {
-    own_namespace = true
-  }
-}
-prometheus.scrape "default" {
-  forward_to = [
-    grafana_cloud.stack.receivers.metrics,
-  ]
-  targets = discovery.relabel.relabel_targets.output
-}
-
-discovery.relabel "relabel_targets" {
-  rule {
-    target_label = "job"
-    source_labels = [
-      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
-    ]
-  }
-  rule {
-    target_label = "service_name"
-    source_labels = [
-      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
-    ]
-  }
-  rule {
-    target_label = "instance"
-    source_labels = [
-      "__meta_kubernetes_pod_name",
-    ]
-  }
-  targets = discovery.kubernetes.application_pods.targets
-}
-
+// Profiles
 pyroscope.scrape "scrape_profiles" {
   forward_to = [
     grafana_cloud.stack.receivers.profiles,
