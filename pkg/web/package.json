@@ -12,8 +12,8 @@
 		"format": "prettier --plugin-search-dir . --write ."
 	},
 	"devDependencies": {
-		"@grafana/faro-web-sdk": "^1.14.1",
-		"@grafana/faro-web-tracing": "^1.14.1",
+		"@grafana/faro-web-sdk": "^1.18.2",
+		"@grafana/faro-web-tracing": "^1.18.2",
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/adapter-static": "^2.0.1",
 		"@sveltejs/kit": "^1.5.0",
@@ -35,6 +35,8 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"install": "^0.13.0",
+		"npm": "^11.4.2",
 		"socket.io-client": "^4.6.1",
 		"svelte-confetti": "^1.2.2"
 	}
