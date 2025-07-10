@@ -85,6 +85,11 @@ jobs:
         env:
           ACT: ${{ env.ACT }}
 
+      - name: Run k6 foundations TS tests
+        run: ./scripts/run-tests.sh -t **/k6/foundations/*.ts -u http://localhost:3333
+        env:
+          ACT: ${{ env.ACT }}
+      
       - name: Run k6 internal tests
         run: ./scripts/run-tests.sh -t **/k6/internal/*.js -u http://localhost:3333
         env:
