@@ -50,10 +50,12 @@ func NewTraceInstaller(ctx context.Context, endpointUrl string) (*TraceInstaller
 	var client otlptrace.Client
 	switch u.Scheme {
 	case "http":
-		client = otlptracehttp.NewClient(otlptracehttp.WithInsecure(), otlptracehttp.WithEndpoint(u.Host))
+		client = otlptracehttp.NewClient(otlptracehttp.WithEndpoint(u.Host), otlptracehttp.WithInsecure())
 	case "https":
 		client = otlptracehttp.NewClient(otlptracehttp.WithEndpoint(u.Host))
 	case "grpc":
+		client = otlptracegrpc.NewClient(otlptracegrpc.WithEndpoint(u.Host), otlptracegrpc.WithInsecure())
+	case "grpcs":
 		client = otlptracegrpc.NewClient(otlptracegrpc.WithEndpoint(u.Host))
 	default:
 		return nil, fmt.Errorf("unsupported protocol %q", u.Scheme)
