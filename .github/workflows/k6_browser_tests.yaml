@@ -1,0 +1,27 @@
+name: Browser Tests Workflow
+on: [push]
+
+jobs:
+  k6_browser_tests:
+    name: k6 test run - running all browser tests
+    runs-on: ubuntu-latest
+
+    services:
+      quickpizza:
+        image: ghcr.io/grafana/quickpizza-local:latest
+        ports:
+          - 3333:3333
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          browser: true
+      - name: Run k6 test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: |
+            ./k6/browser/*.js
