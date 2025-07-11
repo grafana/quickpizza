@@ -1266,7 +1266,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			// Retrieve list of ingredients from Catalog.
 			var validOliveOils []model.Ingredient
 			for _, oliveOil := range oils {
-				if !contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
+				if !slices.Contains(restrictions.ExcludedIngredients, oliveOil.Name) && (!restrictions.MustBeVegetarian || oliveOil.Vegetarian) {
 					validOliveOils = append(validOliveOils, oliveOil)
 				}
 			}
@@ -1280,7 +1280,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			var validTomatoes []model.Ingredient
 			for _, tomato := range tomatoes {
-				if !contains(restrictions.ExcludedIngredients, tomato.Name) && (!restrictions.MustBeVegetarian || tomato.Vegetarian) {
+				if !slices.Contains(restrictions.ExcludedIngredients, tomato.Name) && (!restrictions.MustBeVegetarian || tomato.Vegetarian) {
 					validTomatoes = append(validTomatoes, tomato)
 				}
 			}
@@ -1294,7 +1294,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			var validMozzarellas []model.Ingredient
 			for _, mozzarella := range mozzarellas {
-				if !contains(restrictions.ExcludedIngredients, mozzarella.Name) && (!restrictions.MustBeVegetarian || mozzarella.Vegetarian) {
+				if !slices.Contains(restrictions.ExcludedIngredients, mozzarella.Name) && (!restrictions.MustBeVegetarian || mozzarella.Vegetarian) {
 					validMozzarellas = append(validMozzarellas, mozzarella)
 				}
 			}
@@ -1308,7 +1308,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			var validToppings []model.Ingredient
 			for _, topping := range toppings {
-				if !contains(restrictions.ExcludedIngredients, topping.Name) && (!restrictions.MustBeVegetarian || topping.Vegetarian) {
+				if !slices.Contains(restrictions.ExcludedIngredients, topping.Name) && (!restrictions.MustBeVegetarian || topping.Vegetarian) {
 					validToppings = append(validToppings, topping)
 				}
 			}
@@ -1322,7 +1322,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			var validTools []string
 			for _, tool := range tools {
-				if !contains(restrictions.ExcludedTools, tool) {
+				if !slices.Contains(restrictions.ExcludedTools, tool) {
 					validTools = append(validTools, tool)
 				}
 			}
@@ -1351,7 +1351,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 
 			pizzaCtx, pizzaSpan := tracer.Start(r.Context(), "pizza-generation")
 			var p model.Pizza
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				randomName := restrictions.CustomName
 
 				if randomName == "" {
@@ -1391,7 +1391,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 					extraToppings = rand.Intn(extraToppings + 1)
 				}
 
-				for j := 0; j < extraToppings+restrictions.MinNumberOfToppings; j++ {
+				for range extraToppings + restrictions.MinNumberOfToppings {
 					p.Ingredients = append(p.Ingredients, validToppings[rand.Intn(len(validToppings))])
 				}
 
@@ -1443,15 +1443,6 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			s.writeJSONResponse(w, r, pizzaRecommendation, http.StatusOK)
 		})
 	})
-}
-
-func contains(slice []string, value string) bool {
-	for _, item := range slice {
-		if item == value {
-			return true
-		}
-	}
-	return false
 }
 
 func FaviconHandler() http.Handler {
