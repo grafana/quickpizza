@@ -18,6 +18,8 @@ jobs:
         
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
+        with:
+          browser: true
       - name: Run k6 test
         uses: grafana/run-k6-action@v1
         with:
