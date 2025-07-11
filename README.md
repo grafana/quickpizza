@@ -17,7 +17,7 @@ The QuickPizza tests showcase key k6 features, from basic usage to custom module
 
 - [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v1.0.0 or higher) to run the k6 tests used in this project to test QuickPizza.
 - [Docker](https://docs.docker.com/get-docker/) to run QuickPizza [locally](#run-locally-with-docker).
-- [Docker Compose](https://docs.docker.com/get-docker/) to run and instrument QuickPizza, storing metrics, logs, traces, and profiling data using the Grafana Observability stack. You can either [store this data locally](#run-and-observe-locally-with-docker-compose-) or send it to [Grafana Cloud](#run-locally-and-observe-with-grafana-cloud-️).
+- [Docker Compose](https://docs.docker.com/get-docker/) to run and instrument QuickPizza, storing metrics, logs, traces, and profiling data using the Grafana Observability stack. You can either [store this data locally](#run-and-observe-locally-with-grafana-oss-) or send it to [Grafana Cloud](#run-locally-and-observe-with-grafana-cloud-%EF%B8%8F️).
 
 
 ## Use k6 to test QuickPizza
@@ -100,7 +100,7 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 
 
 
-> Testing something you can't observe is only half the fun! 🔍✨ QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. Get ready to dive deep into observability! 🚀
+**Testing something you can't observe is only half the fun!** 🔍✨ QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. Get ready to dive deep into observability! 🚀
 
 ## Run and observe locally with Grafana OSS 🐳📊
 
