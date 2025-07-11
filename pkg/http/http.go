@@ -529,8 +529,6 @@ func (s *Server) AddTestK6IO() {
 // These are meant to replace https://github.com/grafana/httpbin (roughly).
 func (s *Server) AddHTTPTesting() {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "httptesting")
-
 		r.HandleFunc("/api/status/{status:\\d+}", func(w http.ResponseWriter, r *http.Request) {
 			status, err := strconv.Atoi(chi.URLParam(r, "status"))
 			if err != nil {
