@@ -1,9 +1,9 @@
-name: Multiple Test Scripts Workflow
+name: All Foundation Tests Workflow
 on: [push]
 
 jobs:
-  basic_k6_test:
-    name: k6 test run - running multiple scripts
+  k6_foundation_tests:
+    name: k6 test run - running all foundations tests
     runs-on: ubuntu-latest
 
     services:
@@ -15,10 +15,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
       - name: Run k6 test
         uses: grafana/run-k6-action@v1
         with:
           path: |
-            ./k6/browser/*.js
+            ./k6/foundations/*.js
+            ./k6/foundations/*.ts
+            ./k6/internal/*.js
