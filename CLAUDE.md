@@ -31,8 +31,8 @@ QuickPizza is a demonstration web application that generates pizza recommendatio
 - All k6 tests are in the `k6/` directory organized by category
 
 ### Docker Development
-- `make docker-localdev-build` - Build local development Docker image
-- `make docker-localdev-run` - Run local development container with volume mounts
+- `make docker-build` - Build local Docker image
+- `make docker-run` - Run local container with volume mounts
 
 ## Architecture
 

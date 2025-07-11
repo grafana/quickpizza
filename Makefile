@@ -29,8 +29,8 @@ format-web:
 format-check:
 	@out=$$(goimports -l $(GO_SOURCES)) && echo "$$out" && test -z "$$out"
 
-docker-localdev-build:
-	docker build . -t grafana/quickpizza:localdev
+docker-build:
+	docker build . -t grafana/quickpizza-local:latest
 
-docker-localdev-run:
-	docker run --rm -it -p 3333:3333 -p 3334:3334 -p 3335:3335 -v $$(pwd):/db -e QUICKPIZZA_DB=file:/db/quickpizza.db grafana/quickpizza:localdev
+docker-run:
+	docker run --rm -it -p 3333:3333 -p 3334:3334 -p 3335:3335 -v $$(pwd):/db -e QUICKPIZZA_DB=file:/db/quickpizza.db grafana/quickpizza-local:latest
