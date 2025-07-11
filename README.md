@@ -4,34 +4,21 @@
 
 ## What is QuickPizza? 🍕🍕🍕
 
-`QuickPizza` is a web application, used for demonstrations and workshops, that generates new and exciting pizza combinations!
+**QuickPizza** is a simple web application, used for demonstrations and workshops, that generates new and exciting pizza combinations!
 
-The app is built using [SvelteKit](https://kit.svelte.dev/) for the frontend and [Go](https://go.dev/) for the backend.
 
-The tests written for `QuickPizza` demonstrates the basic and advanced functionalities of k6, ranging from a basic load test to using different modules and extensions. QuickPizza is used in the the [k6-oss-workshop](https://github.com/grafana/k6-oss-workshop).
+You can run QuickPizza locally or deploy it to your own infrastructure. For demo purposes, QuickPizza is also publicly available at:
+1. [quickpizza.grafana.com](https://quickpizza.grafana.com/)— Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
+2. [quickpizza-demo.grafana.fun](https://quickpizza.grafana.com/) — Install the [SRE Demo environment](https://grafana.com/docs/grafana-cloud/get-started/#install-demo-data-sources-and-dashboards) to observe this deployment, or explore it in [Grafana Play](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/). 
+
+The QuickPizza tests showcase key k6 features, from basic usage to custom modules and extensions.
 
 ## Requirements
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v0.53.0 or higher)
+- [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v1.0.0 or higher) to run the k6 tests used in this project to test QuickPizza.
+- [Docker](https://docs.docker.com/get-docker/) to run QuickPizza [locally](#run-locally-with-docker).
+- [Docker Compose](https://docs.docker.com/get-docker/) to run and instrument QuickPizza, storing metrics, logs, traces, and profiling data using the Grafana Observability stack. You can either [store this data locally](#run-and-observe-locally-with-docker-compose-) or send it to [Grafana Cloud](#run-locally-and-observe-with-grafana-cloud-️).
 
-## Run locally with Docker
-
-To run the app locally with Docker, run the command:
-
-```bash
-docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
-```
-
-or build image from the repo:
-
-```bash
-docker run --rm -it -p 3333:3333 $(docker build -q .)
-```
-
-That's it!
-
-Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
 
 ## Use k6 to test QuickPizza
 
@@ -40,7 +27,6 @@ All tests live in the `k6` folder. Within this folder, you will find the followi
 - [foundations](k6/foundations/) - covers the basic functionalities of k6.
 - [browser](k6/browser/) - covers the [k6 browser module](https://grafana.com/docs/k6/latest/using-k6-browser/) for browser and web performance testing.
 - [extensions](k6/extensions/) - covers basic tests using [k6 extensions](https://grafana.com/docs/k6/latest/extensions/).
-- [disruptor](k6/disruptor/) - covers a more deep-dive look on how to use [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/) for failure injection testing.
 
 To run tests on the `foundations` folder, you can use the following commands:
 
@@ -49,16 +35,10 @@ cd k6/foundations
 k6 run 01.basic.js
 ```
 
-If you want to run one iteration with one virtual user, you can use the following command:
+If QuickPizza is publicly available , then pass the hostname and port through the `BASE_URL` environment variable as follows:
 
 ```bash
-k6 run --iterations 1 --vus 1 01.basic.js
-```
-
-If QuickPizza is [deployed remotely](#deploy-quickpizza-docker-image), then pass the hostname and port through the `BASE_URL` environment variable as follows:
-
-```bash
-k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
+k6 run -e BASE_URL=https://quickpizza.grafana.com 01.basic.js
 ```
 
 <details>
@@ -99,21 +79,31 @@ k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
   ```
 </details>
 
-### Collect Telemetry (Docker Compose)
 
-Testing something you can't observe is only half the fun. QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. You can either collect and [store this data locally](#local-setup) or send it to [Grafana Cloud](#grafana-cloud).
+## Run locally with Docker
 
-### Enabling Debug Logging
+To run the app locally with Docker, run the command:
 
-If you encounter any issues during operation, you can enable debug logging by setting the following environment variable:
-
-```shell
-export QUICKPIZZA_LOG_LEVEL=debug
+```bash
+docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
 ```
 
----
+or build image from the repo:
 
-## Local Setup
+```bash
+docker run --rm -it -p 3333:3333 $(docker build -q .)
+```
+
+That's it!
+
+Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
+
+
+
+> Testing something you can't observe is only half the fun! 🔍✨ QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. Get ready to dive deep into observability! 🚀
+
+## Run and observe locally with Grafana OSS 🐳📊
+
 
 The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Alloy containers.
 
@@ -127,25 +117,11 @@ docker compose -f docker-compose-local.yaml up -d
 
 Like before, QuickPizza is available at [localhost:3333](http://localhost:3333). It's time to discover some fancy pizzas!
 
-Then, you can visit the Grafana instance running at [localhost:3000](http://localhost:3000) to access QuickPizza data.
+Then, you can visit the Grafana instance running at [localhost:3000](http://localhost:3000) and use **Explore** or **Drilldown apps** to access QuickPizza data.
 
-Please refer to [alloy-local.river](./contrib/alloy-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml) to find the labels applied to the telemetry data.
+![Use Profiles Drilldown](./docs/images/drilldown-profiles.png)
 
-### Correlate Pyroscope Data with k6 Tests
-
-Whenever there is a Pyroscope instance endpoint provided via the `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable, the QuickPizza app will emit and push profiling data to Pyroscope. You can visualize the profiling data with the Pyroscope data source in Grafana and the [Explore Profiles](https://grafana.com/docs/grafana/latest/explore/simplified-exploration/profiles/) Grafana [Plugin](https://grafana.com/grafana/plugins/grafana-pyroscope-app/).
-
-> [!TIP]
-> To send Data to Pyroscope directly for a Local Setup, use the value `http://pyroscope:4040` for the `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable
-
-To correlate the profiling data with the k6 test results, use the [k6 Pyroscope library](https://grafana.com/docs/k6/next/javascript-api/jslib/http-instrumentation-pyroscope/).
-
-![Pyroscope Data Source](./docs/images/local-env-grafana-with-pyroscope.png)
-
-Additional variables are available to configure the Tags/Labels for the Profiles:
-
-- `QUICKPIZZA_PYROSCOPE_NAME` - the value of the `service_name` Label in Pyroscope (uses `quickpizza` by default).
-- `QUICKPIZZA_PYROSCOPE_NAMESPACE` - the value of the `namespace` Label in Pyroscope (uses `quickpizza` by default).
+To find the labels applied to the telemetry data, refer to [alloy-local.river](./contrib/alloy-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml).
 
 ### Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards
 
@@ -161,7 +137,7 @@ The local Grafana instance includes the [k6 Prometheus](https://grafana.com/graf
 
 For detailed instructions about the different options of the k6 Prometheus output, refer to the [k6 output guide for Prometheus remote write](https://grafana.com/docs/k6/latest/results-output/real-time/prometheus-remote-write/).
 
-## Grafana Cloud
+## Run locally and observe with Grafana Cloud 🐳️☁📊
 
 The [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) file is set up to run the QuickPizza and Grafana Alloy containers.
 
@@ -238,66 +214,3 @@ k6 run -o experimental-prometheus-rw script.js
 
 For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prometheus](https://grafana.com/docs/k6/latest/results-output/real-time/grafana-cloud-prometheus/).
 
----
-
-## Deploy QuickPizza Docker image
-
-The [Dockerfile](./Dockerfile) contains the setup for running QuickPizza without collecting data with Grafana Alloy.
-
-You can use the Dockerfile or build a Docker image to deploy the QuickPizza app on any cloud provider that supports Docker deployments. For simplicity, here are the `Fly.io` instructions:
-
-1. [Authenticate using the fly CLI](https://fly.io/docs/speedrun/).
-2. Then, run the CLI to deploy the application and set up the internal port `3333` that the server listens to.
-
-    ```bash
-    fly launch --internal-port 3333 --now
-    ```
-
-For deployments on remote servers, you need to pass the `BASE_URL` environment variable when running the k6 tests as follows:
-
-```bash
-k6 run -e BASE_URL=https://acmecorp.dev:3333 01.basic.js
-```
-
-## Use an external database
-
-By default, QuickPizza stores all its data in an in-memory SQLite database. This allows for a quick start while still closely resembling a real world application. If you want to add an external database, you can set the `QUICKPIZZA_DB` environment variable to a supported connection string. Currently only PostgreSQL and SQLite is supported.
-
-Example connection strings:
-
-```shell
-# a remote PostgreSQL instance
-export QUICKPIZZA_DB="postgres://user:password@localhost:5432/database?sslmode=disable"
-# a local sqlite3 database
-export QUICKPIZZA_DB="quickpizza.db"
-```
-
-## Deploy the application to Kubernetes
-
-If you want to run a test that uses [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes.
-
-For a detailed setup instructions, see the [QuickPizza Kubernetes guide](./docs/kubernetes-setup.md).
-
-## Injecting Errors from Client via Headers
-
-You can introduce errors from the client side using custom headers. Below is a list of the currently supported error headers:
-
-- **x-error-record-recommendation**: Triggers an error when recording a recommendation. The header value should be the error message.
-- **x-error-record-recommendation-percentage**: Specifies the percentage chance of an error occurring when recording a recommendation, if x-error-record-recommendation is also included. The header value should be a number between 0 and 100.
-- **x-delay-record-recommendation**: Introduces a delay when recording a recommendation. The header value should specify the delay duration and unit. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y".
-- **x-delay-record-recommendation-percentage**: Specifies the percentage chance of a delay occurring when recording a recommendation, if x-delay-record-recommendation is also included. The header value should be a number between 0 and 100.
-- **x-error-get-ingredients**: Triggers an error when retrieving ingredients. The header value should be the error message.
-- **x-error-get-ingredients-percentage**: Specifies the percentage chance of an error occurring when retrieving ingredients, if x-error-get-ingredients is also included. The header value should be a number between 0 and 100.
-- **x-delay-get-ingredients**: Introduces a delay when retrieving ingredients. The header value should specify the delay duration and unit. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y".
-- **x-delay-get-ingredients-percentage**: Specifies the percentage chance of a delay occurring when retrieving ingredients, if x-delay-get-ingredients is also included. The header value should be a number between 0 and 100.
-
-Example of header usage:
-
-```shell
-curl -X POST http://localhost:3333/api/pizza \
-     -H "Content-Type: application/json" \
-     -H "Authorization: abcdef0123456789" \
-     -H "x-error-record-recommendation: internal-error" \
-     -H "x-error-record-recommendation-percentage: 20" \
-     -d '{}'
-```
