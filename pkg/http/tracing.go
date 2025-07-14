@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httplog/v2"
@@ -82,12 +84,23 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 		return
 	}
 
+	// For Distributed Deployments (Kubernetes), if the legacy env var is set and true, use the microservice name as the service name instead.
+	// This is to help with Application Observability and Correlations between Metrics, Logs, Traces and Profiles.
+	serviceNameAttrValue := "quickpizza"
+	v, found := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY")
+	if found {
+		b, _ := strconv.ParseBool(v)
+		if b {
+			serviceNameAttrValue = serviceName
+		}
+	}
+
 	// We discard the error here as it cannot possibly take place with the parameters we use.
 	res, _ := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("quickpizza"),
+			semconv.ServiceName(serviceNameAttrValue),
 			attribute.KeyValue{Key: "service.component", Value: attribute.StringValue(serviceName)},
 		),
 	)
