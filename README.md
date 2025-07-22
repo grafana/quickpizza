@@ -9,7 +9,7 @@
 
 You can run QuickPizza locally or deploy it to your own infrastructure. For demo purposes, QuickPizza is also publicly available at:
 1. [quickpizza.grafana.com](https://quickpizza.grafana.com/)— Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
-2. [quickpizza-demo.grafana.fun](https://quickpizza.grafana.com/) — Install the [SRE Demo environment](https://grafana.com/docs/grafana-cloud/get-started/#install-demo-data-sources-and-dashboards) to observe this deployment, or explore it in [Grafana Play](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/). 
+2. [quickpizza-demo.grafana.fun](https://quickpizza-demo.grafana.fun/) — Install the [SRE Demo environment](https://grafana.com/docs/grafana-cloud/get-started/#install-demo-data-sources-and-dashboards) to observe this deployment, or explore it in [Grafana Play](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/). 
 
 The QuickPizza tests showcase key k6 features, from basic usage to custom modules and extensions.
 
@@ -147,7 +147,7 @@ You will need the following settings:
 
 1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored.
 2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
-3. The User ID and Endpoint to use for Grafana Cloud Profiles (Pyroscope) for your [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack)
+3. To enable [Profiling](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/), go to the Pyroscope profiling service of your [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack), and copy the URL, User, and Password. 
 
 Then, create an `.env` file with the following environment variables and the values of the previous settings:
 
@@ -156,11 +156,13 @@ Then, create an `.env` file with the following environment variables and the val
 GRAFANA_CLOUD_STACK=name
 # Your Grafana Cloud Access Policy Token
 GRAFANA_CLOUD_TOKEN=
-# The Endpoint to use to send your Profiling Data too
+
+# Optional - Profiling configuration for Grafana Cloud Profiles (Pyroscope)
+# Endpoint URL for your Grafana Cloud Stack
 QUICKPIZZA_PYROSCOPE_ENDPOINT=
-# Your Grafana Cloud Profiles Username for your Grafana Cloud Stack
+# Username for Profiles authentication
 QUICKPIZZA_GRAFANA_CLOUD_USER=
-# Your Grafana Cloud Profiles Password for your Grafana Cloud Stack (this is typically your Grafana Cloud Access Policy Token)
+# Password for Profiles authentication (typically your Grafana Cloud Access Policy Token)
 QUICKPIZZA_GRAFANA_CLOUD_PASSWORD=${GRAFANA_CLOUD_TOKEN}
 ```
 
@@ -172,34 +174,34 @@ docker compose -f docker-compose-cloud.yaml up -d
 
 QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
 
-Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and explore QuickPizza's telemetry data on the Prometheus, Tempo, Loki, and Pyroscope instances of your Grafana Cloud Stack. Refer to [alloy-cloud.river](./contrib/alloy-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) to find the labels applied to the telemetry data.
+Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and use **Explore** or **Drilldown apps** to access QuickPizza's telemetry data.
 
-### Enable Profiling (Send profiles to Grafana Cloud Profiles / Pyroscope)
+![Use Metrics Drilldown](./docs/images/grafana-cloud-drilldown-metrics.png)
 
-Whenever there is a Pyroscope endpoint provided via the `QUICKPIZZA_PYROSCOPE_ENDPOINT` environment variable, as well as suitable Authentication Credentials, the QuickPizza app will emit and push profiling data to Grafana Cloud Profiles. You can visualize the profiling data with the Grafana Cloud Profiles data source in Grafana Cloud and the [Explore Profiles](https://grafana.com/docs/grafana/latest/explore/simplified-exploration/profiles/) feature.
+![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
-To enable [Grafana Cloud Profiling](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/), ensure the following Environment Variables are set in the `.env` file, with values set to match your Grafana Cloud Stack:
+To find the labels applied to the telemetry data, refer to [alloy-cloud.river](./contrib/alloy-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) .
 
-- `QUICKPIZZA_PYROSCOPE_ENDPOINT` - The Endpoint to use to send your Profiling Data too for your Grafana Cloud Stack.
-- `QUICKPIZZA_GRAFANA_CLOUD_USER` and `QUICKPIZZA_GRAFANA_CLOUD_PASSWORD` are the Basic auth credentials to authenticate with the Grafana Cloud instance.
+### Monitor frontend with Grafana Cloud Frontend Observability 
 
-Additional variables are available to configure the Tags/Labels for the Profiles, and support some Grafana Cloud Profiling Integrations;
+To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/) for QuickPizza:
 
-- `QUICKPIZZA_PYROSCOPE_NAME` - the value of the `service_name` Label in Grafana Cloud Profiles (uses `quickpizza` by default).
-- `QUICKPIZZA_PYROSCOPE_NAMESPACE` - the value of the `namespace` Label in Grafana Cloud Profiles (uses `quickpizza` by default).
-- `QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF` - This allows you to provide the Git Ref for the QuickPizza Source in GitHub, to use with the Go Profiles [GitHub Integration](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/pyroscope-github-integration/) in Grafana Cloud.
+1. In Grafana Cloud, create a new Frontend Observability application and set the domain to `http://localhost:3333`.
+2. Copy the application's Faro web URL.
+3. In your `.env` file, add the `QUICKPIZZA_CONF_FARO_URL` variable and set its value to your Faro web URL:
 
-### Enable Frontend Observability (Grafana Faro)
+    ```bash
+    QUICKPIZZA_CONF_FARO_URL=
+    ```
 
-Frontend Observability is available exclusively in Grafana Cloud. To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/) for QuickPizza, add the `QUICKPIZZA_CONF_FARO_URL` variable to the `.env` file, setting its value to your Faro web URL:
+4. Restart the `docker-compose-cloud.yaml` environment:
 
-```bash
-QUICKPIZZA_CONF_FARO_URL=
-```
+    ```bash
+    docker compose -f docker-compose-cloud.yaml down
+    docker compose -f docker-compose-cloud.yaml up -d
+    ```
 
-Restart the `docker-compose-cloud.yaml` environment.
-
-![Frontend Observability](./docs/images/grafana-cloud-frontend-observability.png)
+![Frontend Observability](./docs/images/grafana-cloud-frontend-observability-quickpizza.png)
 
 ### Send k6 test results to Grafana Cloud Prometheus and visualize them with prebuilt Grafana dashboards
 
