@@ -188,11 +188,15 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
 
 1. In Grafana Cloud, create a new Frontend Observability application and set the domain to `http://localhost:3333`.
 2. Copy the application's Faro web URL.
-3. In your `.env` file, add the `QUICKPIZZA_CONF_FARO_URL` variable and set its value to your Faro web URL:
+3. In your `.env` file, add the following environment variables to configure your Faro URL and application name:
 
-    ```bash
-    QUICKPIZZA_CONF_FARO_URL=
-    ```
+```bash
+# FRONTEND OBSERVABILITY URL
+QUICKPIZZA_CONF_FARO_URL=
+
+# FRONTEND OBSERVABILITY APPLICATION NAME
+QUICKPIZZA_CONF_FARO_APP_NAME=
+```
 
 4. Restart the `docker-compose-cloud.yaml` environment:
 
