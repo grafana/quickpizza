@@ -9,6 +9,8 @@ function setupFaro() {
 			const url = config.faro_url;
 			const faroAppName = config.faro_app_name || 'QuickPizza';
 			const faroAppNamespace = config.faro_app_namespace || 'quickpizza';
+			const faroAppVersion = config.faro_app_version || '1.0.0';
+			const faroAppEnvironment = config.faro_app_environment || 'production';
 
 			if (!url) {
 				console.warn('Grafana Faro is not configured.');
@@ -20,8 +22,8 @@ function setupFaro() {
 				app: {
 					name: faroAppName,
 					namespace: faroAppNamespace,
-					version: '1.0.0',
-					environment: 'production'
+					version: faroAppVersion,
+					environment: faroAppEnvironment
 				},
 				instrumentations: [
 					// Mandatory, overwriting the instrumentations array would cause the default instrumentations to be omitted
