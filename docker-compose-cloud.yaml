@@ -9,10 +9,15 @@ services:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
       # must be set with an .env file
-      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
-      QUICKPIZZA_PYROSCOPE_ENDPOINT: "${QUICKPIZZA_PYROSCOPE_ENDPOINT}"
       QUICKPIZZA_GRAFANA_CLOUD_USER: "${QUICKPIZZA_GRAFANA_CLOUD_USER}"
       QUICKPIZZA_GRAFANA_CLOUD_PASSWORD: "${QUICKPIZZA_GRAFANA_CLOUD_PASSWORD}"
+      QUICKPIZZA_PYROSCOPE_ENDPOINT: "${QUICKPIZZA_PYROSCOPE_ENDPOINT}"
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
+      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME}"
+
+      # Namespace label in Faro. Default: quickpizza
+      # QUICKPIZZA_CONF_FARO_APP_NAMESPACE: quickpizza
+
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
       # Service name label in Pyroscope. Default: quickpizza
