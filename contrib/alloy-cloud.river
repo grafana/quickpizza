@@ -74,6 +74,15 @@ import.git "grafana_cloud" {
   pull_frequency = "0s"
 }
 
+// Receive profiling data
+pyroscope.receive_http "default" {
+   http {
+       listen_address = "0.0.0.0"
+       listen_port = 9999
+   }
+   forward_to = [grafana_cloud.stack.receivers.profiles]
+}
+
 grafana_cloud.stack "receivers" {
   stack_name = env("GRAFANA_CLOUD_STACK")
   token = env("GRAFANA_CLOUD_TOKEN")

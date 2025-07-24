@@ -147,23 +147,14 @@ You will need the following settings:
 
 1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored.
 2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
-3. To enable [Profiling](https://grafana.com/docs/grafana-cloud/monitor-applications/profiles/), go to the Pyroscope profiling service of your [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack), and copy the URL, User, and Password. 
 
 Then, create an `.env` file with the following environment variables and the values of the previous settings:
 
 ```bash
 # Your Grafana Cloud Stack Name (Slug)
-GRAFANA_CLOUD_STACK=name
+GRAFANA_CLOUD_STACK=
 # Your Grafana Cloud Access Policy Token
 GRAFANA_CLOUD_TOKEN=
-
-# Optional - Profiling configuration for Grafana Cloud Profiles (Pyroscope)
-# Endpoint URL for your Grafana Cloud Stack
-QUICKPIZZA_PYROSCOPE_ENDPOINT=
-# Username for Profiles authentication
-QUICKPIZZA_GRAFANA_CLOUD_USER=
-# Password for Profiles authentication (typically your Grafana Cloud Access Policy Token)
-QUICKPIZZA_GRAFANA_CLOUD_PASSWORD=${GRAFANA_CLOUD_TOKEN}
 ```
 
 Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file, just as in the local setup:
