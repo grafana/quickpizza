@@ -26,7 +26,7 @@ services:
   alloy:
     image: grafana/alloy:v1.9.1
     volumes:
-      - "./contrib/alloy-cloud.river:/grafana-alloy.river:Z"
+      - "./alloy/alloy-cloud.river:/grafana-alloy.river:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run

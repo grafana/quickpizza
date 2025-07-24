@@ -121,7 +121,7 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 
 ![Use Profiles Drilldown](./docs/images/drilldown-profiles.png)
 
-To find the labels applied to the telemetry data, refer to [alloy-local.river](./contrib/alloy-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml).
+To find the labels applied to the telemetry data, refer to [alloy-local.river](./alloy/alloy-local.river) and [docker-compose-local.yaml](./docker-compose-local.yaml).
 
 ### Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards
 
@@ -171,7 +171,7 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 ![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
-To find the labels applied to the telemetry data, refer to [alloy-cloud.river](./contrib/alloy-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) .
+To find the labels applied to the telemetry data, refer to [alloy-cloud.river](./alloy/alloy-cloud.river) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) .
 
 ### Monitor frontend with Grafana Cloud Frontend Observability 
 
