@@ -173,7 +173,7 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) .
 
-### Monitor QuickPizza with Grafana Cloud Application Observability and Frontend Observability
+### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
 
 The Docker Compose setup is fully instrumented out of the box, so you can jump right into Grafana Cloud Observability apps and start observing the inner workings of the QuickPizza service components.
 
