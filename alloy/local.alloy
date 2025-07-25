@@ -33,6 +33,8 @@ prometheus.scrape "default" {
       "__address__" = env("QUICKPIZZA_HOST"),
       "job" = "quickpizza",
       "instance" = "local",
+      "service_name" = "quickpizza",
+      "service_namespace" = "quickpizza",
     },
   ]
 }
@@ -86,6 +88,10 @@ loki.source.docker "default" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.relabel.quickpizza.output
   forward_to = [loki.write.local.receiver]
+  labels = {
+    service_name = "quickpizza",
+    service_namespace = "quickpizza",
+  }
 }
 
 loki.write "local" {
