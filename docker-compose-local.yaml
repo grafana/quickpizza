@@ -27,6 +27,7 @@ services:
     image: prom/prometheus:v3.2.1
     command:
       - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
       - --enable-feature=native-histograms
       - --config.file=/etc/prometheus/prometheus.yml
     ports:
@@ -36,19 +37,18 @@ services:
     image: grafana/pyroscope:1.14.0
     ports:
       - "4040:4040"
-
+  
   tempo:
     image: grafana/tempo:2.8.1
-    command:
-      - "-storage.trace.backend=local" # tell tempo where to permanently put traces
-      - "-storage.trace.local.path=/tmp/tempo/traces"
-      - "-storage.trace.wal.path=/tmp/tempo/wal" # tell tempo where to store the wal
-      - "-auth.enabled=false" # disables the requirement for the X-Scope-OrgID header
-      - "-server.http-listen-port=3200"
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./alloy/local-tempo.yaml:/etc/tempo.yaml
     ports:
       - "3200:3200"
       - "4317:4317"
       - "4318:4318"
+    depends_on:
+      - prometheus
 
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION:-12.0.2}
