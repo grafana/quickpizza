@@ -95,6 +95,15 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 		}
 	}
 
+	serviceNamespace, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAMESPACE")
+	if !ok {
+		serviceNamespace = "quickpizza"
+	}
+	serviceInstanceID, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID")
+	if !ok {
+		serviceInstanceID = "local"
+	}
+
 	// We discard the error here as it cannot possibly take place with the parameters we use.
 	res, _ := resource.Merge(
 		resource.Default(),
@@ -102,6 +111,8 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 			semconv.SchemaURL,
 			semconv.ServiceName(serviceNameAttrValue),
 			attribute.KeyValue{Key: "service.component", Value: attribute.StringValue(serviceName)},
+			attribute.KeyValue{Key: "service.namespace", Value: attribute.StringValue(serviceNamespace)},
+			attribute.KeyValue{Key: "service.instance.id", Value: attribute.StringValue(serviceInstanceID)},
 		),
 	)
 

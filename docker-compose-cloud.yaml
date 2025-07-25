@@ -9,19 +9,18 @@ services:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
       QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
+      # Set to 1 to use component name as OpenTelemetry service name
+      # QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY: 1
       # must be set with an .env file
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
       # must be set with an .env file
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME}"
-
+      # OTEL service.instance.id label. Default: local
+      # QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: local
       # Namespace label in Faro. Default: quickpizza
       # QUICKPIZZA_CONF_FARO_APP_NAMESPACE: quickpizza
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
-      # Service name label in Pyroscope. Default: quickpizza
-      # QUICKPIZZA_PYROSCOPE_NAME: quickpizza
-      # Namespace label in Pyroscope. Default: quickpizza
-      # QUICKPIZZA_PYROSCOPE_NAMESPACE: quickpizza
 
   alloy:
     image: grafana/alloy:v1.9.1
