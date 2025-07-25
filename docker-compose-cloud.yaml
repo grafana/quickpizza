@@ -8,16 +8,14 @@ services:
     environment:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
+      QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
       # must be set with an .env file
-      QUICKPIZZA_GRAFANA_CLOUD_USER: "${QUICKPIZZA_GRAFANA_CLOUD_USER}"
-      QUICKPIZZA_GRAFANA_CLOUD_PASSWORD: "${QUICKPIZZA_GRAFANA_CLOUD_PASSWORD}"
-      QUICKPIZZA_PYROSCOPE_ENDPOINT: "${QUICKPIZZA_PYROSCOPE_ENDPOINT}"
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
+      # must be set with an .env file
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME}"
 
       # Namespace label in Faro. Default: quickpizza
       # QUICKPIZZA_CONF_FARO_APP_NAMESPACE: quickpizza
-
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
       # Service name label in Pyroscope. Default: quickpizza
@@ -28,10 +26,13 @@ services:
   alloy:
     image: grafana/alloy:v1.9.1
     volumes:
-      - "./contrib/alloy-cloud.river:/grafana-alloy.river:Z"
+      - "./alloy/cloud.alloy:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
-      ["run", "/grafana-alloy.river", "--server.http.listen-addr=0.0.0.0:12345"]
+      - run
+      - /config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --stability.level=public-preview
     ports:
       - "12345:12345"
     environment:

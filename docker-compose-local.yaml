@@ -8,7 +8,7 @@ services:
     environment:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
-      QUICKPIZZA_PYROSCOPE_ENDPOINT: http://pyroscope:4040
+      QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
       # Service name label in Pyroscope. Default: quickpizza
@@ -64,10 +64,13 @@ services:
   alloy:
     image: grafana/alloy:v1.9.1
     volumes:
-      - "./contrib/alloy-local.river:/grafana-alloy.river:Z"
+      - "./alloy/local.alloy:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
-      ["run", "/grafana-alloy.river", "--server.http.listen-addr=0.0.0.0:12345"]
+      - run
+      - /config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --stability.level=public-preview
     ports:
       - "12345:12345"
     environment:
@@ -75,7 +78,9 @@ services:
       METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
       TRACES_ENDPOINT: http://tempo:4317
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
+      PROFILES_ENDPOINT: http://pyroscope:4040
     depends_on:
       - prometheus
       - quickpizza
       - tempo
+      - pyroscope
