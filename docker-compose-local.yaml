@@ -64,11 +64,11 @@ services:
   alloy:
     image: grafana/alloy:v1.9.1
     volumes:
-      - "./alloy/alloy-local.river:/grafana-alloy.river:Z"
+      - "./alloy/local.alloy:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
-      - /grafana-alloy.river
+      - /config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
       - --stability.level=public-preview
     ports:
