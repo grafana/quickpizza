@@ -25,6 +25,7 @@ otelcol.processor.batch "default" {
 
 // Scrape Metrics
 prometheus.scrape "default" {
+  scrape_interval = "60s"
   forward_to = [
     prometheus.remote_write.default.receiver,
   ]
