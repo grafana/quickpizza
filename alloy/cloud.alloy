@@ -9,17 +9,30 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    traces  = [otelcol.processor.batch.default.input]
+    traces  = [
+      otelcol.processor.batch.default.input,
+      otelcol.connector.host_info.default.input,
+    ]
   }
+}
+
+otelcol.connector.host_info "default" {
+  host_identifiers = ["container.name", "container.id", "service.name"]
+  metrics_flush_interval = "10s"
+
+  output {
+    metrics = [otelcol.exporter.prometheus.otlp_metrics.input]
+  }
+}
+otelcol.exporter.prometheus "otlp_metrics" {
+  forward_to = [
+    grafana_cloud.stack.receivers.metrics,
+  ]
 }
 
 otelcol.processor.batch "default" {
   output {
-    metrics = []
-    logs = []
-    traces = [
-      grafana_cloud.stack.receivers.traces,
-    ]
+    traces = [grafana_cloud.stack.receivers.traces]
   }
 }
 
@@ -33,6 +46,8 @@ prometheus.scrape "default" {
       "__address__" = env("QUICKPIZZA_HOST"),
       "job" = "quickpizza",
       "instance" = "local",
+      "service_name" = "quickpizza",
+      "service_namespace" = "quickpizza",
     },
   ]
 }
@@ -65,6 +80,10 @@ loki.source.docker "default" {
   host       = "unix:///var/run/docker.sock"
   targets    = discovery.relabel.quickpizza.output
   forward_to = [grafana_cloud.stack.receivers.logs]
+  labels = {
+    service_name = "quickpizza",
+    service_namespace = "quickpizza",
+  }
 }
 
 import.git "grafana_cloud" {

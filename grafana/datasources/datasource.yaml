@@ -14,6 +14,7 @@ datasources:
     jsonData:
       tlsAuth: false
       tlsAuthWithCACert: false
+      timeInterval: 60s # Scrape interval (should match Prometheus configuration, defined in local.alloy)
     editable: false
   - name: Tempo
     type: tempo
