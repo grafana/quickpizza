@@ -45,7 +45,7 @@ services:
       - prometheus
 
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-12.0.2}
+    image: grafana/grafana:${GRAFANA_VERSION:-12.1.0}
     ports:
       - "3000:3000"
     environment:
