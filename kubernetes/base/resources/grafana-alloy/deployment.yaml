@@ -23,7 +23,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - run
-            - /etc/alloy-config/grafana-alloy.river
+            - /etc/alloy-config/config.alloy
           envFrom:
             - secretRef:
                 name: grafana-alloy-credentials
@@ -33,9 +33,9 @@ spec:
             - name: http
               containerPort: 4318
           volumeMounts:
-            - mountPath: /etc/alloy-config/grafana-alloy.river
+            - mountPath: /etc/alloy-config/config.alloy
               name: alloy-config
-              subPath: grafana-alloy.river
+              subPath: config.alloy
       volumes:
         - name: alloy-config
           configMap:
