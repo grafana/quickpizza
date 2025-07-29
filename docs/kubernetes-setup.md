@@ -30,11 +30,11 @@ When deployed in Kubernetes, the QuickPizza manifests locates in `./kubernetes` 
 kubectl get pods
 
 NAME                                  READY   STATUS    RESTARTS   AGE
-QuickPizza-catalog-749d46c785-4q6s5   1/1     Running   0          7s
-QuickPizza-copy-7f879947c5-rslhg      1/1     Running   0          7s
-QuickPizza-frontend-bf447c76-9nb8f    1/1     Running   0          7s
-QuickPizza-recs-644d498964-6l48p      1/1     Running   0          7s
-QuickPizza-ws-7d444d9cd6-mkkmd        1/1     Running   0          7s
+quickpizza-catalog-749d46c785-4q6s5   1/1     Running   0          7s
+quickpizza-copy-7f879947c5-rslhg      1/1     Running   0          7s
+quickpizza-frontend-bf447c76-9nb8f    1/1     Running   0          7s
+quickpizza-recs-644d498964-6l48p      1/1     Running   0          7s
+quickpizza-ws-7d444d9cd6-mkkmd        1/1     Running   0          7s
 ```
 
 You should also see a bunch of services associated with these pods:
@@ -44,14 +44,14 @@ kubectl get services
 
 NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
 kubernetes            ClusterIP      10.96.0.1        <none>        443/TCP          1s
-QuickPizza-catalog    ClusterIP      10.104.201.242   <none>        3333/TCP         6s
-QuickPizza-copy       ClusterIP      10.97.255.59     <none>        3333/TCP         6s
-QuickPizza-frontend   LoadBalancer   10.99.177.165    <pending>     3333:30333/TCP   6s
-QuickPizza-recs       ClusterIP      10.103.37.197    <none>        3333/TCP         6s
-QuickPizza-ws         ClusterIP      10.106.51.76     <none>        3333/TCP         6s
+quickpizza-catalog    ClusterIP      10.104.201.242   <none>        3333/TCP         6s
+quickpizza-copy       ClusterIP      10.97.255.59     <none>        3333/TCP         6s
+quickpizza-frontend   LoadBalancer   10.99.177.165    <pending>     3333:30333/TCP   6s
+quickpizza-recs       ClusterIP      10.103.37.197    <none>        3333/TCP         6s
+quickpizza-ws         ClusterIP      10.106.51.76     <none>        3333/TCP         6s
 ```
 
-A service of particular interest is `QuickPizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to [expose it](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/expose-your-application/). To do this with minikube, open another terminal window and run:
+A service of particular interest is `quickpizza-frontend`, of type `LoadBalancer`. This is the service we need to access in our browser to reach the application. You should see that the external IP for this service is currently `<pending>`. In order to make it reachable from outside the cluster, we need to expose it. To do this with minikube, open another terminal window and run:
 
 ```bash
 minikube tunnel
@@ -65,20 +65,12 @@ The external IP should now be assigned:
 kubectl get services
 
 NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)          AGE
-QuickPizza-frontend   LoadBalancer   10.99.177.165    10.99.177.165   3333:30333/TCP   3m9s
+quickpizza-frontend   LoadBalancer   10.99.177.165    127.0.0.1   3333:30333/TCP   3m9s
 # Other services elided for brevity
 ```
 
-You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `10.99.177.165`. Depending on the OS you're using, it might be `127.0.0.1`, which is also fine.
+You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `127.0.0.1`. 
 
-We can save this IP on an environment variable for using it later on tests:
-
-```shell
-export BASE_URL="http://$(kubectl get svc QuickPizza-frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):3333"
-echo $BASE_URL
-# You should see something like:
-# http://10.99.177.165:3333
-```
 
 ### Enable telemetry in Kubernetes
 

@@ -1,0 +1,17 @@
+resources:
+  - ../base
+  - ../base/resources/grafana-alloy
+
+# For telemetry functionality, change the following lines to match your configuration.
+secretGenerator:
+  - name: grafana-alloy-credentials
+    envs:
+    - .env
+
+configMapGenerator:
+  - name: alloy-config
+    files:
+      - ./config/grafana-alloy.river
+  - name: tracing-env
+    literals:
+      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318

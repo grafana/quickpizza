@@ -1,0 +1,23 @@
+# Uncomment the following line to deploy the application on a non-default namespace
+#namespace: quickpizza
+
+resources:
+  - ./resources/deployments.yaml
+  - ./resources/services.yaml
+
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    # Uncomment the following lines to change the quickpizza image. 
+    newName: local-quickpizza
+    newTag: latest
+
+
+
+# You can use the following generator to add additional environment variables to all QuickPizza pods.
+configMapGenerator:
+  - name: quickpizza-env
+    literals:
+      # Trust all incoming TraceIDs for demo purposes.
+      - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
+      # You can change other settings by adding entries to this list:
+      #- CUSTOM_ENV=CUSTOM_VALUE
