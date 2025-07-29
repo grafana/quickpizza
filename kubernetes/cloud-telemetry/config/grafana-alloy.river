@@ -41,6 +41,19 @@ prometheus.scrape "default" {
   targets = discovery.relabel.relabel_targets.output
 }
 
+loki.source.kubernetes "pods" {
+  forward_to = [
+    grafana_cloud.stack.receivers.logs,
+  ]
+  targets    = discovery.kubernetes.application_pods.targets
+}
+
+loki.source.kubernetes_events "k8s_event_logs" {
+  forward_to = [
+    grafana_cloud.stack.receivers.logs,
+  ]
+}
+
 discovery.relabel "relabel_targets" {
   rule {
     target_label = "job"
