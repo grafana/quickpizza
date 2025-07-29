@@ -1,14 +1,11 @@
 
-## Deploy QuickPizza to Kubernetes
-
-If you want to run a test that uses [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/), or want to experiment with distributed tracing, you will need to deploy QuickPizza to Kubernetes. 
-
+# Deploy QuickPizza to Kubernetes
 
 This section explains how to deploy QuickPizza to a local Kubernetes cluster using [minikube](https://minikube.sigs.k8s.io/docs/start/), which you can run on your own machine if you use Linux, MacOS, or Windows.
 
 Minikube is available in the software distribution channel for your OS of choice: `apt` or similar for Linux, `brew` for macOS, and `winget` or chocolatey for Windows. For more details on how to install Minikube, you can check the "Installation" section on the [Minikube documentation](https://minikube.sigs.k8s.io/docs/start/).
 
-We recommend that you use the latest version of Kubernetes available. We have verified the following instructions for kubernetes 1.19 and above. Keep in mind that `xk6-disruptor` requires Kubernetes 1.25 or above.
+We recommend that you use the latest version of Kubernetes available. We have verified the following instructions for kubernetes 1.19 and above.
 
 After installing minikube, you can start a local cluster with the following command:
 
@@ -19,12 +16,13 @@ minikube start
 To deploy the application, run: 
 
 ```bash
-kubectl apply -k kubernetes/
+cd kubernetes/basic/
+kubectl apply -k .
 ```
 
-The `kubernetes/kustomization.yaml` file contains some commented lines that, if enabled, will configure tracing for the QuickPizza app. Feel free to uncomment those lines and input your OTLP credentials if you want this functionality.
+The `kustomization.yaml` file contains some commented lines that, if enabled, will configure tracing for the QuickPizza app. Feel free to uncomment those lines and input your OTLP credentials if you want this functionality.
 
-When deployed in Kubernetes, the QuickPizza manifests locates in `./kubernetes` will deploy a number of different pods, each one being a microservice for the application:
+When deployed in Kubernetes, it deploys a number of different pods, each one being a microservice for the application:
 
 ```
 kubectl get pods
@@ -72,40 +70,17 @@ quickpizza-frontend   LoadBalancer   10.99.177.165    127.0.0.1   3333:30333/TCP
 You should now be able to access the application on port `3333` in the IP address noted below in your browser, which in our example was `127.0.0.1`. 
 
 
-### Enable telemetry in Kubernetes
+## Enable telemetry in Kubernetes
 
-To collect telemetry information, enable the `grafana-alloy/cloud` (or `grafana-alloy/local`) resource in `kubernetes/kustomization.yaml` and set the required configuration options.
+To collect telemetry data, use one of the following setups:
 
-After making the changes `kubernetes/kustomization.yaml`, you may need to restart the QuickPizza pods for them to pick up the new configuration:
+- `kubernetes/cloud-telemetry`: For sending telemetry to a remote cloud service.
+- `kubernetes/local-telemetry`: For collecting telemetry locally.
 
-```shell
-kubectl delete pods -l app.k8s.io/name=QuickPizza
-```
+Before deployment:
+
+- Set the required credentials in a `.env` file located in the respective folder.
+- Configure any additional settings as needed.
+- Deploy the Kubernetes application using `minikube` and `kubectl`, following the same steps described in the earlier setup instructions.
 
 ![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/QuickPizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
-
-To ingest logs from Kubernetes, take a look at the [Grafana Cloud Kubernetes Integration](https://grafana.com/solutions/kubernetes) or use the [`loki.source.kubernetes`](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.kubernetes/)/[`loki.source.file`](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/#file-globbing) components.
-
-### Running xk6-disruptor tests
-
-To build the [xk6-disruptor](https://github.com/grafana/xk6-disruptor) extension for fault injection testing, you can use the following command:
-
-```bash
-cd k6/disruptor
-
-docker run --rm -e GOOS=darwin -u "$(id -u):$(id -g)" -v "${PWD}:/xk6" \
-  grafana/xk6 build  \
-  --with github.com/grafana/xk6-disruptor
-```
-
-To run a basic xk6-disruptor test, run the following command on the `k6/disruptor` folder:
-
-```bash
-./k6 run 01.basic.js
-```
-
-To run an example hybrid test of browser and xk6-disruptor, run the following command:
-
-```bash
-./k6 run ../advanced/01.browser-with-disruptor.js
-```
