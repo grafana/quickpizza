@@ -1,6 +1,16 @@
 # Uncomment the following line to deploy the application on a non-default namespace
-#namespace: quickpizza
+# namespace: quickpizza
 
 resources:
   - ./resources/deployments.yaml
   - ./resources/services.yaml
+
+# To use a custom image (e.g., locally built), uncomment `newName` and `newTag` below.
+# Example: docker build -t local-quickpizza:latest . && minikube image load local-quickpizza:latest
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    # newName: local-quickpizza
+    # newTag: latest
+
+# Note: Do not commit changes to newName/newTag values (leave commented).
+# TODO: Consider using Kustomize's environment variable substitution feature
