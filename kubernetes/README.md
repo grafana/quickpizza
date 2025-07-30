@@ -74,7 +74,8 @@ You should now be able to access the application on port `3333` in the IP addres
 
 To collect telemetry data, use one of the following setups:
 
-- `kubernetes/cloud-telemetry`: For sending telemetry to a remote cloud service.
+- `kubernetes/cloud-telemetry`: For sending telemetry to Grafana Cloud.
+- `kubernetes/cloud-otelcol`: For sending telemetry to Grafana Cloud using distinct alloy config.
 - `kubernetes/local-telemetry`: For collecting telemetry locally.
 
 Before deployment:
