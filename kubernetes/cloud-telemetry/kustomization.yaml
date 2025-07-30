@@ -16,6 +16,8 @@ configMapGenerator:
       # Trust all incoming TraceIDs for demo purposes.
       - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
       - QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY=1
+      # TODO: not working
+      - QUICKPIZZA_PYROSCOPE_ENDPOINT=http://grafana-alloy:9999
   - name: alloy-config
     files:
       - ./config/config.alloy

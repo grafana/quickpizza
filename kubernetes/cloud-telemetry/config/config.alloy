@@ -76,11 +76,18 @@ discovery.relabel "relabel_targets" {
   targets = discovery.kubernetes.application_pods.targets
 }
 
+
+// TODO: not working
 pyroscope.scrape "scrape_profiles" {
-  forward_to = [
-    grafana_cloud.stack.receivers.profiles,
-  ]
+  forward_to = [grafana_cloud.stack.receivers.profiles]
   targets = discovery.relabel.relabel_targets.output
+}
+pyroscope.receive_http "default" {
+   forward_to = [grafana_cloud.stack.receivers.profiles]
+   http {
+       listen_address = "127.0.0.1"
+       listen_port = 9999
+   }
 }
 
 import.git "grafana_cloud" {
