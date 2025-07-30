@@ -4,11 +4,3 @@
 resources:
   - ./resources/deployments.yaml
   - ./resources/services.yaml
-
-images:
-  - name: ghcr.io/grafana/quickpizza-local
-    # Uncomment the following lines to change the quickpizza image. 
-    # newName: local-quickpizza
-    # newTag: latest
-
-

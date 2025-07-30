@@ -2,6 +2,11 @@ resources:
   - ../base
   - ../base/resources/grafana-alloy
 
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    # Uncomment the following lines to change the quickpizza image.
+    # newName: local-quickpizza
+    # newTag: latest
 
 # For telemetry functionality, change the following lines to match your configuration.
 secretGenerator:

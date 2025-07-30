@@ -2,6 +2,13 @@ resources:
   - ../base
   - ../base/resources/grafana-alloy
 
+
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    # Uncomment the following lines to change the quickpizza image.
+    # newName: local-quickpizza
+    # newTag: latest
+
 # For telemetry functionality, change the following lines to match your configuration.
 secretGenerator:
   - name: grafana-alloy-credentials
@@ -14,6 +21,7 @@ configMapGenerator:
     literals:
       # Trust all incoming TraceIDs for demo purposes.
       - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
+      - QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY=1
       # You can change other settings by adding entries to this list:
       #- CUSTOM_ENV=CUSTOM_VALUE
   - name: alloy-config
