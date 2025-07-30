@@ -24,6 +24,7 @@ spec:
           args:
             - run
             - /etc/alloy-config/config.alloy
+            - --stability.level=public-preview
           envFrom:
             - secretRef:
                 name: grafana-alloy-credentials
