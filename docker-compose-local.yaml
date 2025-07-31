@@ -59,6 +59,7 @@ services:
     image: grafana/alloy:v1.9.1
     volumes:
       - "./alloy/local.alloy:/config.alloy:Z"
+      - "./alloy/${ALLOY_FILE_NAME:-local.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
