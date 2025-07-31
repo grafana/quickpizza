@@ -32,22 +32,12 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
                 name: quickpizza-env
           env:
-            - name: QUICKPIZZA_ALL_SERVICES
-              value: "0"
             - name: QUICKPIZZA_FRONTEND
               value: "1"
-            - name: QUICKPIZZA_CATALOG_ENDPOINT
-              value: http://quickpizza-catalog:3333
-            - name: QUICKPIZZA_COPY_ENDPOINT
-              value: http://quickpizza-copy:3333
-            - name: QUICKPIZZA_WS_ENDPOINT
-              value: http://quickpizza-ws:3333
-            - name: QUICKPIZZA_RECOMMENDATIONS_ENDPOINT
-              value: http://quickpizza-recs:3333
-            - name: QUICKPIZZA_CONFIG_ENDPOINT
-              value: http://quickpizza-config:3333
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -83,10 +73,10 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
                 name: quickpizza-env
           env:
-            - name: QUICKPIZZA_ALL_SERVICES
-              value: "0"
             - name: QUICKPIZZA_CONFIG
               value: "1"
 ---
@@ -124,10 +114,10 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
                 name: quickpizza-env
           env:
-            - name: QUICKPIZZA_ALL_SERVICES
-              value: "0"
             - name: QUICKPIZZA_WS
               value: "1"
 ---
@@ -165,10 +155,10 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
                 name: quickpizza-env
           env:
-            - name: QUICKPIZZA_ALL_SERVICES
-              value: "0"
             - name: QUICKPIZZA_CATALOG
               value: "1"
 ---
@@ -206,10 +196,10 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
                 name: quickpizza-env
           env:
-            - name: QUICKPIZZA_ALL_SERVICES
-              value: "0"
             - name: QUICKPIZZA_COPY
               value: "1"
 ---
@@ -247,13 +237,10 @@ spec:
                 name: tracing-env
                 optional: true
             - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
                 name: quickpizza-env
+                optional: true
           env:
-            - name: QUICKPIZZA_ALL_SERVICES
-              value: "0"
             - name: QUICKPIZZA_RECOMMENDATIONS
               value: "1"
-            - name: QUICKPIZZA_CATALOG_ENDPOINT
-              value: http://quickpizza-catalog:3333
-            - name: QUICKPIZZA_COPY_ENDPOINT
-              value: http://quickpizza-copy:3333

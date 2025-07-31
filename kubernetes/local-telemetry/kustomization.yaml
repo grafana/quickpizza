@@ -10,10 +10,6 @@ secretGenerator:
 
 # You can use the following generator to add additional environment variables to all QuickPizza pods.
 configMapGenerator:
-  - name: quickpizza-env
-    literals:
-      # Trust all incoming TraceIDs for demo purposes.
-      - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
   - name: alloy-config
     files:
       - ./config/config.alloy

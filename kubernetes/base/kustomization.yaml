@@ -11,6 +11,21 @@ images:
   - name: ghcr.io/grafana/quickpizza-local
     # newName: local-quickpizza
     # newTag: latest
-
 # Note: Do not commit changes to newName/newTag values (leave commented).
 # TODO: Consider using Kustomize's environment variable substitution feature
+
+
+configMapGenerator:
+  - name: quickpizza-env-common
+    literals:
+      # Trust all incoming TraceIDs for demo purposes
+      - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
+      # Disable to run microservice mode 
+      - QUICKPIZZA_ALL_SERVICES=0
+      # Set service.name: frontend, config, gateway, catalog, users, admin, copy, recommendations
+      - QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY=1
+      - QUICKPIZZA_CATALOG_ENDPOINT=http://quickpizza-catalog:3333
+      - QUICKPIZZA_COPY_ENDPOINT=http://quickpizza-copy:3333
+      - QUICKPIZZA_WS_ENDPOINT=http://quickpizza-ws:3333
+      - QUICKPIZZA_RECOMMENDATIONS_ENDPOINT=http://quickpizza-recs:3333
+      - QUICKPIZZA_CONFIG_ENDPOINT=http://quickpizza-config:3333
