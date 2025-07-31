@@ -1,5 +1,6 @@
 
-# This environment is intended to test Grafana Kubernetes Monitoring integration.
+
+# This environment is intended to for testing purpose
 resources:
   - ../base
   - ../base/resources/grafana-alloy
