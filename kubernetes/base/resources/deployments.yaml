@@ -29,9 +29,6 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: tracing-env
-                optional: true
-            - configMapRef:
                 name: quickpizza-env-common
             - configMapRef:
                 name: quickpizza-env
@@ -70,9 +67,6 @@ spec:
             - name: http
               containerPort: 3333
           envFrom:
-            - configMapRef:
-                name: tracing-env
-                optional: true
             - configMapRef:
                 name: quickpizza-env-common
             - configMapRef:
@@ -113,9 +107,6 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: tracing-env
-                optional: true
-            - configMapRef:
                 name: quickpizza-env-common
             - configMapRef:
                 name: quickpizza-env
@@ -154,9 +145,6 @@ spec:
             - name: http
               containerPort: 3333
           envFrom:
-            - configMapRef:
-                name: tracing-env
-                optional: true
             - configMapRef:
                 name: quickpizza-env-common
             - configMapRef:
@@ -197,9 +185,6 @@ spec:
               containerPort: 3333
           envFrom:
             - configMapRef:
-                name: tracing-env
-                optional: true
-            - configMapRef:
                 name: quickpizza-env-common
             - configMapRef:
                 name: quickpizza-env
@@ -238,9 +223,6 @@ spec:
             - name: http
               containerPort: 3333
           envFrom:
-            - configMapRef:
-                name: tracing-env
-                optional: true
             - configMapRef:
                 name: quickpizza-env-common
             - configMapRef:

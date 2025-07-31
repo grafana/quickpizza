@@ -10,10 +10,13 @@ secretGenerator:
 
 # You can use the following generator to add additional environment variables to all QuickPizza pods.
 configMapGenerator:
+  - name: quickpizza-env
+    envs:
+    # load FARO variables
+    - .env
+    literals:
+      # Enable tracing
+      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318
   - name: alloy-config
     files:
       - ./config/config.alloy
-  - name: tracing-env
-    literals:
-      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318
-
