@@ -115,7 +115,7 @@ To start the local environment, use the following command:
 docker compose -f docker-compose-local.yaml up -d
 ```
 
-Like before, QuickPizza is available at [localhost:3333](http://localhost:3333). It's time to discover some fancy pizzas!
+Like before, QuickPizza is available at [localhost:3333](http://localhost:3333). It's time to discover some very fancy pizzas!
 
 Then, you can visit the Grafana instance running at [localhost:3000](http://localhost:3000) and use **Explore** or **Drilldown apps** to access QuickPizza data.
 
