@@ -83,12 +83,6 @@ loki.source.kubernetes "application_pods" {
   targets = discovery.relabel.application_pods.output
 }
 
-pyroscope.ebpf "application_pods" {
-  scrape_interval = "10s"
-  forward_to = [grafana_cloud.stack.receivers.profiles]
-  targets = discovery.relabel.application_pods.output
-}
-
 // TODO: not working
 // pyroscope.receive_http "default" {
    // forward_to = [grafana_cloud.stack.receivers.profiles]
