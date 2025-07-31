@@ -36,6 +36,10 @@ spec:
           env:
             - name: QUICKPIZZA_FRONTEND
               value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -75,6 +79,10 @@ spec:
           env:
             - name: QUICKPIZZA_CONFIG
               value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -114,6 +122,10 @@ spec:
           env:
             - name: QUICKPIZZA_WS
               value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -153,6 +165,10 @@ spec:
           env:
             - name: QUICKPIZZA_CATALOG
               value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -192,6 +208,10 @@ spec:
           env:
             - name: QUICKPIZZA_COPY
               value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -231,3 +251,7 @@ spec:
           env:
             - name: QUICKPIZZA_RECOMMENDATIONS
               value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
