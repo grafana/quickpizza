@@ -73,12 +73,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: quickpizza-recs
+  name: quickpizza-recommendations
 spec:
   type: ClusterIP
   selector:
     app.k8s.io/name: quickpizza
-    app.kubernetes.io/instance: recs
+    app.kubernetes.io/instance: recommendations
   ports:
     - protocol: TCP
       port: 3333
