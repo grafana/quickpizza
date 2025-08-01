@@ -1,7 +1,6 @@
 
 # service.name: 'public-api'
 # service.component: 'frontend' and 'gateway' (defined in app code)
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -48,6 +47,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
+# PUBLIC ENDPOINT to serve API and static assets
 apiVersion: v1
 kind: Service
 metadata:
@@ -55,7 +55,6 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app.k8s.io/name: quickpizza
     app.kubernetes.io/instance: public-api
   ports:
     - protocol: TCP

@@ -1,6 +1,5 @@
 # service.name: 'ws'
 # service.component: 'ws' (defined in app code)
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,6 +46,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
+# Configures value for QUICKPIZZA_WS_ENDPOINT (set in kustomization.yaml)
 apiVersion: v1
 kind: Service
 metadata:
@@ -54,7 +54,6 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app.k8s.io/name: quickpizza
     app.kubernetes.io/instance: ws
   ports:
     - protocol: TCP
