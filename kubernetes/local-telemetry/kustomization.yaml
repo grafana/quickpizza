@@ -5,6 +5,14 @@ resources:
   - ../base/quickpizza
   - ../base/alloy
 
+# To use a custom image (e.g., locally built), uncomment `newName` and `newTag` below.
+# Example: docker build -t local-quickpizza:latest . && minikube image load local-quickpizza:latest
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    # newName: local-quickpizza
+    # newTag: latest
+
+# Note: Do not commit changes to newName/newTag values (leave commented). TODO: consider Kustomize's env var substitution 
 # For telemetry functionality, change the following lines to match your configuration.
 secretGenerator:
   - name: grafana-alloy-credentials
