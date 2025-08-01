@@ -9,8 +9,6 @@ services:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
       QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
-      # Set to 1 to use component name as OpenTelemetry service name
-      # QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY: 1
       # must be set with an .env file
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL}"
       # must be set with an .env file

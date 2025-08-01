@@ -18,7 +18,7 @@ otelcol.processor.batch "default" {
     metrics = []
     logs = []
     traces = [
-      grafana_cloud.stack.receivers.traces,
+      otelcol.exporter.otlp.default.input,
     ]
   }
 }
@@ -36,7 +36,7 @@ discovery.kubernetes "application_pods" {
 }
 prometheus.scrape "default" {
   forward_to = [
-    grafana_cloud.stack.receivers.metrics,
+    prometheus.remote_write.default.receiver,
   ]
   targets = discovery.relabel.relabel_targets.output
 }
@@ -65,19 +65,28 @@ discovery.relabel "relabel_targets" {
 
 pyroscope.scrape "scrape_profiles" {
   forward_to = [
-    grafana_cloud.stack.receivers.profiles,
+    pyroscope.write.default.receiver,
   ]
   targets = discovery.relabel.relabel_targets.output
 }
 
-import.git "grafana_cloud" {
-  repository = "https://github.com/grafana/alloy-modules.git"
-  revision = "main"
-  path = "modules/cloud/grafana/cloud/module.alloy"
-  pull_frequency = "0s"
+otelcol.exporter.otlp "default" {
+  client {
+    // TODO: Replace this with the endpoint for your trace receiver
+    endpoint = env("TRACES_ENDPOINT")
+  }
 }
 
-grafana_cloud.stack "receivers" {
-  stack_name = env("GRAFANA_CLOUD_STACK")
-  token = env("GRAFANA_CLOUD_TOKEN")
+prometheus.remote_write "default" {
+  endpoint {
+    // TODO: Replace this with your prometheus-compatible metrics store
+    url = env("METRICS_ENDPOINT")
+  }
+}
+
+pyroscope.write "default" {
+  endpoint {
+    // TODO: Replace this with your pyroscpoe instance endpoint
+    url = env("PROFILES_ENDPOINT")
+  }
 }

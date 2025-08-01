@@ -1,0 +1,199 @@
+// Based on demo-plugin alloy config
+// https://github.com/grafana/demo-plugin/blob/main/deployment/quickpizza/grafana-alloy-config.yaml
+
+import.git "grafana_cloud" {
+  repository = "https://github.com/grafana/alloy-modules.git"
+  revision = "main"
+  path = "modules/cloud/grafana/cloud/module.alloy"
+  pull_frequency = "0s"
+}
+grafana_cloud.stack "receivers" {
+  stack_name = env("GRAFANA_CLOUD_STACK")
+  token = env("GRAFANA_CLOUD_TOKEN")
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  username = grafana_cloud.stack.receivers.info["htInstanceId"]
+  password = env("GRAFANA_CLOUD_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = grafana_cloud.stack.receivers.info["htInstanceUrl"] + ":443"
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+  }
+}
+
+// Metrics
+discovery.kubernetes "application_pods" {
+  selectors {
+    label = "app.k8s.io/name=quickpizza"
+    role = "pod"
+  }
+  role = "pod"
+  namespaces {
+    own_namespace = true
+  }
+}
+prometheus.scrape "default" {
+  forward_to = [
+    grafana_cloud.stack.receivers.metrics,
+  ]
+  targets = discovery.relabel.relabel_targets.output
+}
+
+discovery.relabel "relabel_targets" {
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_component",
+    ]
+  }
+  rule {
+    target_label = "service_name"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_component",
+    ]
+  }
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_kubernetes_pod_name",
+    ]
+  }
+  targets = discovery.kubernetes.application_pods.targets
+}
+
+pyroscope.scrape "scrape_profiles" {
+  forward_to = [
+    grafana_cloud.stack.receivers.profiles,
+  ]
+  targets = discovery.relabel.relabel_targets.output
+}
+
+otelcol.receiver.otlp "default" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
+    
+  // configures the default grpc endpoint "0.0.0.0:4317"
+  grpc { }
+  // configures the default http/protobuf endpoint "0.0.0.0:4318"
+  http { }
+    
+  output {
+    metrics = [otelcol.processor.resourcedetection.default.input]
+    logs    = [otelcol.processor.resourcedetection.default.input]
+    traces  = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+    
+otelcol.processor.resourcedetection "default" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.resourcedetection/
+  detectors = ["env", "system"] // add "gcp", "ec2", "ecs", "elastic_beanstalk", "eks", "lambda", "azure", "aks", "consul", "heroku"  if you want to use cloud resource detection
+    
+  system {
+    hostname_sources = ["os"]
+  }
+    
+  output {
+    metrics = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    logs    = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    traces  = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+  }
+}
+    
+otelcol.processor.transform "drop_unneeded_resource_attributes" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
+  error_mode = "ignore"
+    
+  trace_statements {
+    context    = "resource"
+    statements = [
+    	"delete_key(attributes, \"k8s.pod.start_time\")",
+    	"delete_key(attributes, \"os.description\")",
+    	"delete_key(attributes, \"os.type\")",
+    	"delete_key(attributes, \"process.command_args\")",
+    	"delete_key(attributes, \"process.executable.path\")",
+    	"delete_key(attributes, \"process.pid\")",
+    	"delete_key(attributes, \"process.runtime.description\")",
+    	"delete_key(attributes, \"process.runtime.name\")",
+    	"delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+    
+  metric_statements {
+    context    = "resource"
+    statements = [
+    	"delete_key(attributes, \"k8s.pod.start_time\")",
+    	"delete_key(attributes, \"os.description\")",
+    	"delete_key(attributes, \"os.type\")",
+    	"delete_key(attributes, \"process.command_args\")",
+    	"delete_key(attributes, \"process.executable.path\")",
+    	"delete_key(attributes, \"process.pid\")",
+    	"delete_key(attributes, \"process.runtime.description\")",
+    	"delete_key(attributes, \"process.runtime.name\")",
+    	"delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+    
+  log_statements {
+    context    = "resource"
+    statements = [
+    	"delete_key(attributes, \"k8s.pod.start_time\")",
+    	"delete_key(attributes, \"os.description\")",
+    	"delete_key(attributes, \"os.type\")",
+    	"delete_key(attributes, \"process.command_args\")",
+    	"delete_key(attributes, \"process.executable.path\")",
+    	"delete_key(attributes, \"process.pid\")",
+    	"delete_key(attributes, \"process.runtime.description\")",
+    	"delete_key(attributes, \"process.runtime.name\")",
+    	"delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+    
+  output {
+    metrics = [otelcol.processor.transform.add_resource_attributes_as_metric_attributes.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [
+    	otelcol.processor.batch.default.input,
+    	otelcol.connector.host_info.default.input,
+    ]
+  }
+}
+    
+otelcol.connector.host_info "default" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.connector.host_info/
+  host_identifiers = ["host.name"]
+    
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+    
+otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
+  error_mode = "ignore"
+    
+  metric_statements {
+    context    = "datapoint"
+    statements = [
+    	"set(attributes[\"deployment.environment\"], resource.attributes[\"deployment.environment\"])",
+    	"set(attributes[\"service.version\"], resource.attributes[\"service.version\"])",
+    ]
+  }
+    
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+    
+otelcol.processor.batch "default" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.batch/
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    
+    // NOTE: Updated this from the initial implementation to send traces correctly
+    //traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    traces  = [grafana_cloud.stack.receivers.traces]
+  }
+}

@@ -1,0 +1,80 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-alloy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-alloy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+- kind: ServiceAccount
+  name: grafana-alloy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-alloy
+  labels: &alloyLabels
+    # application name: groups all related resources
+    app.k8s.io/name: grafana-alloy
+    # component type: defines the role of this deployment
+    app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
+    app.kubernetes.io/instance: grafana-alloy
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *alloyLabels
+  template:
+    metadata:
+      labels: *alloyLabels
+    spec:
+      restartPolicy: Always
+      serviceAccountName: grafana-alloy
+      containers:
+        - name: grafana-alloy
+          image: grafana/alloy:v1.9.2
+          imagePullPolicy: IfNotPresent
+          args:
+            - run
+            - /etc/alloy-config/config.alloy
+            - --stability.level=public-preview
+          envFrom:
+            - secretRef:
+                name: grafana-alloy-credentials
+          ports:
+            - name: grpc
+              containerPort: 4317
+            - name: http
+              containerPort: 4318
+          volumeMounts:
+            - mountPath: /etc/alloy-config/config.alloy
+              name: alloy-config
+              subPath: config.alloy
+      volumes:
+        - name: alloy-config
+          configMap:
+            name: alloy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-alloy
+  labels:
+    app.k8s.io/name: grafana-alloy
+spec:
+  selector:
+    app.k8s.io/name: grafana-alloy
+  ports:
+    - port: 4317
+      name: grpc
+      targetPort: grpc
+    - port: 4318
+      name: http
+      targetPort: http

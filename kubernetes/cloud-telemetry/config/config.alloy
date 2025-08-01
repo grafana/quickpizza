@@ -18,7 +18,7 @@ otelcol.processor.batch "default" {
     metrics = []
     logs = []
     traces = [
-      otelcol.exporter.otlp.default.input,
+      grafana_cloud.stack.receivers.traces,
     ]
   }
 }
@@ -36,9 +36,22 @@ discovery.kubernetes "application_pods" {
 }
 prometheus.scrape "default" {
   forward_to = [
-    prometheus.remote_write.default.receiver,
+    grafana_cloud.stack.receivers.metrics,
   ]
   targets = discovery.relabel.relabel_targets.output
+}
+
+loki.source.kubernetes "pods" {
+  forward_to = [
+    grafana_cloud.stack.receivers.logs,
+  ]
+  targets    = discovery.kubernetes.application_pods.targets
+}
+
+loki.source.kubernetes_events "k8s_event_logs" {
+  forward_to = [
+    grafana_cloud.stack.receivers.logs,
+  ]
 }
 
 discovery.relabel "relabel_targets" {
@@ -63,30 +76,28 @@ discovery.relabel "relabel_targets" {
   targets = discovery.kubernetes.application_pods.targets
 }
 
+
+// TODO: not working
 pyroscope.scrape "scrape_profiles" {
-  forward_to = [
-    pyroscope.write.default.receiver,
-  ]
+  forward_to = [grafana_cloud.stack.receivers.profiles]
   targets = discovery.relabel.relabel_targets.output
 }
-
-otelcol.exporter.otlp "default" {
-  client {
-    // TODO: Replace this with the endpoint for your trace receiver
-    endpoint = env("TRACES_ENDPOINT")
-  }
+pyroscope.receive_http "default" {
+   forward_to = [grafana_cloud.stack.receivers.profiles]
+   http {
+       listen_address = "127.0.0.1"
+       listen_port = 9999
+   }
 }
 
-prometheus.remote_write "default" {
-  endpoint {
-    // TODO: Replace this with your prometheus-compatible metrics store
-    url = env("METRICS_ENDPOINT")
-  }
+import.git "grafana_cloud" {
+  repository = "https://github.com/grafana/alloy-modules.git"
+  revision = "main"
+  path = "modules/cloud/grafana/cloud/module.alloy"
+  pull_frequency = "0s"
 }
 
-pyroscope.write "default" {
-  endpoint {
-    // TODO: Replace this with your pyroscpoe instance endpoint
-    url = env("PROFILES_ENDPOINT")
-  }
+grafana_cloud.stack "receivers" {
+  stack_name = env("GRAFANA_CLOUD_STACK")
+  token = env("GRAFANA_CLOUD_TOKEN")
 }
