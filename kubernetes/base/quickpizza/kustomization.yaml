@@ -5,7 +5,7 @@ resources:
   - catalog.yaml
   - config.yaml
   - copy.yaml
-  - frontend-gateway.yaml
+  - public-api.yaml
   - recommendations.yaml
   - ws.yaml
 

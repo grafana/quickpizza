@@ -1,23 +1,26 @@
+
+# service.name: 'public-api'
+# service.component: 'frontend' and 'gateway' (defined in app code)
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   # unique name for this deployment resource
-  name: quickpizza-frontend
-  labels: &frontendLabels
+  name: quickpizza-public-api
+  labels: &publicAPILabels
     # application name: groups all related resources
     app.k8s.io/name: quickpizza
     # component type: defines the role of this deployment
     app.kubernetes.io/component: service
     # instance id: used for service discovery and telemetry (service.name/service_name attrs)
-    app.kubernetes.io/instance: frontend-gateway
+    app.kubernetes.io/instance: public-api
 spec:
   replicas: 1
   selector:
-    matchLabels: *frontendLabels
+    matchLabels: *publicAPILabels
   template:
     metadata:
-      labels: *frontendLabels
+      labels: *publicAPILabels
     spec:
       restartPolicy: Always
       containers:
@@ -48,12 +51,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: quickpizza-frontend
+  name: quickpizza-public-api
 spec:
   type: LoadBalancer
   selector:
     app.k8s.io/name: quickpizza
-    app.kubernetes.io/instance: frontend-gateway
+    app.kubernetes.io/instance: public-api
   ports:
     - protocol: TCP
       port: 3333

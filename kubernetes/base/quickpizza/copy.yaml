@@ -1,11 +1,18 @@
+
+# service.name: 'copy'
+# service.component: 'copy' (defined in app code)
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  # unique name for this deployment resource
   name: quickpizza-copy
   labels: &copyLabels
+    # application name: groups all related resources
     app.k8s.io/name: quickpizza
+    # component type: defines the role of this deployment
     app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
     app.kubernetes.io/instance: copy
 spec:
   replicas: 1
