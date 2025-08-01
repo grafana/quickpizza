@@ -1,23 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  # unique name for this deployment resource
   name: quickpizza-frontend
-  labels:
+  labels: &frontendLabels
+    # application name: groups all related resources
     app.k8s.io/name: quickpizza
+    # component type: defines the role of this deployment
     app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
     app.kubernetes.io/instance: frontend-gateway
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: quickpizza
-      app.kubernetes.io/instance: frontend-gateway
+    matchLabels: *frontendLabels
   template:
     metadata:
-      name: quickpizza-frontend
-      labels:
-        app.k8s.io/name: quickpizza
-        app.kubernetes.io/instance: frontend-gateway
+      labels: *frontendLabels
     spec:
       restartPolicy: Always
       containers:
@@ -49,22 +48,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: quickpizza-config
-  labels:
+  labels: &configLabels
     app.k8s.io/name: quickpizza
     app.kubernetes.io/component: service
     app.kubernetes.io/instance: config
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: quickpizza
-      app.kubernetes.io/instance: config
+    matchLabels: *configLabels
   template:
     metadata:
-      name: quickpizza-config
-      labels:
-        app.k8s.io/name: quickpizza
-        app.kubernetes.io/instance: config
+      labels: *configLabels
     spec:
       restartPolicy: Always
       containers:
@@ -96,22 +90,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: quickpizza-ws
-  labels:
+  labels: &wsLabels
     app.k8s.io/name: quickpizza
     app.kubernetes.io/component: service
     app.kubernetes.io/instance: ws
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: quickpizza
-      app.kubernetes.io/instance: ws
+    matchLabels: *wsLabels
   template:
     metadata:
-      name: quickpizza-ws
-      labels:
-        app.k8s.io/name: quickpizza
-        app.kubernetes.io/instance: ws
+      labels: *wsLabels
     spec:
       restartPolicy: Always
       containers:
@@ -143,22 +132,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: quickpizza-catalog
-  labels:
+  labels: &catalogLabels
     app.k8s.io/name: quickpizza
     app.kubernetes.io/component: service
     app.kubernetes.io/instance: catalog
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: quickpizza
-      app.kubernetes.io/instance: catalog
+    matchLabels: *catalogLabels
   template:
     metadata:
-      name: quickpizza-catalog
-      labels:
-        app.k8s.io/name: quickpizza
-        app.kubernetes.io/instance: catalog
+      labels: *catalogLabels
     spec:
       restartPolicy: Always
       containers:
@@ -190,22 +174,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: quickpizza-copy
-  labels:
+  labels: &copyLabels
     app.k8s.io/name: quickpizza
     app.kubernetes.io/component: service
     app.kubernetes.io/instance: copy
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: quickpizza
-      app.kubernetes.io/instance: copy
+    matchLabels: *copyLabels
   template:
     metadata:
-      name: quickpizza-copy
-      labels:
-        app.k8s.io/name: quickpizza
-        app.kubernetes.io/instance: copy
+      labels: *copyLabels
     spec:
       restartPolicy: Always
       containers:
@@ -237,22 +216,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: quickpizza-recommendations
-  labels:
+  labels: &recommendationsLabels
     app.k8s.io/name: quickpizza
     app.kubernetes.io/component: service
     app.kubernetes.io/instance: recommendations
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: quickpizza
-      app.kubernetes.io/instance: recommendations
+    matchLabels: *recommendationsLabels
   template:
     metadata:
-      name: quickpizza-recommendations
-      labels:
-        app.k8s.io/name: quickpizza
-        app.kubernetes.io/instance: recommendations
+      labels: *recommendationsLabels
     spec:
       restartPolicy: Always
       containers:

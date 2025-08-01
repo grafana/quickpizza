@@ -2,18 +2,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana-alloy
-  labels:
+  labels: &alloyLabels
+    # application name: groups all related resources
     app.k8s.io/name: grafana-alloy
+    # component type: defines the role of this deployment
+    app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
+    app.kubernetes.io/instance: grafana-alloy
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app.k8s.io/name: grafana-alloy
+    matchLabels: *alloyLabels
   template:
     metadata:
-      name: grafana-alloy
-      labels:
-        app.k8s.io/name: grafana-alloy
+      labels: *alloyLabels
     spec:
       restartPolicy: Always
       serviceAccountName: grafana-alloy
