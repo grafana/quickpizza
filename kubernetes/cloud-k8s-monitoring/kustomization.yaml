@@ -1,8 +1,8 @@
 
 # This environment is intended to test Grafana Kubernetes Monitoring integration.
 resources:
-  - ../base
-  - ../base/resources/grafana-alloy
+  - ../base/quickpizza
+  - ../base/alloy
 
 
 # For telemetry functionality, change the following lines to match your configuration.

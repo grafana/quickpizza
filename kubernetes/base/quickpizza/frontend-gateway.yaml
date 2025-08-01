@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # unique name for this deployment resource
+  name: quickpizza-frontend
+  labels: &frontendLabels
+    # application name: groups all related resources
+    app.k8s.io/name: quickpizza
+    # component type: defines the role of this deployment
+    app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
+    app.kubernetes.io/instance: frontend-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *frontendLabels
+  template:
+    metadata:
+      labels: *frontendLabels
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: quickpizza
+          image: ghcr.io/grafana/quickpizza-local:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3333
+          envFrom:
+            - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
+                name: quickpizza-env
+                optional: true
+          env:
+            - name: QUICKPIZZA_FRONTEND
+              value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: QUICKPIZZA_OTEL_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickpizza-frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app.k8s.io/name: quickpizza
+    app.kubernetes.io/instance: frontend-gateway
+  ports:
+    - protocol: TCP
+      port: 3333
+      targetPort: 3333
+      nodePort: 30333

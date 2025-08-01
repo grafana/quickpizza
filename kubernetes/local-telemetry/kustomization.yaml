@@ -1,6 +1,9 @@
+## TODO: consider deleting this setup as 
+## it does not provide a local telemetry stack like the Docker Compose Local setup does.
+
 resources:
-  - ../base
-  - ../base/resources/grafana-alloy
+  - ../base/quickpizza
+  - ../base/alloy
 
 # For telemetry functionality, change the following lines to match your configuration.
 secretGenerator:

@@ -2,8 +2,12 @@
 # namespace: quickpizza
 
 resources:
-  - ./resources/deployments.yaml
-  - ./resources/services.yaml
+  - catalog.yaml
+  - config.yaml
+  - copy.yaml
+  - frontend-gateway.yaml
+  - recommendations.yaml
+  - ws.yaml
 
 # To use a custom image (e.g., locally built), uncomment `newName` and `newTag` below.
 # Example: docker build -t local-quickpizza:latest . && minikube image load local-quickpizza:latest
@@ -20,10 +24,8 @@ configMapGenerator:
     literals:
       # Trust all incoming TraceIDs for demo purposes
       - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
-      # Disable to run microservice mode 
+        # Microservice mode: Set to 0 to run services in separate pods
       - QUICKPIZZA_ALL_SERVICES=0
-      # Set service.name: frontend, config, gateway, catalog, users, admin, copy, recommendations
-      - QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY=1
       - QUICKPIZZA_CATALOG_ENDPOINT=http://quickpizza-catalog:3333
       - QUICKPIZZA_COPY_ENDPOINT=http://quickpizza-copy:3333
       - QUICKPIZZA_WS_ENDPOINT=http://quickpizza-ws:3333

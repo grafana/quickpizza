@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quickpizza-copy
+  labels: &copyLabels
+    app.k8s.io/name: quickpizza
+    app.kubernetes.io/component: service
+    app.kubernetes.io/instance: copy
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *copyLabels
+  template:
+    metadata:
+      labels: *copyLabels
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: quickpizza
+          image: ghcr.io/grafana/quickpizza-local:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3333
+          envFrom:
+            - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
+                name: quickpizza-env
+                optional: true
+          env:
+            - name: QUICKPIZZA_COPY
+              value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: QUICKPIZZA_OTEL_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickpizza-copy
+spec:
+  type: ClusterIP
+  selector:
+    app.k8s.io/name: quickpizza
+    app.kubernetes.io/instance: copy
+  ports:
+    - protocol: TCP
+      port: 3333
+      targetPort: 3333
