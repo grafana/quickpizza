@@ -20,11 +20,9 @@ spec:
     metadata:
       labels: *wsLabels
     spec:
-      restartPolicy: Always
       containers:
         - name: quickpizza
           image: ghcr.io/grafana/quickpizza-local:latest
-          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 3333
