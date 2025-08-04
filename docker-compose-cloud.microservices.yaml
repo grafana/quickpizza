@@ -1,0 +1,109 @@
+x-quickpizza-env-common: &quickpizza-env-common
+  QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
+  QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
+  QUICKPIZZA_TRUST_CLIENT_TRACEID: true
+  QUICKPIZZA_ALL_SERVICES: 0
+  QUICKPIZZA_CATALOG_ENDPOINT: http://catalog:3333
+  QUICKPIZZA_COPY_ENDPOINT: http://copy:3333
+  QUICKPIZZA_WS_ENDPOINT: http://ws:3333
+  QUICKPIZZA_RECOMMENDATIONS_ENDPOINT: http://recommendations:3333
+  QUICKPIZZA_CONFIG_ENDPOINT: http://config:3333
+
+name: quickpizza
+services:
+  alloy:
+    image: grafana/alloy:v1.9.1
+    container_name: alloy
+    labels:
+    - "service.type=instrumentation"
+    volumes:
+      - "./alloy/${ALLOY_FILE_NAME:-cloud-microservices.alloy}:/config.alloy:Z"
+      - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
+    command:
+      - run
+      - /config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --stability.level=public-preview
+    ports:
+      - "12345:12345"
+    environment:
+      QUICKPIZZA_HOST: public-api:3333
+      # must be set with an .env file
+      GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
+      # must be set with an .env file
+      GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+    depends_on:
+      - catalog
+      - config
+      - copy
+      - public-api
+      - recommendations
+      - ws
+
+  catalog:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    container_name: catalog
+    labels:
+    - "service.type=application"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_CATALOG: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "catalog"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
+
+  config:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    container_name: config
+    labels:
+    - "service.type=application"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_CONFIG: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "config"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "config"
+  copy:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    container_name: copy
+    labels:
+    - "service.type=application"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_COPY: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "copy"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
+
+  public-api:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    container_name: public-api
+    labels:
+    - "service.type=application"
+    ports:
+      - "3333:3333"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_FRONTEND: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "public-api"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
+
+  recommendations:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    container_name: recommendations
+    labels:
+    - "service.type=application"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_RECOMMENDATIONS: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "recommendations"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
+
+  ws:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    container_name: ws
+    labels:
+    - "service.type=application"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_WS: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
+  
