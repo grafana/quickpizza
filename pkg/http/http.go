@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"slices"
@@ -258,6 +259,9 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 			MaxAge:           300, // Maximum value not ignored by any of major browsers
 		}).Handler,
 	)
+
+	// Enable Profiling Pull Mode
+	router.Mount("/debug/pprof/", http.DefaultServeMux)
 
 	if profiling {
 		router.Use(k6.LabelsFromBaggageHandler)

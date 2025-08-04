@@ -27,10 +27,11 @@ func main() {
 		Level: logging.GetLogLevel(),
 	})))
 
-	// Enable profiling middleware if Pyroscope is enabled
+	// Profiling in pull mode is enabled by default.
+	// If QUICKPIZZA_PYROSCOPE_ENDPOINT is set, profiling in push mode will be enabled.
 	profilingConfig, profilingEnabled := envPyroscopeConfig()
 	if profilingEnabled {
-		slog.Debug("enabling Pyroscope profiling")
+		slog.Debug("enabling Pyroscope profiling in push mode")
 
 		runtime.SetMutexProfileFraction(5)
 		runtime.SetBlockProfileRate(5)

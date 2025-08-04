@@ -1,6 +1,5 @@
 x-quickpizza-env-common: &quickpizza-env-common
   QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
-  QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
   QUICKPIZZA_TRUST_CLIENT_TRACEID: true
   QUICKPIZZA_ALL_SERVICES: 0
   QUICKPIZZA_CATALOG_ENDPOINT: http://catalog:3333

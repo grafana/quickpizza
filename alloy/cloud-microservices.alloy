@@ -11,6 +11,7 @@ grafana_cloud.stack "receivers" {
   token = env("GRAFANA_CLOUD_TOKEN")
 }
 
+// discover containers running QuickPizza
 discovery.docker "application_containers" {
   host = "unix:///var/run/docker.sock"
   filter {
@@ -19,6 +20,7 @@ discovery.docker "application_containers" {
   }
 }
 
+// set expected labels
 discovery.relabel "application_containers" {
   rule {
     target_label = "job"
@@ -40,6 +42,11 @@ discovery.relabel "application_containers" {
     target_label = "service_namespace"
     replacement = "quickpizza"
   }
+  // the `namespace` label is for visualizing Profiles in Application Observability
+  rule {
+    target_label = "namespace"
+    replacement = "quickpizza"
+  }
   rule {
     target_label = "service_name"
     source_labels = [
@@ -50,11 +57,12 @@ discovery.relabel "application_containers" {
   }
   targets = discovery.docker.application_containers.targets
 }
+
 // Metrics
 prometheus.scrape "application_containers" {
   scrape_interval = "10s"
-  forward_to = [grafana_cloud.stack.receivers.metrics]
   targets = discovery.relabel.application_containers.output
+  forward_to = [grafana_cloud.stack.receivers.metrics]
 }
 // Logs
 loki.source.docker "application_containers" {
@@ -63,13 +71,12 @@ loki.source.docker "application_containers" {
   forward_to = [grafana_cloud.stack.receivers.logs]
 }
 
-// Profiling
-pyroscope.receive_http "default" {
-   http {
-       listen_address = "0.0.0.0"
-       listen_port = 9999
-   }
-   forward_to = [grafana_cloud.stack.receivers.profiles]
+// Profiling Pull Mode
+pyroscope.scrape "application_containers" {
+  // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
+  scrape_interval = "30s"
+  targets = discovery.relabel.application_containers.output
+  forward_to = [grafana_cloud.stack.receivers.profiles]
 }
 
 // Traces

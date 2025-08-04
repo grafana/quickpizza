@@ -45,6 +45,14 @@ discovery.relabel "application_pods" {
       "__meta_kubernetes_pod_label_app_k8s_io_name",
     ]
   }
+  // the `namespace` label is for visualizing Profiles in Application Observability
+  rule {
+    target_label = "namespace"
+    source_labels = [
+      // quickpizza
+      "__meta_kubernetes_pod_label_app_k8s_io_name",
+    ]
+  }
   rule {
     target_label = "service_name"
     source_labels = [
@@ -67,14 +75,13 @@ loki.source.kubernetes "application_pods" {
   targets = discovery.relabel.application_pods.output
 }
 
-// TODO: not working
-// pyroscope.receive_http "default" {
-   // forward_to = [grafana_cloud.stack.receivers.profiles]
-   // http {
-       // listen_address = "127.0.0.1"
-       // listen_port = 9999
-   // }
-// }
+// Profiling Pull Mode
+pyroscope.scrape "application_pods" {
+  // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
+  scrape_interval = "30s"
+  targets = discovery.relabel.application_pods.output
+  forward_to = [grafana_cloud.stack.receivers.profiles]
+}
 
 // Traces
 otelcol.receiver.otlp "default" {
