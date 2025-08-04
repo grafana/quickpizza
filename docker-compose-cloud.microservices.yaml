@@ -29,8 +29,10 @@ services:
       QUICKPIZZA_HOST: public-api:3333
       # must be set with an .env file
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
-      # must be set with an .env file
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+      # set only when ALLOY_FILE_NAME=cloud-otlp-microservices.alloy
+      GRAFANA_CLOUD_OTLP_ENDPOINT: "${GRAFANA_CLOUD_OTLP_ENDPOINT}"
+      GRAFANA_CLOUD_INSTANCE_ID: "${GRAFANA_CLOUD_INSTANCE_ID}"
     depends_on:
       - catalog
       - config

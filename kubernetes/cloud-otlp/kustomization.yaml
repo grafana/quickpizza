@@ -25,8 +25,6 @@ configMapGenerator:
     literals:
       # Enable tracing
       - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318
-      # TODO: pyroscope not working
-      - QUICKPIZZA_PYROSCOPE_ENDPOINT=http://grafana-alloy:9999
   - name: alloy-config
     files:
       - ./config/config.alloy

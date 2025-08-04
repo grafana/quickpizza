@@ -10,7 +10,6 @@ grafana_cloud.stack "receivers" {
   token = env("GRAFANA_CLOUD_TOKEN")
 }
 
-
 discovery.kubernetes "application_pods" {
   selectors {
     label = "app.k8s.io/name=quickpizza"
@@ -82,6 +81,7 @@ pyroscope.scrape "application_pods" {
   targets = discovery.relabel.application_pods.output
   forward_to = [grafana_cloud.stack.receivers.profiles]
 }
+
 
 // Traces
 otelcol.receiver.otlp "default" {

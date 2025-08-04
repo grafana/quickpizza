@@ -12,17 +12,6 @@ grafana_cloud.stack "receivers" {
   token = env("GRAFANA_CLOUD_TOKEN")
 }
 
-otelcol.auth.basic "grafana_cloud" {
-  username = grafana_cloud.stack.receivers.info["htInstanceId"]
-  password = env("GRAFANA_CLOUD_TOKEN")
-}
-
-otelcol.exporter.otlphttp "grafana_cloud" {
-  client {
-    endpoint = grafana_cloud.stack.receivers.info["htInstanceUrl"] + ":443"
-    auth     = otelcol.auth.basic.grafana_cloud.handler
-  }
-}
 
 // Metrics
 discovery.kubernetes "application_pods" {
@@ -191,9 +180,20 @@ otelcol.processor.batch "default" {
   output {
     metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
     logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    
-    // NOTE: Updated this from the initial implementation to send traces correctly
-    //traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    traces  = [grafana_cloud.stack.receivers.traces]
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  // TODO: Fix info["htInstanceId"] not working, and need to pass GRAFANA_CLOUD_INSTANCE_ID.
+  //username = grafana_cloud.stack.receivers.info["htInstanceId"]
+  username = env("GRAFANA_CLOUD_INSTANCE_ID")
+  password = env("GRAFANA_CLOUD_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
   }
 }
