@@ -105,7 +105,7 @@ Now you can go to [localhost:3333](http://localhost:3333) and get some pizza rec
 ## Run and observe locally with Grafana OSS 🐳📊
 
 
-The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Alloy containers.
+The [compose.grafana-local-stack.monolithic.yaml](./compose.grafana-local-stack.monolithic.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Alloy containers.
 
 Grafana Alloy collects traces, metrics, logs and profiling data from the QuickPizza app, forwarding them to the Tempo, Prometheus and Loki. Finally, you can visualize and correlate data stored in these containers with the locally running Grafana instance.
 
