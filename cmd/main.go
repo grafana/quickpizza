@@ -134,7 +134,7 @@ func main() {
 	// Recommendations service needs to know the URL where the Catalog and Copy services are located.
 	// This URL is automatically set to `localhost` if Recommendations is enabled at the same time as either of those.
 	// If they are not, URLs are sourced from QUICKPIZZA_CATALOG_ENDPOINT and QUICKPIZZA_COPY_ENDPOINT.
-	if envServe("QUICKPIZZA_RECOMMENDATIONS") {
+	if envServe("QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE") {
 		catalogClient := qphttp.NewCatalogClient(envEndpoint("QUICKPIZZA_CATALOG")).WithClient(httpCli)
 		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_COPY")).WithClient(httpCli)
 

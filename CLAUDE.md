@@ -42,7 +42,7 @@ The application is designed as a modular monolith that can be deployed as separa
 - **Frontend** (`QUICKPIZZA_ENABLE_FRONTEND_SERVICE`) - Serves SvelteKit UI
 - **Catalog** (`QUICKPIZZA_ENABLE_CATALOG_SERVICE`) - Manages ingredients, tools, doughs, users, ratings
 - **Copy** (`QUICKPIZZA_ENABLE_COPY_SERVICE`) - Handles quotes, names, adjectives for pizza generation
-- **Recommendations** (`QUICKPIZZA_RECOMMENDATIONS`) - Core pizza recommendation logic
+- **Recommendations** (`QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE`) - Core pizza recommendation logic
 - **WebSocket** (`QUICKPIZZA_ENABLE_WS_SERVICE`) - Real-time communication
 - **Gateway** - Routes requests between services in microservice deployments
 - **gRPC** (`QUICKPIZZA_ENABLE_GRPC_SERVICE`) - gRPC service on ports 3334/3335

@@ -96,7 +96,7 @@ services:
     - "service.type=application"
     environment:
       <<: *quickpizza-env-common
-      QUICKPIZZA_RECOMMENDATIONS: "1"
+      QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "recommendations"
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
 
