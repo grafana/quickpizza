@@ -141,7 +141,7 @@ func main() {
 		server.AddRecommendations(catalogClient, copyClient)
 	}
 
-	if envServe("QUICKPIZZA_GRPC") {
+	if envServe("QUICKPIZZA_ENABLE_GRPC_SERVICE") {
 		grpcServer := qpgrpc.NewServer(":3334", ":3335")
 		go func() {
 			err := grpcServer.ListenAndServe()

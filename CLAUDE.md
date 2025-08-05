@@ -45,7 +45,7 @@ The application is designed as a modular monolith that can be deployed as separa
 - **Recommendations** (`QUICKPIZZA_RECOMMENDATIONS`) - Core pizza recommendation logic
 - **WebSocket** (`QUICKPIZZA_WS`) - Real-time communication
 - **Gateway** - Routes requests between services in microservice deployments
-- **gRPC** (`QUICKPIZZA_GRPC`) - gRPC service on ports 3334/3335
+- **gRPC** (`QUICKPIZZA_ENABLE_GRPC_SERVICE`) - gRPC service on ports 3334/3335
 - **Config** (`QUICKPIZZA_CONFIG`) - Configuration endpoint
 - **HTTP Testing** (`QUICKPIZZA_ENABLE_HTTP_TESTING_SERVICE`) - HTTP testing utilities
 - **Test K6 IO** (`QUICKPIZZA_ENABLE_TEST_K6_IO_SERVICE`) - Legacy test.k6.io replacement endpoints
