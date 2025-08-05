@@ -92,7 +92,7 @@ func main() {
 		server.AddConfigHandler(envConfig("QUICKPIZZA_CONF_"))
 	}
 
-	if envServe("QUICKPIZZA_ENABLE_FRONTEND_SERVICE") {
+	if envServe("QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE") {
 		// Serve frontend static assets
 		server.AddFrontend()
 

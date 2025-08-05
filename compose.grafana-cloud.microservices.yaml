@@ -85,7 +85,7 @@ services:
       - "3333:3333"
     environment:
       <<: *quickpizza-env-common
-      QUICKPIZZA_ENABLE_FRONTEND_SERVICE: "1"
+      QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "public-api"
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
 

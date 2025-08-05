@@ -39,12 +39,13 @@ QuickPizza is a demonstration web application that generates pizza recommendatio
 ### Microservices Architecture
 The application is designed as a modular monolith that can be deployed as separate microservices. Services are controlled by environment variables:
 
-- **Frontend** (`QUICKPIZZA_ENABLE_FRONTEND_SERVICE`) - Serves SvelteKit UI
+- **PublicAPI** (`QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE`) - Serves Frontend and Gateway
+- **Frontend** -  Serves SvelteKit UI
+- **Gateway** - Routes requests between services in microservice deployments
 - **Catalog** (`QUICKPIZZA_ENABLE_CATALOG_SERVICE`) - Manages ingredients, tools, doughs, users, ratings
 - **Copy** (`QUICKPIZZA_ENABLE_COPY_SERVICE`) - Handles quotes, names, adjectives for pizza generation
 - **Recommendations** (`QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE`) - Core pizza recommendation logic
 - **WebSocket** (`QUICKPIZZA_ENABLE_WS_SERVICE`) - Real-time communication
-- **Gateway** - Routes requests between services in microservice deployments
 - **gRPC** (`QUICKPIZZA_ENABLE_GRPC_SERVICE`) - gRPC service on ports 3334/3335
 - **Config** (`QUICKPIZZA_ENABLE_CONFIG_SERVICE`) - Configuration endpoint
 - **HTTP Testing** (`QUICKPIZZA_ENABLE_HTTP_TESTING_SERVICE`) - HTTP testing utilities
