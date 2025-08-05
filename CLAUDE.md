@@ -47,7 +47,7 @@ The application is designed as a modular monolith that can be deployed as separa
 - **Gateway** - Routes requests between services in microservice deployments
 - **gRPC** (`QUICKPIZZA_GRPC`) - gRPC service on ports 3334/3335
 - **Config** (`QUICKPIZZA_CONFIG`) - Configuration endpoint
-- **HTTP Testing** (`QUICKPIZZA_HTTP_TESTING`) - HTTP testing utilities
+- **HTTP Testing** (`QUICKPIZZA_ENABLE_HTTP_TESTING_SERVICE`) - HTTP testing utilities
 - **Test K6 IO** (`QUICKPIZZA_TEST_K6_IO`) - Legacy test.k6.io replacement endpoints
 
 ### Key Packages

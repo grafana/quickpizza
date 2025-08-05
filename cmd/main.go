@@ -78,7 +78,7 @@ func main() {
 	// If QUICKPIZZA_ENABLE_ALL_SERVICES is set to a falsy values, services are opted-in by setting the environment variables
 	// below to a truty value.
 
-	if envServe("QUICKPIZZA_HTTP_TESTING") {
+	if envServe("QUICKPIZZA_ENABLE_HTTP_TESTING_SERVICE") {
 		server.AddHTTPTesting()
 	}
 
