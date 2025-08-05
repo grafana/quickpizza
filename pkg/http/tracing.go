@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httplog/v2"
@@ -79,22 +78,15 @@ func (t *TraceInstaller) Insecure() {
 
 // Install adds tracing middleware to the supplied chi.Router.
 // extraOpts take precedence over the default opts.
-func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...otelhttp.Option) {
+func (t *TraceInstaller) Install(r chi.Router, serviceComponent string, extraOpts ...otelhttp.Option) {
 	if t.exporter == nil {
 		return
 	}
 
-	// For Distributed Deployments (Kubernetes), if the legacy env var is set and true, use the microservice name as the service name instead.
-	// This is to help with Application Observability and Correlations between Metrics, Logs, Traces and Profiles.
-	serviceNameAttrValue := "quickpizza"
-	v, found := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAME_LEGACY")
-	if found {
-		b, _ := strconv.ParseBool(v)
-		if b {
-			serviceNameAttrValue = serviceName
-		}
+	serviceName, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAME")
+	if !ok {
+		serviceName = "quickpizza"
 	}
-
 	serviceNamespace, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAMESPACE")
 	if !ok {
 		serviceNamespace = "quickpizza"
@@ -109,8 +101,8 @@ func (t *TraceInstaller) Install(r chi.Router, serviceName string, extraOpts ...
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName(serviceNameAttrValue),
-			attribute.KeyValue{Key: "service.component", Value: attribute.StringValue(serviceName)},
+			semconv.ServiceName(serviceName),
+			attribute.KeyValue{Key: "service.component", Value: attribute.StringValue(serviceComponent)},
 			attribute.KeyValue{Key: "service.namespace", Value: attribute.StringValue(serviceNamespace)},
 			attribute.KeyValue{Key: "service.instance.id", Value: attribute.StringValue(serviceInstanceID)},
 		),

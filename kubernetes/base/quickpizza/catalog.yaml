@@ -1,0 +1,60 @@
+
+# service.name: 'catalog'
+# service.component: 'catalog', 'admin', 'users' (defined in app code)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # unique name for this deployment resource
+  name: quickpizza-catalog
+  labels: &catalogLabels
+    # application name: groups all related resources
+    app.k8s.io/name: quickpizza
+    # component type: defines the role of this deployment
+    app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
+    app.kubernetes.io/instance: catalog
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *catalogLabels
+  template:
+    metadata:
+      labels: *catalogLabels
+    spec:
+      containers:
+        - name: quickpizza
+          image: ghcr.io/grafana/quickpizza-local:latest
+          ports:
+            - name: http
+              containerPort: 3333
+          envFrom:
+            - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
+                name: quickpizza-env
+                optional: true
+          env:
+            - name: QUICKPIZZA_CATALOG
+              value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: QUICKPIZZA_OTEL_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+---
+# Configures value for QUICKPIZZA_CATALOG_ENDPOINT (set in kustomization.yaml)
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickpizza-catalog
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: catalog
+  ports:
+    - protocol: TCP
+      port: 3333
+      targetPort: 3333

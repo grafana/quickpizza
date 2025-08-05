@@ -1,0 +1,33 @@
+
+
+# This environment is intended to for testing purpose
+resources:
+  - ../base/quickpizza
+  - ../base/alloy
+
+# To use a custom image (e.g., locally built), uncomment `newName` and `newTag` below.
+# Example: docker build -t local-quickpizza:latest . && minikube image load local-quickpizza:latest
+images:
+  - name: ghcr.io/grafana/quickpizza-local
+    # newName: local-quickpizza
+    # newTag: latest
+# Note: Do not commit changes to newName/newTag values (leave commented). TODO: consider Kustomize's env var substitution 
+
+# For telemetry functionality, change the following lines to match your configuration.
+secretGenerator:
+  - name: grafana-alloy-credentials
+    envs:
+    - .env
+
+# You can use the following generator to add additional environment variables to all QuickPizza pods.
+configMapGenerator:
+  - name: quickpizza-env
+    envs:
+    # load FARO variables
+    - .env
+    literals:
+      # Enable tracing
+      - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318
+  - name: alloy-config
+    files:
+      - ./config/config.alloy

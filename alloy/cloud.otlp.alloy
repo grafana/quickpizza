@@ -1,85 +1,85 @@
 
-// Enable this config by setting the env var ALLOY_FILE_NAME to cloud-otel.alloy for the docker-compose-cloud.yaml
-
 import.git "grafana_cloud" {
   repository = "https://github.com/grafana/alloy-modules.git"
   revision = "main"
   path = "modules/cloud/grafana/cloud/module.alloy"
-  pull_frequency = "24h"
+  pull_frequency = "0s"
 }
+
 grafana_cloud.stack "receivers" {
   stack_name = env("GRAFANA_CLOUD_STACK")
   token = env("GRAFANA_CLOUD_TOKEN")
 }
 
-otelcol.auth.basic "grafana_cloud" {
-  username = grafana_cloud.stack.receivers.info["htInstanceId"]
-  password = env("GRAFANA_CLOUD_TOKEN")
-}
-
-otelcol.exporter.otlphttp "grafana_cloud" {
-  client {
-    endpoint = grafana_cloud.stack.receivers.info["htInstanceUrl"] + ":443"
-    auth     = otelcol.auth.basic.grafana_cloud.handler
+// discover containers running QuickPizza
+discovery.docker "application_containers" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["service.type=application"]
   }
 }
 
-
-discovery.docker "all_containers" {
-  host = "unix:///var/run/docker.sock"
-}
-
-discovery.relabel "relabel_targets" {
+// set expected labels
+discovery.relabel "application_containers" {
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex = "/(.*)"
+    replacement = "quickpizza/${1}"
+  }
   rule {
     target_label = "instance"
     source_labels = [
       "__meta_docker_container_name",
     ]
-    regex ="/(.*)"
-    action = "replace"
+    regex = "/(.*)"
+    replacement = "${1}"
   }
   rule {
-    target_label = "job"
-    source_labels = [
-      "__meta_docker_container_label_com_docker_compose_project",
-    ]
-    regex = ".*quickpizza.*"
-    action = "keep"
+    target_label = "service_namespace"
+    replacement = "quickpizza"
   }
-  targets = discovery.docker.all_containers.targets
+  // the `namespace` label is for visualizing Profiles in Application Observability
+  rule {
+    target_label = "namespace"
+    replacement = "quickpizza"
+  }
+  rule {
+    target_label = "service_name"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex = "/(.*)"
+    replacement = "${1}"
+  }
+  targets = discovery.docker.application_containers.targets
 }
-
 
 // Metrics
-prometheus.scrape "default" {
+prometheus.scrape "application_containers" {
+  scrape_interval = "10s"
+  targets = discovery.relabel.application_containers.output
   forward_to = [grafana_cloud.stack.receivers.metrics]
-  targets = discovery.relabel.relabel_targets.output
 }
-
-loki.source.docker "default" {
+// Logs
+loki.source.docker "application_containers" {
   host       = "unix:///var/run/docker.sock"
-  targets    = discovery.relabel.relabel_targets.output
+  targets    = discovery.relabel.application_containers.output
   forward_to = [grafana_cloud.stack.receivers.logs]
-  labels = {
-    service_name = "quickpizza",
-    service_namespace = "quickpizza",
-  }
 }
 
-pyroscope.scrape "scrape_profiles" {
+// Profiling Pull Mode
+pyroscope.scrape "application_containers" {
+  // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
+  scrape_interval = "30s"
+  targets = discovery.relabel.application_containers.output
   forward_to = [grafana_cloud.stack.receivers.profiles]
-  targets = discovery.relabel.relabel_targets.output
 }
 
-pyroscope.receive_http "default" {
-   forward_to = [grafana_cloud.stack.receivers.profiles]
-   http {
-       listen_address = "0.0.0.0"
-       listen_port = 9999
-   }
-}
-
-
+// Traces
 otelcol.receiver.otlp "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
     
@@ -172,7 +172,6 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
 otelcol.connector.host_info "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.connector.host_info/
   host_identifiers = ["container.name", "container.id", "service.name"]
-  metrics_flush_interval = "10s"
     
   output {
     metrics = [otelcol.processor.batch.default.input]
@@ -195,16 +194,26 @@ otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
-
+    
 otelcol.processor.batch "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.batch/
   output {
     metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
     logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    // traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
-    
-    //metrics = [grafana_cloud.stack.receivers.metrics]
-    //logs    = [grafana_cloud.stack.receivers.logs]
-    traces  = [grafana_cloud.stack.receivers.traces]
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  // TODO: Fix info["htInstanceId"] not working, and need to pass GRAFANA_CLOUD_INSTANCE_ID.
+  //username = grafana_cloud.stack.receivers.info["htInstanceId"]
+  username = env("GRAFANA_CLOUD_INSTANCE_ID")
+  password = env("GRAFANA_CLOUD_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
   }
 }

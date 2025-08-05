@@ -1,4 +1,0 @@
-resources:
-  - ./resources/deployment.yaml
-  - ./resources/service.yaml
-  - ./resources/rbac.yaml

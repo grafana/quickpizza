@@ -1,0 +1,57 @@
+# Uncomment the following line to deploy the application on a non-default namespace
+# namespace: quickpizza
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - catalog.yaml
+  - config.yaml
+  - copy.yaml
+  - public-api.yaml
+  - recommendations.yaml
+  - ws.yaml
+
+configMapGenerator:
+  - name: quickpizza-env-common
+    literals:
+      # Trust all incoming TraceIDs for demo purposes
+      - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
+        # Microservice mode: Set to 0 to run services in separate pods
+      - QUICKPIZZA_ALL_SERVICES=0
+      - QUICKPIZZA_CATALOG_ENDPOINT=http://quickpizza-catalog:3333
+      - QUICKPIZZA_COPY_ENDPOINT=http://quickpizza-copy:3333
+      - QUICKPIZZA_WS_ENDPOINT=http://quickpizza-ws:3333
+      - QUICKPIZZA_RECOMMENDATIONS_ENDPOINT=http://quickpizza-recommendations:3333
+      - QUICKPIZZA_CONFIG_ENDPOINT=http://quickpizza-config:3333
+
+# defines shared properties for all deployments
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+      - op: add
+        path: /spec/template/spec/containers/0/readinessProbe
+        value:
+          httpGet:
+            path: /ready
+            port: 3333
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+      - op: add
+        path: /spec/template/spec/containers/0/livenessProbe
+        value:
+          httpGet:
+            path: /healthz
+            port: 3333
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+    target:
+      kind: Deployment

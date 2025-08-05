@@ -1,0 +1,60 @@
+
+# service.name: 'config'
+# service.component: 'config' (defined in app code)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # unique name for this deployment resource
+  name: quickpizza-config
+  labels: &configLabels
+    # application name: groups all related resources
+    app.k8s.io/name: quickpizza
+    # component type: defines the role of this deployment
+    app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
+    app.kubernetes.io/instance: config
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *configLabels
+  template:
+    metadata:
+      labels: *configLabels
+    spec:
+      containers:
+        - name: quickpizza
+          image: ghcr.io/grafana/quickpizza-local:latest
+          ports:
+            - name: http
+              containerPort: 3333
+          envFrom:
+            - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
+                name: quickpizza-env
+                optional: true
+          env:
+            - name: QUICKPIZZA_CONFIG
+              value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: QUICKPIZZA_OTEL_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+---
+# Configures value for QUICKPIZZA_CONFIG_ENDPOINT (set in kustomization.yaml)
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickpizza-config
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: config
+  ports:
+    - protocol: TCP
+      port: 3333
+      targetPort: 3333

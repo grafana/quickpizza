@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"slices"
@@ -259,6 +260,9 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 		}).Handler,
 	)
 
+	// Enable Profiling Pull Mode
+	router.Mount("/debug/pprof/", http.DefaultServeMux)
+
 	if profiling {
 		router.Use(k6.LabelsFromBaggageHandler)
 	}
@@ -428,15 +432,18 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 
 // AddWebSocket enables serving and handle websockets.
 func (s *Server) AddWebSocket() {
-	// TODO: Add tracing for websockets.
-	s.router.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
-		err := s.melody.HandleRequest(w, r)
-		if err != nil {
-			s.log.ErrorContext(r.Context(), "Upgrading request to WS", "err", err)
+	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "ws")
 
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = fmt.Fprint(w, err)
-		}
+		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
+			err := s.melody.HandleRequest(w, r)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Upgrading request to WS", "err", err)
+
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = fmt.Fprint(w, err)
+			}
+		})
 	})
 
 	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {

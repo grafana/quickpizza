@@ -1,0 +1,109 @@
+import.git "grafana_cloud" {
+  repository = "https://github.com/grafana/alloy-modules.git"
+  revision = "main"
+  path = "modules/cloud/grafana/cloud/module.alloy"
+  pull_frequency = "0s"
+}
+
+grafana_cloud.stack "receivers" {
+  stack_name = env("GRAFANA_CLOUD_STACK")
+  token = env("GRAFANA_CLOUD_TOKEN")
+}
+
+discovery.kubernetes "application_pods" {
+  selectors {
+    label = "app.k8s.io/name=quickpizza"
+    role = "pod"
+  }
+  role = "pod"
+  namespaces {
+    own_namespace = true
+  }
+}
+
+discovery.relabel "application_pods" {
+  // See https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/setup/resource-attributes/
+  rule {
+    target_label = "job"
+    separator = "/"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_k8s_io_name",
+      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
+    ]
+  }
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_kubernetes_pod_name",
+    ]
+  }
+  rule {
+    target_label = "service_namespace"
+    source_labels = [
+      // quickpizza
+      "__meta_kubernetes_pod_label_app_k8s_io_name",
+    ]
+  }
+  // the `namespace` label is for visualizing Profiles in Application Observability
+  rule {
+    target_label = "namespace"
+    source_labels = [
+      // quickpizza
+      "__meta_kubernetes_pod_label_app_k8s_io_name",
+    ]
+  }
+  rule {
+    target_label = "service_name"
+    source_labels = [
+      "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
+    ]
+  }
+  targets = discovery.kubernetes.application_pods.targets
+}
+
+// Metrics: application pods
+prometheus.scrape "application_pods" {
+  scrape_interval = "10s"
+  forward_to = [grafana_cloud.stack.receivers.metrics]
+  targets = discovery.relabel.application_pods.output
+}
+
+// Logs: application pods
+loki.source.kubernetes "application_pods" {
+  forward_to = [grafana_cloud.stack.receivers.logs]
+  targets = discovery.relabel.application_pods.output
+}
+
+// Profiling Pull Mode
+pyroscope.scrape "application_pods" {
+  // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
+  scrape_interval = "30s"
+  targets = discovery.relabel.application_pods.output
+  forward_to = [grafana_cloud.stack.receivers.profiles]
+}
+
+
+// Traces
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = []
+    logs = []
+    traces = [
+      grafana_cloud.stack.receivers.traces,
+    ]
+  }
+}
