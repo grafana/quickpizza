@@ -173,7 +173,71 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 ![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
-To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml) .
+To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml).
+
+## QuickPizza Deployment Modes: Monolithic vs Microservices
+
+QuickPizza can be deployed in two modes: **monolithic** or **microservices**.
+
+In microservices mode, QuickPizza is split into several independent services, each with a distinct responsibility—such as `catalog`, `recommendations`, and `public-api`. Each service runs in its own Docker container.
+
+This architecture enables distributed tracing and demonstrates service-oriented observability.
+
+```mermaid
+graph TB
+  subgraph "QuickPizza microservices"
+    
+   subgraph public-api-svc [public-api service]
+      API[/gateway component/]
+      FR[/frontend component/]
+    end
+
+    copy-svc[copy service]
+    rec-svc[recommendations service]
+    cfg-svc[config service]
+    ws-svc[ws service]
+
+    subgraph catalog-svc [catalog service]
+      CA[/catalog component/]
+      US[/users component/]
+      AD[/admin component/]
+    end
+    
+    DB[(db)]
+  end
+  GA[Alloy]
+  GC[Grafana Cloud<br/>Mimir, Loki, Tempo, Pyroscope]
+  
+  
+  User --> FR
+  API_Client --> API
+  FR --> API
+  API --> copy-svc
+  API --> rec-svc
+  API --> cfg-svc
+  API --> ws-svc
+  API --> CA
+  API --> US
+  API --> AD
+
+  CA --> DB
+  US --> DB
+  AD --> DB
+
+  
+  public-api-svc <--> GA
+  catalog-svc <--> GA
+  copy-svc <--> GA
+  rec-svc <--> GA
+  cfg-svc <--> GA
+  ws-svc <--> GA
+  GA --> GC
+```
+
+The [`compose.grafana-cloud.microservices.yaml`](./compose.grafana-cloud.microservices.yaml) file configures QuickPizza in microservices mode. In this setup, Grafana Alloy collects telemetry data from each service and sends it to Grafana Cloud, enabling centralized observability across all components.
+
+For monolithic deployments, all QuickPizza components run together in a single container. Grafana Alloy still collects telemetry data, but from the unified application instance. Use the [`compose.grafana-cloud.monolithic.yaml`](./compose.grafana-cloud.monolithic.yaml) or [`compose.grafana-local-stack.monolithic.yaml`](./compose.grafana-local-stack.monolithic.yaml) files to orchestrate this environment.
+
 
 ### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
 
