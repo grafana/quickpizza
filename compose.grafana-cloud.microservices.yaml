@@ -107,7 +107,7 @@ services:
     - "service.type=application"
     environment:
       <<: *quickpizza-env-common
-      QUICKPIZZA_WS: "1"
+      QUICKPIZZA_ENABLE_WS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
   

@@ -33,7 +33,7 @@ spec:
                 name: quickpizza-env
                 optional: true
           env:
-            - name: QUICKPIZZA_WS
+            - name: QUICKPIZZA_ENABLE_WS_SERVICE
               value: "1"
             - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
               valueFrom:

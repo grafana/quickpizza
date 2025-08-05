@@ -43,7 +43,7 @@ The application is designed as a modular monolith that can be deployed as separa
 - **Catalog** (`QUICKPIZZA_CATALOG`) - Manages ingredients, tools, doughs, users, ratings
 - **Copy** (`QUICKPIZZA_COPY`) - Handles quotes, names, adjectives for pizza generation
 - **Recommendations** (`QUICKPIZZA_RECOMMENDATIONS`) - Core pizza recommendation logic
-- **WebSocket** (`QUICKPIZZA_WS`) - Real-time communication
+- **WebSocket** (`QUICKPIZZA_ENABLE_WS_SERVICE`) - Real-time communication
 - **Gateway** - Routes requests between services in microservice deployments
 - **gRPC** (`QUICKPIZZA_ENABLE_GRPC_SERVICE`) - gRPC service on ports 3334/3335
 - **Config** (`QUICKPIZZA_ENABLE_CONFIG_SERVICE`) - Configuration endpoint

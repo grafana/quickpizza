@@ -109,7 +109,7 @@ func main() {
 		}
 	}
 
-	if envServe("QUICKPIZZA_WS") {
+	if envServe("QUICKPIZZA_ENABLE_WS_SERVICE") {
 		server.AddWebSocket()
 	}
 
