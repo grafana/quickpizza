@@ -100,11 +100,11 @@ func main() {
 		// also act as a gateway to proxy public-facing endpoints
 		if !envServeAll() {
 			server.AddGateway(
-				envEndpoint("QUICKPIZZA_CATALOG"),
-				envEndpoint("QUICKPIZZA_COPY"),
-				envEndpoint("QUICKPIZZA_WS"),
-				envEndpoint("QUICKPIZZA_RECOMMENDATIONS"),
-				envEndpoint("QUICKPIZZA_CONFIG"),
+				envEndpoint("QUICKPIZZA_ENABLE_CATALOG_SERVICE", "QUICKPIZZA_CATALOG_ENDPOINT"),
+				envEndpoint("QUICKPIZZA_ENABLE_COPY_SERVICE", "QUICKPIZZA_COPY_ENDPOINT"),
+				envEndpoint("QUICKPIZZA_ENABLE_WS_SERVICE", "QUICKPIZZA_WS_ENDPOINT"),
+				envEndpoint("QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE", "QUICKPIZZA_RECOMMENDATIONS_ENDPOINT"),
+				envEndpoint("QUICKPIZZA_ENABLE_CONFIG_SERVICE", "QUICKPIZZA_CONFIG_ENDPOINT"),
 			)
 		}
 	}
@@ -135,8 +135,8 @@ func main() {
 	// This URL is automatically set to `localhost` if Recommendations is enabled at the same time as either of those.
 	// If they are not, URLs are sourced from QUICKPIZZA_CATALOG_ENDPOINT and QUICKPIZZA_COPY_ENDPOINT.
 	if envServe("QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE") {
-		catalogClient := qphttp.NewCatalogClient(envEndpoint("QUICKPIZZA_CATALOG")).WithClient(httpCli)
-		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_COPY")).WithClient(httpCli)
+		catalogClient := qphttp.NewCatalogClient(envEndpoint("QUICKPIZZA_ENABLE_CATALOG_SERVICE", "QUICKPIZZA_CATALOG_ENDPOINT")).WithClient(httpCli)
+		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_ENABLE_COPY_SERVICE", "QUICKPIZZA_COPY_ENDPOINT")).WithClient(httpCli)
 
 		server.AddRecommendations(catalogClient, copyClient)
 	}
@@ -280,14 +280,15 @@ func envServe(name string) bool {
 	return envServeAll() || envBool(name)
 }
 
-// envEndpoint returns the endpoint for a given service. If the service is enabled in this instance, it returns
-// `localhost`. If it isn't, it returns the value of QUICKPIZZA_SERVICENAME_ENDPOINT.fs
-func envEndpoint(name string) string {
-	if envServe(name) {
+// envEndpoint returns the endpoint URL for a service.
+// If the service is enabled (envServe(svcEnv) == true), it returns "http://localhost:3333".
+// Otherwise, it returns the value of the endpointEnv environment variable.
+func envEndpoint(svcEnv, endpointEnv string) string {
+	if envServe(svcEnv) {
 		return "http://localhost:3333"
 	}
 
-	endpoint, _ := os.LookupEnv(name + "_ENDPOINT")
+	endpoint, _ := os.LookupEnv(endpointEnv)
 	return endpoint
 }
 
