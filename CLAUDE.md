@@ -73,7 +73,7 @@ Comprehensive observability built-in:
 - **Frontend Observability**: Grafana Faro support
 
 ### Environment Configuration
-- `QUICKPIZZA_ALL_SERVICES` - Enable all services (default: true)
+- `QUICKPIZZA_ENABLE_ALL_SERVICES` - Enable all services (default: true)
 - `QUICKPIZZA_LOG_LEVEL` - Set logging level (default: info)
 - `QUICKPIZZA_OTLP_ENDPOINT` - OpenTelemetry collector endpoint
 - `QUICKPIZZA_PYROSCOPE_ENDPOINT` - Pyroscope server for profiling

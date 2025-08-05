@@ -73,9 +73,9 @@ func main() {
 	server.AddPrometheusHandler()
 
 	// Enable services in this instance. Services are enabled with the following logic:
-	// If QUICKPIZZA_ALL_SERVICES is either _not set_ or set to a truthy value, all services are enabled. This is the
+	// If QUICKPIZZA_ENABLE_ALL_SERVICES is either _not set_ or set to a truthy value, all services are enabled. This is the
 	// default behavior.
-	// If QUICKPIZZA_ALL_SERVICES is set to a falsy values, services are opted-in by setting the environment variables
+	// If QUICKPIZZA_ENABLE_ALL_SERVICES is set to a falsy values, services are opted-in by setting the environment variables
 	// below to a truty value.
 
 	if envServe("QUICKPIZZA_HTTP_TESTING") {
@@ -263,15 +263,15 @@ func envPyroscopeConfig() (pyroscope.Config, bool) {
 }
 
 func envServeAll() bool {
-	allSvcs, present := os.LookupEnv("QUICKPIZZA_ALL_SERVICES")
+	allSvcs, present := os.LookupEnv("QUICKPIZZA_ENABLE_ALL_SERVICES")
 	allSvcsB, _ := strconv.ParseBool(allSvcs)
 
-	// If QUICKPIZZA_ALL_SERVICES is not defined (default), serve everything.
+	// If QUICKPIZZA_ENABLE_ALL_SERVICES is not defined (default), serve everything.
 	if !present {
 		return true
 	}
 
-	// Otherwise, serve all if QUICKPIZZA_ALL_SERVICES is truthy.
+	// Otherwise, serve all if QUICKPIZZA_ENABLE_ALL_SERVICES is truthy.
 	return allSvcsB
 }
 

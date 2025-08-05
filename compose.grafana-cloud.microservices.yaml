@@ -1,7 +1,7 @@
 x-quickpizza-env-common: &quickpizza-env-common
   QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
   QUICKPIZZA_TRUST_CLIENT_TRACEID: true
-  QUICKPIZZA_ALL_SERVICES: 0
+  QUICKPIZZA_ENABLE_ALL_SERVICES: 0 # 0 for microservice mode
   QUICKPIZZA_CATALOG_ENDPOINT: http://catalog:3333
   QUICKPIZZA_COPY_ENDPOINT: http://copy:3333
   QUICKPIZZA_WS_ENDPOINT: http://ws:3333

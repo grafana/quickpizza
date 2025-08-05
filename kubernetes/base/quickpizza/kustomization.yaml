@@ -18,7 +18,7 @@ configMapGenerator:
       # Trust all incoming TraceIDs for demo purposes
       - QUICKPIZZA_TRUST_CLIENT_TRACEID=true
         # Microservice mode: Set to 0 to run services in separate pods
-      - QUICKPIZZA_ALL_SERVICES=0
+      - QUICKPIZZA_ENABLE_ALL_SERVICES=0
       - QUICKPIZZA_CATALOG_ENDPOINT=http://quickpizza-catalog:3333
       - QUICKPIZZA_COPY_ENDPOINT=http://quickpizza-copy:3333
       - QUICKPIZZA_WS_ENDPOINT=http://quickpizza-ws:3333
