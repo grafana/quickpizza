@@ -72,7 +72,7 @@ services:
     - "service.type=application"
     environment:
       <<: *quickpizza-env-common
-      QUICKPIZZA_COPY: "1"
+      QUICKPIZZA_ENABLE_COPY_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "copy"
       QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
 

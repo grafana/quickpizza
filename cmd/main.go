@@ -122,7 +122,7 @@ func main() {
 		server.AddCatalogHandler(db)
 	}
 
-	if envServe("QUICKPIZZA_COPY") {
+	if envServe("QUICKPIZZA_ENABLE_COPY_SERVICE") {
 		db, err := database.NewCopy(envDBConnString())
 		if err != nil {
 			slog.Error("setting up database connection", "err", err)
