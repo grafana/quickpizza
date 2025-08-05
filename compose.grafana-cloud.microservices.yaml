@@ -51,7 +51,7 @@ services:
     - "service.type=application"
     environment:
       <<: *quickpizza-env-common
-      QUICKPIZZA_CATALOG: "1"
+      QUICKPIZZA_ENABLE_CATALOG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "catalog"
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
 

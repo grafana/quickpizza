@@ -40,7 +40,7 @@ QuickPizza is a demonstration web application that generates pizza recommendatio
 The application is designed as a modular monolith that can be deployed as separate microservices. Services are controlled by environment variables:
 
 - **Frontend** (`QUICKPIZZA_ENABLE_FRONTEND_SERVICE`) - Serves SvelteKit UI
-- **Catalog** (`QUICKPIZZA_CATALOG`) - Manages ingredients, tools, doughs, users, ratings
+- **Catalog** (`QUICKPIZZA_ENABLE_CATALOG_SERVICE`) - Manages ingredients, tools, doughs, users, ratings
 - **Copy** (`QUICKPIZZA_COPY`) - Handles quotes, names, adjectives for pizza generation
 - **Recommendations** (`QUICKPIZZA_RECOMMENDATIONS`) - Core pizza recommendation logic
 - **WebSocket** (`QUICKPIZZA_ENABLE_WS_SERVICE`) - Real-time communication

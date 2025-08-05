@@ -113,7 +113,7 @@ func main() {
 		server.AddWebSocket()
 	}
 
-	if envServe("QUICKPIZZA_CATALOG") {
+	if envServe("QUICKPIZZA_ENABLE_CATALOG_SERVICE") {
 		db, err := database.NewCatalog(envDBConnString())
 		if err != nil {
 			slog.Error("setting up database connection", "err", err)
