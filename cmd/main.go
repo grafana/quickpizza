@@ -82,7 +82,7 @@ func main() {
 		server.AddHTTPTesting()
 	}
 
-	if envServe("QUICKPIZZA_TEST_K6_IO") {
+	if envServe("QUICKPIZZA_ENABLE_TEST_K6_IO_SERVICE") {
 		server.AddTestK6IO()
 	}
 
