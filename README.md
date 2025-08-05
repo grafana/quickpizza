@@ -109,11 +109,13 @@ The [docker-compose-local.yaml](./docker-compose-local.yaml) file is set up to r
 
 Grafana Alloy collects traces, metrics, logs and profiling data from the QuickPizza app, forwarding them to the Tempo, Prometheus and Loki. Finally, you can visualize and correlate data stored in these containers with the locally running Grafana instance.
 
-To start the local environment, use the following command:
+To start the local environment with the complete observability stack, use the following command:
 
 ```bash
-docker compose -f docker-compose-local.yaml up -d
+docker compose -f compose.grafana-local-stack.monolithic.yaml up -d
 ```
+
+This setup runs QuickPizza in monolithic mode, where all QuickPizza components run in a single instance.
 
 Like before, QuickPizza is available at [localhost:3333](http://localhost:3333). It's time to discover some fancy pizzas!
 
@@ -121,7 +123,7 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 
 ![Use Profiles Drilldown](./docs/images/drilldown-profiles.png)
 
-To find the labels applied to the telemetry data, refer to [local.alloy](./alloy/local.alloy) and [docker-compose-local.yaml](./docker-compose-local.yaml).
+To find the labels applied to the telemetry data, refer to [local.alloy](./alloy/local.alloy) and [compose.grafana-local-stack.monolithic.yaml](./compose.grafana-local-stack.monolithic.yaml).
 
 ### Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards
 
@@ -139,9 +141,9 @@ For detailed instructions about the different options of the k6 Prometheus outpu
 
 ## Run locally and observe with Grafana Cloud ☁📊
 
-The [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) file is set up to run the QuickPizza and Grafana Alloy containers.
+The [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml) file is set up to run QuickPizza in microservice mode with a Grafana Alloy instance.
 
-In this setup, Grafana Alloy collects observability data from the QuickPizza app and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
+In this setup, Grafana Alloy collects observability data from the QuickPizza microservices and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
 
 You will need the following settings:
 
@@ -157,10 +159,10 @@ GRAFANA_CLOUD_STACK=
 GRAFANA_CLOUD_TOKEN=
 ```
 
-Finally, execute the Docker Compose command using the `docker-compose-cloud.yaml` file, just as in the local setup:
+Finally, execute the Docker Compose command using the `compose.grafana-cloud.microservices.yaml` file, just as in the local setup:
 
 ```bash
-docker compose -f docker-compose-cloud.yaml up -d
+docker compose -f compose.grafana-cloud.microservices.yaml up -d
 ```
 
 QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
@@ -171,7 +173,7 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 ![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
-To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [docker-compose-cloud.yaml](./docker-compose-cloud.yaml) .
+To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml) .
 
 ### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
 
@@ -199,11 +201,11 @@ QUICKPIZZA_CONF_FARO_URL=
 QUICKPIZZA_CONF_FARO_APP_NAME=
 ```
 
-4. Restart the `docker-compose-cloud.yaml` environment:
+4. Restart the `compose.grafana-cloud.microservices.yaml` environment:
 
     ```bash
-    docker compose -f docker-compose-cloud.yaml down
-    docker compose -f docker-compose-cloud.yaml up -d
+    docker compose -f compose.grafana-cloud.microservices.yaml down
+    docker compose -f compose.grafana-cloud.microservices.yaml up -d
     ```
 
 ![Frontend Observability](./docs/images/grafana-cloud-frontend-observability-quickpizza.png)

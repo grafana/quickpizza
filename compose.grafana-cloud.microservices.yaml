@@ -16,7 +16,7 @@ services:
     labels:
     - "service.type=instrumentation"
     volumes:
-      - "./alloy/${ALLOY_FILE_NAME:-cloud-microservices.alloy}:/config.alloy:Z"
+      - "./alloy/${ALLOY_FILE_NAME:-cloud.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
@@ -30,9 +30,12 @@ services:
       # must be set with an .env file
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
-      # set only when ALLOY_FILE_NAME=cloud-otlp-microservices.alloy
-      GRAFANA_CLOUD_OTLP_ENDPOINT: "${GRAFANA_CLOUD_OTLP_ENDPOINT}"
-      GRAFANA_CLOUD_INSTANCE_ID: "${GRAFANA_CLOUD_INSTANCE_ID}"
+      # set only when ALLOY_FILE_NAME=cloud.otlp.alloy
+      GRAFANA_CLOUD_OTLP_ENDPOINT: "${GRAFANA_CLOUD_OTLP_ENDPOINT:-}"
+      GRAFANA_CLOUD_INSTANCE_ID: "${GRAFANA_CLOUD_INSTANCE_ID:-}"
+      # enable Faro integration
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
+      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
     depends_on:
       - catalog
       - config
