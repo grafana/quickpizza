@@ -18,7 +18,7 @@ cd kubernetes/basic/
 kubectl apply -k .
 ```
 
-The `kustomization.yaml` file contains some commented lines that, if enabled, will configure tracing for the QuickPizza app. Feel free to uncomment those lines and input your OTLP credentials if you want this functionality.
+The [`/basic/kustomization.yaml`](./basic/kustomization.yaml) file provides the configuration needed to deploy QuickPizza as a set of microservices, without any telemetry or instrumentation enabled.
 
 When deployed in Kubernetes, it deploys a number of different pods, each one being a microservice for the application:
 
@@ -72,8 +72,8 @@ You should now be able to access the application on port `3333` in the IP addres
 
 To collect telemetry data, use one of the following setups:
 
-- `kubernetes/cloud-telemetry`: For sending telemetry to Grafana Cloud.
-- `kubernetes/cloud-otelcol`: For sending telemetry to Grafana Cloud using distinct alloy config.
+- Use [`kubernetes/cloud-stack`](./cloud-stack/) to send telemetry data to Grafana Cloud with a cloud access policy.
+- Use [`kubernetes/cloud-otlp`](./cloud-otlp/) to send telemetry data to Grafana Cloud via the OTLP endpoint.
 
 Before deployment:
 

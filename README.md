@@ -2,6 +2,17 @@
 
 ![QuickPizza screenshot](./docs/images/quickpizza-screenshot.png)
 
+- [What is QuickPizza? 🍕🍕🍕](#what-is-quickpizza-)
+- [Requirements](#requirements)
+- [Use k6 to test QuickPizza](#use-k6-to-test-quickpizza)
+- [Run locally with Docker](#run-locally-with-docker)
+- [Run and observe locally with Grafana OSS 🐳📊](#run-and-observe-locally-with-grafana-oss-)
+  - [Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards](#send-k6-test-results-to-prometheus-and-visualize-them-in-grafana-with-prebuilt-dashboards)
+- [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud)
+  - [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
+  - [Monitor QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability)
+  - [Send k6 test results to Grafana Cloud Prometheus and visualize them with prebuilt Grafana dashboards](#send-k6-test-results-to-grafana-cloud-prometheus-and-visualize-them-with-prebuilt-grafana-dashboards)
+
 ## What is QuickPizza? 🍕🍕🍕
 
 **QuickPizza** is a simple web application, used for demonstrations and workshops, that generates new and exciting pizza combinations!
@@ -14,6 +25,8 @@ You can run QuickPizza locally or deploy it to your own infrastructure. For demo
 The QuickPizza tests showcase key k6 features, from basic usage to custom modules and extensions.
 
 ## Requirements
+
+The requirements for QuickPizza depend on your intended use—whether you want to run k6 tests for performance testing, or enable observability with a local or Grafana Cloud observability stack.
 
 - [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v1.0.0 or higher) to run the k6 tests used in this project to test QuickPizza.
 - [Docker](https://docs.docker.com/get-docker/) to run QuickPizza [locally](#run-locally-with-docker).
@@ -63,16 +76,16 @@ k6 run -e BASE_URL=https://quickpizza.grafana.com 01.basic.js
 
 <details>
   <summary>Using k6 Docker image</summary>
-  If you want to use the [k6 Docker image](https://hub.docker.com/r/grafana/k6) to run k6, you need to run the Quickpizza and k6 containers within the same network.
+  If you want to use the [k6 Docker image](https://hub.docker.com/r/grafana/k6) to run k6, you need to run the QuickPizza and k6 containers within the same network.
 
-  First, create a Docker network. Then, run Quickpizza, assigning a hostname and connecting to the created network.
+  First, create a Docker network. Then, run QuickPizza, assigning a hostname and connecting to the created network.
 
   ```bash
   docker network create quickpizza_network
   docker run --network=quickpizza_network --hostname=quickpizza --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
   ```
 
-  Next, you can use the k6 Docker image to execute the k6 test. Run the k6 Docker container within the same network (`quickpizza_network`) and pass the `BASE_URL` environment variable with the value of the Quickpizza container's hostname as follows:
+  Next, you can use the k6 Docker image to execute the k6 test. Run the k6 Docker container within the same network (`quickpizza_network`) and pass the `BASE_URL` environment variable with the value of the QuickPizza container's hostname as follows:
 
   ```bash
   docker run -i --network=quickpizza_network -e BASE_URL=http://quickpizza:3333 grafana/k6 run  - <01.basic.js
@@ -175,7 +188,7 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml).
 
-## QuickPizza Deployment Modes: Monolithic vs Microservices
+### QuickPizza deployment modes: Monolithic vs Microservices
 
 QuickPizza can be deployed in two modes: **monolithic** or **microservices**.
 
@@ -257,13 +270,13 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
 2. Copy the application's Faro web URL.
 3. In your `.env` file, add the following environment variables to configure your Faro URL and application name:
 
-```bash
-# FRONTEND OBSERVABILITY URL
-QUICKPIZZA_CONF_FARO_URL=
+    ```bash
+    # FRONTEND OBSERVABILITY URL
+    QUICKPIZZA_CONF_FARO_URL=
 
-# FRONTEND OBSERVABILITY APPLICATION NAME
-QUICKPIZZA_CONF_FARO_APP_NAME=
-```
+    # FRONTEND OBSERVABILITY APPLICATION NAME
+    QUICKPIZZA_CONF_FARO_APP_NAME=
+    ```
 
 4. Restart the `compose.grafana-cloud.microservices.yaml` environment:
 
