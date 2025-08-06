@@ -39,16 +39,17 @@ QuickPizza is a demonstration web application that generates pizza recommendatio
 ### Microservices Architecture
 The application is designed as a modular monolith that can be deployed as separate microservices. Services are controlled by environment variables:
 
-- **Frontend** (`QUICKPIZZA_FRONTEND`) - Serves SvelteKit UI
-- **Catalog** (`QUICKPIZZA_CATALOG`) - Manages ingredients, tools, doughs, users, ratings
-- **Copy** (`QUICKPIZZA_COPY`) - Handles quotes, names, adjectives for pizza generation
-- **Recommendations** (`QUICKPIZZA_RECOMMENDATIONS`) - Core pizza recommendation logic
-- **WebSocket** (`QUICKPIZZA_WS`) - Real-time communication
+- **PublicAPI** (`QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE`) - Serves Frontend and Gateway
+- **Frontend** -  Serves SvelteKit UI
 - **Gateway** - Routes requests between services in microservice deployments
-- **gRPC** (`QUICKPIZZA_GRPC`) - gRPC service on ports 3334/3335
-- **Config** (`QUICKPIZZA_CONFIG`) - Configuration endpoint
-- **HTTP Testing** (`QUICKPIZZA_HTTP_TESTING`) - HTTP testing utilities
-- **Test K6 IO** (`QUICKPIZZA_TEST_K6_IO`) - Legacy test.k6.io replacement endpoints
+- **Catalog** (`QUICKPIZZA_ENABLE_CATALOG_SERVICE`) - Manages ingredients, tools, doughs, users, ratings
+- **Copy** (`QUICKPIZZA_ENABLE_COPY_SERVICE`) - Handles quotes, names, adjectives for pizza generation
+- **Recommendations** (`QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE`) - Core pizza recommendation logic
+- **WebSocket** (`QUICKPIZZA_ENABLE_WS_SERVICE`) - Real-time communication
+- **gRPC** (`QUICKPIZZA_ENABLE_GRPC_SERVICE`) - gRPC service on ports 3334/3335
+- **Config** (`QUICKPIZZA_ENABLE_CONFIG_SERVICE`) - Configuration endpoint
+- **HTTP Testing** (`QUICKPIZZA_ENABLE_HTTP_TESTING_SERVICE`) - HTTP testing utilities
+- **Test K6 IO** (`QUICKPIZZA_ENABLE_TEST_K6_IO_SERVICE`) - Legacy test.k6.io replacement endpoints
 
 ### Key Packages
 - `pkg/http/` - Main HTTP server and route handlers
@@ -73,7 +74,7 @@ Comprehensive observability built-in:
 - **Frontend Observability**: Grafana Faro support
 
 ### Environment Configuration
-- `QUICKPIZZA_ALL_SERVICES` - Enable all services (default: true)
+- `QUICKPIZZA_ENABLE_ALL_SERVICES` - Enable all services (default: true)
 - `QUICKPIZZA_LOG_LEVEL` - Set logging level (default: info)
 - `QUICKPIZZA_OTLP_ENDPOINT` - OpenTelemetry collector endpoint
 - `QUICKPIZZA_PYROSCOPE_ENDPOINT` - Pyroscope server for profiling

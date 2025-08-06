@@ -40,7 +40,7 @@ services:
     environment:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
-      QUICKPIZZA_ALL_SERVICES: 1 # 1 for monolithic mode
+      QUICKPIZZA_ENABLE_ALL_SERVICES: 1 # 1 for monolithic mode
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
 

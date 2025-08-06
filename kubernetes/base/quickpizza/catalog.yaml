@@ -34,7 +34,7 @@ spec:
                 name: quickpizza-env
                 optional: true
           env:
-            - name: QUICKPIZZA_CATALOG
+            - name: QUICKPIZZA_ENABLE_CATALOG_SERVICE
               value: "1"
             - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
               valueFrom:
