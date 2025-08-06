@@ -234,10 +234,7 @@ graph TB
   API --> AD
 
   copy-svc --> DB
-  CA --> DB
-  US --> DB
-  AD --> DB
-
+  catalog-svc --> DB
   
   public-api-svc <--> GA
   catalog-svc <--> GA
