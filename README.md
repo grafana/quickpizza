@@ -233,6 +233,7 @@ graph TB
   API --> US
   API --> AD
 
+  copy-svc --> DB
   CA --> DB
   US --> DB
   AD --> DB
