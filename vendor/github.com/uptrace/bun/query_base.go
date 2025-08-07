@@ -6,8 +6,11 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/uptrace/bun/dialect"
 	"github.com/uptrace/bun/dialect/feature"
 	"github.com/uptrace/bun/internal"
 	"github.com/uptrace/bun/schema"
@@ -21,7 +24,7 @@ const (
 
 type withQuery struct {
 	name      string
-	query     schema.QueryAppender
+	query     Query
 	recursive bool
 }
 
@@ -51,6 +54,7 @@ type IDB interface {
 	NewInsert() *InsertQuery
 	NewUpdate() *UpdateQuery
 	NewDelete() *DeleteQuery
+	NewMerge() *MergeQuery
 	NewRaw(query string, args ...interface{}) *RawQuery
 	NewCreateTable() *CreateTableQuery
 	NewDropTable() *DropTableQuery
@@ -110,8 +114,16 @@ func (q *baseQuery) DB() *DB {
 	return q.db
 }
 
-func (q *baseQuery) GetConn() IConn {
-	return q.conn
+func (q *baseQuery) resolveConn(query Query) IConn {
+	if q.conn != nil {
+		return q.conn
+	}
+	if q.db.resolver != nil {
+		if conn := q.db.resolver.ResolveConn(query); conn != nil {
+			return conn
+		}
+	}
+	return q.db.DB
 }
 
 func (q *baseQuery) GetModel() Model {
@@ -124,10 +136,8 @@ func (q *baseQuery) GetTableName() string {
 	}
 
 	for _, wq := range q.with {
-		if v, ok := wq.query.(Query); ok {
-			if model := v.GetModel(); model != nil {
-				return v.GetTableName()
-			}
+		if model := wq.query.GetModel(); model != nil {
+			return wq.query.GetTableName()
 		}
 	}
 
@@ -197,7 +207,7 @@ func (q *baseQuery) beforeAppendModel(ctx context.Context, query Query) error {
 }
 
 func (q *baseQuery) hasFeature(feature feature.Feature) bool {
-	return q.db.features.Has(feature)
+	return q.db.HasFeature(feature)
 }
 
 //------------------------------------------------------------------------------
@@ -245,7 +255,7 @@ func (q *baseQuery) isSoftDelete() bool {
 
 //------------------------------------------------------------------------------
 
-func (q *baseQuery) addWith(name string, query schema.QueryAppender, recursive bool) {
+func (q *baseQuery) addWith(name string, query Query, recursive bool) {
 	q.with = append(q.with, withQuery{
 		name:      name,
 		query:     query,
@@ -417,7 +427,11 @@ func (q *baseQuery) _appendTables(
 		} else {
 			b = fmter.AppendQuery(b, string(q.table.SQLNameForSelects))
 			if withAlias && q.table.SQLAlias != q.table.SQLNameForSelects {
-				b = append(b, " AS "...)
+				if q.db.dialect.Name() == dialect.Oracle {
+					b = append(b, ' ')
+				} else {
+					b = append(b, " AS "...)
+				}
 				b = append(b, q.table.SQLAlias...)
 			}
 		}
@@ -557,28 +571,33 @@ func (q *baseQuery) scan(
 	hasDest bool,
 ) (sql.Result, error) {
 	ctx, event := q.db.beforeQuery(ctx, iquery, query, nil, query, q.model)
+	res, err := q._scan(ctx, iquery, query, model, hasDest)
+	q.db.afterQuery(ctx, event, res, err)
+	return res, err
+}
 
-	rows, err := q.conn.QueryContext(ctx, query)
+func (q *baseQuery) _scan(
+	ctx context.Context,
+	iquery Query,
+	query string,
+	model Model,
+	hasDest bool,
+) (sql.Result, error) {
+	rows, err := q.resolveConn(iquery).QueryContext(ctx, query)
 	if err != nil {
-		q.db.afterQuery(ctx, event, nil, err)
 		return nil, err
 	}
 	defer rows.Close()
 
 	numRow, err := model.ScanRows(ctx, rows)
 	if err != nil {
-		q.db.afterQuery(ctx, event, nil, err)
 		return nil, err
 	}
 
 	if numRow == 0 && hasDest && isSingleRowModel(model) {
-		err = sql.ErrNoRows
+		return nil, sql.ErrNoRows
 	}
-
-	res := driver.RowsAffected(numRow)
-	q.db.afterQuery(ctx, event, res, err)
-
-	return res, err
+	return driver.RowsAffected(numRow), nil
 }
 
 func (q *baseQuery) exec(
@@ -587,8 +606,8 @@ func (q *baseQuery) exec(
 	query string,
 ) (sql.Result, error) {
 	ctx, event := q.db.beforeQuery(ctx, iquery, query, nil, query, q.model)
-	res, err := q.conn.ExecContext(ctx, query)
-	q.db.afterQuery(ctx, event, nil, err)
+	res, err := q.resolveConn(iquery).ExecContext(ctx, query)
+	q.db.afterQuery(ctx, event, res, err)
 	return res, err
 }
 
@@ -1345,4 +1364,127 @@ func (ih *idxHintsQuery) bufIndexHint(
 	}
 	b = append(b, ")"...)
 	return b, nil
+}
+
+//------------------------------------------------------------------------------
+
+type orderLimitOffsetQuery struct {
+	order []schema.QueryWithArgs
+
+	limit  int32
+	offset int32
+}
+
+func (q *orderLimitOffsetQuery) addOrder(orders ...string) {
+	for _, order := range orders {
+		if order == "" {
+			continue
+		}
+
+		index := strings.IndexByte(order, ' ')
+		if index == -1 {
+			q.order = append(q.order, schema.UnsafeIdent(order))
+			continue
+		}
+
+		field := order[:index]
+		sort := order[index+1:]
+
+		switch strings.ToUpper(sort) {
+		case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
+			"ASC NULLS LAST", "DESC NULLS LAST":
+			q.order = append(q.order, schema.SafeQuery("? ?", []interface{}{
+				Ident(field),
+				Safe(sort),
+			}))
+		default:
+			q.order = append(q.order, schema.UnsafeIdent(order))
+		}
+	}
+
+}
+
+func (q *orderLimitOffsetQuery) addOrderExpr(query string, args ...interface{}) {
+	q.order = append(q.order, schema.SafeQuery(query, args))
+}
+
+func (q *orderLimitOffsetQuery) appendOrder(fmter schema.Formatter, b []byte) (_ []byte, err error) {
+	if len(q.order) > 0 {
+		b = append(b, " ORDER BY "...)
+
+		for i, f := range q.order {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b, err = f.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return b, nil
+	}
+
+	// MSSQL: allows Limit() without Order() as per https://stackoverflow.com/a/36156953
+	if q.limit > 0 && fmter.Dialect().Name() == dialect.MSSQL {
+		return append(b, " ORDER BY _temp_sort"...), nil
+	}
+
+	return b, nil
+}
+
+func (q *orderLimitOffsetQuery) setLimit(n int) {
+	q.limit = int32(n)
+}
+
+func (q *orderLimitOffsetQuery) setOffset(n int) {
+	q.offset = int32(n)
+}
+
+func (q *orderLimitOffsetQuery) appendLimitOffset(fmter schema.Formatter, b []byte) (_ []byte, err error) {
+	if fmter.Dialect().Features().Has(feature.OffsetFetch) {
+		if q.limit > 0 && q.offset > 0 {
+			b = append(b, " OFFSET "...)
+			b = strconv.AppendInt(b, int64(q.offset), 10)
+			b = append(b, " ROWS"...)
+
+			b = append(b, " FETCH NEXT "...)
+			b = strconv.AppendInt(b, int64(q.limit), 10)
+			b = append(b, " ROWS ONLY"...)
+		} else if q.limit > 0 {
+			b = append(b, " OFFSET 0 ROWS"...)
+
+			b = append(b, " FETCH NEXT "...)
+			b = strconv.AppendInt(b, int64(q.limit), 10)
+			b = append(b, " ROWS ONLY"...)
+		} else if q.offset > 0 {
+			b = append(b, " OFFSET "...)
+			b = strconv.AppendInt(b, int64(q.offset), 10)
+			b = append(b, " ROWS"...)
+		}
+	} else {
+		if q.limit > 0 {
+			b = append(b, " LIMIT "...)
+			b = strconv.AppendInt(b, int64(q.limit), 10)
+		}
+		if q.offset > 0 {
+			b = append(b, " OFFSET "...)
+			b = strconv.AppendInt(b, int64(q.offset), 10)
+		}
+	}
+
+	return b, nil
+}
+
+func IsReadOnlyQuery(query Query) bool {
+	sel, ok := query.(*SelectQuery)
+	if !ok {
+		return false
+	}
+	for _, el := range sel.with {
+		if !IsReadOnlyQuery(el.query) {
+			return false
+		}
+	}
+	return true
 }

@@ -10,6 +10,7 @@ import (
 type (
 	Safe  = schema.Safe
 	Ident = schema.Ident
+	Name  = schema.Name
 
 	NullTime  = schema.NullTime
 	BaseModel = schema.BaseModel
@@ -19,12 +20,11 @@ type (
 
 	BeforeScanRowHook = schema.BeforeScanRowHook
 	AfterScanRowHook  = schema.AfterScanRowHook
-
-	// DEPRECATED. Use BeforeScanRowHook instead.
-	BeforeScanHook = schema.BeforeScanHook
-	// DEPRECATED. Use AfterScanRowHook instead.
-	AfterScanHook = schema.AfterScanHook
 )
+
+func SafeQuery(query string, args ...interface{}) schema.QueryWithArgs {
+	return schema.SafeQuery(query, args)
+}
 
 type BeforeSelectHook interface {
 	BeforeSelect(ctx context.Context, query *SelectQuery) error
@@ -74,11 +74,15 @@ type AfterDropTableHook interface {
 	AfterDropTable(ctx context.Context, query *DropTableQuery) error
 }
 
-// SetLogger overwriters default Bun logger.
+// SetLogger overwrites default Bun logger.
 func SetLogger(logger internal.Logging) {
-	internal.Logger = logger
+	internal.SetLogger(logger)
 }
 
 func In(slice interface{}) schema.QueryAppender {
 	return schema.In(slice)
+}
+
+func NullZero(value interface{}) schema.QueryAppender {
+	return schema.NullZero(value)
 }
