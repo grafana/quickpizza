@@ -3,6 +3,7 @@ package bun
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 
@@ -24,7 +25,7 @@ var _ TableModel = (*hasManyModel)(nil)
 func newHasManyModel(j *relationJoin) *hasManyModel {
 	baseTable := j.BaseModel.Table()
 	joinModel := j.JoinModel.(*sliceTableModel)
-	baseValues := baseValues(joinModel, j.Relation.BaseFields)
+	baseValues := baseValues(joinModel, j.Relation.BasePKs)
 	if len(baseValues) == 0 {
 		return nil
 	}
@@ -51,7 +52,7 @@ func (m *hasManyModel) ScanRows(ctx context.Context, rows *sql.Rows) (int, error
 	dest := makeDest(m, len(columns))
 
 	var n int
-
+	m.structKey = make([]interface{}, len(m.rel.JoinPKs))
 	for rows.Next() {
 		if m.sliceOfPtr {
 			m.strct = reflect.New(m.table.Type).Elem()
@@ -59,9 +60,8 @@ func (m *hasManyModel) ScanRows(ctx context.Context, rows *sql.Rows) (int, error
 			m.strct.Set(m.table.ZeroValue)
 		}
 		m.structInited = false
-
 		m.scanIndex = 0
-		m.structKey = m.structKey[:0]
+
 		if err := rows.Scan(dest...); err != nil {
 			return 0, err
 		}
@@ -83,18 +83,18 @@ func (m *hasManyModel) Scan(src interface{}) error {
 	column := m.columns[m.scanIndex]
 	m.scanIndex++
 
-	field, err := m.table.Field(column)
-	if err != nil {
-		return err
+	field := m.table.LookupField(column)
+	if field == nil {
+		return fmt.Errorf("bun: %s does not have column %q", m.table.TypeName, column)
 	}
 
 	if err := field.ScanValue(m.strct, src); err != nil {
 		return err
 	}
 
-	for _, f := range m.rel.JoinFields {
-		if f.Name == field.Name {
-			m.structKey = append(m.structKey, field.Value(m.strct).Interface())
+	for i, f := range m.rel.JoinPKs {
+		if f.Name == column {
+			m.structKey[i] = indirectAsKey(field.Value(m.strct))
 			break
 		}
 	}
@@ -103,6 +103,7 @@ func (m *hasManyModel) Scan(src interface{}) error {
 }
 
 func (m *hasManyModel) parkStruct() error {
+
 	baseValues, ok := m.baseValues[internal.NewMapKey(m.structKey)]
 	if !ok {
 		return fmt.Errorf(
@@ -129,6 +130,16 @@ func (m *hasManyModel) parkStruct() error {
 	return nil
 }
 
+func (m *hasManyModel) clone() TableModel {
+	return &hasManyModel{
+		sliceTableModel: m.sliceTableModel.clone().(*sliceTableModel),
+		baseTable:       m.baseTable,
+		rel:             m.rel,
+		baseValues:      m.baseValues,
+		structKey:       m.structKey,
+	}
+}
+
 func baseValues(model TableModel, fields []*schema.Field) map[internal.MapKey][]reflect.Value {
 	fieldIndex := model.Relation().Field.Index
 	m := make(map[internal.MapKey][]reflect.Value)
@@ -143,7 +154,32 @@ func baseValues(model TableModel, fields []*schema.Field) map[internal.MapKey][]
 
 func modelKey(key []interface{}, strct reflect.Value, fields []*schema.Field) []interface{} {
 	for _, f := range fields {
-		key = append(key, f.Value(strct).Interface())
+		key = append(key, indirectAsKey(f.Value(strct)))
 	}
 	return key
+}
+
+// indirectAsKey return the field value dereferencing the pointer if necessary.
+// The value is then used as a map key.
+func indirectAsKey(field reflect.Value) interface{} {
+	if field.Kind() == reflect.Pointer && field.IsNil() {
+		return nil
+	}
+
+	i := field.Interface()
+	if valuer, ok := i.(driver.Valuer); ok {
+		if v, err := valuer.Value(); err == nil {
+			switch reflect.TypeOf(v).Kind() {
+			case reflect.Array, reflect.Chan, reflect.Func,
+				reflect.Map, reflect.Pointer, reflect.Slice, reflect.UnsafePointer:
+				// NOTE #1107, these types cannot be used as map key,
+				// let us use original logic.
+				return i
+			default:
+				return v
+			}
+		}
+	}
+
+	return reflect.Indirect(field).Interface()
 }
