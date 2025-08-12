@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	// _ "net/http/pprof"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"slices"
@@ -261,11 +261,11 @@ func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
 		}).Handler,
 	)
 
-	// Enable Profiling Pull Mode
-	// router.Mount("/debug/pprof/", http.DefaultServeMux)
-
 	if profiling {
 		router.Use(k6.LabelsFromBaggageHandler)
+	} else {
+		// Enable Profiling Pull Mode
+		router.Mount("/debug/pprof/", http.DefaultServeMux)
 	}
 
 	return &Server{
