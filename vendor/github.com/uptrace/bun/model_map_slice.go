@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"sort"
+	"slices"
 
 	"github.com/uptrace/bun/dialect/feature"
 	"github.com/uptrace/bun/schema"
@@ -99,7 +99,7 @@ func (m *mapSliceModel) appendValues(fmter schema.Formatter, b []byte) (_ []byte
 	slice := *m.dest
 
 	b = append(b, "VALUES "...)
-	if m.db.features.Has(feature.ValuesRow) {
+	if m.db.HasFeature(feature.ValuesRow) {
 		b = append(b, "ROW("...)
 	} else {
 		b = append(b, '(')
@@ -118,7 +118,7 @@ func (m *mapSliceModel) appendValues(fmter schema.Formatter, b []byte) (_ []byte
 	for i, el := range slice {
 		if i > 0 {
 			b = append(b, "), "...)
-			if m.db.features.Has(feature.ValuesRow) {
+			if m.db.HasFeature(feature.ValuesRow) {
 				b = append(b, "ROW("...)
 			} else {
 				b = append(b, '(')
@@ -155,7 +155,7 @@ func (m *mapSliceModel) initKeys() error {
 		keys = append(keys, k)
 	}
 
-	sort.Strings(keys)
+	slices.Sort(keys)
 	m.keys = keys
 
 	return nil
