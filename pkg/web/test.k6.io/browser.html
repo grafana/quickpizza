@@ -91,6 +91,19 @@
 				}
 				sDisplay.textContent = opts;
 			}
+
+			function fetchExternalData() {
+				const dataDisplay = document.getElementById('external-data-display');
+				fetch('https://jsonplaceholder.typicode.com/todos/1')
+					.then((response) => response.json())
+					.then((data) => {
+						dataDisplay.textContent = 'External data: ' + data.title;
+					})
+					.catch((error) => {
+						console.error('Error:', error);
+						alert('API call failed. Check console for error.');
+					});
+			}
 		</script>
 	</head>
 
@@ -205,6 +218,12 @@
 						<option value="black">Black</option>
 						<option value="white">White</option>
 					</select>
+				</td>
+			</tr>
+			<tr>
+				<td><button type="button" onclick="fetchExternalData()">Fetch external data</button></td>
+				<td>
+					<p id="external-data-display">External data: ?</p>
 				</td>
 			</tr>
 		</table>
