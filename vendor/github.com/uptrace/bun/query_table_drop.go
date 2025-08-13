@@ -13,6 +13,7 @@ type DropTableQuery struct {
 	cascadeQuery
 
 	ifExists bool
+	comment  string
 }
 
 var _ Query = (*DropTableQuery)(nil)
@@ -20,8 +21,7 @@ var _ Query = (*DropTableQuery)(nil)
 func NewDropTableQuery(db *DB) *DropTableQuery {
 	q := &DropTableQuery{
 		baseQuery: baseQuery{
-			db:   db,
-			conn: db.DB,
+			db: db,
 		},
 	}
 	return q
@@ -80,6 +80,14 @@ func (q *DropTableQuery) Restrict() *DropTableQuery {
 
 //------------------------------------------------------------------------------
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *DropTableQuery) Comment(comment string) *DropTableQuery {
+	q.comment = comment
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *DropTableQuery) Operation() string {
 	return "DROP TABLE"
 }
@@ -88,6 +96,8 @@ func (q *DropTableQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte
 	if q.err != nil {
 		return nil, q.err
 	}
+
+	b = appendComment(b, q.comment)
 
 	b = append(b, "DROP TABLE "...)
 	if q.ifExists {
@@ -112,6 +122,9 @@ func (q *DropTableQuery) Exec(ctx context.Context, dest ...interface{}) (sql.Res
 			return nil, err
 		}
 	}
+
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
 
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
@@ -150,4 +163,14 @@ func (q *DropTableQuery) afterDropTableHook(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// String returns the generated SQL query string. The DropTableQuery instance must not be
+// modified during query generation to ensure multiple calls to String() return identical results.
+func (q *DropTableQuery) String() string {
+	buf, err := q.AppendQuery(q.db.Formatter(), nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(buf)
 }
