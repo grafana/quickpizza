@@ -8,20 +8,20 @@ jobs:
 
     services:
       quickpizza:
-        image: ghcr.io/grafana/quickpizza-local:latest # zizmor: ignore[unpinned-images]
+        image: ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043 # zizmor: ignore[unpinned-images]
         ports:
           - 3333:3333
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         
       - name: Setup k6
-        uses: grafana/setup-k6-action@v1
+        uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
         with:
           browser: true
       - name: Run k6 test
-        uses: grafana/run-k6-action@v1
+        uses: grafana/run-k6-action@c6b79182b9b666aa4f630f4a6be9158ead62536e # v1
         with:
           path: |
             ./k6/foundations/*.js
