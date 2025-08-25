@@ -19,7 +19,7 @@
 		"@sveltejs/kit": "^1.5.0",
 		"@typescript-eslint/eslint-plugin": "5.54.1",
 		"@typescript-eslint/parser": "5.54.1",
-		"autoprefixer": "10.4.14",
+		"autoprefixer": "10.4.21",
 		"eslint": "8.36.0",
 		"eslint-config-prettier": "8.7.0",
 		"eslint-plugin-svelte3": "4.0.0",
