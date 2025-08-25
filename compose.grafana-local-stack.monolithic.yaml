@@ -2,7 +2,7 @@ services:
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
     ports:
       - "3333:3333"
     environment:
@@ -13,12 +13,12 @@ services:
       # QUICKPIZZA_LOG_LEVEL: debug
 
   loki:
-    image: grafana/loki:3.4.3
+    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
     ports:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.2.1
+    image: prom/prometheus:v3.2.1@sha256:6927e0919a144aa7616fd0137d4816816d42f6b816de3af269ab065250859a62
     command:
       - --web.enable-remote-write-receiver
       - --enable-feature=exemplar-storage
@@ -28,12 +28,12 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.14.0
+    image: grafana/pyroscope:1.14.0@sha256:0f63959ffcf217e7046d8f7a3d20cf6909f2924f885fc2f0eec58f87f9acf749
     ports:
       - "4040:4040"
   
   tempo:
-    image: grafana/tempo:2.8.1
+    image: grafana/tempo:2.8.1@sha256:bc9245fe3da4e63dc4c6862d9c2dad9bcd8be13d0ba4f7705fa6acda4c904d0e
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./alloy/local-tempo.yaml:/etc/tempo.yaml
@@ -56,7 +56,7 @@ services:
       - ./grafana:/etc/grafana/provisioning/
 
   alloy:
-    image: grafana/alloy:v1.9.1
+    image: grafana/alloy:v1.9.1@sha256:b5fc87ff9a8941d6ed3ae5f099d9cb8598b3cd42fef9a8af128ed782258b4017
     volumes:
       - "./alloy/local.alloy:/config.alloy:Z"
       - "./alloy/${ALLOY_FILE_NAME:-local.alloy}:/config.alloy:Z"
