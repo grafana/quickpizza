@@ -36,6 +36,7 @@ import (
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
@@ -1216,14 +1217,75 @@ func (s *Server) createTestSpans(ctx context.Context, tracer trace.Tracer, spanC
 		return
 	}
 
+	httpMethods := []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
+	endpoints := []string{"/api/users", "/api/orders", "/api/products", "/api/payments", "/api/reviews", "/api/inventory", "/api/notifications"}
+	statusCodes := []int{200, 201, 400, 401, 404, 500, 502, 503}
+	serviceNames := []string{"user-service", "order-service", "payment-service", "inventory-service", "notification-service"}
+
 	for i := 0; i < spanCount; i++ {
-		_, span := tracer.Start(ctx, fmt.Sprintf("test-span-%d", i+1))
+		method := httpMethods[rand.Intn(len(httpMethods))]
+		endpoint := endpoints[rand.Intn(len(endpoints))]
+		statusCode := statusCodes[rand.Intn(len(statusCodes))]
+		serviceName := serviceNames[rand.Intn(len(serviceNames))]
+		
+		spanName := fmt.Sprintf("%s %s", method, endpoint)
+		_, span := tracer.Start(ctx, spanName)
+		
+		// Set realistic HTTP span attributes
 		span.SetAttributes(
+			// Core span metadata
 			attribute.KeyValue{Key: "span.index", Value: attribute.IntValue(i + 1)},
 			attribute.KeyValue{Key: "span.total", Value: attribute.IntValue(spanCount)},
 			attribute.KeyValue{Key: "test.purpose", Value: attribute.StringValue("observability-load-test")},
+			
+			// Service information
+			attribute.KeyValue{Key: "service.name", Value: attribute.StringValue(serviceName)},
+			attribute.KeyValue{Key: "service.version", Value: attribute.StringValue("1.2.3")},
+			
+			// HTTP attributes following OpenTelemetry semantic conventions
+			attribute.KeyValue{Key: "http.method", Value: attribute.StringValue(method)},
+			attribute.KeyValue{Key: "http.url", Value: attribute.StringValue(fmt.Sprintf("http://localhost:3333%s", endpoint))},
+			attribute.KeyValue{Key: "http.route", Value: attribute.StringValue(endpoint)},
+			attribute.KeyValue{Key: "http.status_code", Value: attribute.IntValue(statusCode)},
+			attribute.KeyValue{Key: "http.user_agent", Value: attribute.StringValue("k6/0.45.0 (https://k6.io/)")},
+			attribute.KeyValue{Key: "http.request_content_length", Value: attribute.IntValue(rand.Intn(1024) + 100)},
+			attribute.KeyValue{Key: "http.response_content_length", Value: attribute.IntValue(rand.Intn(5120) + 200)},
+			
+			// Network attributes
+			attribute.KeyValue{Key: "net.peer.ip", Value: attribute.StringValue(fmt.Sprintf("192.168.1.%d", rand.Intn(254)+1))},
+			attribute.KeyValue{Key: "net.peer.port", Value: attribute.IntValue(rand.Intn(65535-1024) + 1024)},
+			attribute.KeyValue{Key: "net.host.name", Value: attribute.StringValue("quickpizza-server")},
+			attribute.KeyValue{Key: "net.host.port", Value: attribute.IntValue(3333)},
+			
+			// Span kind (server spans for HTTP requests)
+			attribute.KeyValue{Key: "span.kind", Value: attribute.StringValue("server")},
+			
+			// Status code mapping
+			attribute.KeyValue{Key: "otel.status_code", Value: attribute.StringValue(getOtelStatusFromHTTP(statusCode))},
 		)
+		
+		// Set span status based on HTTP status code
+		if statusCode >= 400 {
+			span.SetStatus(codes.Error, fmt.Sprintf("HTTP %d", statusCode))
+		} else {
+			span.SetStatus(codes.Ok, "")
+		}
+		
+		// Add some timing variation
+		time.Sleep(time.Microsecond * time.Duration(rand.Intn(100)))
 		span.End()
+	}
+}
+
+// getOtelStatusFromHTTP maps HTTP status codes to OpenTelemetry status codes
+func getOtelStatusFromHTTP(httpStatus int) string {
+	switch {
+	case httpStatus >= 200 && httpStatus < 400:
+		return "OK"
+	case httpStatus >= 400:
+		return "ERROR"
+	default:
+		return "UNSET"
 	}
 }
 
