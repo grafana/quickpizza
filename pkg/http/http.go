@@ -35,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
@@ -1209,6 +1210,23 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 	})
 }
 
+// createTestSpans creates additional spans for testing observability systems under load
+func (s *Server) createTestSpans(ctx context.Context, tracer trace.Tracer, spanCount int) {
+	if spanCount <= 0 {
+		return
+	}
+
+	for i := 0; i < spanCount; i++ {
+		_, span := tracer.Start(ctx, fmt.Sprintf("test-span-%d", i+1))
+		span.SetAttributes(
+			attribute.KeyValue{Key: "span.index", Value: attribute.IntValue(i + 1)},
+			attribute.KeyValue{Key: "span.total", Value: attribute.IntValue(spanCount)},
+			attribute.KeyValue{Key: "test.purpose", Value: attribute.StringValue("observability-load-test")},
+		)
+		span.End()
+	}
+}
+
 // AddRecommendations enables the recommendations endpoint in this Server. This endpoint is stateless and thus needs
 // the URLs for the Catalog and Copy services.
 func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient CopyClient) {
@@ -1224,6 +1242,14 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
+			}
+
+			if spanCountParam := r.URL.Query().Get("spans"); spanCountParam != "" {
+				spanCount, err := strconv.Atoi(spanCountParam)
+				if err == nil && spanCount > 0 {
+					tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+					s.createTestSpans(r.Context(), tracer, spanCount)
+				}
 			}
 
 			pizza, err := catalogClient.GetRecommendation(id)
@@ -1250,6 +1276,13 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			copyClient := copyClient.WithRequestContext(r.Context())
 
 			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+
+			if spanCountParam := r.URL.Query().Get("spans"); spanCountParam != "" {
+				spanCount, err := strconv.Atoi(spanCountParam)
+				if err == nil && spanCount > 0 {
+					s.createTestSpans(r.Context(), tracer, spanCount)
+				}
+			}
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
