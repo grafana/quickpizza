@@ -871,7 +871,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			updated, err := db.UpdateRating(r.Context(), user, &rating)
 			if err != nil {
-				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				if errors.Is(err, database.ErrGlobalOperationNotPermitted) {
+					s.writeJSONErrorResponse(w, r, err, http.StatusForbidden)
+				} else {
+					s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				}
 				return
 			}
 
@@ -902,7 +906,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			err := db.DeleteRatings(r.Context(), user)
 			if err != nil {
-				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				if errors.Is(err, database.ErrGlobalOperationNotPermitted) {
+					s.writeJSONErrorResponse(w, r, err, http.StatusForbidden)
+				} else {
+					s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				}
 				return
 			}
 
@@ -924,7 +932,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			err = db.DeleteRating(r.Context(), user, idParam)
 			if err != nil {
-				s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				if errors.Is(err, database.ErrGlobalOperationNotPermitted) {
+					s.writeJSONErrorResponse(w, r, err, http.StatusForbidden)
+				} else {
+					s.writeJSONErrorResponse(w, r, err, http.StatusBadRequest)
+				}
 				return
 			}
 

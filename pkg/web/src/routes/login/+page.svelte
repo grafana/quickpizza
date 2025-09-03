@@ -91,10 +91,23 @@
 	}
 
 	async function deleteRatings() {
-		await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 			method: 'DELETE',
 			credentials: 'same-origin'
 		});
+		
+		if (!res.ok) {
+			if (res.status === 403) {
+				const json = await res.json();
+				alert('Cannot clear ratings: The default user is not allowed to delete ratings. Please create your own user account.');
+			} else if (res.status === 401) {
+				alert('You need to be logged in to clear ratings.');
+			} else {
+				alert('Failed to clear ratings: ' + res.statusText);
+			}
+			return;
+		}
+		
 		location.reload();
 	}
 
