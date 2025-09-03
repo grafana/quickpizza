@@ -2,7 +2,7 @@ services:
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     ports:
       - "3333:3333"
     environment:

@@ -45,7 +45,7 @@ services:
       - ws
 
   catalog:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: catalog
     labels:
     - "service.type=application"
@@ -56,7 +56,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
 
   config:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: config
     labels:
     - "service.type=application"
@@ -66,7 +66,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "config"
       QUICKPIZZA_OTEL_SERVICE_NAME: "config"
   copy:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: copy
     labels:
     - "service.type=application"
@@ -77,7 +77,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
 
   public-api:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: public-api
     labels:
     - "service.type=application"
@@ -90,7 +90,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
 
   recommendations:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: recommendations
     labels:
     - "service.type=application"
@@ -101,7 +101,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
 
   ws:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9056a53caaedc6e81339ee37a879a8ab3473c4d2472b2344c621311281af8043}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: ws
     labels:
     - "service.type=application"
