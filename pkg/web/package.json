@@ -8,8 +8,8 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write ."
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write ."
 	},
 	"devDependencies": {
 		"@grafana/faro-web-sdk": "1.18.2",
@@ -21,7 +21,7 @@
 		"@typescript-eslint/eslint-plugin": "8.42.0",
 		"@typescript-eslint/parser": "8.42.0",
 		"autoprefixer": "10.4.14",
-		"eslint": "8.57.1",
+		"eslint": "9.34.0",
 		"eslint-config-prettier": "8.7.0",
 		"eslint-plugin-svelte": "3.12.0",
 		"postcss": "8.5.1",
