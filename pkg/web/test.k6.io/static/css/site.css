@@ -144,8 +144,18 @@ pre.language-js {
 
 body {
 	margin: 0;
-	font-family: -apple-system, Whitney, BlinkMacSystemFont, segoe ui, Roboto, Helvetica, Arial,
-		sans-serif, apple color emoji, segoe ui emoji, segoe ui symbol;
+	font-family:
+		-apple-system,
+		Whitney,
+		BlinkMacSystemFont,
+		segoe ui,
+		Roboto,
+		Helvetica,
+		Arial,
+		sans-serif,
+		apple color emoji,
+		segoe ui emoji,
+		segoe ui symbol;
 	color: #444;
 }
 
