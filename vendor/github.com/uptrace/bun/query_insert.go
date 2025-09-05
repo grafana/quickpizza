@@ -22,6 +22,7 @@ type InsertQuery struct {
 
 	ignore  bool
 	replace bool
+	comment string
 }
 
 var _ Query = (*InsertQuery)(nil)
@@ -30,8 +31,7 @@ func NewInsertQuery(db *DB) *InsertQuery {
 	q := &InsertQuery{
 		whereBaseQuery: whereBaseQuery{
 			baseQuery: baseQuery{
-				db:   db,
-				conn: db.DB,
+				db: db,
 			},
 		},
 	}
@@ -53,20 +53,22 @@ func (q *InsertQuery) Err(err error) *InsertQuery {
 	return q
 }
 
-// Apply calls the fn passing the SelectQuery as an argument.
-func (q *InsertQuery) Apply(fn func(*InsertQuery) *InsertQuery) *InsertQuery {
-	if fn != nil {
-		return fn(q)
+// Apply calls each function in fns, passing the InsertQuery as an argument.
+func (q *InsertQuery) Apply(fns ...func(*InsertQuery) *InsertQuery) *InsertQuery {
+	for _, fn := range fns {
+		if fn != nil {
+			q = fn(q)
+		}
 	}
 	return q
 }
 
-func (q *InsertQuery) With(name string, query schema.QueryAppender) *InsertQuery {
+func (q *InsertQuery) With(name string, query Query) *InsertQuery {
 	q.addWith(name, query, false)
 	return q
 }
 
-func (q *InsertQuery) WithRecursive(name string, query schema.QueryAppender) *InsertQuery {
+func (q *InsertQuery) WithRecursive(name string, query Query) *InsertQuery {
 	q.addWith(name, query, true)
 	return q
 }
@@ -112,7 +114,7 @@ func (q *InsertQuery) ExcludeColumn(columns ...string) *InsertQuery {
 // Value overwrites model value for the column.
 func (q *InsertQuery) Value(column string, expr string, args ...interface{}) *InsertQuery {
 	if q.table == nil {
-		q.err = errNilModel
+		q.setErr(errNilModel)
 		return q
 	}
 	q.addValue(q.table, column, expr, args)
@@ -162,6 +164,14 @@ func (q *InsertQuery) Replace() *InsertQuery {
 
 //------------------------------------------------------------------------------
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *InsertQuery) Comment(comment string) *InsertQuery {
+	q.comment = comment
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *InsertQuery) Operation() string {
 	return "INSERT"
 }
@@ -170,6 +180,8 @@ func (q *InsertQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte, e
 	if q.err != nil {
 		return nil, q.err
 	}
+
+	b = appendComment(b, q.comment)
 
 	fmter = formatterWithModel(fmter, q)
 
@@ -188,7 +200,7 @@ func (q *InsertQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte, e
 	}
 	b = append(b, "INTO "...)
 
-	if q.db.features.Has(feature.InsertTableAlias) && !q.on.IsZero() {
+	if q.db.HasFeature(feature.InsertTableAlias) && !q.on.IsZero() {
 		b, err = q.appendFirstTableWithAlias(fmter, b)
 	} else {
 		b, err = q.appendFirstTable(fmter, b)
@@ -332,8 +344,8 @@ func (q *InsertQuery) appendStructValues(
 		switch {
 		case isTemplate:
 			b = append(b, '?')
-		case (f.IsPtr && f.HasNilValue(strct)) || (f.NullZero && f.HasZeroValue(strct)):
-			if q.db.features.Has(feature.DefaultPlaceholder) {
+		case q.marshalsToDefault(f, strct):
+			if q.db.HasFeature(feature.DefaultPlaceholder) {
 				b = append(b, "DEFAULT"...)
 			} else if f.SQLDefault != "" {
 				b = append(b, f.SQLDefault...)
@@ -383,9 +395,9 @@ func (q *InsertQuery) appendSliceValues(
 }
 
 func (q *InsertQuery) getFields() ([]*schema.Field, error) {
-	hasIdentity := q.db.features.Has(feature.Identity)
+	hasIdentity := q.db.HasFeature(feature.Identity)
 
-	if len(q.columns) > 0 || q.db.features.Has(feature.DefaultPlaceholder) && !hasIdentity {
+	if len(q.columns) > 0 || q.db.HasFeature(feature.DefaultPlaceholder) && !hasIdentity {
 		return q.baseQuery.getFields()
 	}
 
@@ -410,16 +422,21 @@ func (q *InsertQuery) getFields() ([]*schema.Field, error) {
 			q.addReturningField(f)
 			continue
 		}
-		if f.NotNull && f.SQLDefault == "" {
-			if (f.IsPtr && f.HasNilValue(strct)) || (f.NullZero && f.HasZeroValue(strct)) {
-				q.addReturningField(f)
-				continue
-			}
+		if f.NotNull && q.marshalsToDefault(f, strct) {
+			q.addReturningField(f)
+			continue
 		}
 		fields = append(fields, f)
 	}
 
 	return fields, nil
+}
+
+// marshalsToDefault checks if the value will be marshaled as DEFAULT or NULL (if DEFAULT placeholder is not supported)
+// when appending it to the VALUES clause in place of the given field.
+func (q InsertQuery) marshalsToDefault(f *schema.Field, v reflect.Value) bool {
+	return (f.IsPtr && f.HasNilValue(v)) ||
+		(f.HasZeroValue(v) && (f.NullZero || f.SQLDefault != ""))
 }
 
 func (q *InsertQuery) appendFields(
@@ -569,6 +586,9 @@ func (q *InsertQuery) scanOrExec(
 		return nil, err
 	}
 
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	// Generate the query before checking hasReturning.
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
@@ -633,8 +653,8 @@ func (q *InsertQuery) afterInsertHook(ctx context.Context) error {
 }
 
 func (q *InsertQuery) tryLastInsertID(res sql.Result, dest []interface{}) error {
-	if q.db.features.Has(feature.Returning) ||
-		q.db.features.Has(feature.Output) ||
+	if q.db.HasFeature(feature.Returning) ||
+		q.db.HasFeature(feature.Output) ||
 		q.table == nil ||
 		len(q.table.PKs) != 1 ||
 		!q.table.PKs[0].AutoIncrement {
@@ -674,11 +694,12 @@ func (q *InsertQuery) tryLastInsertID(res sql.Result, dest []interface{}) error 
 	return nil
 }
 
+// String returns the generated SQL query string. The InsertQuery instance must not be
+// modified during query generation to ensure multiple calls to String() return identical results.
 func (q *InsertQuery) String() string {
 	buf, err := q.AppendQuery(q.db.Formatter(), nil)
 	if err != nil {
 		panic(err)
 	}
-
 	return string(buf)
 }

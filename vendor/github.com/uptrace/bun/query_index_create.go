@@ -20,6 +20,7 @@ type CreateIndexQuery struct {
 	index   schema.QueryWithArgs
 	using   schema.QueryWithArgs
 	include []schema.QueryWithArgs
+	comment string
 }
 
 var _ Query = (*CreateIndexQuery)(nil)
@@ -28,8 +29,7 @@ func NewCreateIndexQuery(db *DB) *CreateIndexQuery {
 	q := &CreateIndexQuery{
 		whereBaseQuery: whereBaseQuery{
 			baseQuery: baseQuery{
-				db:   db,
-				conn: db.DB,
+				db: db,
 			},
 		},
 	}
@@ -149,6 +149,14 @@ func (q *CreateIndexQuery) WhereOr(query string, args ...interface{}) *CreateInd
 
 //------------------------------------------------------------------------------
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *CreateIndexQuery) Comment(comment string) *CreateIndexQuery {
+	q.comment = comment
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *CreateIndexQuery) Operation() string {
 	return "CREATE INDEX"
 }
@@ -157,6 +165,8 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 	if q.err != nil {
 		return nil, q.err
 	}
+
+	b = appendComment(b, q.comment)
 
 	b = append(b, "CREATE "...)
 
@@ -238,6 +248,9 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 //------------------------------------------------------------------------------
 
 func (q *CreateIndexQuery) Exec(ctx context.Context, dest ...interface{}) (sql.Result, error) {
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
 		return nil, err

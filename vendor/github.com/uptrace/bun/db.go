@@ -2,7 +2,7 @@ package bun
 
 import (
 	"context"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -26,34 +26,62 @@ type DBStats struct {
 
 type DBOption func(db *DB)
 
+func WithOptions(opts ...DBOption) DBOption {
+	return func(db *DB) {
+		for _, opt := range opts {
+			opt(db)
+		}
+	}
+}
+
 func WithDiscardUnknownColumns() DBOption {
 	return func(db *DB) {
 		db.flags = db.flags.Set(discardUnknownColumns)
 	}
 }
 
-type DB struct {
-	*sql.DB
+// ConnResolver enables routing queries to multiple databases.
+type ConnResolver interface {
+	ResolveConn(query Query) IConn
+	Close() error
+}
 
-	dialect  schema.Dialect
-	features feature.Feature
+func WithConnResolver(resolver ConnResolver) DBOption {
+	return func(db *DB) {
+		db.resolver = resolver
+	}
+}
+
+type DB struct {
+	// Must be a pointer so we copy the whole state, not individual fields.
+	*noCopyState
 
 	queryHooks []QueryHook
 
 	fmter schema.Formatter
-	flags internal.Flag
-
 	stats DBStats
+}
+
+// noCopyState contains DB fields that must not be copied on clone(),
+// for example, it is forbidden to copy atomic.Pointer.
+type noCopyState struct {
+	*sql.DB
+	dialect  schema.Dialect
+	resolver ConnResolver
+
+	flags  internal.Flag
+	closed atomic.Bool
 }
 
 func NewDB(sqldb *sql.DB, dialect schema.Dialect, opts ...DBOption) *DB {
 	dialect.Init(sqldb)
 
 	db := &DB{
-		DB:       sqldb,
-		dialect:  dialect,
-		features: dialect.Features(),
-		fmter:    schema.NewFormatter(dialect),
+		noCopyState: &noCopyState{
+			DB:      sqldb,
+			dialect: dialect,
+		},
+		fmter: schema.NewFormatter(dialect),
 	}
 
 	for _, opt := range opts {
@@ -69,6 +97,22 @@ func (db *DB) String() string {
 	b.WriteString(db.dialect.Name().String())
 	b.WriteString(">")
 	return b.String()
+}
+
+func (db *DB) Close() error {
+	if db.closed.Swap(true) {
+		return nil
+	}
+
+	firstErr := db.DB.Close()
+
+	if db.resolver != nil {
+		if err := db.resolver.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+
+	return firstErr
 }
 
 func (db *DB) DBStats() DBStats {
@@ -191,6 +235,13 @@ func (db *DB) AddQueryHook(hook QueryHook) {
 	db.queryHooks = append(db.queryHooks, hook)
 }
 
+func (db *DB) ResetQueryHooks() {
+	for i := range db.queryHooks {
+		db.queryHooks[i] = nil
+	}
+	db.queryHooks = nil
+}
+
 func (db *DB) Table(typ reflect.Type) *schema.Table {
 	return db.dialect.Tables().Get(typ)
 }
@@ -231,7 +282,7 @@ func (db *DB) UpdateFQN(alias, column string) Ident {
 
 // HasFeature uses feature package to report whether the underlying DBMS supports this feature.
 func (db *DB) HasFeature(feat feature.Feature) bool {
-	return db.fmter.HasFeature(feat)
+	return db.dialect.Features().Has(feat)
 }
 
 //------------------------------------------------------------------------------
@@ -513,7 +564,7 @@ func (tx Tx) commitTX() error {
 }
 
 func (tx Tx) commitSP() error {
-	if tx.Dialect().Features().Has(feature.MSSavepoint) {
+	if tx.db.HasFeature(feature.MSSavepoint) {
 		return nil
 	}
 	query := "RELEASE SAVEPOINT " + tx.name
@@ -537,7 +588,7 @@ func (tx Tx) rollbackTX() error {
 
 func (tx Tx) rollbackSP() error {
 	query := "ROLLBACK TO SAVEPOINT " + tx.name
-	if tx.Dialect().Features().Has(feature.MSSavepoint) {
+	if tx.db.HasFeature(feature.MSSavepoint) {
 		query = "ROLLBACK TRANSACTION " + tx.name
 	}
 	_, err := tx.ExecContext(tx.ctx, query)
@@ -594,14 +645,14 @@ func (tx Tx) Begin() (Tx, error) {
 func (tx Tx) BeginTx(ctx context.Context, _ *sql.TxOptions) (Tx, error) {
 	// mssql savepoint names are limited to 32 characters
 	sp := make([]byte, 14)
-	_, err := rand.Read(sp)
+	_, err := cryptorand.Read(sp)
 	if err != nil {
 		return Tx{}, err
 	}
 
 	qName := "SP_" + hex.EncodeToString(sp)
 	query := "SAVEPOINT " + qName
-	if tx.Dialect().Features().Has(feature.MSSavepoint) {
+	if tx.db.HasFeature(feature.MSSavepoint) {
 		query = "SAVE TRANSACTION " + qName
 	}
 	_, err = tx.ExecContext(ctx, query)
@@ -700,9 +751,6 @@ func (tx Tx) NewDropColumn() *DropColumnQuery {
 	return NewDropColumnQuery(tx.db).Conn(tx)
 }
 
-//------------------------------------------------------------------------------
-
 func (db *DB) makeQueryBytes() []byte {
-	// TODO: make this configurable?
-	return make([]byte, 0, 4096)
+	return internal.MakeQueryBytes()
 }

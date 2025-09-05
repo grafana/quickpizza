@@ -12,14 +12,21 @@ import (
 	"github.com/uptrace/bun"
 )
 
+const (
+	defaultTable      = "bun_migrations"
+	defaultLocksTable = "bun_migration_locks"
+)
+
 type MigratorOption func(m *Migrator)
 
+// WithTableName overrides default migrations table name.
 func WithTableName(table string) MigratorOption {
 	return func(m *Migrator) {
 		m.table = table
 	}
 }
 
+// WithLocksTableName overrides default migration locks table name.
 func WithLocksTableName(table string) MigratorOption {
 	return func(m *Migrator) {
 		m.locksTable = table
@@ -27,10 +34,16 @@ func WithLocksTableName(table string) MigratorOption {
 }
 
 // WithMarkAppliedOnSuccess sets the migrator to only mark migrations as applied/unapplied
-// when their up/down is successful
+// when their up/down is successful.
 func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
 	return func(m *Migrator) {
 		m.markAppliedOnSuccess = enabled
+	}
+}
+
+func WithTemplateData(data any) MigratorOption {
+	return func(m *Migrator) {
+		m.templateData = data
 	}
 }
 
@@ -43,6 +56,8 @@ type Migrator struct {
 	table                string
 	locksTable           string
 	markAppliedOnSuccess bool
+
+	templateData any
 }
 
 func NewMigrator(db *bun.DB, migrations *Migrations, opts ...MigratorOption) *Migrator {
@@ -52,8 +67,8 @@ func NewMigrator(db *bun.DB, migrations *Migrations, opts ...MigratorOption) *Mi
 
 		ms: migrations.ms,
 
-		table:      "bun_migrations",
-		locksTable: "bun_migration_locks",
+		table:      defaultTable,
+		locksTable: defaultLocksTable,
 	}
 	for _, opt := range opts {
 		opt(m)
@@ -161,7 +176,7 @@ func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*Migra
 		group.Migrations = migrations[:i+1]
 
 		if !cfg.nop && migration.Up != nil {
-			if err := migration.Up(ctx, m.db); err != nil {
+			if err := migration.Up(ctx, m.db, m.templateData); err != nil {
 				return group, err
 			}
 		}
@@ -200,7 +215,7 @@ func (m *Migrator) Rollback(ctx context.Context, opts ...MigrationOption) (*Migr
 		}
 
 		if !cfg.nop && migration.Down != nil {
-			if err := migration.Down(ctx, m.db); err != nil {
+			if err := migration.Down(ctx, m.db, m.templateData); err != nil {
 				return lastGroup, err
 			}
 		}
@@ -246,7 +261,7 @@ func (m *Migrator) CreateGoMigration(
 		opt(cfg)
 	}
 
-	name, err := m.genMigrationName(name)
+	name, err := genMigrationName(name)
 	if err != nil {
 		return nil, err
 	}
@@ -267,19 +282,19 @@ func (m *Migrator) CreateGoMigration(
 	return mf, nil
 }
 
-// CreateSQLMigrations creates an up and down SQL migration files.
-func (m *Migrator) CreateSQLMigrations(ctx context.Context, name string) ([]*MigrationFile, error) {
-	name, err := m.genMigrationName(name)
+// CreateTxSQLMigration creates transactional up and down SQL migration files.
+func (m *Migrator) CreateTxSQLMigrations(ctx context.Context, name string) ([]*MigrationFile, error) {
+	name, err := genMigrationName(name)
 	if err != nil {
 		return nil, err
 	}
 
-	up, err := m.createSQL(ctx, name+".up.sql")
+	up, err := m.createSQL(ctx, name+".tx.up.sql", true)
 	if err != nil {
 		return nil, err
 	}
 
-	down, err := m.createSQL(ctx, name+".down.sql")
+	down, err := m.createSQL(ctx, name+".tx.down.sql", true)
 	if err != nil {
 		return nil, err
 	}
@@ -287,10 +302,35 @@ func (m *Migrator) CreateSQLMigrations(ctx context.Context, name string) ([]*Mig
 	return []*MigrationFile{up, down}, nil
 }
 
-func (m *Migrator) createSQL(ctx context.Context, fname string) (*MigrationFile, error) {
+// CreateSQLMigrations creates up and down SQL migration files.
+func (m *Migrator) CreateSQLMigrations(ctx context.Context, name string) ([]*MigrationFile, error) {
+	name, err := genMigrationName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	up, err := m.createSQL(ctx, name+".up.sql", false)
+	if err != nil {
+		return nil, err
+	}
+
+	down, err := m.createSQL(ctx, name+".down.sql", false)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*MigrationFile{up, down}, nil
+}
+
+func (m *Migrator) createSQL(_ context.Context, fname string, transactional bool) (*MigrationFile, error) {
 	fpath := filepath.Join(m.migrations.getDirectory(), fname)
 
-	if err := os.WriteFile(fpath, []byte(sqlTemplate), 0o644); err != nil {
+	template := sqlTemplate
+	if transactional {
+		template = transactionalSQLTemplate
+	}
+
+	if err := os.WriteFile(fpath, []byte(template), 0o644); err != nil {
 		return nil, err
 	}
 
@@ -304,7 +344,7 @@ func (m *Migrator) createSQL(ctx context.Context, fname string) (*MigrationFile,
 
 var nameRE = regexp.MustCompile(`^[0-9a-z_\-]+$`)
 
-func (m *Migrator) genMigrationName(name string) (string, error) {
+func genMigrationName(name string) (string, error) {
 	const timeFormat = "20060102150405"
 
 	if name == "" {
@@ -337,7 +377,10 @@ func (m *Migrator) MarkUnapplied(ctx context.Context, migration *Migration) erro
 }
 
 func (m *Migrator) TruncateTable(ctx context.Context) error {
-	_, err := m.db.NewTruncateTable().TableExpr(m.table).Exec(ctx)
+	_, err := m.db.NewTruncateTable().
+		Model((*Migration)(nil)).
+		ModelTableExpr(m.table).
+		Exec(ctx)
 	return err
 }
 
