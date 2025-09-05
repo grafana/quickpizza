@@ -36,11 +36,19 @@ type Listener struct {
 }
 
 func NewListener(db *bun.DB) *Listener {
-	return &Listener{
+	ln := &Listener{
 		db:     db,
 		driver: db.Driver().(Driver).connector,
 		exit:   make(chan struct{}),
 	}
+	if conf := ln.driver.Config(); conf.BufferSize < 8000 {
+		// https://github.com/uptrace/bun/issues/1201
+		// listener's payloads can be up to 8000 bytes
+		newConf := *conf
+		newConf.BufferSize = 8192
+		ln.driver = NewConnector(WithConfig(&newConf))
+	}
+	return ln
 }
 
 // Close closes the listener, releasing any open resources.
@@ -188,13 +196,13 @@ func (ln *Listener) unlisten(ctx context.Context, cn *Conn, channels ...string) 
 }
 
 // Receive indefinitely waits for a notification. This is low-level API
-// and in most cases Channel should be used instead.
+// and in most cases CreateChannel should be used instead.
 func (ln *Listener) Receive(ctx context.Context) (channel string, payload string, err error) {
 	return ln.ReceiveTimeout(ctx, 0)
 }
 
 // ReceiveTimeout waits for a notification until timeout is reached.
-// This is low-level API and in most cases Channel should be used instead.
+// This is low-level API and in most cases CreateChannel should be used instead.
 func (ln *Listener) ReceiveTimeout(
 	ctx context.Context, timeout time.Duration,
 ) (channel, payload string, err error) {
@@ -218,12 +226,12 @@ func (ln *Listener) ReceiveTimeout(
 	return channel, payload, nil
 }
 
-// Channel returns a channel for concurrently receiving notifications.
+// CreateChannel creates and returns a channel for concurrently receiving notifications.
 // It periodically sends Ping notification to test connection health.
 //
 // The channel is closed with Listener. Receive* APIs can not be used
 // after channel is created.
-func (ln *Listener) Channel(opts ...ChannelOption) <-chan Notification {
+func (ln *Listener) CreateChannel(opts ...ChannelOption) <-chan Notification {
 	return newChannel(ln, opts).ch
 }
 
@@ -237,9 +245,17 @@ type Notification struct {
 
 type ChannelOption func(c *channel)
 
+type channelOverflowHandler func(n Notification)
+
 func WithChannelSize(size int) ChannelOption {
 	return func(c *channel) {
 		c.size = size
+	}
+}
+
+func WithChannelOverflowHandler(handler channelOverflowHandler) ChannelOption {
+	return func(c *channel) {
+		c.overflowHandler = handler
 	}
 }
 
@@ -250,8 +266,9 @@ type channel struct {
 	size        int
 	pingTimeout time.Duration
 
-	ch     chan Notification
-	pingCh chan struct{}
+	ch              chan Notification
+	pingCh          chan struct{}
+	overflowHandler channelOverflowHandler
 }
 
 func newChannel(ln *Listener, opts []ChannelOption) *channel {
@@ -310,6 +327,9 @@ func (c *channel) startReceive() {
 			case c.ch <- Notification{channel, payload}:
 			default:
 				Logger.Printf(c.ctx, "pgdriver: Listener buffer is full (message is dropped)")
+				if c.overflowHandler != nil {
+					c.overflowHandler(Notification{channel, payload})
+				}
 			}
 		}
 	}

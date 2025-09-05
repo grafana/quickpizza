@@ -10,27 +10,15 @@ import (
 type RawQuery struct {
 	baseQuery
 
-	query string
-	args  []interface{}
-}
-
-// Deprecated: Use NewRaw instead. When add it to IDB, it conflicts with the sql.Conn#Raw
-func (db *DB) Raw(query string, args ...interface{}) *RawQuery {
-	return &RawQuery{
-		baseQuery: baseQuery{
-			db:   db,
-			conn: db.DB,
-		},
-		query: query,
-		args:  args,
-	}
+	query   string
+	args    []interface{}
+	comment string
 }
 
 func NewRawQuery(db *DB, query string, args ...interface{}) *RawQuery {
 	return &RawQuery{
 		baseQuery: baseQuery{
-			db:   db,
-			conn: db.DB,
+			db: db,
 		},
 		query: query,
 		args:  args,
@@ -56,6 +44,12 @@ func (q *RawQuery) Scan(ctx context.Context, dest ...interface{}) error {
 	return err
 }
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *RawQuery) Comment(comment string) *RawQuery {
+	q.comment = comment
+	return q
+}
+
 func (q *RawQuery) scanOrExec(
 	ctx context.Context, dest []interface{}, hasDest bool,
 ) (sql.Result, error) {
@@ -72,6 +66,9 @@ func (q *RawQuery) scanOrExec(
 			return nil, err
 		}
 	}
+
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
 
 	query := q.db.format(q.query, q.args)
 	var res sql.Result
@@ -90,9 +87,21 @@ func (q *RawQuery) scanOrExec(
 }
 
 func (q *RawQuery) AppendQuery(fmter schema.Formatter, b []byte) ([]byte, error) {
+	b = appendComment(b, q.comment)
+
 	return fmter.AppendQuery(b, q.query, q.args...), nil
 }
 
 func (q *RawQuery) Operation() string {
 	return "SELECT"
+}
+
+// String returns the generated SQL query string. The RawQuery instance must not be
+// modified during query generation to ensure multiple calls to String() return identical results.
+func (q *RawQuery) String() string {
+	buf, err := q.AppendQuery(q.db.Formatter(), nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(buf)
 }
