@@ -6,7 +6,7 @@ export class LoginPage {
   }
 
   async goto(baseURL) {
-    await this.page.goto(`${baseURL}/admin`);
+    await this.page.goto(`${baseURL}/admin`, { waitUntil: "networkidle" });
   }
 
   async login() {

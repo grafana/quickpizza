@@ -38,7 +38,7 @@ export async function admin() {
   const page = await browser.newPage();
 
   try {
-    await page.goto(`${BASE_URL}/admin`);
+    await page.goto(`${BASE_URL}/admin`, { waitUntil: "networkidle" });
     await page.getByRole('button', { name: "Sign in" }).click();
     checkData = await page.getByRole('button', { name: "Logout" }).textContent();
     check(checkData, {
