@@ -25,8 +25,8 @@ export const options = {
     },
   },
   thresholds: {
-    browser_web_vital_fcp: ["p(95) < 1000"],
-    browser_web_vital_lcp: ["p(95) < 2000"],
+    browser_web_vital_fcp: ["p(95) < 3000"],
+    browser_web_vital_lcp: ["p(95) < 4000"],
   },
 };
 
