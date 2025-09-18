@@ -1,5 +1,5 @@
 import { browser } from "k6/browser";
-import { check } from "k6";
+import { check } from 'https://jslib.k6.io/k6-utils/1.5.0/index.js';
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
 
@@ -26,15 +26,15 @@ export default async function () {
   try {
     await page.goto(BASE_URL);
     checkData = await page.locator("h1").textContent();
-    check(page, {
+    check(checkData, {
       header: checkData == "Looking to break out of your pizza routine?",
     });
 
-    await page.locator('//button[. = "Pizza, Please!"]').click();
+    await page.getByRole("button", { name: "Pizza, Please!" }).click();
     await page.waitForTimeout(500);
     await page.screenshot({ path: "screenshot.png" });
     checkData = await page.locator("div#recommendations").textContent();
-    check(page, {
+    check(checkData, {
       recommendation: checkData != "",
     });
   } finally {

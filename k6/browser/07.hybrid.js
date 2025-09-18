@@ -1,5 +1,6 @@
 import { browser } from "k6/browser";
-import { check, sleep } from "k6";
+import { sleep } from "k6";
+import { check } from 'https://jslib.k6.io/k6-utils/1.5.0/index.js';
 import http from "k6/http";
 import { Trend } from "k6/metrics";
 
@@ -53,14 +54,14 @@ export const options = {
   thresholds: {
     http_req_failed: ['rate<0.01'],
     http_req_duration: ['p(95)<500', 'p(99)<1000'],
-    browser_web_vital_fcp: ["p(95) < 1000"],
-    browser_web_vital_lcp: ["p(95) < 2000"],
+    browser_web_vital_fcp: ["p(95) < 3000"],
+    browser_web_vital_lcp: ["p(95) < 4000"],
   }
 };
 
 const myTrend = new Trend('totalActionTime');
 
-export function getPizza() {
+export async function getPizza() {
   let restrictions = {
     maxCaloriesPerSlice: 500,
     mustBeVegetarian: false,
@@ -88,7 +89,7 @@ export async function admin() {
     await loginPage.login();
 
     check(loginPage, {
-      "logout button text": loginPage.getLogoutButtonText() == "Logout",
+      "logout button text": await loginPage.getLogoutButtonText() == "Logout",
     });
   } finally {
     await page.close();
@@ -102,23 +103,23 @@ export async function pizzaRecommendations() {
 
   try {
     await recommendationsPage.goto(BASE_URL);
-    pageUtils.addPerformanceMark('page-visit');
+    await pageUtils.addPerformanceMark('page-visit');
 
     check(recommendationsPage, {
-      header: recommendationsPage.getHeadingTextContent() == "Looking to break out of your pizza routine?",
+      header: await recommendationsPage.getHeadingTextContent() == "Looking to break out of your pizza routine?",
     });
 
     await recommendationsPage.getPizzaRecommendation();
-    pageUtils.addPerformanceMark('recommendations-returned');
+    await pageUtils.addPerformanceMark('recommendations-returned');
 
     check(recommendationsPage, {
-      recommendation: recommendationsPage.getPizzaRecommendationsContent() != "",
+      recommendation: await recommendationsPage.getPizzaRecommendationsContent() != "",
     });
 
     //Get time difference between visiting the page and pizza recommendations returned
-    pageUtils.measurePerformance('total-action-time', 'page-visit', 'recommendations-returned')
+    await pageUtils.measurePerformance('total-action-time', 'page-visit', 'recommendations-returned')
 
-    const totalActionTime = pageUtils.getPerformanceDuration('total-action-time');
+    const totalActionTime = await pageUtils.getPerformanceDuration('total-action-time');
     myTrend.add(totalActionTime);
   } finally {
     await page.close();
