@@ -39,8 +39,8 @@ export async function admin() {
 
   try {
     await page.goto(`${BASE_URL}/admin`);
-    await page.locator('button[type="submit"]').click();
-    checkData = await page.locator('//*[text()="Logout"]').textContent();
+    await page.getByRole('button', { name: "Sign in" }).click();
+    checkData = await page.getByRole('button', { name: "Logout" }).textContent();
     check(page, {
       "logout button text": checkData == "Logout",
     });
@@ -60,7 +60,7 @@ export async function pizzaRecommendations() {
       header: checkData == "Looking to break out of your pizza routine?",
     });
 
-    await page.locator('//button[. = "Pizza, Please!"]').click();
+    await page.getByRole("button", { name: "Pizza, Please!" }).click();
     await page.waitForTimeout(500);
     await page.screenshot({ path: "screenshot.png" });
 

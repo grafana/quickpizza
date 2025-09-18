@@ -27,7 +27,7 @@ export default async function () {
       header: checkData == "Looking to break out of your pizza routine?",
     });
 
-    await page.locator('//button[. = "Pizza, Please!"]').click();
+    await page.getByRole("button", { name: "Pizza, Please!" }).click();
     await page.waitForTimeout(500);
     await page.screenshot({ path: "screenshot.png" });
     checkData = await page.locator("div#recommendations").textContent();

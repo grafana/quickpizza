@@ -2,7 +2,7 @@ export class RecommendationsPage {
   constructor(page) {
     this.page = page
     this.headingTextContent = page.locator("h1");
-    this.getPizzaRecommendationsButton = page.locator('//button[. = "Pizza, Please!"]');
+    this.getPizzaRecommendationsButton = page.getByRole('button', { name: "Pizza, Please!" });
     this.pizzaRecommendations = page.locator("div#recommendations");
   }
 
