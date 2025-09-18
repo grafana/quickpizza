@@ -61,7 +61,7 @@ export const options = {
 
 const myTrend = new Trend('totalActionTime');
 
-export function getPizza() {
+export async function getPizza() {
   let restrictions = {
     maxCaloriesPerSlice: 500,
     mustBeVegetarian: false,
@@ -89,7 +89,7 @@ export async function admin() {
     await loginPage.login();
 
     check(loginPage, {
-      "logout button text": loginPage.getLogoutButtonText() == "Logout",
+      "logout button text": await loginPage.getLogoutButtonText() == "Logout",
     });
   } finally {
     await page.close();
@@ -103,23 +103,23 @@ export async function pizzaRecommendations() {
 
   try {
     await recommendationsPage.goto(BASE_URL);
-    pageUtils.addPerformanceMark('page-visit');
+    await pageUtils.addPerformanceMark('page-visit');
 
     check(recommendationsPage, {
-      header: recommendationsPage.getHeadingTextContent() == "Looking to break out of your pizza routine?",
+      header: await recommendationsPage.getHeadingTextContent() == "Looking to break out of your pizza routine?",
     });
 
     await recommendationsPage.getPizzaRecommendation();
-    pageUtils.addPerformanceMark('recommendations-returned');
+    await pageUtils.addPerformanceMark('recommendations-returned');
 
     check(recommendationsPage, {
-      recommendation: recommendationsPage.getPizzaRecommendationsContent() != "",
+      recommendation: await recommendationsPage.getPizzaRecommendationsContent() != "",
     });
 
     //Get time difference between visiting the page and pizza recommendations returned
-    pageUtils.measurePerformance('total-action-time', 'page-visit', 'recommendations-returned')
+    await pageUtils.measurePerformance('total-action-time', 'page-visit', 'recommendations-returned')
 
-    const totalActionTime = pageUtils.getPerformanceDuration('total-action-time');
+    const totalActionTime = await pageUtils.getPerformanceDuration('total-action-time');
     myTrend.add(totalActionTime);
   } finally {
     await page.close();
