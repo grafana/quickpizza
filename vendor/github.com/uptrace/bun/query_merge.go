@@ -15,9 +15,10 @@ type MergeQuery struct {
 	baseQuery
 	returningQuery
 
-	using schema.QueryWithArgs
-	on    schema.QueryWithArgs
-	when  []schema.QueryAppender
+	using   schema.QueryWithArgs
+	on      schema.QueryWithArgs
+	when    []schema.QueryAppender
+	comment string
 }
 
 var _ Query = (*MergeQuery)(nil)
@@ -25,12 +26,11 @@ var _ Query = (*MergeQuery)(nil)
 func NewMergeQuery(db *DB) *MergeQuery {
 	q := &MergeQuery{
 		baseQuery: baseQuery{
-			db:   db,
-			conn: db.DB,
+			db: db,
 		},
 	}
-	if !(q.db.dialect.Name() == dialect.MSSQL || q.db.dialect.Name() == dialect.PG) {
-		q.err = errors.New("bun: merge not supported for current dialect")
+	if q.db.dialect.Name() != dialect.MSSQL && q.db.dialect.Name() != dialect.PG {
+		q.setErr(errors.New("bun: merge not supported for current dialect"))
 	}
 	return q
 }
@@ -50,20 +50,22 @@ func (q *MergeQuery) Err(err error) *MergeQuery {
 	return q
 }
 
-// Apply calls the fn passing the MergeQuery as an argument.
-func (q *MergeQuery) Apply(fn func(*MergeQuery) *MergeQuery) *MergeQuery {
-	if fn != nil {
-		return fn(q)
+// Apply calls each function in fns, passing the MergeQuery as an argument.
+func (q *MergeQuery) Apply(fns ...func(*MergeQuery) *MergeQuery) *MergeQuery {
+	for _, fn := range fns {
+		if fn != nil {
+			q = fn(q)
+		}
 	}
 	return q
 }
 
-func (q *MergeQuery) With(name string, query schema.QueryAppender) *MergeQuery {
+func (q *MergeQuery) With(name string, query Query) *MergeQuery {
 	q.addWith(name, query, false)
 	return q
 }
 
-func (q *MergeQuery) WithRecursive(name string, query schema.QueryAppender) *MergeQuery {
+func (q *MergeQuery) WithRecursive(name string, query Query) *MergeQuery {
 	q.addWith(name, query, true)
 	return q
 }
@@ -148,6 +150,14 @@ func (q *MergeQuery) When(expr string, args ...interface{}) *MergeQuery {
 
 //------------------------------------------------------------------------------
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *MergeQuery) Comment(comment string) *MergeQuery {
+	q.comment = comment
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *MergeQuery) Operation() string {
 	return "MERGE"
 }
@@ -156,6 +166,8 @@ func (q *MergeQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte, er
 	if q.err != nil {
 		return nil, q.err
 	}
+
+	b = appendComment(b, q.comment)
 
 	fmter = formatterWithModel(fmter, q)
 
@@ -231,6 +243,9 @@ func (q *MergeQuery) scanOrExec(
 		return nil, err
 	}
 
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	// Generate the query before checking hasReturning.
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
@@ -266,12 +281,13 @@ func (q *MergeQuery) scanOrExec(
 	return res, nil
 }
 
+// String returns the generated SQL query string. The MergeQuery instance must not be
+// modified during query generation to ensure multiple calls to String() return identical results.
 func (q *MergeQuery) String() string {
 	buf, err := q.AppendQuery(q.db.Formatter(), nil)
 	if err != nil {
 		panic(err)
 	}
-
 	return string(buf)
 }
 

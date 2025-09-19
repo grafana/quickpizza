@@ -15,7 +15,8 @@ type DropIndexQuery struct {
 	concurrently bool
 	ifExists     bool
 
-	index schema.QueryWithArgs
+	index   schema.QueryWithArgs
+	comment string
 }
 
 var _ Query = (*DropIndexQuery)(nil)
@@ -23,8 +24,7 @@ var _ Query = (*DropIndexQuery)(nil)
 func NewDropIndexQuery(db *DB) *DropIndexQuery {
 	q := &DropIndexQuery{
 		baseQuery: baseQuery{
-			db:   db,
-			conn: db.DB,
+			db: db,
 		},
 	}
 	return q
@@ -74,6 +74,14 @@ func (q *DropIndexQuery) Index(query string, args ...interface{}) *DropIndexQuer
 
 //------------------------------------------------------------------------------
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *DropIndexQuery) Comment(comment string) *DropIndexQuery {
+	q.comment = comment
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *DropIndexQuery) Operation() string {
 	return "DROP INDEX"
 }
@@ -82,6 +90,8 @@ func (q *DropIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte
 	if q.err != nil {
 		return nil, q.err
 	}
+
+	b = appendComment(b, q.comment)
 
 	b = append(b, "DROP INDEX "...)
 
@@ -105,6 +115,9 @@ func (q *DropIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte
 //------------------------------------------------------------------------------
 
 func (q *DropIndexQuery) Exec(ctx context.Context, dest ...interface{}) (sql.Result, error) {
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
 		return nil, err

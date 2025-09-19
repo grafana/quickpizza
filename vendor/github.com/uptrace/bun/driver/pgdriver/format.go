@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 	"unicode/utf8"
+
+	"github.com/uptrace/bun/internal"
 )
 
 func formatQueryArgs(query string, args []interface{}) (string, error) {
@@ -56,7 +58,7 @@ func formatQuery(query string, args []driver.NamedValue) (string, error) {
 		}
 	}
 
-	return bytesToString(dst), nil
+	return internal.String(dst), nil
 }
 
 func appendArg(b []byte, v interface{}) ([]byte, error) {
@@ -64,6 +66,11 @@ func appendArg(b []byte, v interface{}) ([]byte, error) {
 	case nil:
 		return append(b, "NULL"...), nil
 	case int64:
+		// To avoid accidental comments which can lead to SQL injection, put a space before
+		// negative numbers immediately following a minus sign.
+		if v < 0 && len(b) > 0 && b[len(b)-1] == '-' {
+			b = append(b, ' ')
+		}
 		return strconv.AppendInt(b, v, 10), nil
 	case float64:
 		switch {
@@ -74,6 +81,11 @@ func appendArg(b []byte, v interface{}) ([]byte, error) {
 		case math.IsInf(v, -1):
 			return append(b, "'-Infinity'"...), nil
 		default:
+			// To avoid accidental comments which can lead to SQL injection, put a space before
+			// negative numbers immediately following a minus sign.
+			if v < 0 && len(b) > 0 && b[len(b)-1] == '-' {
+				b = append(b, ' ')
+			}
 			return strconv.AppendFloat(b, v, 'f', -1, 64), nil
 		}
 	case bool:
@@ -137,7 +149,7 @@ type parser struct {
 
 func newParser(s string) *parser {
 	return &parser{
-		b: stringToBytes(s),
+		b: internal.Bytes(s),
 	}
 }
 
@@ -166,7 +178,7 @@ func (p *parser) Number() (int, bool) {
 	p.i = end
 	b := p.b[start:end]
 
-	n, err := strconv.Atoi(bytesToString(b))
+	n, err := strconv.Atoi(internal.String(b))
 	if err != nil {
 		return 0, false
 	}
