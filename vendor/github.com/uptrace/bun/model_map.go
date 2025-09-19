@@ -1,10 +1,11 @@
 package bun
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"reflect"
-	"sort"
+	"slices"
 
 	"github.com/uptrace/bun/schema"
 )
@@ -82,6 +83,8 @@ func (m *mapModel) Scan(src interface{}) error {
 		return m.scanRaw(src)
 	case reflect.Slice:
 		if scanType.Elem().Kind() == reflect.Uint8 {
+			// Reference types such as []byte are only valid until the next call to Scan.
+			src := bytes.Clone(src.([]byte))
 			return m.scanRaw(src)
 		}
 	}
@@ -118,7 +121,7 @@ func (m *mapModel) appendColumnsValues(fmter schema.Formatter, b []byte) []byte 
 	for k := range m.m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	b = append(b, " ("...)
 
@@ -154,7 +157,7 @@ func (m *mapModel) appendSet(fmter schema.Formatter, b []byte) []byte {
 	for k := range m.m {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	isTemplate := fmter.IsNop()
 	for i, k := range keys {

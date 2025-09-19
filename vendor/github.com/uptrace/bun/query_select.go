@@ -6,8 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/uptrace/bun/dialect"
@@ -25,17 +23,16 @@ type union struct {
 type SelectQuery struct {
 	whereBaseQuery
 	idxHintsQuery
+	orderLimitOffsetQuery
 
 	distinctOn []schema.QueryWithArgs
 	joins      []joinQuery
 	group      []schema.QueryWithArgs
 	having     []schema.QueryWithArgs
-	order      []schema.QueryWithArgs
-	limit      int32
-	offset     int32
 	selFor     schema.QueryWithArgs
 
-	union []union
+	union   []union
+	comment string
 }
 
 var _ Query = (*SelectQuery)(nil)
@@ -44,8 +41,7 @@ func NewSelectQuery(db *DB) *SelectQuery {
 	return &SelectQuery{
 		whereBaseQuery: whereBaseQuery{
 			baseQuery: baseQuery{
-				db:   db,
-				conn: db.DB,
+				db: db,
 			},
 		},
 	}
@@ -66,20 +62,22 @@ func (q *SelectQuery) Err(err error) *SelectQuery {
 	return q
 }
 
-// Apply calls the fn passing the SelectQuery as an argument.
-func (q *SelectQuery) Apply(fn func(*SelectQuery) *SelectQuery) *SelectQuery {
-	if fn != nil {
-		return fn(q)
+// Apply calls each function in fns, passing the SelectQuery as an argument.
+func (q *SelectQuery) Apply(fns ...func(*SelectQuery) *SelectQuery) *SelectQuery {
+	for _, fn := range fns {
+		if fn != nil {
+			q = fn(q)
+		}
 	}
 	return q
 }
 
-func (q *SelectQuery) With(name string, query schema.QueryAppender) *SelectQuery {
+func (q *SelectQuery) With(name string, query Query) *SelectQuery {
 	q.addWith(name, query, false)
 	return q
 }
 
-func (q *SelectQuery) WithRecursive(name string, query schema.QueryAppender) *SelectQuery {
+func (q *SelectQuery) WithRecursive(name string, query Query) *SelectQuery {
 	q.addWith(name, query, true)
 	return q
 }
@@ -279,46 +277,22 @@ func (q *SelectQuery) Having(having string, args ...interface{}) *SelectQuery {
 }
 
 func (q *SelectQuery) Order(orders ...string) *SelectQuery {
-	for _, order := range orders {
-		if order == "" {
-			continue
-		}
-
-		index := strings.IndexByte(order, ' ')
-		if index == -1 {
-			q.order = append(q.order, schema.UnsafeIdent(order))
-			continue
-		}
-
-		field := order[:index]
-		sort := order[index+1:]
-
-		switch strings.ToUpper(sort) {
-		case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
-			"ASC NULLS LAST", "DESC NULLS LAST":
-			q.order = append(q.order, schema.SafeQuery("? ?", []interface{}{
-				Ident(field),
-				Safe(sort),
-			}))
-		default:
-			q.order = append(q.order, schema.UnsafeIdent(order))
-		}
-	}
+	q.addOrder(orders...)
 	return q
 }
 
 func (q *SelectQuery) OrderExpr(query string, args ...interface{}) *SelectQuery {
-	q.order = append(q.order, schema.SafeQuery(query, args))
+	q.addOrderExpr(query, args...)
 	return q
 }
 
 func (q *SelectQuery) Limit(n int) *SelectQuery {
-	q.limit = int32(n)
+	q.setLimit(n)
 	return q
 }
 
 func (q *SelectQuery) Offset(n int) *SelectQuery {
-	q.offset = int32(n)
+	q.setOffset(n)
 	return q
 }
 
@@ -380,7 +354,7 @@ func (q *SelectQuery) JoinOnOr(cond string, args ...interface{}) *SelectQuery {
 
 func (q *SelectQuery) joinOn(cond string, args []interface{}, sep string) *SelectQuery {
 	if len(q.joins) == 0 {
-		q.err = errors.New("bun: query has no joins")
+		q.setErr(errors.New("bun: query has no joins"))
 		return q
 	}
 	j := &q.joins[len(q.joins)-1]
@@ -407,6 +381,43 @@ func (q *SelectQuery) Relation(name string, apply ...func(*SelectQuery) *SelectQ
 		return q
 	}
 
+	q.applyToRelation(join, apply...)
+
+	return q
+}
+
+type RelationOpts struct {
+	// Apply applies additional options to the relation.
+	Apply func(*SelectQuery) *SelectQuery
+	// AdditionalJoinOnConditions adds additional conditions to the JOIN ON clause.
+	AdditionalJoinOnConditions []schema.QueryWithArgs
+}
+
+// RelationWithOpts adds a relation to the query with additional options.
+func (q *SelectQuery) RelationWithOpts(name string, opts RelationOpts) *SelectQuery {
+	if q.tableModel == nil {
+		q.setErr(errNilModel)
+		return q
+	}
+
+	join := q.tableModel.join(name)
+	if join == nil {
+		q.setErr(fmt.Errorf("%s does not have relation=%q", q.table, name))
+		return q
+	}
+
+	if opts.Apply != nil {
+		q.applyToRelation(join, opts.Apply)
+	}
+
+	if len(opts.AdditionalJoinOnConditions) > 0 {
+		join.additionalJoinOnConditions = opts.AdditionalJoinOnConditions
+	}
+
+	return q
+}
+
+func (q *SelectQuery) applyToRelation(join *relationJoin, apply ...func(*SelectQuery) *SelectQuery) {
 	var apply1, apply2 func(*SelectQuery) *SelectQuery
 
 	if len(join.Relation.Condition) > 0 {
@@ -433,8 +444,6 @@ func (q *SelectQuery) Relation(name string, apply ...func(*SelectQuery) *SelectQ
 
 		return q
 	}
-
-	return q
 }
 
 func (q *SelectQuery) forEachInlineRelJoin(fn func(*relationJoin) error) error {
@@ -486,11 +495,21 @@ func (q *SelectQuery) selectJoins(ctx context.Context, joins []relationJoin) err
 
 //------------------------------------------------------------------------------
 
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *SelectQuery) Comment(comment string) *SelectQuery {
+	q.comment = comment
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *SelectQuery) Operation() string {
 	return "SELECT"
 }
 
 func (q *SelectQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte, err error) {
+	b = appendComment(b, q.comment)
+
 	return q.appendQuery(fmter, b, false)
 }
 
@@ -517,6 +536,13 @@ func (q *SelectQuery) appendQuery(
 		return nil, err
 	}
 
+	if err := q.forEachInlineRelJoin(func(j *relationJoin) error {
+		j.applyTo(q)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
 	b = append(b, "SELECT "...)
 
 	if len(q.distinctOn) > 0 {
@@ -538,6 +564,11 @@ func (q *SelectQuery) appendQuery(
 	if count && !cteCount {
 		b = append(b, "count(*)"...)
 	} else {
+		// MSSQL: allows Limit() without Order() as per https://stackoverflow.com/a/36156953
+		if q.limit > 0 && len(q.order) == 0 && fmter.Dialect().Name() == dialect.MSSQL {
+			b = append(b, "0 AS _temp_sort, "...)
+		}
+
 		b, err = q.appendColumns(fmter, b)
 		if err != nil {
 			return nil, err
@@ -551,6 +582,11 @@ func (q *SelectQuery) appendQuery(
 		}
 	}
 
+	b, err = q.appendIndexHints(fmter, b)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := q.forEachInlineRelJoin(func(j *relationJoin) error {
 		b = append(b, ' ')
 		b, err = j.appendHasOneJoin(fmter, b, q)
@@ -559,16 +595,11 @@ func (q *SelectQuery) appendQuery(
 		return nil, err
 	}
 
-	for _, j := range q.joins {
-		b, err = j.AppendQuery(fmter, b)
+	for _, join := range q.joins {
+		b, err = join.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	b, err = q.appendIndexHints(fmter, b)
-	if err != nil {
-		return nil, err
 	}
 
 	b, err = q.appendWhere(fmter, b, true)
@@ -610,35 +641,9 @@ func (q *SelectQuery) appendQuery(
 			return nil, err
 		}
 
-		if fmter.Dialect().Features().Has(feature.OffsetFetch) {
-			if q.limit > 0 && q.offset > 0 {
-				b = append(b, " OFFSET "...)
-				b = strconv.AppendInt(b, int64(q.offset), 10)
-				b = append(b, " ROWS"...)
-
-				b = append(b, " FETCH NEXT "...)
-				b = strconv.AppendInt(b, int64(q.limit), 10)
-				b = append(b, " ROWS ONLY"...)
-			} else if q.limit > 0 {
-				b = append(b, " OFFSET 0 ROWS"...)
-
-				b = append(b, " FETCH NEXT "...)
-				b = strconv.AppendInt(b, int64(q.limit), 10)
-				b = append(b, " ROWS ONLY"...)
-			} else if q.offset > 0 {
-				b = append(b, " OFFSET "...)
-				b = strconv.AppendInt(b, int64(q.offset), 10)
-				b = append(b, " ROWS"...)
-			}
-		} else {
-			if q.limit > 0 {
-				b = append(b, " LIMIT "...)
-				b = strconv.AppendInt(b, int64(q.limit), 10)
-			}
-			if q.offset > 0 {
-				b = append(b, " OFFSET "...)
-				b = strconv.AppendInt(b, int64(q.offset), 10)
-			}
+		b, err = q.appendLimitOffset(fmter, b)
+		if err != nil {
+			return nil, err
 		}
 
 		if !q.selFor.IsZero() {
@@ -731,8 +736,6 @@ func (q *SelectQuery) appendColumns(fmter schema.Formatter, b []byte) (_ []byte,
 func (q *SelectQuery) appendInlineRelColumns(
 	fmter schema.Formatter, b []byte, join *relationJoin,
 ) (_ []byte, err error) {
-	join.applyTo(q)
-
 	if join.columns != nil {
 		table := join.JoinModel.Table()
 		for i, col := range join.columns {
@@ -777,25 +780,6 @@ func (q *SelectQuery) appendTables(fmter schema.Formatter, b []byte) (_ []byte, 
 	return q.appendTablesWithAlias(fmter, b)
 }
 
-func (q *SelectQuery) appendOrder(fmter schema.Formatter, b []byte) (_ []byte, err error) {
-	if len(q.order) > 0 {
-		b = append(b, " ORDER BY "...)
-
-		for i, f := range q.order {
-			if i > 0 {
-				b = append(b, ", "...)
-			}
-			b, err = f.AppendQuery(fmter, b)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return b, nil
-	}
-	return b, nil
-}
-
 //------------------------------------------------------------------------------
 
 func (q *SelectQuery) Rows(ctx context.Context) (*sql.Rows, error) {
@@ -807,13 +791,20 @@ func (q *SelectQuery) Rows(ctx context.Context) (*sql.Rows, error) {
 		return nil, err
 	}
 
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
 		return nil, err
 	}
 
 	query := internal.String(queryBytes)
-	return q.conn.QueryContext(ctx, query)
+
+	ctx, event := q.db.beforeQuery(ctx, q, query, nil, query, q.model)
+	rows, err := q.resolveConn(q).QueryContext(ctx, query)
+	q.db.afterQuery(ctx, event, nil, err)
+	return rows, err
 }
 
 func (q *SelectQuery) Exec(ctx context.Context, dest ...interface{}) (res sql.Result, err error) {
@@ -823,6 +814,9 @@ func (q *SelectQuery) Exec(ctx context.Context, dest ...interface{}) (res sql.Re
 	if err := q.beforeAppendModel(ctx, q); err != nil {
 		return nil, err
 	}
+
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
 
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
@@ -852,52 +846,68 @@ func (q *SelectQuery) Exec(ctx context.Context, dest ...interface{}) (res sql.Re
 }
 
 func (q *SelectQuery) Scan(ctx context.Context, dest ...interface{}) error {
+	_, err := q.scanResult(ctx, dest...)
+	return err
+}
+
+func (q *SelectQuery) scanResult(ctx context.Context, dest ...interface{}) (sql.Result, error) {
 	if q.err != nil {
-		return q.err
+		return nil, q.err
 	}
 
 	model, err := q.getModel(dest)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if len(dest) > 0 && q.tableModel != nil && len(q.tableModel.getJoins()) > 0 {
+		for _, j := range q.tableModel.getJoins() {
+			switch j.Relation.Type {
+			case schema.HasManyRelation, schema.ManyToManyRelation:
+				return nil, fmt.Errorf("When querying has-many or many-to-many relationships, you should use Model instead of the dest parameter in Scan.")
+			}
+		}
 	}
 
 	if q.table != nil {
 		if err := q.beforeSelectHook(ctx); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if err := q.beforeAppendModel(ctx, q); err != nil {
-		return err
+		return nil, err
 	}
+
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
 
 	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	query := internal.String(queryBytes)
 
 	res, err := q.scan(ctx, q, query, model, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if n, _ := res.RowsAffected(); n > 0 {
 		if tableModel, ok := model.(TableModel); ok {
 			if err := q.selectJoins(ctx, tableModel.getJoins()); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
 	if q.table != nil {
 		if err := q.afterSelectHook(ctx); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return res, nil
 }
 
 func (q *SelectQuery) beforeSelectHook(ctx context.Context) error {
@@ -923,6 +933,9 @@ func (q *SelectQuery) Count(ctx context.Context) (int, error) {
 		return 0, q.err
 	}
 
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	qq := countQuery{q}
 
 	queryBytes, err := qq.AppendQuery(q.db.fmter, nil)
@@ -934,7 +947,7 @@ func (q *SelectQuery) Count(ctx context.Context) (int, error) {
 	ctx, event := q.db.beforeQuery(ctx, qq, query, nil, query, q.model)
 
 	var num int
-	err = q.conn.QueryRowContext(ctx, query).Scan(&num)
+	err = q.resolveConn(q).QueryRowContext(ctx, query).Scan(&num)
 
 	q.db.afterQuery(ctx, event, nil, err)
 
@@ -942,18 +955,35 @@ func (q *SelectQuery) Count(ctx context.Context) (int, error) {
 }
 
 func (q *SelectQuery) ScanAndCount(ctx context.Context, dest ...interface{}) (int, error) {
-	if _, ok := q.conn.(*DB); ok {
-		return q.scanAndCountConc(ctx, dest...)
+	if q.offset == 0 && q.limit == 0 {
+		// If there is no limit and offset, we can use a single query to get the count and scan
+		if res, err := q.scanResult(ctx, dest...); err != nil {
+			return 0, err
+		} else if n, err := res.RowsAffected(); err != nil {
+			return 0, err
+		} else {
+			return int(n), nil
+		}
+	}
+	if q.conn == nil {
+		return q.scanAndCountConcurrently(ctx, dest...)
 	}
 	return q.scanAndCountSeq(ctx, dest...)
 }
 
-func (q *SelectQuery) scanAndCountConc(ctx context.Context, dest ...interface{}) (int, error) {
+func (q *SelectQuery) scanAndCountConcurrently(
+	ctx context.Context, dest ...interface{},
+) (int, error) {
 	var count int
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var firstErr error
 
+	// FIXME: clone should not be needed, because the query is not modified here
+	// and should not be implicitly modified by the Bun lib.
+	countQuery := q.Clone()
+
+	// Don't scan results if the user explicitly set Limit(-1).
 	if q.limit >= 0 {
 		wg.Add(1)
 		go func() {
@@ -974,7 +1004,7 @@ func (q *SelectQuery) scanAndCountConc(ctx context.Context, dest ...interface{})
 		defer wg.Done()
 
 		var err error
-		count, err = q.Count(ctx)
+		count, err = countQuery.Count(ctx)
 		if err != nil {
 			mu.Lock()
 			if firstErr == nil {
@@ -991,6 +1021,7 @@ func (q *SelectQuery) scanAndCountConc(ctx context.Context, dest ...interface{})
 func (q *SelectQuery) scanAndCountSeq(ctx context.Context, dest ...interface{}) (int, error) {
 	var firstErr error
 
+	// Don't scan results if the user explicitly set Limit(-1).
 	if q.limit >= 0 {
 		firstErr = q.Scan(ctx, dest...)
 	}
@@ -1015,6 +1046,9 @@ func (q *SelectQuery) Exists(ctx context.Context) (bool, error) {
 }
 
 func (q *SelectQuery) selectExists(ctx context.Context) (bool, error) {
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	qq := selectExistsQuery{q}
 
 	queryBytes, err := qq.AppendQuery(q.db.fmter, nil)
@@ -1026,7 +1060,7 @@ func (q *SelectQuery) selectExists(ctx context.Context) (bool, error) {
 	ctx, event := q.db.beforeQuery(ctx, qq, query, nil, query, q.model)
 
 	var exists bool
-	err = q.conn.QueryRowContext(ctx, query).Scan(&exists)
+	err = q.resolveConn(q).QueryRowContext(ctx, query).Scan(&exists)
 
 	q.db.afterQuery(ctx, event, nil, err)
 
@@ -1034,6 +1068,9 @@ func (q *SelectQuery) selectExists(ctx context.Context) (bool, error) {
 }
 
 func (q *SelectQuery) whereExists(ctx context.Context) (bool, error) {
+	// if a comment is propagated via the context, use it
+	setCommentFromContext(ctx, q)
+
 	qq := whereExistsQuery{q}
 
 	queryBytes, err := qq.AppendQuery(q.db.fmter, nil)
@@ -1055,13 +1092,132 @@ func (q *SelectQuery) whereExists(ctx context.Context) (bool, error) {
 	return n == 1, nil
 }
 
+// String returns the generated SQL query string. The SelectQuery instance must not be
+// modified during query generation to ensure multiple calls to String() return identical results.
 func (q *SelectQuery) String() string {
 	buf, err := q.AppendQuery(q.db.Formatter(), nil)
 	if err != nil {
 		panic(err)
 	}
-
 	return string(buf)
+}
+
+func (q *SelectQuery) Clone() *SelectQuery {
+	if q == nil {
+		return nil
+	}
+
+	cloneArgs := func(args []schema.QueryWithArgs) []schema.QueryWithArgs {
+		if len(args) == 0 {
+			return nil
+		}
+		clone := make([]schema.QueryWithArgs, len(args))
+		copy(clone, args)
+		return clone
+	}
+	cloneHints := func(hints *indexHints) *indexHints {
+		if hints == nil {
+			return nil
+		}
+		return &indexHints{
+			names:      cloneArgs(hints.names),
+			forJoin:    cloneArgs(hints.forJoin),
+			forOrderBy: cloneArgs(hints.forOrderBy),
+			forGroupBy: cloneArgs(hints.forGroupBy),
+		}
+	}
+
+	var tableModel TableModel
+	if q.tableModel != nil {
+		tableModel = q.tableModel.clone()
+	}
+	clone := &SelectQuery{
+		whereBaseQuery: whereBaseQuery{
+			baseQuery: baseQuery{
+				db:             q.db,
+				table:          q.table,
+				model:          q.model,
+				tableModel:     tableModel,
+				with:           make([]withQuery, len(q.with)),
+				tables:         cloneArgs(q.tables),
+				columns:        cloneArgs(q.columns),
+				modelTableName: q.modelTableName,
+			},
+			where: make([]schema.QueryWithSep, len(q.where)),
+		},
+
+		idxHintsQuery: idxHintsQuery{
+			use:    cloneHints(q.idxHintsQuery.use),
+			ignore: cloneHints(q.idxHintsQuery.ignore),
+			force:  cloneHints(q.idxHintsQuery.force),
+		},
+
+		orderLimitOffsetQuery: orderLimitOffsetQuery{
+			order:  cloneArgs(q.order),
+			limit:  q.limit,
+			offset: q.offset,
+		},
+
+		distinctOn: cloneArgs(q.distinctOn),
+		joins:      make([]joinQuery, len(q.joins)),
+		group:      cloneArgs(q.group),
+		having:     cloneArgs(q.having),
+		union:      make([]union, len(q.union)),
+		comment:    q.comment,
+	}
+
+	for i, w := range q.with {
+		clone.with[i] = withQuery{
+			name:      w.name,
+			recursive: w.recursive,
+			query:     w.query, // TODO: maybe clone is need
+		}
+	}
+
+	if !q.modelTableName.IsZero() {
+		clone.modelTableName = schema.SafeQuery(
+			q.modelTableName.Query,
+			append([]any(nil), q.modelTableName.Args...),
+		)
+	}
+
+	for i, w := range q.where {
+		clone.where[i] = schema.SafeQueryWithSep(
+			w.Query,
+			append([]any(nil), w.Args...),
+			w.Sep,
+		)
+	}
+
+	for i, j := range q.joins {
+		clone.joins[i] = joinQuery{
+			join: schema.SafeQuery(j.join.Query, append([]any(nil), j.join.Args...)),
+			on:   make([]schema.QueryWithSep, len(j.on)),
+		}
+		for k, on := range j.on {
+			clone.joins[i].on[k] = schema.SafeQueryWithSep(
+				on.Query,
+				append([]any(nil), on.Args...),
+				on.Sep,
+			)
+		}
+	}
+
+	for i, u := range q.union {
+		clone.union[i] = union{
+			expr:  u.expr,
+			query: u.query.Clone(),
+		}
+	}
+
+	if !q.selFor.IsZero() {
+		clone.selFor = schema.SafeQuery(
+			q.selFor.Query,
+			append([]any(nil), q.selFor.Args...),
+		)
+	}
+
+	return clone
 }
 
 //------------------------------------------------------------------------------
