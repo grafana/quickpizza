@@ -15,7 +15,7 @@
 
 	function checkAdminLoggedIn() {
 		const tokenCookie = document.cookie.split('; ').filter((c) => c.startsWith('admin_token'));
-		if (tokenCookie.length == 0) {
+		if (tokenCookie.length === 0) {
 			return false;
 		}
 

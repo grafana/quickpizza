@@ -31,6 +31,9 @@ jobs:
       - name: Check Formatting (TypeScript)
         run: cd pkg/web && npm run lint
 
+      - name: Run Biome Linter
+        run: cd pkg/web && npm run biome
+
       - name: Start Server
         # Use enable these features in our own deployment, so we might as well
         # "enable" them during testing as well to simulate a more realistic setup.

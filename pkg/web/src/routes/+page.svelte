@@ -63,10 +63,12 @@
 
 	let socket: WebSocket;
 	onMount(async () => {
+		// biome-ignore lint/suspicious/noAssignInExpressions: -
 		wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
 		if (wsVisitorID === 0) {
 			wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
 		}
+		// biome-ignore lint/suspicious/noAssignInExpressions: -
 		userTokenStore.subscribe((value) => (userToken = value));
 		if (userToken === '') {
 			userTokenStore.set(randomToken(16));
@@ -82,7 +84,7 @@
 			wsUrl =
 				(l.protocol === 'https:' ? 'wss://' : 'ws://') +
 				l.hostname +
-				(l.port != 80 && l.port != 443 ? ':' + l.port : '') +
+				(l.port !== 80 && l.port !== 443 ? ':' + l.port : '') +
 				'/ws';
 		}
 		socket = new WebSocket(wsUrl);
