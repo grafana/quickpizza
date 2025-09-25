@@ -82,38 +82,38 @@ pyroscope.scrape "application_containers" {
 // Traces
 otelcol.receiver.otlp "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
-    
+
   // configures the default grpc endpoint "0.0.0.0:4317"
   grpc { }
   // configures the default http/protobuf endpoint "0.0.0.0:4318"
   http { }
-    
+
   output {
     metrics = [otelcol.processor.resourcedetection.default.input]
     logs    = [otelcol.processor.resourcedetection.default.input]
     traces  = [otelcol.processor.resourcedetection.default.input]
   }
 }
-    
+
 otelcol.processor.resourcedetection "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.resourcedetection/
   detectors = ["env", "system"] // add "gcp", "ec2", "ecs", "elastic_beanstalk", "eks", "lambda", "azure", "aks", "consul", "heroku"  if you want to use cloud resource detection
-    
+
   system {
     hostname_sources = ["os"]
   }
-    
+
   output {
     metrics = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
     logs    = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
     traces  = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
   }
 }
-    
+
 otelcol.processor.transform "drop_unneeded_resource_attributes" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
   error_mode = "ignore"
-    
+
   trace_statements {
     context    = "resource"
     statements = [
@@ -128,7 +128,7 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     	"delete_key(attributes, \"process.runtime.version\")",
     ]
   }
-    
+
   metric_statements {
     context    = "resource"
     statements = [
@@ -143,7 +143,7 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     	"delete_key(attributes, \"process.runtime.version\")",
     ]
   }
-    
+
   log_statements {
     context    = "resource"
     statements = [
@@ -158,7 +158,7 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     	"delete_key(attributes, \"process.runtime.version\")",
     ]
   }
-    
+
   output {
     metrics = [otelcol.processor.transform.add_resource_attributes_as_metric_attributes.input]
     logs    = [otelcol.processor.batch.default.input]
@@ -168,20 +168,20 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     ]
   }
 }
-    
+
 otelcol.connector.host_info "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.connector.host_info/
   host_identifiers = ["container.name", "container.id", "service.name"]
-    
+
   output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
-    
+
 otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
   error_mode = "ignore"
-    
+
   metric_statements {
     context    = "datapoint"
     statements = [
@@ -189,12 +189,12 @@ otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
     	"set(attributes[\"service.version\"], resource.attributes[\"service.version\"])",
     ]
   }
-    
+
   output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
-    
+
 otelcol.processor.batch "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.batch/
   output {

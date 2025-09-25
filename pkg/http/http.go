@@ -207,12 +207,12 @@ func LogUser(next http.Handler) http.Handler {
 // as one single big service.
 type Server struct {
 	log            *slog.Logger
-	traceInstaller *TraceInstaller
+	traceInstaller *OTelInstaller
 	router         chi.Router
 	melody         *melody.Melody
 }
 
-func NewServer(profiling bool, traceInstaller *TraceInstaller) *Server {
+func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
