@@ -20,7 +20,7 @@ jobs:
         with:
           k6-version: '0.49.0'
       - name: Run k6 test
-        uses: grafana/run-k6-action@c6b79182b9b666aa4f630f4a6be9158ead62536e # v1
+        uses: grafana/run-k6-action@a15e2072ede004e8d46141e33d7f7dad8ad08d9d # v1
         with:
           cloud-run-locally: false
           path: |
