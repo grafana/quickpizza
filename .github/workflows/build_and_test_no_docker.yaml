@@ -1,9 +1,9 @@
 # NOTE:
 # It is important that these actions are run for every PR, no matter what
 # other actions are added. The ones here are testing the actual code pushed
-# instead of a possibly outadated image. Additionally, we also run formatters
+# instead of a possibly outdated image. Additionally, we also run formatters
 # and linters here.
-# Do not modify this file unless you really need to.
+# Do not modify this file unless you really need to. You very likely don't need to.
 
 name: Build and Test (without Docker)
 on: [push]
@@ -35,11 +35,8 @@ jobs:
       - name: Build Binary
         run: make build
 
-      - name: Check Formatting (TypeScript)
-        run: cd pkg/web && npm run lint
-
-      - name: Run Biome Linter
-        run: cd pkg/web && npm run biome
+      - name: Run Biome Checks
+        run: cd pkg/web && npm run biome-check
 
       - name: Start Server
         # Use enable these features in our own deployment, so we might as well

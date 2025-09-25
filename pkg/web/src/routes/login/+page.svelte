@@ -1,123 +1,127 @@
 <script lang="ts">
-	import { faro } from '@grafana/faro-web-sdk';
-	import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
-	import { onMount } from 'svelte';
+// biome-ignore assist/source/organizeImports: organized by hand
+import { faro } from '@grafana/faro-web-sdk';
+import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
+import { onMount } from 'svelte';
 
-	var loginError = '';
-	var username = '';
-	var password = '';
-	var qpUserLoggedIn = false;
-	var ratings = [];
+var loginError = '';
+var username = '';
+var password = '';
+var qpUserLoggedIn = false;
+var ratings = [];
 
-	onMount(async () => {
-		qpUserLoggedIn = checkQPUserLoggedIn();
+onMount(async () => {
+	qpUserLoggedIn = checkQPUserLoggedIn();
 
-		if (!qpUserLoggedIn) {
-			await fetchCSRFToken();
+	if (!qpUserLoggedIn) {
+		await fetchCSRFToken();
+	}
+});
+
+function getCookie(name) {
+	for (let cookie of document.cookie.split('; ')) {
+		const [key, value] = cookie.split('=');
+		if (key === name) {
+			return decodeURIComponent(value);
 		}
+	}
+	return null;
+}
+
+function checkQPUserLoggedIn() {
+	let token = getCookie('qp_user_token');
+	return token !== null && token.length > 0;
+}
+
+async function fetchCSRFToken() {
+	await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/csrf-token`, {
+		method: 'POST',
+		credentials: 'same-origin',
 	});
 
-	function getCookie(name) {
-		for (let cookie of document.cookie.split('; ')) {
-			const [key, value] = cookie.split('=');
-			if (key === name) {
-				return decodeURIComponent(value);
-			}
-		}
-		return null;
-	}
+	document.getElementById('csrf-token').value = getCookie('csrf_token') || '';
+}
 
-	function checkQPUserLoggedIn() {
-		let token = getCookie('qp_user_token');
-		return token !== null && token.length > 0;
-	}
-
-	async function fetchCSRFToken() {
-		await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/csrf-token`, {
-			method: 'POST',
-			credentials: 'same-origin'
-		});
-
-		document.getElementById('csrf-token').value = getCookie('csrf_token') || '';
-	}
-
-	async function handleSubmit() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/users/token/login?set_cookie=true`, {
+async function handleSubmit() {
+	const res = await fetch(
+		`${PUBLIC_BACKEND_ENDPOINT}/api/users/token/login?set_cookie=true`,
+		{
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
 				username: username,
 				password: password,
-				csrf: document.getElementById('csrf-token').value
+				csrf: document.getElementById('csrf-token').value,
 			}),
-			credentials: 'same-origin'
-		});
-		if (!res.ok) {
-			loginError = 'Login failed: ' + res.statusText;
-			faro.api.pushEvent('Unsuccessful Login', { username: username });
-			faro.api.pushError(new Error('Login Error: ' + res.statusText));
-			return;
-		}
-
-		faro.api.pushEvent('Successful Login', { username: username });
-		qpUserLoggedIn = checkQPUserLoggedIn();
+			credentials: 'same-origin',
+		},
+	);
+	if (!res.ok) {
+		loginError = 'Login failed: ' + res.statusText;
+		faro.api.pushEvent('Unsuccessful Login', { username: username });
+		faro.api.pushError(new Error('Login Error: ' + res.statusText));
+		return;
 	}
 
-	$: if (qpUserLoggedIn) {
-		updateRatings();
+	faro.api.pushEvent('Successful Login', { username: username });
+	qpUserLoggedIn = checkQPUserLoggedIn();
+}
+
+$: if (qpUserLoggedIn) {
+	updateRatings();
+}
+
+async function updateRatings() {
+	ratings = [];
+	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
+		method: 'GET',
+		credentials: 'same-origin',
+	});
+	if (!res.ok) {
+		ratings = ['Something went wrong retrieving your ratings.'];
+		return;
 	}
+	const json = await res.json();
 
-	async function updateRatings() {
-		ratings = [];
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
-			method: 'GET',
-			credentials: 'same-origin'
-		});
-		if (!res.ok) {
-			ratings = ['Something went wrong retrieving your ratings.'];
-			return;
-		}
-		const json = await res.json();
+	var newRatings = [];
+	json.ratings.forEach((rating) => {
+		newRatings.push(
+			`Rating ID: ${rating.id} (stars=${rating.stars}, pizza_id=${rating.pizza_id})`,
+		);
+	});
+	ratings = newRatings;
+}
 
-		var newRatings = [];
-		json.ratings.forEach((rating) => {
-			newRatings.push(
-				`Rating ID: ${rating.id} (stars=${rating.stars}, pizza_id=${rating.pizza_id})`
+async function deleteRatings() {
+	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
+		method: 'DELETE',
+		credentials: 'same-origin',
+	});
+
+	if (!res.ok) {
+		if (res.status === 403) {
+			const json = await res.json();
+			alert(
+				'Cannot clear ratings: The default user is not allowed to delete ratings. Please create your own user account.',
 			);
-		});
-		ratings = newRatings;
-	}
-
-	async function deleteRatings() {
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
-			method: 'DELETE',
-			credentials: 'same-origin'
-		});
-
-		if (!res.ok) {
-			if (res.status === 403) {
-				const json = await res.json();
-				alert(
-					'Cannot clear ratings: The default user is not allowed to delete ratings. Please create your own user account.'
-				);
-			} else if (res.status === 401) {
-				alert('You need to be logged in to clear ratings.');
-			} else {
-				alert('Failed to clear ratings: ' + res.statusText);
-			}
-			return;
+		} else if (res.status === 401) {
+			alert('You need to be logged in to clear ratings.');
+		} else {
+			alert('Failed to clear ratings: ' + res.statusText);
 		}
-
-		location.reload();
+		return;
 	}
 
-	async function handleLogout() {
-		faro.api.pushEvent('User Logout');
-		document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
-		qpUserLoggedIn = false;
-	}
+	location.reload();
+}
+
+async function handleLogout() {
+	faro.api.pushEvent('User Logout');
+	document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
+	qpUserLoggedIn = false;
+}
 </script>
 
 {#if qpUserLoggedIn}

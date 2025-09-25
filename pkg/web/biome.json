@@ -6,7 +6,14 @@
 		"useIgnoreFile": false
 	},
 	"files": {
-		"ignoreUnknown": false
+		"ignoreUnknown": false,
+		"includes": [
+			"src/**",
+			"static/**",
+			"test.k6.io/**",
+			"!test.k6.io/**/*.css",
+			"!src/**/*.css"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -16,12 +23,11 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true
-		},
-		"includes": ["src/**", "static/**", "test.k6.io/**", "!test.k6.io/**/*.css", "!src/**/*.css"]
+		}
 	},
 	"javascript": {
 		"formatter": {
-			"quoteStyle": "double"
+			"quoteStyle": "single"
 		}
 	},
 	"assist": {
@@ -31,5 +37,22 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.svelte"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useConst": "off",
+						"useImportType": "off"
+					},
+					"correctness": {
+						"noUnusedVariables": "off",
+						"noUnusedImports": "off"
+					}
+				}
+			}
+		}
+	]
 }

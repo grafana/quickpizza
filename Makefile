@@ -31,7 +31,7 @@ format-go: # Format Go code with goimports
 
 .PHONY: format-web
 format-web: # Format frontend code
-	cd pkg/web/ && npm run format
+	cd pkg/web/ && npm run biome-format
 
 .PHONY: format-check
 format-check: # Check Go code formatting

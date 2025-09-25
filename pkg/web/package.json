@@ -8,9 +8,8 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --check .",
-		"format": "prettier --write .",
-		"biome": "biome lint"
+		"biome-check": "biome check",
+		"biome-format": "biome format --fix"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.4",

@@ -1,80 +1,83 @@
 <script lang="ts">
-	import { faro } from '@grafana/faro-web-sdk';
-	import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
-	import { onMount } from 'svelte';
+// biome-ignore assist/source/organizeImports: organized by hand
+import { faro } from '@grafana/faro-web-sdk';
+import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
+import { onMount } from 'svelte';
 
-	var loginError = '';
-	var username = 'admin';
-	var password = 'admin';
-	var adminLoggedIn = false;
-	var latestPizzaRecommendations: string[] = [];
+var loginError = '';
+var username = 'admin';
+var password = 'admin';
+var adminLoggedIn = false;
+var latestPizzaRecommendations: string[] = [];
 
-	onMount(async () => {
-		adminLoggedIn = checkAdminLoggedIn();
-	});
+onMount(async () => {
+	adminLoggedIn = checkAdminLoggedIn();
+});
 
-	function checkAdminLoggedIn() {
-		const tokenCookie = document.cookie.split('; ').filter((c) => c.startsWith('admin_token'));
-		if (tokenCookie.length === 0) {
-			return false;
-		}
-
-		return true;
+function checkAdminLoggedIn() {
+	const tokenCookie = document.cookie
+		.split('; ')
+		.filter((c) => c.startsWith('admin_token'));
+	if (tokenCookie.length === 0) {
+		return false;
 	}
 
-	async function handleSubmit() {
-		const res = await fetch(
-			`${PUBLIC_BACKEND_ENDPOINT}/api/admin/login?user=${username}&password=${password}`,
-			{
-				method: 'POST',
-				credentials: 'same-origin' // Honor Set-Cookie header returned by /api/admin/login.
-			}
-		);
-		if (!res.ok) {
-			loginError = 'Login failed: ' + res.statusText;
-			faro.api.pushEvent('Unsuccessful Admin Login', { username: username });
-			faro.api.pushError(new Error('Admin Login Error: ' + res.statusText));
-			return;
-		}
+	return true;
+}
 
-		faro.api.pushEvent('Successful Admin Login', { username: username });
-		adminLoggedIn = checkAdminLoggedIn();
+async function handleSubmit() {
+	const res = await fetch(
+		`${PUBLIC_BACKEND_ENDPOINT}/api/admin/login?user=${username}&password=${password}`,
+		{
+			method: 'POST',
+			credentials: 'same-origin', // Honor Set-Cookie header returned by /api/admin/login.
+		},
+	);
+	if (!res.ok) {
+		loginError = 'Login failed: ' + res.statusText;
+		faro.api.pushEvent('Unsuccessful Admin Login', { username: username });
+		faro.api.pushError(new Error('Admin Login Error: ' + res.statusText));
+		return;
 	}
 
-	async function handleLogout() {
-		faro.api.pushEvent('Admin Logout');
-		// Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
-		document.cookie = 'admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
-		adminLoggedIn = false;
-	}
+	faro.api.pushEvent('Successful Admin Login', { username: username });
+	adminLoggedIn = checkAdminLoggedIn();
+}
 
-	$: if (adminLoggedIn) {
-		updateRecommendations();
-	}
+async function handleLogout() {
+	faro.api.pushEvent('Admin Logout');
+	// Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
+	document.cookie = 'admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
+	adminLoggedIn = false;
+}
 
-	function updateRecommendations() {
-		// Admin token is sent via Cookies in headers
-		fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/internal/recommendations`, {
-			method: 'GET'
-		})
-			.then((res) => res.json())
-			.then((json) => {
-				faro.api.pushEvent('Update Recent Pizza Recommendations');
-				var newRec: string[] = [];
-				json.pizzas.forEach((pizza: string) => {
-					newRec.push(`
+$: if (adminLoggedIn) {
+	updateRecommendations();
+}
+
+function updateRecommendations() {
+	// Admin token is sent via Cookies in headers
+	fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/internal/recommendations`, {
+		method: 'GET',
+	})
+		.then((res) => res.json())
+		.then((json) => {
+			faro.api.pushEvent('Update Recent Pizza Recommendations');
+			var newRec: string[] = [];
+			json.pizzas.forEach((pizza: string) => {
+				newRec.push(`
                 ${pizza.name} (tool=${pizza.tool}, ingredients_number=${pizza.ingredients.length})`);
-				});
-				if (newRec.length >= 15) {
-					faro.api.pushError(new Error('Too Many Recommendations'));
-				}
-				newRec = newRec.slice(0, 15);
-				if (newRec.length >= 0) {
-					newRec[0] = newRec[0] + ' (newest)';
-				}
-				latestPizzaRecommendations = newRec;
 			});
-	}
+			if (newRec.length >= 15) {
+				faro.api.pushError(new Error('Too Many Recommendations'));
+			}
+			newRec = newRec.slice(0, 15);
+			if (newRec.length >= 0) {
+				newRec[0] = newRec[0] + ' (newest)';
+			}
+			latestPizzaRecommendations = newRec;
+		});
+}
 </script>
 
 {#if adminLoggedIn}
