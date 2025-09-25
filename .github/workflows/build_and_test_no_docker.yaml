@@ -25,11 +25,11 @@ jobs:
       - name: Check Formatting (Go)
         run: make format-check
 
-      - name: Check Formatting (TypeScript)
-        run: cd pkg/web && npm run lint
-
       - name: Build Binary
         run: make build
+
+      - name: Check Formatting (TypeScript)
+        run: cd pkg/web && npm run lint
 
       - name: Start Server
         # Use enable these features in our own deployment, so we might as well
