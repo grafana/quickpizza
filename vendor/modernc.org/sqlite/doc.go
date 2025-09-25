@@ -8,173 +8,149 @@
 // SQLite is an in-process implementation of a self-contained, serverless,
 // zero-configuration, transactional SQL database engine.
 //
-// Thanks
+// # Fragile modernc.org/libc dependency
+//
+// When you import this package you should use in your go.mod file the exact
+// same version of modernc.org/libc as seen in the go.mod file of this
+// repository.
+//
+// See the discussion at https://gitlab.com/cznic/sqlite/-/issues/177 for more details.
+//
+// # Thanks
 //
 // This project is sponsored by Schleibinger Geräte Teubert u. Greim GmbH by
 // allowing one of the maintainers to work on it also in office hours.
 //
-// Supported platforms and architectures
+// # Supported platforms and architectures
 //
 // These combinations of GOOS and GOARCH are currently supported
 //
 //	OS      Arch    SQLite version
 //	------------------------------
-//	darwin	amd64   3.41.2
-//	darwin	arm64   3.41.2
-//	freebsd	amd64   3.41.2
-//	freebsd	arm64   3.41.2
-//	linux	386     3.41.2
-//	linux	amd64   3.41.2
-//	linux	arm     3.41.2
-//	linux	arm64   3.41.2
-//	linux	ppc64le 3.41.2
-//	linux	riscv64 3.41.2
-//	linux	s390x   3.41.2
-//	windows	amd64   3.41.2
-//	windows	arm64   3.41.2
+//	darwin	amd64   3.50.1
+//	darwin	arm64   3.50.1
+//	freebsd	amd64   3.50.1
+//	freebsd	arm64   3.50.1
+//	linux	386     3.50.1
+//	linux	amd64   3.50.1
+//	linux	arm     3.50.1
+//	linux	arm64   3.50.1
+//	linux	loong64 3.50.1
+//	linux	ppc64le 3.50.1
+//	linux	riscv64 3.50.1
+//	linux	s390x   3.50.1
+//	windows	386     3.50.1
+//	windows	amd64   3.50.1
+//	windows	arm64   3.50.1
 //
-// Builders
+// # Benchmarks
 //
-// Builder results available at
+// [The SQLite Drivers Benchmarks Game]
+//
+// # Builders
+//
+// Builder results available at:
 //
 // https://modern-c.appspot.com/-/builder/?importpath=modernc.org%2fsqlite
 //
-// Changelog
+// # Changelog
 //
-// 2023-04-22 v1.22.0:
+//   - 2025-06-09 v1.38.0: Upgrade to SQLite 3.50.1.
+// 
+//   - 2025-02-26 v1.36.0: Upgrade to SQLite 3.49.0.
 //
-// Support linux/s390x.
+//   - 2024-11-16 v1.34.0: Implement ResetSession and IsValid methods in connection
 //
-// 2023-02-23 v1.21.0:
+//   - 2024-07-22 v1.31.0: Support windows/386.
 //
-// Upgrade to SQLite 3.41.0, release notes at https://sqlite.org/releaselog/3_41_0.html.
+//   - 2024-06-04 v1.30.0: Upgrade to SQLite 3.46.0, release notes at
+//     https://sqlite.org/releaselog/3_46_0.html.
 //
-// 2022-11-28 v1.20.0
+//   - 2024-02-13 v1.29.0: Upgrade to SQLite 3.45.1, release notes at
+//     https://sqlite.org/releaselog/3_45_1.html.
 //
-// Support linux/ppc64le.
+//   - 2023-12-14: v1.28.0: Add (*Driver).RegisterConnectionHook,
+//     ConnectionHookFn, ExecQuerierContext, RegisterConnectionHook.
 //
-// 2022-09-16 v1.19.0:
+//   - 2023-08-03 v1.25.0: enable SQLITE_ENABLE_DBSTAT_VTAB.
 //
-// Support frebsd/arm64.
+//   - 2023-07-11 v1.24.0: Add
+//     (*conn).{Serialize,Deserialize,NewBackup,NewRestore} methods, add Backup
+//     type.
 //
-// 2022-07-26 v1.18.0:
+//   - 2023-06-01 v1.23.0: Allow registering aggregate functions.
 //
-// Adds support for Go fs.FS based SQLite virtual filesystems, see function New
-// in modernc.org/sqlite/vfs and/or TestVFS in all_test.go
+//   - 2023-04-22 v1.22.0: Support linux/s390x.
 //
-// 2022-04-24 v1.17.0:
+//   - 2023-02-23 v1.21.0: Upgrade to SQLite 3.41.0, release notes at
+//     https://sqlite.org/releaselog/3_41_0.html.
 //
-// Support windows/arm64.
+//   - 2022-11-28 v1.20.0: Support linux/ppc64le.
 //
-// 2022-04-04 v1.16.0:
+//   - 2022-09-16 v1.19.0: Support frebsd/arm64.
 //
-// Support scalar application defined functions written in Go.
+//   - 2022-07-26 v1.18.0: Add support for Go fs.FS based SQLite virtual
+//     filesystems, see function New in modernc.org/sqlite/vfs and/or TestVFS in
+//     all_test.go
 //
-//  https://www.sqlite.org/appfunc.html
+//   - 2022-04-24 v1.17.0: Support windows/arm64.
 //
-// 2022-03-13 v1.15.0:
+//   - 2022-04-04 v1.16.0: Support scalar application defined functions written
+//     in Go. See https://www.sqlite.org/appfunc.html
 //
-// Support linux/riscv64.
+//   - 2022-03-13 v1.15.0: Support linux/riscv64.
 //
-// 2021-11-13 v1.14.0:
+//   - 2021-11-13 v1.14.0: Support windows/amd64. This target had previously
+//     only experimental status because of a now resolved memory leak.
 //
-// Support windows/amd64. This target had previously only experimental status
-// because of a now resolved memory leak.
+//   - 2021-09-07 v1.13.0: Support freebsd/amd64.
 //
-// 2021-09-07 v1.13.0:
+//   - 2021-06-23 v1.11.0: Upgrade to use sqlite 3.36.0, release notes at
+//     https://www.sqlite.org/releaselog/3_36_0.html.
 //
-// Support freebsd/amd64.
+//   - 2021-05-06 v1.10.6: Fixes a memory corruption issue
+//     (https://gitlab.com/cznic/sqlite/-/issues/53).  Versions since v1.8.6 were
+//     affected and should be updated to v1.10.6.
 //
-// Changelog
+//   - 2021-03-14 v1.10.0: Update to use sqlite 3.35.0, release notes at
+//     https://www.sqlite.org/releaselog/3_35_0.html.
 //
-// 2021-06-23 v1.11.0:
+//   - 2021-03-11 v1.9.0: Support darwin/arm64.
 //
-// Upgrade to use sqlite 3.36.0, release notes at https://www.sqlite.org/releaselog/3_36_0.html.
+//   - 2021-01-08 v1.8.0: Support darwin/amd64.
 //
-// 2021-05-06 v1.10.6:
+//   - 2020-09-13 v1.7.0: Support linux/arm and linux/arm64.
 //
-// Fixes a memory corruption issue
-// (https://gitlab.com/cznic/sqlite/-/issues/53).  Versions since v1.8.6 were
-// affected and should be updated to v1.10.6.
+//   - 2020-09-08 v1.6.0: Support linux/386.
 //
-// 2021-03-14 v1.10.0:
+//   - 2020-09-03 v1.5.0: This project is now completely CGo-free, including
+//     the Tcl tests.
 //
-// Update to use sqlite 3.35.0, release notes at https://www.sqlite.org/releaselog/3_35_0.html.
+//   - 2020-08-26 v1.4.0: First stable release for linux/amd64.  The
+//     database/sql driver and its tests are CGo free.  Tests of the translated
+//     sqlite3.c library still require CGo.
 //
-// 2021-03-11 v1.9.0:
+//   - 2020-07-26 v1.4.0-beta1: The project has reached beta status while
+//     supporting linux/amd64 only at the moment. The 'extraquick' Tcl testsuite
+//     reports
 //
-// Support darwin/arm64.
+//   - 2019-12-28 v1.2.0-alpha.3: Third alpha fixes issue #19.
 //
-// 2021-01-08 v1.8.0:
+//   - 2019-12-26 v1.1.0-alpha.2: Second alpha release adds support for
+//     accessing a database concurrently by multiple goroutines and/or processes.
+//     v1.1.0 is now considered feature-complete. Next planed release should be a
+//     beta with a proper test suite.
 //
-// Support darwin/amd64.
+//   - 2019-12-18 v1.1.0-alpha.1: First alpha release using the new cc/v3,
+//     gocc, qbe toolchain. Some primitive tests pass on linux_{amd64,386}. Not
+//     yet safe for concurrent access by multiple goroutines. Next alpha release
+//     is planed to arrive before the end of this year.
 //
-// 2020-09-13 v1.7.0:
+//   - 2017-06-10: Windows/Intel no more uses the VM (thanks Steffen Butzer).
 //
-// Support linux/arm and linux/arm64.
+//   - 2017-06-05 Linux/Intel no more uses the VM (cznic/virtual).
 //
-// 2020-09-08 v1.6.0:
-//
-// Support linux/386.
-//
-// 2020-09-03 v1.5.0:
-//
-// This project is now completely CGo-free, including the Tcl tests.
-//
-// 2020-08-26 v1.4.0:
-//
-// First stable release for linux/amd64.  The database/sql driver and its tests
-// are CGo free.  Tests of the translated sqlite3.c library still require CGo.
-//
-//	$ make full
-//
-//	...
-//
-//	SQLite 2020-08-14 13:23:32 fca8dc8b578f215a969cd899336378966156154710873e68b3d9ac5881b0ff3f
-//	0 errors out of 928271 tests on 3900x Linux 64-bit little-endian
-//	WARNING: Multi-threaded tests skipped: Linked against a non-threadsafe Tcl build
-//	All memory allocations freed - no leaks
-//	Maximum memory usage: 9156360 bytes
-//	Current memory usage: 0 bytes
-//	Number of malloc()  : -1 calls
-//	--- PASS: TestTclTest (1785.04s)
-//	PASS
-//	ok  	modernc.org/sqlite	1785.041s
-//	$
-//
-// 2020-07-26 v1.4.0-beta1:
-//
-// The project has reached beta status while supporting linux/amd64 only at the
-// moment. The 'extraquick' Tcl testsuite reports
-//
-//	630 errors out of 200177 tests on  Linux 64-bit little-endian
-//
-// and some memory leaks
-//
-//	Unfreed memory: 698816 bytes in 322 allocations
-//
-// 2019-12-28 v1.2.0-alpha.3: Third alpha fixes issue #19.
-//
-// It also bumps the minor version as the repository was wrongly already tagged
-// with v1.1.0 before.  Even though the tag was deleted there are proxies that
-// cached that tag. Thanks /u/garaktailor for detecting the problem and
-// suggesting this solution.
-//
-// 2019-12-26 v1.1.0-alpha.2: Second alpha release adds support for accessing a
-// database concurrently by multiple goroutines and/or processes. v1.1.0 is now
-// considered feature-complete. Next planed release should be a beta with a
-// proper test suite.
-//
-// 2019-12-18 v1.1.0-alpha.1: First alpha release using the new cc/v3, gocc,
-// qbe toolchain. Some primitive tests pass on linux_{amd64,386}. Not yet safe
-// for concurrent access by multiple goroutines. Next alpha release is planed
-// to arrive before the end of this year.
-//
-// 2017-06-10 Windows/Intel no more uses the VM (thanks Steffen Butzer).
-//
-// 2017-06-05 Linux/Intel no more uses the VM (cznic/virtual).
-//
-// Connecting to a database
+// # Connecting to a database
 //
 // To access a Sqlite database do something like
 //
@@ -191,7 +167,7 @@
 //
 //	...
 //
-// Debug and development versions
+// # Debug and development versions
 //
 // A comma separated list of options can be passed to `go generate` via the
 // environment variable GO_GENERATE. Some useful options include for example:
@@ -206,10 +182,9 @@
 //
 // Note: To run `go generate` you need to have modernc.org/ccgo/v3 installed.
 //
-// Hacking
+// # Hacking
 //
 // This is an example of how to use the debug logs in modernc.org/libc when hunting a bug.
-//
 //
 //	0:jnml@e5-1650:~/src/modernc.org/sqlite$ git status
 //	On branch master
@@ -233,9 +208,7 @@
 //	[10723 sqlite.test] 2023-04-06 11:22:48.288066057 +0200 CEST m=+0.000707150
 //	0:jnml@e5-1650:~/src/modernc.org/sqlite$
 //
-//
 // The /tmp/libc.log file is created as requested. No useful messages there because none are enabled in libc. Let's try to enable Xwrite as an example.
-//
 //
 //	0:jnml@e5-1650:~/src/modernc.org/libc$ git status
 //	On branch master
@@ -287,42 +260,41 @@
 //	 }
 //	0:jnml@e5-1650:~/src/modernc.org/libc$
 //
-//
 // We need to tell the Go build system to use our local, patched/debug libc:
-//
 //
 //	0:jnml@e5-1650:~/src/modernc.org/sqlite$ go work use $(go env GOPATH)/src/modernc.org/libc
 //	0:jnml@e5-1650:~/src/modernc.org/sqlite$ go work use .
 //
-//
 // And run the test again:
 //
-// 	0:jnml@e5-1650:~/src/modernc.org/sqlite$ rm -f /tmp/libc.log ; go test -v -tags=libc.dmesg -run TestScalar ; ls -l /tmp/libc.log
-// 	test binary compiled for linux/amd64
-// 	=== RUN   TestScalar
-// 	--- PASS: TestScalar (0.26s)
-// 	PASS
-// 	ok   modernc.org/sqlite 0.285s
-// 	-rw-r--r-- 1 jnml jnml 918 Apr  6 11:29 /tmp/libc.log
-// 	0:jnml@e5-1650:~/src/modernc.org/sqlite$ cat /tmp/libc.log
-// 	[11910 sqlite.test] 2023-04-06 11:29:13.143589542 +0200 CEST m=+0.000689270
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x200: 0x200
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0xc: 0xc
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x200: 0x200
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x1000: 0x1000
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x1000: 0x1000
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0xc: 0xc
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
-// 	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
-// 	0:jnml@e5-1650:~/src/modernc.org/sqlite$
+//	0:jnml@e5-1650:~/src/modernc.org/sqlite$ rm -f /tmp/libc.log ; go test -v -tags=libc.dmesg -run TestScalar ; ls -l /tmp/libc.log
+//	test binary compiled for linux/amd64
+//	=== RUN   TestScalar
+//	--- PASS: TestScalar (0.26s)
+//	PASS
+//	ok   modernc.org/sqlite 0.285s
+//	-rw-r--r-- 1 jnml jnml 918 Apr  6 11:29 /tmp/libc.log
+//	0:jnml@e5-1650:~/src/modernc.org/sqlite$ cat /tmp/libc.log
+//	[11910 sqlite.test] 2023-04-06 11:29:13.143589542 +0200 CEST m=+0.000689270
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x200: 0x200
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0xc: 0xc
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x200: 0x200
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x1000: 0x1000
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x1000: 0x1000
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0x4: 0x4
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 8 0xc: 0xc
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
+//	[11910 sqlite.test] libc_linux.go:337:Xwrite: 7 0x1000: 0x1000
+//	0:jnml@e5-1650:~/src/modernc.org/sqlite$
 //
-// Sqlite documentation
+// # Sqlite documentation
 //
 // See https://sqlite.org/docs.html
+//
+// [The SQLite Drivers Benchmarks Game]: https://pkg.go.dev/modernc.org/sqlite-bench#readme-tl-dr-scorecard
 package sqlite // import "modernc.org/sqlite"
