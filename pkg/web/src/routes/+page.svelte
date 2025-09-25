@@ -1,167 +1,179 @@
 <script lang="ts">
-	import { faro } from '@grafana/faro-web-sdk';
-	import { PUBLIC_BACKEND_ENDPOINT, PUBLIC_BACKEND_WS_ENDPOINT } from '$env/static/public';
-	import { onMount } from 'svelte';
-	import { Confetti } from 'svelte-confetti';
-	import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
-	import ToggleConfetti from '../lib/ToggleConfetti.svelte';
+// biome-ignore assist/source/organizeImports: organized by hand
+import { faro } from '@grafana/faro-web-sdk';
+import {
+	PUBLIC_BACKEND_ENDPOINT,
+	PUBLIC_BACKEND_WS_ENDPOINT,
+} from '$env/static/public';
+import { onMount } from 'svelte';
+import { Confetti } from 'svelte-confetti';
+import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
+import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 
-	const defaultRestrictions = {
-		maxCaloriesPerSlice: 1000,
-		mustBeVegetarian: false,
-		excludedIngredients: [],
-		excludedTools: [],
-		maxNumberOfToppings: 5,
-		minNumberOfToppings: 2,
-		customName: ''
-	};
+const defaultRestrictions = {
+	maxCaloriesPerSlice: 1000,
+	mustBeVegetarian: false,
+	excludedIngredients: [],
+	excludedTools: [],
+	maxNumberOfToppings: 5,
+	minNumberOfToppings: 2,
+	customName: '',
+};
 
-	var ratingStars = 5;
+var ratingStars = 5;
 
-	// A randomly-generated integer used to track identity of WebSocket connections.
-	// Completely unrelated to users, user tokens, authentication, etc.
-	var wsVisitorID = 0;
+// A randomly-generated integer used to track identity of WebSocket connections.
+// Completely unrelated to users, user tokens, authentication, etc.
+var wsVisitorID = 0;
 
-	// A randomly-generated user token that can be used to authenticate against the QP API.
-	// Since this token is not actually stored in the database, the returned user will always
-	// be user with ID 1 (default). This is implemented like so in order to not break the
-	// way QP was set up originally (i.e. one can open the website and start creating pizzas
-	// immediately, without logging in anywhere). So technically, the user is already logged
-	// in the moment they open the page.
-	// Additionally, if the qp_user_token Cookie has been set via the /login page, the value
-	// of the Cookie will take priority over this token sent over the Authorization header.
-	var userToken = '';
+// A randomly-generated user token that can be used to authenticate against the QP API.
+// Since this token is not actually stored in the database, the returned user will always
+// be user with ID 1 (default). This is implemented like so in order to not break the
+// way QP was set up originally (i.e. one can open the website and start creating pizzas
+// immediately, without logging in anywhere). So technically, the user is already logged
+// in the moment they open the page.
+// Additionally, if the qp_user_token Cookie has been set via the /login page, the value
+// of the Cookie will take priority over this token sent over the Authorization header.
+var userToken = '';
 
-	var render = false;
-	var quote = '';
-	var pizza = '';
-	var tools: string[] = [];
-	var pizzaCount = 0;
-	let restrictions = defaultRestrictions;
-	var advanced = false;
-	var rateResult = null;
+var render = false;
+var quote = '';
+var pizza = '';
+var tools: string[] = [];
+var pizzaCount = 0;
+let restrictions = defaultRestrictions;
+var advanced = false;
+var rateResult = null;
 
-	$: if (advanced) {
-		pizza = '';
-		restrictions = defaultRestrictions;
-	} else {
-		pizza = '';
-		restrictions = defaultRestrictions;
+$: if (advanced) {
+	pizza = '';
+	restrictions = defaultRestrictions;
+} else {
+	pizza = '';
+	restrictions = defaultRestrictions;
+}
+
+function randomToken(length) {
+	let result = '';
+	const characters =
+		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	const charactersLength = characters.length;
+	let counter = 0;
+	while (counter < length) {
+		result += characters.charAt(Math.floor(Math.random() * charactersLength));
+		counter += 1;
 	}
+	return result;
+}
 
-	function randomToken(length) {
-		let result = '';
-		const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-		const charactersLength = characters.length;
-		let counter = 0;
-		while (counter < length) {
-			result += characters.charAt(Math.floor(Math.random() * charactersLength));
-			counter += 1;
-		}
-		return result;
+let socket: WebSocket;
+onMount(async () => {
+	// biome-ignore lint/suspicious/noAssignInExpressions: -
+	wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
+	if (wsVisitorID === 0) {
+		wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
 	}
+	// biome-ignore lint/suspicious/noAssignInExpressions: -
+	userTokenStore.subscribe((value) => (userToken = value));
+	if (userToken === '') {
+		userTokenStore.set(randomToken(16));
+	}
+	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
+	const json = await res.json();
+	quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
 
-	let socket: WebSocket;
-	onMount(async () => {
-		wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
-		if (wsVisitorID === 0) {
-			wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
-		}
-		userTokenStore.subscribe((value) => (userToken = value));
-		if (userToken === '') {
-			userTokenStore.set(randomToken(16));
-		}
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
-		const json = await res.json();
-		quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
-
-		let wsUrl = `${PUBLIC_BACKEND_WS_ENDPOINT}`;
-		if (wsUrl === '') {
-			// Unlike with fetch, which understands "/" as "the window's host", for WS we need to build the URI by hand.
-			const l = window.location;
-			wsUrl =
-				(l.protocol === 'https:' ? 'wss://' : 'ws://') +
-				l.hostname +
-				(l.port != 80 && l.port != 443 ? ':' + l.port : '') +
-				'/ws';
-		}
-		socket = new WebSocket(wsUrl);
-		socket.addEventListener('message', function (event) {
-			const data = JSON.parse(event.data);
-			if (data.msg === 'new_pizza') {
-				if (data.ws_visitor_id !== wsVisitorID) {
-					pizzaCount++;
-				}
+	let wsUrl = `${PUBLIC_BACKEND_WS_ENDPOINT}`;
+	if (wsUrl === '') {
+		// Unlike with fetch, which understands "/" as "the window's host", for WS we need to build the URI by hand.
+		const l = window.location;
+		wsUrl =
+			(l.protocol === 'https:' ? 'wss://' : 'ws://') +
+			l.hostname +
+			(l.port !== 80 && l.port !== 443 ? ':' + l.port : '') +
+			'/ws';
+	}
+	socket = new WebSocket(wsUrl);
+	socket.addEventListener('message', function (event) {
+		const data = JSON.parse(event.data);
+		if (data.msg === 'new_pizza') {
+			if (data.ws_visitor_id !== wsVisitorID) {
+				pizzaCount++;
 			}
-		});
-		getTools();
-		render = true;
-		faro.api.pushEvent('Navigation', { url: window.location.href });
+		}
 	});
+	getTools();
+	render = true;
+	faro.api.pushEvent('Navigation', { url: window.location.href });
+});
 
-	async function ratePizza(stars) {
-		faro.api.pushEvent('Submit Pizza Rating', { pizza_id: pizza['pizza']['id'], stars: stars });
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
-			method: 'POST',
-			body: JSON.stringify({
-				pizza_id: pizza['pizza']['id'],
-				stars: stars
+async function ratePizza(stars) {
+	faro.api.pushEvent('Submit Pizza Rating', {
+		pizza_id: pizza['pizza']['id'],
+		stars: stars,
+	});
+	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
+		method: 'POST',
+		body: JSON.stringify({
+			pizza_id: pizza['pizza']['id'],
+			stars: stars,
+		}),
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+	if (res.ok) {
+		rateResult = 'Rated!';
+	} else {
+		rateResult = 'Please log in first.';
+		faro.api.pushError(new Error('Unauthenticated Ratings Submission'));
+	}
+}
+
+async function getPizza() {
+	faro.api.pushEvent('Get Pizza Recommendation', {
+		restrictions: restrictions,
+	});
+	if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
+		faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
+	}
+	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
+		method: 'POST',
+		body: JSON.stringify(restrictions),
+		headers: {
+			Authorization: 'Token ' + userToken,
+			'Content-Type': 'application/json',
+		},
+	});
+	const json = await res.json();
+	pizza = json;
+	rateResult = null;
+	if (socket.readyState <= 1) {
+		socket.send(
+			JSON.stringify({
+				// FIXME: The 'user' key is present in order not to break
+				// existing examples using QP WS. Remove it at some point.
+				// It has no connection to the user auth itself.
+				user: wsVisitorID,
+				ws_visitor_id: wsVisitorID,
+				msg: 'new_pizza',
 			}),
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
-		if (res.ok) {
-			rateResult = 'Rated!';
-		} else {
-			rateResult = 'Please log in first.';
-			faro.api.pushError(new Error('Unauthenticated Ratings Submission'));
-		}
+		);
 	}
+	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
+		faro.api.pushError(new Error('Bad Pizza Recommendation'));
+	}
+}
 
-	async function getPizza() {
-		faro.api.pushEvent('Get Pizza Recommendation', { restrictions: restrictions });
-		if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
-			faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
-		}
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
-			method: 'POST',
-			body: JSON.stringify(restrictions),
-			headers: {
-				Authorization: 'Token ' + userToken,
-				'Content-Type': 'application/json'
-			}
-		});
-		const json = await res.json();
-		pizza = json;
-		rateResult = null;
-		if (socket.readyState <= 1) {
-			socket.send(
-				JSON.stringify({
-					// FIXME: The 'user' key is present in order not to break
-					// existing examples using QP WS. Remove it at some point.
-					// It has no connection to the user auth itself.
-					user: wsVisitorID,
-					ws_visitor_id: wsVisitorID,
-					msg: 'new_pizza'
-				})
-			);
-		}
-		if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
-			faro.api.pushError(new Error('Bad Pizza Recommendation'));
-		}
-	}
-
-	async function getTools() {
-		faro.api.pushEvent('Get Pizza Tools', { tools: tools });
-		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
-			headers: {
-				Authorization: 'Token ' + userToken
-			}
-		});
-		const json = await res.json();
-		tools = json.tools;
-	}
+async function getTools() {
+	faro.api.pushEvent('Get Pizza Tools', { tools: tools });
+	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
+		headers: {
+			Authorization: 'Token ' + userToken,
+		},
+	});
+	const json = await res.json();
+	tools = json.tools;
+}
 </script>
 
 <svelte:head>

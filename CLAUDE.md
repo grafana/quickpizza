@@ -17,8 +17,8 @@ QuickPizza is a demonstration web application that generates pizza recommendatio
 - `cd pkg/web && npm install` - Install frontend dependencies
 - `cd pkg/web && npm run dev` - Start development server
 - `cd pkg/web && npm run build` - Build production frontend
-- `cd pkg/web && npm run lint` - Lint frontend code
-- `cd pkg/web && npm run format` - Format frontend code
+- `cd pkg/web && npm run biome-check` - Check frontend code
+- `cd pkg/web && npm run biome-format` - Format frontend code
 
 ### Go Development
 - `make format` - Format Go code with goimports

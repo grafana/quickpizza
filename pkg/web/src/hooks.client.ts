@@ -23,7 +23,7 @@ function setupFaro() {
 					name: faroAppName,
 					namespace: faroAppNamespace,
 					version: faroAppVersion,
-					environment: faroAppEnvironment
+					environment: faroAppEnvironment,
 				},
 				instrumentations: [
 					// Mandatory, overwriting the instrumentations array would cause the default instrumentations to be omitted
@@ -31,8 +31,8 @@ function setupFaro() {
 
 					// Initialization of the tracing package.
 					// This packages is optional because it increases the bundle size noticeably. Only add it if you want tracing data.
-					new TracingInstrumentation()
-				]
+					new TracingInstrumentation(),
+				],
 			});
 		})
 		.catch((e) => {
