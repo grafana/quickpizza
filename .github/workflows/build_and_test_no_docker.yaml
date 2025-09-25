@@ -1,3 +1,10 @@
+# NOTE:
+# It is important that these actions are run for every PR, no matter what
+# other actions are added. The ones here are testing the actual code pushed
+# instead of a possibly outadated image. Additionally, we also run formatters
+# and linters here.
+# Do not modify this file unless you really need to.
+
 name: Build and Test (without Docker)
 on: [push]
 
@@ -45,12 +52,6 @@ jobs:
 
       - name: Setup k6
         uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
-
-      - name: Install chrome
-        run: |
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
-          sudo apt update && sudo apt install -y google-chrome-stable
 
       - name: Install jq
         uses: dcarbone/install-jq-action@e397bd87438d72198f81efd21f876461183d383a # v3.0.1
