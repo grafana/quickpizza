@@ -21,7 +21,7 @@
 		"@sveltejs/vite-plugin-svelte": "6.1.4",
 		"autoprefixer": "10.4.14",
 		"biome": "^0.3.3",
-		"postcss": "8.5.1",
+		"postcss": "8.5.6",
 		"svelte": "5.38.6",
 		"svelte-check": "4.3.1",
 		"tailwindcss": "3.2.7",
