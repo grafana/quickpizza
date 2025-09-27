@@ -39,24 +39,26 @@ func main() {
 		pyroscope.Start(profilingConfig)
 	}
 
-	// Enable tracing if configured.
-	traceInstaller := &qphttp.TraceInstaller{}
-	otlpEndpoint, tracingEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT")
-	if tracingEnabled {
+	// Enable OpenTelemetry if configured.
+	otelInstaller := &qphttp.OTelInstaller{}
+
+	// TODO: use standard OTEL_EXPORTER_OTLP_ENDPOINT env var
+	otlpEndpoint, otelEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT")
+	if otelEnabled {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		var err error
-		traceInstaller, err = qphttp.NewTraceInstaller(ctx, otlpEndpoint)
+		otelInstaller, err = qphttp.NewOTelInstaller(ctx, otlpEndpoint)
 		if err != nil {
-			slog.Error("creating otlp trace installer", "err", err)
+			slog.Error("creating OpenTelemetryinstaller", "err", err)
 			os.Exit(1)
 		}
 
-		slog.Debug("enabling tracing")
+		slog.Debug("enabling OpenTelemetry tracing and metrics")
 
 		if envBool("QUICKPIZZA_TRUST_CLIENT_TRACEID") {
-			traceInstaller.Insecure()
+			otelInstaller.Insecure()
 		}
 	}
 
@@ -65,7 +67,7 @@ func main() {
 	httpCli := clientFromEnv()
 
 	// Create the QuickPizza server.
-	server := qphttp.NewServer(profilingEnabled, traceInstaller)
+	server := qphttp.NewServer(profilingEnabled, otelInstaller)
 
 	server.AddLivenessProbes()
 
