@@ -1,10 +1,8 @@
 module github.com/grafana/quickpizza
 
-go 1.24.0
+go 1.23.0
 
 toolchain go1.24.6
-
-exclude google.golang.org/genproto v0.0.0-20200825200019-8632dd797987
 
 require (
 	github.com/go-chi/chi/v5 v5.2.2
