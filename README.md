@@ -75,11 +75,15 @@ k6 run -e BASE_URL=https://quickpizza.grafana.com 01.basic.js
 <details>
   <summary>Send k6 test results to Prometheus</summary>
 
-  The sections below explain how to instrument QuickPizza with the Grafana Observability stack.
-
   You can also send k6 metrics to either a local Prometheus instance or Grafana Cloud Prometheus, and visualize the test results in Grafana.
 
-  For instructions, see [Send k6 Test Results to Prometheus](./docs/send-k6-test-results.md)
+  ```bash
+  ./k6 run -o experimental-prometheus-rw 01.basic-internal.js
+  ```
+
+  The sections below explain how to observe QuickPizza using either a local Grafana Observability stack or Grafana Cloud.
+
+  For detailed instructions, see [Send k6 Test Results to Prometheus](./docs/send-k6-test-results.md)
 
 </details>
 
