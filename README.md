@@ -7,11 +7,9 @@
 - [Use k6 to test QuickPizza](#use-k6-to-test-quickpizza)
 - [Run locally with Docker](#run-locally-with-docker)
 - [Run and observe locally with Grafana OSS 🐳📊](#run-and-observe-locally-with-grafana-oss-)
-  - [Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards](#send-k6-test-results-to-prometheus-and-visualize-them-in-grafana-with-prebuilt-dashboards)
 - [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud)
   - [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
   - [Monitor QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability)
-  - [Send k6 test results to Grafana Cloud Prometheus and visualize them with prebuilt Grafana dashboards](#send-k6-test-results-to-grafana-cloud-prometheus-and-visualize-them-with-prebuilt-grafana-dashboards)
 
 ## What is QuickPizza? 🍕🍕🍕
 
@@ -75,7 +73,19 @@ k6 run -e BASE_URL=https://quickpizza.grafana.com 01.basic.js
 </details>
 
 <details>
+  <summary>Send k6 test results to Prometheus</summary>
+
+  The sections below explain how to instrument QuickPizza with the Grafana Observability stack.
+
+  You can also send k6 metrics to either a local Prometheus instance or Grafana Cloud Prometheus, and visualize the test results in Grafana.
+
+  For instructions, see [Send k6 Test Results to Prometheus](./docs/send-k6-test-results.md)
+
+</details>
+
+<details>
   <summary>Using k6 Docker image</summary>
+  
   If you want to use the [k6 Docker image](https://hub.docker.com/r/grafana/k6) to run k6, you need to run the QuickPizza and k6 containers within the same network.
 
   First, create a Docker network. Then, run QuickPizza, assigning a hostname and connecting to the created network.
@@ -137,20 +147,6 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 ![Use Profiles Drilldown](./docs/images/drilldown-profiles.png)
 
 To find the labels applied to the telemetry data, refer to [local.alloy](./alloy/local.alloy) and [compose.grafana-local-stack.monolithic.yaml](./compose.grafana-local-stack.monolithic.yaml).
-
-### Send k6 Test Results to Prometheus and visualize them in Grafana with prebuilt dashboards
-
-To send k6 results to the Prometheus instance, execute the `k6 run` command with the value of the `output` flag set to `experimental-prometheus-rw` as follows:
-
-```bash
-k6 run -o experimental-prometheus-rw 01.basic.js
-```
-
-The local Grafana instance includes the [k6 Prometheus](https://grafana.com/grafana/dashboards/19665-k6-prometheus/) and [k6 Prometheus (Native Histogram)](https://grafana.com/grafana/dashboards/18030-k6-prometheus-native-histograms/) dashboards to help visualize, query, and correlate k6 results with telemetry data.
-
-![k6 provisioned dashboards](./docs/images/provisioned-k6-prometheus-dashboards.png)
-
-For detailed instructions about the different options of the k6 Prometheus output, refer to the [k6 output guide for Prometheus remote write](https://grafana.com/docs/k6/latest/results-output/real-time/prometheus-remote-write/).
 
 ## Run locally and observe with Grafana Cloud ☁📊
 
@@ -286,17 +282,3 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
     ```
 
 ![Frontend Observability](./docs/images/grafana-cloud-frontend-observability-quickpizza.png)
-
-### Send k6 test results to Grafana Cloud Prometheus and visualize them with prebuilt Grafana dashboards
-
-Just like in the local setup, we can output k6 result metrics to a Prometheus instance; in this case, it is provided by our Grafana Cloud Stack.
-
-```bash
-K6_PROMETHEUS_RW_USERNAME=USERNAME \
-K6_PROMETHEUS_RW_PASSWORD=API_KEY \
-K6_PROMETHEUS_RW_SERVER_URL=REMOTE_WRITE_ENDPOINT \
-k6 run -o experimental-prometheus-rw script.js
-```
-
-For detailed instructions, refer to the [k6 output guide for Grafana Cloud Prometheus](https://grafana.com/docs/k6/latest/results-output/real-time/grafana-cloud-prometheus/).
-
