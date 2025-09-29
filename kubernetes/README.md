@@ -72,8 +72,8 @@ You should now be able to access the application on port `3333` in the IP addres
 
 To collect telemetry data, use one of the following setups:
 
-- Use [`kubernetes/cloud-stack`](./cloud-stack/) to send telemetry data to Grafana Cloud with a cloud access policy.
-- Use [`kubernetes/cloud-otlp`](./cloud-otlp/) to send telemetry data to Grafana Cloud via the OTLP endpoint.
+- Use [`kubernetes/cloud`](./cloud/) to send telemetry data to Grafana Cloud.
+- Use [`kubernetes/cloud-testing`](./cloud-testing/) to implement your custom setup.
 
 Before deployment:
 

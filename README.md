@@ -260,7 +260,9 @@ To enable [Grafana Cloud Application Observability](https://grafana.com/docs/gra
 2. Click on **Enable metrics generation** to enable the usage of Application Observability. 
 3. Interact with the QuickPizza app to generate traffic. After a few minutes, the QuickPizza components will be automatically discovered and displayed in the UI.
 
-![Application Observability](./docs/images/grafana-cloud-application-application-observability-quickpizza.png)
+![Application Observability](./docs/images/grafana-cloud-application-observability.png)
+
+![Application Observability - Public API Service](./docs/images/grafana-cloud-application-observability-public-api-svc.png)
 
 To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/):
 
