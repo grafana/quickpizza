@@ -210,23 +210,23 @@ graph TB
 
 Observability attributes follow OpenTelemetry semantic conventions:
 
-- **Microservices mode** 
-  - `service.namespace=quickpizza`
-  - `service.name={catalog, config, public-api, ...}`
+**Microservices mode**
+- `service.namespace=quickpizza`
+- `service.name={catalog, config, public-api, ...}`
 
-- **Monolithic mode** 
+**Monolithic mode** 
 - `service.namespace=quickpizza`
 - `service.name=quickpizza`
 - `service.component={catalog, config, public-api, ...}`
 
 You can deploy QuickPizza with different Compose files depending on the mode and observability backend:
 
-- [`compose.grafana-local-stack.monolithic.yaml`](./compose.grafana-cloud.microservices.yaml): Monolithic mode with a local Grafana observability stack.
-- [`compose.grafana-local-stack.microservices.yaml`](./compose.grafana-cloud.microservices.yaml): Microservice mode with a local Grafana observability stack. 
+- [`compose.grafana-local-stack.monolithic.yaml`](./compose.grafana-local-stack.monolithic.yaml): Monolithic mode with a local Grafana observability stack.
+- [`compose.grafana-local-stack.microservices.yaml`](./compose.grafana-local-stack.microservices.yaml): Microservice mode with a local Grafana observability stack. 
 - [`compose.grafana-cloud.monolithic.yaml`](./compose.grafana-cloud.monolithic.yaml): Monolithic mode with Grafana Cloud.
 - [`compose.grafana-cloud.microservices.yaml`](./compose.grafana-cloud.microservices.yaml): Microservice mode with Grafana Cloud.
 
-For microservice deployments, we recommend [monitoring QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability). **Application Observability** lets you visualize and correlate data across services.
+For microservice deployments, we recommend [monitoring QuickPizza with Application Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability), which allows you to easily visualize and correlate data across services.
 
 ## Run locally and observe with Grafana Cloud ☁📊
 
