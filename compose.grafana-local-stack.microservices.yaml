@@ -16,7 +16,7 @@ services:
     labels:
       - "service.type=instrumentation"
     volumes:
-      - "./alloy/${ALLOY_FILE_NAME:-cloud.alloy}:/config.alloy:Z"
+      - "./alloy/${ALLOY_FILE_NAME:-local.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
@@ -26,11 +26,15 @@ services:
     ports:
       - "12345:12345"
     environment:
-      QUICKPIZZA_HOST: public-api:3333
-      # must be set with an .env file
-      GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
-      GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+      QUICKPIZZA_HOST: quickpizza:3333
+      METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
+      TRACES_ENDPOINT: http://tempo:4317
+      LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
+      PROFILES_ENDPOINT: http://pyroscope:4040
     depends_on:
+      - prometheus
+      - tempo
+      - pyroscope
       - catalog
       - config
       - copy
@@ -107,3 +111,61 @@ services:
       QUICKPIZZA_ENABLE_WS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
+
+  loki:
+    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
+    container_name: loki
+    labels:
+      - "service.type=instrumentation"
+    ports:
+      - "3100:3100"
+
+  prometheus:
+    image: prom/prometheus:v3.2.1@sha256:6927e0919a144aa7616fd0137d4816816d42f6b816de3af269ab065250859a62
+    container_name: prometheus
+    labels:
+      - "service.type=instrumentation"
+    command:
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  pyroscope:
+    image: grafana/pyroscope:1.14.0@sha256:0f63959ffcf217e7046d8f7a3d20cf6909f2924f885fc2f0eec58f87f9acf749
+    container_name: pyroscope
+    labels:
+      - "service.type=instrumentation"
+    ports:
+      - "4040:4040"
+
+  tempo:
+    image: grafana/tempo:2.8.1@sha256:bc9245fe3da4e63dc4c6862d9c2dad9bcd8be13d0ba4f7705fa6acda4c904d0e
+    container_name: tempo
+    labels:
+      - "service.type=instrumentation"
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./alloy/local-tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-12.1.0}
+    container_name: grafana
+    labels:
+      - "service.type=instrumentation"
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/
