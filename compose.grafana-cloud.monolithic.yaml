@@ -3,7 +3,7 @@ services:
     image: grafana/alloy:v1.9.1@sha256:b5fc87ff9a8941d6ed3ae5f099d9cb8598b3cd42fef9a8af128ed782258b4017
     container_name: alloy
     labels:
-    - "service.type=instrumentation"
+      - "service.type=instrumentation"
     volumes:
       - "./alloy/${ALLOY_FILE_NAME:-cloud.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
@@ -22,19 +22,16 @@ services:
       # set only when ALLOY_FILE_NAME=cloud.otlp.alloy
       GRAFANA_CLOUD_OTLP_ENDPOINT: "${GRAFANA_CLOUD_OTLP_ENDPOINT:-}"
       GRAFANA_CLOUD_INSTANCE_ID: "${GRAFANA_CLOUD_INSTANCE_ID:-}"
-      # enable Faro integration
-      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
-      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
     depends_on:
       - quickpizza
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
-    # Alloy reads `container_name` to relabel service name in telemetry. 
-    container_name: quickpizza  
+    # Alloy reads `container_name` to relabel service name in telemetry.
+    container_name: quickpizza
     labels:
-    - "service.type=application"
+      - "service.type=application"
     ports:
       - "3333:3333"
     environment:
@@ -43,4 +40,6 @@ services:
       QUICKPIZZA_ENABLE_ALL_SERVICES: 1 # 1 for monolithic mode
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
-
+      # enable Faro integration
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
+      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
