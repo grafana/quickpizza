@@ -1,64 +1,10 @@
 services:
-  quickpizza:
-    # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
-    # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
-    ports:
-      - "3333:3333"
-    environment:
-      QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
-      QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
-      QUICKPIZZA_PYROSCOPE_ENDPOINT: http://alloy:9999
-      # Enable logging. Possible values: error, warn, debug. Default: info
-      # QUICKPIZZA_LOG_LEVEL: debug
-
-  loki:
-    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
-    ports:
-      - "3100:3100"
-
-  prometheus:
-    image: prom/prometheus:v3.2.1@sha256:6927e0919a144aa7616fd0137d4816816d42f6b816de3af269ab065250859a62
-    command:
-      - --web.enable-remote-write-receiver
-      - --enable-feature=exemplar-storage
-      - --enable-feature=native-histograms
-      - --config.file=/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-
-  pyroscope:
-    image: grafana/pyroscope:1.14.0@sha256:0f63959ffcf217e7046d8f7a3d20cf6909f2924f885fc2f0eec58f87f9acf749
-    ports:
-      - "4040:4040"
-  
-  tempo:
-    image: grafana/tempo:2.8.1@sha256:bc9245fe3da4e63dc4c6862d9c2dad9bcd8be13d0ba4f7705fa6acda4c904d0e
-    command: [ "-config.file=/etc/tempo.yaml" ]
-    volumes:
-      - ./alloy/local-tempo.yaml:/etc/tempo.yaml
-    ports:
-      - "3200:3200"
-      - "4317:4317"
-      - "4318:4318"
-    depends_on:
-      - prometheus
-
-  grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-12.1.0}
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_BASIC_ENABLED=false
-    volumes:
-      - ./grafana:/etc/grafana/provisioning/
-
   alloy:
     image: grafana/alloy:v1.9.1@sha256:b5fc87ff9a8941d6ed3ae5f099d9cb8598b3cd42fef9a8af128ed782258b4017
+    container_name: alloy
+    labels:
+      - "service.type=instrumentation"
     volumes:
-      - "./alloy/local.alloy:/config.alloy:Z"
       - "./alloy/${ALLOY_FILE_NAME:-local.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
@@ -75,7 +21,86 @@ services:
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
       PROFILES_ENDPOINT: http://pyroscope:4040
     depends_on:
-      - prometheus
       - quickpizza
+      - prometheus
       - tempo
+      - loki
       - pyroscope
+  quickpizza:
+    # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
+    # created with `make docker-build`.
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
+    container_name: quickpizza
+    labels:
+      - "service.type=application"
+    ports:
+      - "3333:3333"
+    environment:
+      QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
+      QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
+      QUICKPIZZA_ENABLE_ALL_SERVICES: 1 # 1 for monolithic mode
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
+      # enable Faro integration
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
+      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
+      # Enable logging. Possible values: error, warn, debug. Default: info
+      # QUICKPIZZA_LOG_LEVEL: debug
+
+  loki:
+    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
+    container_name: loki
+    labels:
+      - "service.type=instrumentation"
+    ports:
+      - "3100:3100"
+
+  prometheus:
+    image: prom/prometheus:v3.2.1@sha256:6927e0919a144aa7616fd0137d4816816d42f6b816de3af269ab065250859a62
+    container_name: prometheus
+    labels:
+      - "service.type=instrumentation"
+    command:
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  pyroscope:
+    image: grafana/pyroscope:1.14.0@sha256:0f63959ffcf217e7046d8f7a3d20cf6909f2924f885fc2f0eec58f87f9acf749
+    container_name: pyroscope
+    labels:
+      - "service.type=instrumentation"
+    ports:
+      - "4040:4040"
+
+  tempo:
+    image: grafana/tempo:2.8.1@sha256:bc9245fe3da4e63dc4c6862d9c2dad9bcd8be13d0ba4f7705fa6acda4c904d0e
+    container_name: tempo
+    labels:
+      - "service.type=instrumentation"
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./alloy/local-tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-12.1.0}
+    container_name: grafana
+    labels:
+      - "service.type=instrumentation"
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/

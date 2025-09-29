@@ -1,3 +1,88 @@
+// discover containers running QuickPizza
+discovery.docker "application_containers" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "label"
+    values = ["service.type=application"]
+  }
+}
+
+// set expected labels
+discovery.relabel "application_containers" {
+  rule {
+    target_label = "job"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex = "/(.*)"
+    replacement = "quickpizza/${1}"
+  }
+  rule {
+    target_label = "instance"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex = "/(.*)"
+    replacement = "${1}"
+  }
+  rule {
+    target_label = "service_namespace"
+    replacement = "quickpizza"
+  }
+  // the `namespace` label is for visualizing Profiles in Application Observability
+  rule {
+    target_label = "namespace"
+    replacement = "quickpizza"
+  }
+  rule {
+    target_label = "service_name"
+    source_labels = [
+      "__meta_docker_container_name",
+    ]
+    regex = "/(.*)"
+    replacement = "${1}"
+  }
+  targets = discovery.docker.application_containers.targets
+}
+
+// Metrics
+prometheus.remote_write "local" {
+  endpoint {
+    // TODO: Replace this with your prometheus-compatible metrics store
+    url = env("METRICS_ENDPOINT")
+  }
+}
+prometheus.scrape "application_containers" {
+  scrape_interval = "60s"
+  targets = discovery.relabel.application_containers.output
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+// Logs
+loki.write "local" {
+  endpoint {
+    url = env("LOGS_ENDPOINT")
+  }
+}
+loki.source.docker "application_containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.application_containers.output
+  forward_to = [loki.write.local.receiver]
+}
+
+// Profiling Pull Mode
+pyroscope.write "local" {
+   endpoint {
+       url = env("PROFILES_ENDPOINT")
+   }
+}
+pyroscope.scrape "application_containers" {
+  // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
+  scrape_interval = "30s"
+  targets = discovery.relabel.application_containers.output
+  forward_to = [pyroscope.write.local.receiver]
+}
+
 // Receive traces
 otelcol.receiver.otlp "default" {
   grpc {
@@ -23,26 +108,7 @@ otelcol.processor.batch "default" {
   }
 }
 
-// Scrape Metrics
-prometheus.scrape "default" {
-  scrape_interval = "60s"
-  forward_to = [
-    prometheus.remote_write.default.receiver,
-  ]
-  targets = [
-    {
-      "__address__" = env("QUICKPIZZA_HOST"),
-      "job" = "quickpizza",
-      "instance" = "local",
-      "service_name" = "quickpizza",
-      "service_namespace" = "quickpizza",
-    },
-  ]
-}
-
-
 // Collect profiles
-
 otelcol.exporter.otlp "default" {
   client {
     // TODO: Replace this with the endpoint for your trace receiver
@@ -52,66 +118,4 @@ otelcol.exporter.otlp "default" {
         insecure_skip_verify = true
     }
   }
-}
-
-prometheus.remote_write "default" {
-  endpoint {
-    // TODO: Replace this with your prometheus-compatible metrics store
-    url = env("METRICS_ENDPOINT")
-  }
-}
-
-discovery.docker "all_containers" {
-  host = "unix:///var/run/docker.sock"
-}
-
-discovery.relabel "quickpizza" {
-  rule {
-    target_label = "instance"
-    source_labels = [
-      "__meta_docker_container_name",
-    ]
-    regex ="/(.*)"
-    action = "replace"
-  }
-  rule {
-    target_label = "job"
-    source_labels = [
-      "__meta_docker_container_label_com_docker_compose_project",
-    ]
-    regex = ".*quickpizza.*"
-    action = "keep"
-  }
-  targets = discovery.docker.all_containers.targets
-}
-
-loki.source.docker "default" {
-  host       = "unix:///var/run/docker.sock"
-  targets    = discovery.relabel.quickpizza.output
-  forward_to = [loki.write.local.receiver]
-  labels = {
-    service_name = "quickpizza",
-    service_namespace = "quickpizza",
-  }
-}
-
-loki.write "local" {
-  endpoint {
-    url = env("LOGS_ENDPOINT")
-  }
-}
-
-// Receive profiling data
-pyroscope.receive_http "default" {
-   http {
-       listen_address = "0.0.0.0"
-       listen_port = 9999
-   }
-   forward_to = [pyroscope.write.local.receiver]
-}
-
-pyroscope.write "local" {
-   endpoint {
-       url = env("PROFILES_ENDPOINT")
-   }
 }

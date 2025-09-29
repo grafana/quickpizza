@@ -7,8 +7,8 @@
 - [Use k6 to test QuickPizza](#use-k6-to-test-quickpizza)
 - [Run locally with Docker](#run-locally-with-docker)
 - [Run and observe locally with Grafana OSS 🐳📊](#run-and-observe-locally-with-grafana-oss-)
+- [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
 - [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud)
-  - [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
   - [Monitor QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability)
 
 ## What is QuickPizza? 🍕🍕🍕
@@ -150,51 +150,14 @@ Then, you can visit the Grafana instance running at [localhost:3000](http://loca
 
 ![Use Profiles Drilldown](./docs/images/drilldown-profiles.png)
 
-To find the labels applied to the telemetry data, refer to [local.alloy](./alloy/local.alloy) and [compose.grafana-local-stack.monolithic.yaml](./compose.grafana-local-stack.monolithic.yaml).
+## QuickPizza deployment modes: Monolithic vs Microservices
 
-## Run locally and observe with Grafana Cloud ☁📊
+QuickPizza can be deployed in two modes: monolithic or microservices.
 
-The [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml) file is set up to run QuickPizza in microservice mode with a Grafana Alloy instance.
+- **Monolithic mode**: All QuickPizza components run inside a single container.
+- **Microservices mode**: QuickPizza is split into independent services, each with a clear responsibility (for example, `catalog`, `recommendations`, or `public-api`). Each service runs in its own Docker container.
 
-In this setup, Grafana Alloy collects observability data from the QuickPizza microservices and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
-
-You will need the following settings:
-
-1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored.
-2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
-
-Then, create an `.env` file with the following environment variables and the values of the previous settings:
-
-```bash
-# Your Grafana Cloud Stack Name (Slug)
-GRAFANA_CLOUD_STACK=
-# Your Grafana Cloud Access Policy Token
-GRAFANA_CLOUD_TOKEN=
-```
-
-Finally, execute the Docker Compose command using the `compose.grafana-cloud.microservices.yaml` file, just as in the local setup:
-
-```bash
-docker compose -f compose.grafana-cloud.microservices.yaml up -d
-```
-
-QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
-
-Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and use **Explore** or **Drilldown apps** to access QuickPizza's telemetry data.
-
-![Use Metrics Drilldown](./docs/images/grafana-cloud-drilldown-metrics.png)
-
-![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
-
-To find the labels applied to the telemetry data, refer to [cloud.alloy](./alloy/cloud.alloy) and [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml).
-
-### QuickPizza deployment modes: Monolithic vs Microservices
-
-QuickPizza can be deployed in two modes: **monolithic** or **microservices**.
-
-In microservices mode, QuickPizza is split into several independent services, each with a distinct responsibility—such as `catalog`, `recommendations`, and `public-api`. Each service runs in its own Docker container.
-
-This architecture enables distributed tracing and demonstrates service-oriented observability.
+The microservices architecture demonstrates service-oriented observability patterns, such as distributed tracing, metric labeling per service, and log correlation.
 
 ```mermaid
 graph TB
@@ -245,9 +208,59 @@ graph TB
   GA --> GC
 ```
 
-The [`compose.grafana-cloud.microservices.yaml`](./compose.grafana-cloud.microservices.yaml) file configures QuickPizza in microservices mode. In this setup, Grafana Alloy collects telemetry data from each service and sends it to Grafana Cloud, enabling centralized observability across all components.
+Observability attributes follow OpenTelemetry semantic conventions:
 
-For monolithic deployments, all QuickPizza components run together in a single container. Grafana Alloy still collects telemetry data, but from the unified application instance. Use the [`compose.grafana-cloud.monolithic.yaml`](./compose.grafana-cloud.monolithic.yaml) or [`compose.grafana-local-stack.monolithic.yaml`](./compose.grafana-local-stack.monolithic.yaml) files to orchestrate this environment.
+- **Microservices mode** 
+  - `service.namespace=quickpizza`
+  - `service.name={catalog, config, public-api, ...}`
+
+- **Monolithic mode** 
+- `service.namespace=quickpizza`
+- `service.name=quickpizza`
+- `service.component={catalog, config, public-api, ...}`
+
+You can deploy QuickPizza with different Compose files depending on the mode and observability backend:
+
+- [`compose.grafana-local-stack.monolithic.yaml`](./compose.grafana-cloud.microservices.yaml): Monolithic mode with a local Grafana observability stack.
+- [`compose.grafana-local-stack.microservices.yaml`](./compose.grafana-cloud.microservices.yaml): Microservice mode with a local Grafana observability stack. 
+- [`compose.grafana-cloud.monolithic.yaml`](./compose.grafana-cloud.monolithic.yaml): Monolithic mode with Grafana Cloud.
+- [`compose.grafana-cloud.microservices.yaml`](./compose.grafana-cloud.microservices.yaml): Microservice mode with Grafana Cloud.
+
+For microservice deployments, we recommend [monitoring QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability). **Application Observability** lets you visualize and correlate data across services.
+
+## Run locally and observe with Grafana Cloud ☁📊
+
+The [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml) file is set up to run QuickPizza in microservice mode with a Grafana Alloy instance.
+
+In this setup, Grafana Alloy collects observability data from the QuickPizza microservices and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
+
+You will need the following settings:
+
+1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored.
+2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
+
+Then, create an `.env` file with the following environment variables and the values of the previous settings:
+
+```bash
+# Your Grafana Cloud Stack Name (Slug)
+GRAFANA_CLOUD_STACK=
+# Your Grafana Cloud Access Policy Token
+GRAFANA_CLOUD_TOKEN=
+```
+
+Finally, execute the Docker Compose command using the `compose.grafana-cloud.microservices.yaml` file, just as in the local setup:
+
+```bash
+docker compose -f compose.grafana-cloud.microservices.yaml up -d
+```
+
+QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
+
+Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and use **Explore** or **Drilldown apps** to access QuickPizza's telemetry data.
+
+![Use Metrics Drilldown](./docs/images/grafana-cloud-drilldown-metrics.png)
+
+![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
 
 ### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
