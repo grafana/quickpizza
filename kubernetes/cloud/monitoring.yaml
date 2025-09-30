@@ -1,0 +1,183 @@
+cluster:
+  name: "${CLUSTER_NAME}"
+destinations:
+  - name: grafana-cloud-metrics
+    type: prometheus
+    url: "${PROMETHEUS_URL}"
+    auth:
+      type: basic
+      username: "${PROMETHEUS_USERNAME}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
+  - name: grafana-cloud-logs
+    type: loki
+    url: "${LOKI_URL}"
+    auth:
+      type: basic
+      username: "${LOKI_USERNAME}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
+  - name: gc-otlp-endpoint
+    type: otlp
+    url: "${OTLP_URL}"
+    protocol: http
+    auth:
+      type: basic
+      username: "${OTLP_USERNAME}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
+    metrics:
+      enabled: true
+    logs:
+      enabled: true
+    traces:
+      enabled: true
+clusterMetrics:
+  enabled: true
+  opencost:
+    enabled: true
+    metricsSource: grafana-cloud-metrics
+    opencost:
+      exporter:
+        defaultClusterId: "${CLUSTER_NAME}"
+      prometheus:
+        existingSecretName: grafana-cloud-metrics-grafana-monitoring-k8s-monitoring
+        external:
+          url: "${PROMETHEUS_URL}"
+  kepler:
+    enabled: true
+clusterEvents:
+  enabled: true
+podLogs:
+  enabled: true
+applicationObservability:
+  enabled: true
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+        port: 4317
+      http:
+        enabled: true
+        port: 4318
+    zipkin:
+      enabled: true
+      port: 9411
+alloy-metrics:
+  enabled: true
+  alloy:
+    extraEnv:
+      - name: GCLOUD_RW_API_KEY
+        value: "${GRAFANA_CLOUD_TOKEN}"
+      - name: CLUSTER_NAME
+        value: "${CLUSTER_NAME}"
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: GCLOUD_FM_COLLECTOR_ID
+        value: grafana-k8s-monitoring-$(CLUSTER_NAME)-$(NAMESPACE)-$(POD_NAME)
+  remoteConfig:
+    enabled: true
+    url: "${FLEET_MANAGEMENT_URL}"
+    auth:
+      type: basic
+      username: "${FLEET_MANAGEMENT_ID}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
+alloy-singleton:
+  enabled: true
+  alloy:
+    extraEnv:
+      - name: GCLOUD_RW_API_KEY
+        value: "${GRAFANA_CLOUD_TOKEN}"
+      - name: CLUSTER_NAME
+        value: "${CLUSTER_NAME}"
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: GCLOUD_FM_COLLECTOR_ID
+        value: grafana-k8s-monitoring-$(CLUSTER_NAME)-$(NAMESPACE)-$(POD_NAME)
+  remoteConfig:
+    enabled: true
+    url: "${FLEET_MANAGEMENT_URL}"
+    auth:
+      type: basic
+      username: "${FLEET_MANAGEMENT_ID}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
+alloy-logs:
+  enabled: true
+  alloy:
+    extraEnv:
+      - name: GCLOUD_RW_API_KEY
+        value: "${GRAFANA_CLOUD_TOKEN}"
+      - name: CLUSTER_NAME
+        value: "${CLUSTER_NAME}"
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: NODE_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+      - name: GCLOUD_FM_COLLECTOR_ID
+        value: grafana-k8s-monitoring-$(CLUSTER_NAME)-$(NAMESPACE)-alloy-logs-$(NODE_NAME)
+  remoteConfig:
+    enabled: true
+    url: "${FLEET_MANAGEMENT_URL}"
+    auth:
+      type: basic
+      username: "${FLEET_MANAGEMENT_ID}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
+alloy-receiver:
+  enabled: true
+  alloy:
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
+      - name: zipkin
+        port: 9411
+        targetPort: 9411
+        protocol: TCP
+    extraEnv:
+      - name: GCLOUD_RW_API_KEY
+        value: "${GRAFANA_CLOUD_TOKEN}"
+      - name: CLUSTER_NAME
+        value: "${CLUSTER_NAME}"
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: NODE_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+      - name: GCLOUD_FM_COLLECTOR_ID
+        value: grafana-k8s-monitoring-$(CLUSTER_NAME)-$(NAMESPACE)-alloy-receiver-$(NODE_NAME)
+  remoteConfig:
+    enabled: true
+    url: "${FLEET_MANAGEMENT_URL}"
+    auth:
+      type: basic
+      username: "${FLEET_MANAGEMENT_ID}"
+      password: "${GRAFANA_CLOUD_TOKEN}"
