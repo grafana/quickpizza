@@ -208,16 +208,26 @@ graph TB
   GA --> GC
 ```
 
-Observability attributes follow OpenTelemetry semantic conventions:
+Label and attributes follow OpenTelemetry semantic conventions for service-oriented architectures:
 
 **Microservices mode**
-- `service.namespace=quickpizza`
-- `service.name={catalog, config, public-api, ...}`
+
+- Observability labels 
+  - `service_namespace=quickpizza`
+  - `service_name={catalog, config, public-api, ...}`
+- OTEL resource attributes
+  - `service.namespace=quickpizza`
+  - `service.name={catalog, config, public-api, ...}`
 
 **Monolithic mode** 
-- `service.namespace=quickpizza`
-- `service.name=quickpizza`
-- `service.component={catalog, config, public-api, ...}`
+
+- Observability labels 
+  - `service_namespace=quickpizza`
+  - `service_name=quickpizza`
+- OTEL resource attributes
+  - `service.namespace=quickpizza`
+  - `service.name=quickpizza`
+  - `service.component={catalog, config, public-api, ...}`
 
 You can deploy QuickPizza with different Compose files depending on the mode and observability backend:
 
