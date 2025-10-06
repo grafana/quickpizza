@@ -164,7 +164,7 @@ async function handleLogout() {
 					<form class="space-y-4 md:space-y-6" on:submit|preventDefault={handleSubmit}>
 						<input type="hidden" name="csrftoken" id="csrf-token" value="" />
 						<div>
-							<label for="text" class="block mb-2 text-sm font-medium text-gray-900"
+							<label for="username" class="block mb-2 text-sm font-medium text-gray-900"
 								>Username (hint: default)</label
 							>
 							<input
@@ -177,7 +177,7 @@ async function handleLogout() {
 							/>
 						</div>
 						<div>
-							<label for="text" class="block mb-2 text-sm font-medium text-gray-900"
+							<label for="password" class="block mb-2 text-sm font-medium text-gray-900"
 								>Password (hint: 12345678)</label
 							>
 							<input
