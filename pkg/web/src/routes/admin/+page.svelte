@@ -119,7 +119,7 @@ function updateRecommendations() {
 					</h1>
 					<form class="space-y-4 md:space-y-6" on:submit|preventDefault={handleSubmit}>
 						<div>
-							<label for="text" class="block mb-2 text-sm font-medium text-gray-900"
+							<label for="username" class="block mb-2 text-sm font-medium text-gray-900"
 								>Username (hint: admin)</label
 							>
 							<input
@@ -132,7 +132,7 @@ function updateRecommendations() {
 							/>
 						</div>
 						<div>
-							<label for="text" class="block mb-2 text-sm font-medium text-gray-900"
+							<label for="password" class="block mb-2 text-sm font-medium text-gray-900"
 								>Password (hint: admin)</label
 							>
 							<input
