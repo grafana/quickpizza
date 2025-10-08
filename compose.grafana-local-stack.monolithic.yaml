@@ -92,7 +92,7 @@ services:
       - prometheus
 
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-12.1.0}
+    image: grafana/grafana:${GRAFANA_VERSION:-12.2.0}
     container_name: grafana
     labels:
       - "service.type=instrumentation"
@@ -102,5 +102,6 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_BASIC_ENABLED=false
+      - GF_FEATURE_TOGGLES_ENABLE=tempoAlerting
     volumes:
       - ./grafana:/etc/grafana/provisioning/
