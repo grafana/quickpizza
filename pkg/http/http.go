@@ -1183,8 +1183,18 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
+		// if env var is set, apply delay to all endpoints of this service
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				util.DelayIfEnvSet("QUICKPIZZA_DELAY_COPY")
+				next.ServeHTTP(w, r)
+			})
+		})
+
 		r.Get("/api/quotes", func(w http.ResponseWriter, r *http.Request) {
 			s.log.DebugContext(r.Context(), "Quotes requested")
+
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_COPY_API_QUOTES")
 
 			quotes, err := db.GetQuotes(r.Context())
 			if err != nil {
@@ -1198,6 +1208,8 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 		r.Get("/api/names", func(w http.ResponseWriter, r *http.Request) {
 			s.log.DebugContext(r.Context(), "Names requested")
 
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_COPY_API_NAMES")
+
 			names, err := db.GetClassicalNames(r.Context())
 			if err != nil {
 				s.log.ErrorContext(r.Context(), "Failed to fetch names from db", "err", err)
@@ -1209,6 +1221,8 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 
 		r.Get("/api/adjectives", func(w http.ResponseWriter, r *http.Request) {
 			s.log.DebugContext(r.Context(), "Adjectives requested")
+
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_COPY_API_ADJECTIVES")
 
 			adjs, err := db.GetAdjectives(r.Context())
 			if err != nil {
@@ -1231,7 +1245,17 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 		r.Use(LogUser)
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
+		// if env var is set, apply delay to all endpoints of this service
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				util.DelayIfEnvSet("QUICKPIZZA_DELAY_RECOMMENDATIONS")
+				next.ServeHTTP(w, r)
+			})
+		})
+
 		r.Get("/api/pizza/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET")
 			id, err := strconv.Atoi(chi.URLParam(r, "id"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -1254,6 +1278,8 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 		})
 
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
+
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST")
 			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
 			// by the server (if any), which allows clients to both generate traces for outgoing client-type traces
 			// without explicitly configuring a tracer, and to link said client traces with the server trace that is
@@ -1482,6 +1508,15 @@ func SvelteKitHandler() http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+
+		// Delay CSS resources
+		if strings.HasSuffix(strings.ToLower(path), ".css") {
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS")
+		}
+		if strings.HasSuffix(strings.ToLower(path), ".png") {
+			util.DelayIfEnvSet("QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS")
+		}
+
 		// try if file exists at path, if not append .html (SvelteKit adapter-static specific)
 		_, err := filesystem.Open(path)
 		if errors.Is(err, os.ErrNotExist) {
