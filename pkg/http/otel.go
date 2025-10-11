@@ -192,14 +192,25 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	}
 
 	ctx := context.Background()
-	tp, err := createTraceProvider(ctx, t.endpoint, protocol, res)
-	if err != nil {
-		return fmt.Errorf("creating trace provider: %w", err)
-	}
+	var tp trace.TracerProvider
+	var mp *sdkmetric.MeterProvider
+	var err error
 
-	mp, err := createMetricProvider(ctx, t.endpoint, protocol, res)
-	if err != nil {
-		return fmt.Errorf("creating metric provider: %w", err)
+	if t.endpoint == nil {
+		// If endpoint is nil, use no-op providers (local tracing only)
+		tp = sdktrace.NewTracerProvider()
+		mp = sdkmetric.NewMeterProvider()
+	} else {
+		// Create providers that export to the configured endpoint
+		tp, err = createTraceProvider(ctx, t.endpoint, protocol, res)
+		if err != nil {
+			return fmt.Errorf("creating trace provider: %w", err)
+		}
+
+		mp, err = createMetricProvider(ctx, t.endpoint, protocol, res)
+		if err != nil {
+			return fmt.Errorf("creating metric provider: %w", err)
+		}
 	}
 
 	if !t.installed {
