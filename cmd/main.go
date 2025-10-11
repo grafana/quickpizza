@@ -43,8 +43,8 @@ func main() {
 	otelInstaller := &qphttp.OTelInstaller{}
 
 	// TODO: use standard OTEL_EXPORTER_OTLP_ENDPOINT env var
-	otlpEndpoint, otelEnabled := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT")
-	if otelEnabled {
+	otlpEndpoint, _ := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT")
+	if otlpEndpoint != "" {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
