@@ -44,6 +44,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['app.kubernetes.io/instance']
+            - name: QUICKPIZZA_PYROSCOPE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 # PUBLIC ENDPOINT to serve API and static assets
 apiVersion: v1

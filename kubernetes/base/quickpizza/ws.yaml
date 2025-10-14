@@ -43,6 +43,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['app.kubernetes.io/instance']
+            - name: QUICKPIZZA_PYROSCOPE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
 ---
 # Configures value for QUICKPIZZA_WS_ENDPOINT (set in kustomization.yaml)
 apiVersion: v1

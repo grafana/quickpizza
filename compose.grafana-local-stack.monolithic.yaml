@@ -41,6 +41,7 @@ services:
       QUICKPIZZA_ENABLE_ALL_SERVICES: 1 # 1 for monolithic mode
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
+      QUICKPIZZA_PYROSCOPE_NAME: "quickpizza"
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"

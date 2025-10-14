@@ -52,6 +52,7 @@ services:
       QUICKPIZZA_ENABLE_CATALOG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "catalog"
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
+      QUICKPIZZA_PYROSCOPE_NAME: "catalog"
 
   config:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
@@ -63,6 +64,7 @@ services:
       QUICKPIZZA_ENABLE_CONFIG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "config"
       QUICKPIZZA_OTEL_SERVICE_NAME: "config"
+      QUICKPIZZA_PYROSCOPE_NAME: "config"
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
@@ -76,6 +78,7 @@ services:
       QUICKPIZZA_ENABLE_COPY_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "copy"
       QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
+      QUICKPIZZA_PYROSCOPE_NAME: "copy"
 
   public-api:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
@@ -89,6 +92,7 @@ services:
       QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "public-api"
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
+      QUICKPIZZA_PYROSCOPE_NAME: "public-api"
 
   recommendations:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
@@ -100,6 +104,7 @@ services:
       QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "recommendations"
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
+      QUICKPIZZA_PYROSCOPE_NAME: "recommendations"
 
   ws:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
@@ -111,6 +116,7 @@ services:
       QUICKPIZZA_ENABLE_WS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
+      QUICKPIZZA_PYROSCOPE_NAME: "ws"
 
   loki:
     image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
