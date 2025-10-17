@@ -53,7 +53,7 @@ prometheus.remote_write "local" {
   }
 }
 prometheus.scrape "application_containers" {
-  scrape_interval = "60s"
+  scrape_interval = "10s"
   targets = discovery.relabel.application_containers.output
   forward_to = [prometheus.remote_write.local.receiver]
 }
@@ -83,6 +83,7 @@ pyroscope.scrape "application_containers" {
   forward_to = [pyroscope.write.local.receiver]
 }
 
+
 // Receive traces
 otelcol.receiver.otlp "default" {
   grpc {
@@ -94,8 +95,14 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    traces  = [otelcol.processor.batch.default.input,
-               otelcol.processor.transform.spanmetrics.input]
+    traces  = [
+               // OTLP endpoint
+               otelcol.processor.batch.default.input,
+               // ServiceGraph
+               otelcol.connector.servicegraph.default.input,
+               // SpamMetrics
+               otelcol.processor.transform.spanmetrics.input,
+               ]
   }
 }
 
@@ -109,8 +116,6 @@ otelcol.processor.batch "default" {
     ]
   }
 }
-
-// Collect profiles
 otelcol.exporter.otlp "default" {
   client {
     // TODO: Replace this with the endpoint for your trace receiver
@@ -123,7 +128,6 @@ otelcol.exporter.otlp "default" {
 }
 
 // Traces to spanmetrics
-
 otelcol.processor.transform "spanmetrics" {
   error_mode = "ignore"
 
@@ -146,13 +150,23 @@ otelcol.processor.transform "spanmetrics" {
 }
 
 otelcol.connector.spanmetrics "default" {
+  metrics_flush_interval = "10s"
   histogram {
     explicit {}
   }
-
   dimension {
     name = "special.attr"
   }
+  output {
+    metrics = [otelcol.exporter.prometheus.local.input]
+  }
+}
+
+// Traces to servicegraph metrics
+// https://grafana.com/docs/tempo/latest/metrics-from-traces/service_graphs/enable-service-graphs/
+otelcol.connector.servicegraph "default" {
+  metrics_flush_interval = "10s"
+  dimensions = ["http.method", "http.target"]
   output {
     metrics = [otelcol.exporter.prometheus.local.input]
   }

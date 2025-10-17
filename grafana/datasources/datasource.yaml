@@ -1,4 +1,4 @@
-# For configuration options, see 
+# For configuration options, see
 #   https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file
 
 apiVersion: 1
@@ -6,6 +6,7 @@ apiVersion: 1
 datasources:
   - name: prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     orgId: 1
     url: http://prometheus:9090
@@ -18,6 +19,7 @@ datasources:
     editable: false
   - name: Tempo
     type: tempo
+    uid: tempo
     access: proxy
     orgId: 1
     url: http://tempo:3200
@@ -26,18 +28,23 @@ datasources:
     version: 1
     editable: false
     apiVersion: 1
-    uid: tempo
+    jsonData:
+      # activate service map and node graph features (required Alloy config)
+      serviceMap:
+        datasourceUid: "prometheus"
+      nodeGraph:
+        enabled: true
   - name: Pyroscope
-    type: 'phlare'
-    access: 'proxy'
-    orgId: 1
+    type: "phlare"
     uid: pyroscope
+    access: "proxy"
+    orgId: 1
     url: http://pyroscope:4040
     isDefault: false
     editable: false
   - name: Loki
     type: loki
-    access: proxy 
+    access: proxy
     orgId: 1
     url: http://loki:3100
     basicAuth: false

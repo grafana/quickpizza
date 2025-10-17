@@ -50,8 +50,9 @@ storage:
     local:
       path: /var/tempo/blocks
 
+# enables the Drilldown Traces app
+# `service-graphs` and `span-metrics` via Alloy
 overrides:
   defaults:
     metrics_generator:
-      processors: [service-graphs, span-metrics, local-blocks] # enables metrics generator
-      generate_native_histograms: both
+      processors: [local-blocks]
