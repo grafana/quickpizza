@@ -31,7 +31,7 @@ func main() {
 	// If QUICKPIZZA_PYROSCOPE_ENDPOINT is set, profiling in push mode will be enabled.
 	profilingConfig, profilingEnabled := envPyroscopeConfig()
 	if profilingEnabled {
-		slog.Debug("enabling Pyroscope profiling in push mode")
+		slog.Info("enabling Pyroscope profiling in Push mode")
 
 		runtime.SetMutexProfileFraction(5)
 		runtime.SetBlockProfileRate(5)

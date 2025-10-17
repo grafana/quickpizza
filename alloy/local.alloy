@@ -76,10 +76,22 @@ pyroscope.write "local" {
        url = env("PROFILES_ENDPOINT")
    }
 }
+// Filter to only scrape port 3333 for profiling.
+// Docker discovery creates separate targets for each exposed port (3333, 3334, 3335).
+// We only keep port 3333 where the HTTP pprof endpoints are available.
+// Ports 3334 and 3335 are gRPC servers without pprof Pull support.
+discovery.relabel "application_containers_profiles" {
+  rule {
+    source_labels = ["__meta_docker_port_private"]
+    regex         = "3333"
+    action        = "keep"
+  }
+  targets = discovery.relabel.application_containers.output
+}
 pyroscope.scrape "application_containers" {
   // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
   scrape_interval = "30s"
-  targets = discovery.relabel.application_containers.output
+  targets = discovery.relabel.application_containers_profiles.output
   forward_to = [pyroscope.write.local.receiver]
 }
 
