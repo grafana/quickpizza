@@ -94,10 +94,12 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    traces  = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input,
+               otelcol.processor.transform.spanmetrics.input]
   }
 }
 
+// Traces to OTLP endpoint
 otelcol.processor.batch "default" {
   output {
     metrics = []
@@ -118,4 +120,44 @@ otelcol.exporter.otlp "default" {
         insecure_skip_verify = true
     }
   }
+}
+
+// Traces to spanmetrics
+
+otelcol.processor.transform "spanmetrics" {
+  error_mode = "ignore"
+
+  trace_statements {
+    context = "resource"
+    statements = [
+      // We keep only the "service.name" and "special.attr" resource attributes,
+      // because they are the only ones which otelcol.connector.spanmetrics needs.
+      //
+      // There is no need to list "span.name", "span.kind", and "status.code"
+      // here because they are properties of the span (and not resource attributes):
+      // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.0.0/opentelemetry/proto/trace/v1/trace.proto
+      `keep_keys(attributes, ["service.name", "special.attr"])`,
+    ]
+  }
+
+  output {
+    traces  = [otelcol.connector.spanmetrics.default.input]
+  }
+}
+
+otelcol.connector.spanmetrics "default" {
+  histogram {
+    explicit {}
+  }
+
+  dimension {
+    name = "special.attr"
+  }
+  output {
+    metrics = [otelcol.exporter.prometheus.local.input]
+  }
+}
+
+otelcol.exporter.prometheus "local" {
+  forward_to = [prometheus.remote_write.local.receiver]
 }
