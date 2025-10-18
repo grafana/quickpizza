@@ -95,11 +95,15 @@ pyroscope.scrape "application_containers" {
 // Traces
 otelcol.receiver.otlp "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
-    
   // configures the default grpc endpoint "0.0.0.0:4317"
-  grpc { }
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
   // configures the default http/protobuf endpoint "0.0.0.0:4318"
-  http { }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
     
   output {
     metrics = [otelcol.processor.resourcedetection.default.input]

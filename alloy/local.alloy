@@ -98,10 +98,12 @@ pyroscope.scrape "application_containers" {
 
 // Receive traces and metrics with OTEL setup
 otelcol.receiver.otlp "default" {
+  // configures the default grpc endpoint "0.0.0.0:4317"
   grpc {
     endpoint = "0.0.0.0:4317"
   }
 
+  // configures the default http/protobuf endpoint "0.0.0.0:4318"
   http {
     endpoint = "0.0.0.0:4318"
   }
