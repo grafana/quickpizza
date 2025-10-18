@@ -96,7 +96,7 @@ pyroscope.scrape "application_containers" {
 }
 
 
-// Receive traces
+// Receive traces and metrics with OTEL setup
 otelcol.receiver.otlp "default" {
   grpc {
     endpoint = "0.0.0.0:4317"
@@ -107,6 +107,8 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
+    // Receive metrics
+    metrics = [otelcol.processor.batch.default.input]
     traces  = [
                // OTLP endpoint
                otelcol.processor.batch.default.input,
@@ -118,10 +120,10 @@ otelcol.receiver.otlp "default" {
   }
 }
 
-// Traces to OTLP endpoint
+// Traces to OTLP endpoint and Metrics to Prometheus
 otelcol.processor.batch "default" {
   output {
-    metrics = []
+    metrics = [otelcol.exporter.prometheus.local.input]
     logs = []
     traces = [
       otelcol.exporter.otlp.default.input,

@@ -25,6 +25,8 @@ services:
       - --stability.level=public-preview
     ports:
       - "12345:12345"
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
     environment:
       QUICKPIZZA_HOST: quickpizza:3333
       METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
@@ -147,9 +149,7 @@ services:
     volumes:
       - ./alloy/local-tempo.yaml:/etc/tempo.yaml
     ports:
-      - "3200:3200"
-      - "4317:4317"
-      - "4318:4318"
+      - "3200:3200" # Tempo API/UI
     depends_on:
       - prometheus
 
