@@ -25,6 +25,8 @@ services:
       - --stability.level=public-preview
     ports:
       - "12345:12345"
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
     environment:
       QUICKPIZZA_HOST: quickpizza:3333
       METRICS_ENDPOINT: http://prometheus:9090/api/v1/write
@@ -63,9 +65,6 @@ services:
       QUICKPIZZA_ENABLE_CONFIG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "config"
       QUICKPIZZA_OTEL_SERVICE_NAME: "config"
-      # enable Faro integration
-      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
-      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
   copy:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest@sha256:9067de15119819a3ef17676b3245279937d9d9ef50e81a2ba0a8a30095d7bfce}
     container_name: copy
@@ -142,7 +141,7 @@ services:
       - "4040:4040"
 
   tempo:
-    image: grafana/tempo:2.8.1@sha256:bc9245fe3da4e63dc4c6862d9c2dad9bcd8be13d0ba4f7705fa6acda4c904d0e
+    image: grafana/tempo:2.9.0@sha256:65a5789759435f1ef696f1953258b9bbdb18eb571d5ce711ff812d2e128288a4
     container_name: tempo
     labels:
       - "service.type=instrumentation"
@@ -150,9 +149,7 @@ services:
     volumes:
       - ./alloy/local-tempo.yaml:/etc/tempo.yaml
     ports:
-      - "3200:3200"
-      - "4317:4317"
-      - "4318:4318"
+      - "3200:3200" # Tempo API/UI
     depends_on:
       - prometheus
 
