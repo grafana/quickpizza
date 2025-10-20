@@ -168,13 +168,24 @@ otelcol.processor.transform "spanmetrics" {
 otelcol.connector.spanmetrics "default" {
   metrics_flush_interval = "10s"
   histogram {
-    explicit {}
+    explicit {
+      buckets = ["50ms", "100ms", "250ms", "1s", "5s", "10s"]
+    }
   }
   dimension {
-    name = "special.attr"
+    name = "http.method"
+    default = "GET"
   }
+
+  dimension {
+    name = "http.target"
+  }
+
+  aggregation_temporality = "DELTA"
+
+  namespace = "traces.spanmetrics"
   output {
-    metrics = [otelcol.exporter.prometheus.local.input]
+    metrics = [otelcol.exporter.otlp.default.input]
   }
 }
 
