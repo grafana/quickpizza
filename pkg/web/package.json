@@ -12,7 +12,7 @@
 		"biome-format": "biome format --fix"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.4",
+		"@biomejs/biome": "2.2.4",
 		"@grafana/faro-web-sdk": "1.18.2",
 		"@grafana/faro-web-tracing": "1.18.2",
 		"@sveltejs/adapter-auto": "6.1.0",
@@ -20,7 +20,7 @@
 		"@sveltejs/kit": "2.37.0",
 		"@sveltejs/vite-plugin-svelte": "6.1.4",
 		"autoprefixer": "10.4.14",
-		"biome": "^0.3.3",
+		"biome": "0.3.3",
 		"postcss": "8.5.6",
 		"svelte": "5.38.6",
 		"svelte-check": "4.3.1",
