@@ -50,6 +50,7 @@ prometheus.remote_write "local" {
   endpoint {
     // TODO: Replace this with your prometheus-compatible metrics store
     url = env("METRICS_ENDPOINT")
+    send_native_histograms = true
   }
 }
 prometheus.scrape "application_containers" {
@@ -113,7 +114,7 @@ otelcol.receiver.otlp "default" {
     metrics = [otelcol.processor.batch.default.input]
     traces  = [
                // ServiceGraph
-                otelcol.connector.servicegraph.default.input,
+               otelcol.connector.servicegraph.default.input,
                // SpanMetrics
                otelcol.connector.spanmetrics.default.input,
                // OTLP endpoint
@@ -127,14 +128,18 @@ otelcol.receiver.otlp "default" {
 // https://grafana.com/docs/tempo/latest/metrics-from-traces/span-metrics/span-metrics-alloy/
 otelcol.connector.spanmetrics "default" {
   metrics_flush_interval = "10s"
+
   histogram {
     // `s` is the unit used by Application Observability
     // https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/setup/metrics-labels/
     // this creates `traces_span_metrics_duration_seconds` instead of `traces_span_metrics_duration_milliseconds`
     unit = "s"
-    explicit {
-      buckets = ["50ms", "100ms", "250ms", "1s", "5s", "10s"]
+    // enable `exponential` option to send native histogram metrics
+    exponential {
+      max_size = 160
     }
+    // `explicit` converts to classic histograms
+    // explicit { buckets = ["50ms", "100ms", "250ms", "1s", "5s", "10s"]}
   }
   dimension {
     name = "http.method"
@@ -156,11 +161,13 @@ otelcol.connector.spanmetrics "default" {
 otelcol.connector.servicegraph "default" {
   metrics_flush_interval = "10s"
   dimensions = ["http.method", "http.target"]
+  // TODO:  Enable when Alloy supports `exponential_histogram_max_size`
+  // enable `exponential_histogram_max_size` option to send native histogram metrics
+  // exponential_histogram_max_size = 16
   output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
-
 // Traces to OTLP endpoint and Metrics to Prometheus
 otelcol.processor.batch "default" {
   output {
