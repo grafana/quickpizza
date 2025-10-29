@@ -165,6 +165,10 @@ otelcol.connector.spanmetrics "default" {
     name = "special.attr"
   }
 
+  exemplars {
+    enabled = true
+  }
+
   namespace = "traces.spanmetrics"
 
   output {
