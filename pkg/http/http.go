@@ -1280,6 +1280,12 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 		r.Post("/api/pizza", func(w http.ResponseWriter, r *http.Request) {
 
 			util.DelayIfEnvSet("QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST")
+
+			if util.FailRandomlyIfEnvSet("QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST") {
+				s.log.ErrorContext(r.Context(), "Simulated random failure: Pizza service temporarily unavailable")
+				s.writeJSONErrorResponse(w, r, errors.New("Pizza service temporarily unavailable"), http.StatusServiceUnavailable)
+				return
+			}
 			// Add request context to catalog and copy clients. This context contains a reference to the tracer used
 			// by the server (if any), which allows clients to both generate traces for outgoing client-type traces
 			// without explicitly configuring a tracer, and to link said client traces with the server trace that is

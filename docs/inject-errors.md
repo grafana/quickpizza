@@ -27,6 +27,7 @@ The following environment variables are supported:
 - **QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS**: Adds delay when serving CSS assets
 - **QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS**: Adds delay when serving PNG image assets
 
+- **QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST**: Set to a number to fail `<number>%` of Pizza POST requests randomly.
 
 ## Using HTTP Headers
 
