@@ -44,6 +44,7 @@ var pizzaCount = 0;
 let restrictions = defaultRestrictions;
 var advanced = false;
 var rateResult = null;
+var errorResult = null;
 
 $: if (advanced) {
 	pizza = '';
@@ -145,8 +146,17 @@ async function getPizza() {
 		},
 	});
 	const json = await res.json();
-	pizza = json;
+	
 	rateResult = null;
+	errorResult = null;
+	if (!res.ok) {
+		pizza = '';
+		errorResult = json.error || 'Failed to get pizza recommendation. Please try again.';
+		faro.api.pushError(new Error(errorResult));
+		return;
+	}
+	
+	pizza = json;
 	if (socket.readyState <= 1) {
 		socket.send(
 			JSON.stringify({
@@ -331,6 +341,13 @@ async function getTools() {
 				/>
 			</ToggleConfetti>
 			<p />
+			{#if errorResult}
+				<div class="mt-4">
+					<span class="bg-red-100 text-red-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded" id="error-message"
+						>{errorResult}</span
+					>
+				</div>
+			{/if}
 			{#if pizzaCount > 0 && !pizza['pizza']}
 				<div class="mt-4">
 					<span class="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded"
