@@ -146,16 +146,17 @@ async function getPizza() {
 		},
 	});
 	const json = await res.json();
-	
+
 	rateResult = null;
 	errorResult = null;
 	if (!res.ok) {
 		pizza = '';
-		errorResult = json.error || 'Failed to get pizza recommendation. Please try again.';
+		errorResult =
+			json.error || 'Failed to get pizza recommendation. Please try again.';
 		faro.api.pushError(new Error(errorResult));
 		return;
 	}
-	
+
 	pizza = json;
 	if (socket.readyState <= 1) {
 		socket.send(
