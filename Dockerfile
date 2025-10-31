@@ -1,4 +1,4 @@
-FROM node:24-bullseye AS fe-builder
+FROM node:24-bullseye@sha256:c102f42d665c164b4e5e5549813b1547ac8a9f1d343c7d17ddac106905a1c30b AS fe-builder
 
 WORKDIR /app/pkg/web
 COPY pkg/web ./
