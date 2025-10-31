@@ -68,7 +68,7 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.14.0@sha256:0f63959ffcf217e7046d8f7a3d20cf6909f2924f885fc2f0eec58f87f9acf749
+    image: grafana/pyroscope:1.15.0@sha256:5fba997646c53584799b6beca768dae6358e807020aa98c04cb7db11f0d55681
     container_name: pyroscope
     labels:
       - "service.type=instrumentation"
