@@ -1,0 +1,61 @@
+variable "grafana_cloud_stack" {
+  description = "The name of your Grafana Cloud Stack."
+  sensitive   = true
+  type        = string
+}
+
+variable "grafana_cloud_token" {
+  description = "An Access Policy Token that includes the following scopes for the selected Grafana Cloud Stack."
+  sensitive   = true
+  type        = string
+}
+
+variable "quickpizza_conf_faro_url" {
+  default     = null
+  description = "The URL for the Faro configuration."
+  sensitive   = true
+  type        = string
+}
+
+variable "quickpizza_conf_faro_app_name" {
+  default     = null
+  description = "The App Name for the Faro configuration."
+  sensitive   = true
+  type        = string
+}
+
+variable "kubernetes_cluster_env_label" {
+  default     = "production"
+  description = "The Environment name of your Kubernetes Cluster. Used to populate the 'env' Label / Attribute for all Metrics, Logs and Traces."
+  nullable    = false
+  type        = string
+}
+variable "kubernetes_namespace" {
+  default     = "quickpizza"
+  description = "The name of the Namespace to create and install the QuickPizza Application in."
+  nullable    = false
+  type        = string
+}
+
+variable "quickpizza_image" {
+  default     = "ghcr.io/grafana/quickpizza-local:0.15.10"
+  description = "The Image to use for the QuickPizza Demo Application."
+  nullable    = false
+  type        = string
+}
+
+
+variable "quickpizza_image_pull_policy" {
+  default     = "IfNotPresent"
+  description = "Specifies the Pull Policy for the QuickPizza Database (Postgres) Container Image, the available Pull Policy options are `Always` (pulls the image every time a pod is created), `IfNotPresent` (pulls the image only if it's not already available locally), and `Never` (uses only the locally available image, without pulling). If you use the `latest` Image Tag (or similar), its recommended you use `Always`."
+  nullable    = false
+  type        = string
+}
+
+
+variable "quickpizza_log_level" {
+  default     = "info"
+  description = "The Log Level to use for the QuickPizza Demo Application, for example \"info\" or \"debug\"."
+  nullable    = false
+  type        = string
+}

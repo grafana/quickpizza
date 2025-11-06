@@ -1,3 +1,30 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform directories
+.terraform/
+.terraform.lock.hcl
+
+# Sensitive variable files
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Plan output files
+*.tfplan
+
+# Local configuration
+.terraformrc
+terraform.rc
+
 # dependencies
 node_modules
 

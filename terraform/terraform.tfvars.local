@@ -1,0 +1,15 @@
+# terraform.tfvars.local - Local configuration reference
+# Copy this file to terraform.tfvars and fill in your values
+
+# Required: Your Grafana Cloud Stack name
+grafana_cloud_stack = "your-stack-name"
+
+# Required: Your Grafana Cloud Access Policy Token
+# Create a token with appropriate scopes from: https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/
+# `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`
+grafana_cloud_token = "glc_your_token_here"
+
+# Optional: Faro configuration for Frontend Observability
+# Get these from your Grafana Cloud Faro app configuration
+# quickpizza_conf_faro_url = ""
+# quickpizza_conf_faro_app_name = ""
