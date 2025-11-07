@@ -26,7 +26,7 @@ variable "quickpizza_conf_faro_app_name" {
 
 variable "deployment_environment" {
   default     = "production"
-  description = "OTEL `deployment.environment` attr, and TODO: use to populate the 'deployment_environment' label for all Metrics, Logs and Profiling."
+  description = "The Environment name of your Kubernetes Cluster. Used to populate the 'env' Label / Attribute for all Metrics, Logs and Traces."
   nullable    = false
   type        = string
 }
