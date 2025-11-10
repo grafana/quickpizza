@@ -51,6 +51,7 @@ services:
     container_name: catalog
     labels:
       - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     environment:
       <<: *quickpizza-env-common
       QUICKPIZZA_ENABLE_CATALOG_SERVICE: "1"
@@ -62,6 +63,7 @@ services:
     container_name: config
     labels:
       - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     environment:
       <<: *quickpizza-env-common
       QUICKPIZZA_ENABLE_CONFIG_SERVICE: "1"
@@ -72,6 +74,7 @@ services:
     container_name: copy
     labels:
       - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     environment:
       <<: *quickpizza-env-common
       QUICKPIZZA_ENABLE_COPY_SERVICE: "1"
@@ -83,6 +86,7 @@ services:
     container_name: public-api
     labels:
       - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     ports:
       - "3333:3333"
     environment:
@@ -96,6 +100,7 @@ services:
     container_name: recommendations
     labels:
       - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     environment:
       <<: *quickpizza-env-common
       QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE: "1"
@@ -107,6 +112,7 @@ services:
     container_name: ws
     labels:
       - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     environment:
       <<: *quickpizza-env-common
       QUICKPIZZA_ENABLE_WS_SERVICE: "1"
