@@ -7,6 +7,7 @@ x-quickpizza-env-common: &quickpizza-env-common
   QUICKPIZZA_WS_ENDPOINT: http://ws:3333
   QUICKPIZZA_RECOMMENDATIONS_ENDPOINT: http://recommendations:3333
   QUICKPIZZA_CONFIG_ENDPOINT: http://config:3333
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
 
 name: quickpizza
 services:
@@ -32,6 +33,7 @@ services:
       # must be set with an .env file
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
     depends_on:
       - catalog
       - config

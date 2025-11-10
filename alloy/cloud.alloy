@@ -55,6 +55,10 @@ discovery.relabel "application_containers" {
     regex = "/(.*)"
     replacement = "${1}"
   }
+  rule {
+    target_label = "deployment_environment"
+    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+  }
   targets = discovery.docker.application_containers.targets
 }
 
