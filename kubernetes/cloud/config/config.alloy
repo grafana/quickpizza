@@ -81,11 +81,24 @@ loki.source.kubernetes "application_pods" {
   targets = discovery.relabel.application_pods.output
 }
 
+discovery.relabel "application_pods_profiles" {
+  // https://grafana.com/docs/pyroscope/latest/view-and-analyze-profile-data/line-by-line/
+  rule {
+    target_label = "service_repository"
+    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
+  }
+  rule {
+    target_label = "service_git_ref"
+    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
+  }
+  targets = discovery.relabel.application_pods.output
+}
+
 // Profiling Pull Mode
 pyroscope.scrape "application_pods" {
   // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
   scrape_interval = "30s"
-  targets = discovery.relabel.application_pods.output
+  targets = discovery.relabel.application_pods_profiles.output
   forward_to = [grafana_cloud.stack.receivers.profiles]
 }
 
