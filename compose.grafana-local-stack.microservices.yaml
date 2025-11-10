@@ -7,6 +7,7 @@ x-quickpizza-env-common: &quickpizza-env-common
   QUICKPIZZA_WS_ENDPOINT: http://ws:3333
   QUICKPIZZA_RECOMMENDATIONS_ENDPOINT: http://recommendations:3333
   QUICKPIZZA_CONFIG_ENDPOINT: http://config:3333
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
 
 name: quickpizza
 services:
@@ -33,6 +34,7 @@ services:
       TRACES_ENDPOINT: http://tempo:4317
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
       PROFILES_ENDPOINT: http://pyroscope:4040
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
     depends_on:
       - prometheus
       - tempo

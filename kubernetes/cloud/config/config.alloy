@@ -58,6 +58,12 @@ discovery.relabel "application_pods" {
       "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
     ]
   }
+  rule {
+    target_label = "deployment_environment"
+    source_labels = [
+      "__meta_kubernetes_pod_label_environment",
+    ]
+  }
   targets = discovery.kubernetes.application_pods.targets
 }
 

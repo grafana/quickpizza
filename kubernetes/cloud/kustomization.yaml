@@ -2,6 +2,14 @@ resources:
   - ../base/quickpizza
   - ../base/alloy
 
+# Set environment label for all resources (except selectors, which are immutable)
+# NOTE: When changing the environment value, also update it in OTEL_RESOURCE_ATTRIBUTES below
+labels:
+  - pairs:
+      environment: production
+    includeSelectors: false
+    includeTemplates: true
+
 # To use a custom image (e.g., locally built), uncomment `newName` and `newTag` below.
 # Example: docker build -t local-quickpizza:latest . && minikube image load local-quickpizza:latest
 images:
@@ -25,6 +33,8 @@ configMapGenerator:
     literals:
       # Enable tracing
       - QUICKPIZZA_OTLP_ENDPOINT=http://grafana-alloy:4318
+      # NOTE: deployment.environment value must match the 'environment' label above
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production,service.version=quickpizza-local
   - name: alloy-config
     files:
       - ./config/config.alloy

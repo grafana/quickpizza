@@ -21,6 +21,7 @@ services:
       # must be set with an .env file
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
     depends_on:
       - quickpizza
   quickpizza:
@@ -42,3 +43,4 @@ services:
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
