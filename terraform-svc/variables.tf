@@ -44,6 +44,13 @@ variable "quickpizza_image" {
   type        = string
 }
 
+variable "quickpizza_git_ref" {
+  default     = "79a5de3"
+  description = "The GitHub reference to the specific commit of the QuickPizza version"
+  nullable    = false
+  type        = string
+}
+
 
 variable "quickpizza_image_pull_policy" {
   default     = "IfNotPresent"

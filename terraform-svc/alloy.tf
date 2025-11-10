@@ -88,6 +88,10 @@ resource "kubernetes_deployment" "alloy" {
               name = kubernetes_secret.alloy_credentials.metadata[0].name
             }
           }
+          env {
+            name  = "QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"
+            value = var.quickpizza_git_ref
+          }
           port {
             name           = "grpc"
             container_port = 4317
