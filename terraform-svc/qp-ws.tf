@@ -3,7 +3,7 @@
 locals {
   ws_component_labels = {
     "environment"                = var.deployment_environment
-    "app.k8s.io/name"            = var.kubernetes_namespace
+    "app.k8s.io/name"            = "quickpizza-app"
     "app.kubernetes.io/component" = "service"
     "app.kubernetes.io/instance"  = "ws"
   }

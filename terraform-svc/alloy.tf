@@ -2,7 +2,8 @@
 
 locals {
   alloy_component_labels = {
-    "app.k8s.io/name"            = "quickpizza"
+    "environment"                = var.deployment_environment
+    "app.k8s.io/name"            = "alloy-app"
     "app.kubernetes.io/component" = "service"
     "app.kubernetes.io/instance"  = "alloy"
   }
