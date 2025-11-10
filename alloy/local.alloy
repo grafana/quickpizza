@@ -9,13 +9,16 @@ discovery.docker "application_containers" {
 
 // set expected labels
 discovery.relabel "application_containers" {
+  // Application Observability expects `job` to be `$service.namespace/$service.name`
+  // Reads from service.namespace Docker label and container name to build: namespace/service-name
   rule {
     target_label = "job"
     source_labels = [
+      "__meta_docker_container_label_service_namespace",
       "__meta_docker_container_name",
     ]
-    regex = "/(.*)"
-    replacement = "quickpizza/${1}"
+    regex = "([^;]+);/(.*)"
+    replacement = "${1}/${2}"
   }
   rule {
     target_label = "instance"
@@ -27,12 +30,16 @@ discovery.relabel "application_containers" {
   }
   rule {
     target_label = "service_namespace"
-    replacement = "quickpizza"
+    source_labels = [
+      "__meta_docker_container_label_service_namespace",
+    ]
   }
   // the `namespace` label is for visualizing Profiles in Application Observability
   rule {
     target_label = "namespace"
-    replacement = "quickpizza"
+    source_labels = [
+      "__meta_docker_container_label_service_namespace",
+    ]
   }
   rule {
     target_label = "service_name"
