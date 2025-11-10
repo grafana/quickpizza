@@ -82,15 +82,24 @@ loki.source.docker "application_containers" {
   forward_to = [grafana_cloud.stack.receivers.logs]
 }
 
-// Filter to only scrape port 3333 for profiling.
-// Docker discovery creates separate targets for each exposed port (3333, 3334, 3335).
-// We only keep port 3333 where the HTTP pprof endpoints are available.
-// Ports 3334 and 3335 are gRPC servers without pprof Pull support.
 discovery.relabel "application_containers_profiles" {
+  // Filter to only scrape port 3333 for profiling.
+  // Docker discovery creates separate targets for each exposed port (3333, 3334, 3335).
+  // We only keep port 3333 where the HTTP pprof endpoints are available.
+  // Ports 3334 and 3335 are gRPC servers without pprof Pull support.
   rule {
     source_labels = ["__meta_docker_port_private"]
     regex         = "3333"
     action        = "keep"
+  }
+  // https://grafana.com/docs/pyroscope/latest/view-and-analyze-profile-data/line-by-line/
+  rule {
+    target_label = "service_repository"
+    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
+  }
+  rule {
+    target_label = "service_git_ref"
+    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
   }
   targets = discovery.relabel.application_containers.output
 }
