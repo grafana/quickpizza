@@ -26,7 +26,7 @@ variable "quickpizza_conf_faro_app_name" {
 
 variable "deployment_environment" {
   default     = "production"
-  description = "OTEL `deployment.environment` attr, and TODO: use to populate the 'deployment_environment' label for all Metrics, Logs and Profiling."
+  description = "The Environment name of your Kubernetes Cluster. Used to populate the 'env' Label / Attribute for all Metrics, Logs and Traces."
   nullable    = false
   type        = string
 }
@@ -40,6 +40,13 @@ variable "kubernetes_namespace" {
 variable "quickpizza_image" {
   default     = "ghcr.io/grafana/quickpizza-local:0.15.10"
   description = "The Image to use for the QuickPizza Demo Application."
+  nullable    = false
+  type        = string
+}
+
+variable "quickpizza_git_ref" {
+  default     = "79a5de3"
+  description = "The GitHub reference to the specific commit of the QuickPizza version"
   nullable    = false
   type        = string
 }

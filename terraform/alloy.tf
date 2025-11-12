@@ -1,17 +1,26 @@
 # Grafana Alloy Kubernetes Resources
 
-resource "kubernetes_service_account" "grafana_alloy" {
+locals {
+  alloy_component_labels = {
+    "environment"                = var.deployment_environment
+    "app.k8s.io/name"            = "alloy-app"
+    "app.kubernetes.io/component" = "service"
+    "app.kubernetes.io/instance"  = "alloy"
+  }
+}
+
+resource "kubernetes_service_account" "alloy" {
   metadata {
-    name      = "grafana-alloy"
+    name      = "alloy"
     namespace = kubernetes_namespace.quickpizza.id
   }
 }
 
 // Grant the "view" ClusterRole to kubernetes_service_account
 // This allows Alloy (`service_account_name`) to discover application pods and scrape metrics. 
-resource "kubernetes_role_binding" "grafana_alloy" {
+resource "kubernetes_role_binding" "alloy" {
   metadata {
-    name      = "grafana-alloy"
+    name      = "alloy"
     namespace = kubernetes_namespace.quickpizza.id
   }
   role_ref {
@@ -21,7 +30,7 @@ resource "kubernetes_role_binding" "grafana_alloy" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.grafana_alloy.metadata[0].name
+    name      = kubernetes_service_account.alloy.metadata[0].name
     namespace = kubernetes_namespace.quickpizza.id
   }
 }
@@ -36,9 +45,9 @@ resource "kubernetes_config_map" "alloy_config" {
   }
 }
 
-resource "kubernetes_secret" "grafana_alloy_credentials" {
+resource "kubernetes_secret" "alloy_credentials" {
   metadata {
-    name      = "grafana-alloy-credentials"
+    name      = "alloy-credentials"
     namespace = kubernetes_namespace.quickpizza.id
   }
   data = {
@@ -48,38 +57,25 @@ resource "kubernetes_secret" "grafana_alloy_credentials" {
   type = "Opaque"
 }
 
-resource "kubernetes_deployment" "grafana_alloy" {
+resource "kubernetes_deployment" "alloy" {
   metadata {
-    name      = "grafana-alloy"
+    name      = "alloy"
     namespace = kubernetes_namespace.quickpizza.id
-    labels = {
-      "app.k8s.io/name"             = "grafana-alloy"
-      "app.kubernetes.io/component" = "service"
-      "app.kubernetes.io/instance"  = "grafana-alloy"
-    }
+    labels = local.alloy_component_labels
   }
   spec {
     replicas = 1
     selector {
-      match_labels = {
-        "app.k8s.io/name"            = "grafana-alloy"
-        "app.kubernetes.io/component" = "service"
-        "app.kubernetes.io/instance" = "grafana-alloy"
-      }
+      match_labels = local.alloy_component_labels
     }
     template {
       metadata {
-        name = "grafana-alloy"
-        labels = {
-          "app.k8s.io/name"            = "grafana-alloy"
-          "app.kubernetes.io/component" = "service"
-          "app.kubernetes.io/instance" = "grafana-alloy"
-        }
+        labels = local.alloy_component_labels
       }
       spec {
-        service_account_name = kubernetes_service_account.grafana_alloy.metadata[0].name
+        service_account_name = kubernetes_service_account.alloy.metadata[0].name
         container {
-          name              = "grafana-alloy"
+          name              = "alloy"
           image             = "grafana/alloy:v1.11.3"
           image_pull_policy = "IfNotPresent"
           args = [
@@ -89,8 +85,12 @@ resource "kubernetes_deployment" "grafana_alloy" {
           ]
           env_from {
             secret_ref {
-              name = kubernetes_secret.grafana_alloy_credentials.metadata[0].name
+              name = kubernetes_secret.alloy_credentials.metadata[0].name
             }
+          }
+          env {
+            name  = "QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"
+            value = var.quickpizza_git_ref
           }
           port {
             name           = "grpc"
@@ -123,13 +123,10 @@ resource "kubernetes_deployment" "grafana_alloy" {
   }
 }
 
-resource "kubernetes_service" "grafana_alloy" {
+resource "kubernetes_service" "alloy" {
   metadata {
-    name      = "grafana-alloy"
+    name      = "alloy"
     namespace = kubernetes_namespace.quickpizza.id
-    labels = {
-      "app.k8s.io/name" = "grafana-alloy"
-    }
   }
   spec {
     port {
@@ -147,9 +144,7 @@ resource "kubernetes_service" "grafana_alloy" {
       name        = "http"
       target_port = "http"
     }
-    selector = {
-      "app.k8s.io/name" = "grafana-alloy"
-    }
+    selector = local.alloy_component_labels
     type = "ClusterIP"
   }
 }
