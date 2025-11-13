@@ -236,7 +236,7 @@ otelcol.auth.basic "otlpEndpoint" {
 otelcol.exporter.otlphttp "otlpEndpoint" {
   client {
     // FR:  gcom API to return the Grafana Cloud OTLP endpoint 
-    endpoint = "https://otlp-gateway-"+ grafana_cloud.stack.receivers.info["regionSlug"] + ".grafana.net/otlp"
+    endpoint = "https://otlp-gateway-"+ grafana_cloud.stack.receivers.info["clusterSlug"] + ".grafana.net/otlp"
     // https://github.com/grafana/beyla/blob/069049182455db603f3bda6865e7de13e45e038f/pkg/export/otel/common.go#L22
     auth     = otelcol.auth.basic.otlpEndpoint.handler
   }
