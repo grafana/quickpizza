@@ -12,7 +12,7 @@ grafana_cloud.stack "receivers" {
 // Metrics
 discovery.kubernetes "application_pods" {
   selectors {
-    label = "app.k8s.io/name=quickpizza"
+    label = "app.k8s.io/name=quickpizza-app"
     role = "pod"
   }
   role = "pod"
@@ -23,6 +23,7 @@ discovery.kubernetes "application_pods" {
 
 discovery.relabel "application_pods" {
   // See https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/setup/resource-attributes/
+  // Application Observability expects `job` to be `$service.namespace/$service.name`
   rule {
     target_label = "job"
     separator = "/"
@@ -107,9 +108,14 @@ otelcol.receiver.otlp "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
     
   // configures the default grpc endpoint "0.0.0.0:4317"
-  grpc { }
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
   // configures the default http/protobuf endpoint "0.0.0.0:4318"
-  http { }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
     
   output {
     metrics = [otelcol.processor.resourcedetection.default.input]
@@ -241,3 +247,9 @@ otelcol.exporter.otlphttp "otlpEndpoint" {
     auth     = otelcol.auth.basic.otlpEndpoint.handler
   }
 }
+
+// Debug Alloy
+// kubectl port-forward -n quickpizza svc/alloy 12345:12345
+// livedebugging {
+// enabled = true
+// }
