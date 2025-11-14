@@ -13,8 +13,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.4",
-		"@grafana/faro-web-sdk": "1.18.2",
-		"@grafana/faro-web-tracing": "1.18.2",
+		"@grafana/faro-web-sdk": "2.0.2",
+		"@grafana/faro-web-tracing": "2.0.2",
 		"@sveltejs/adapter-auto": "6.1.0",
 		"@sveltejs/adapter-static": "3.0.9",
 		"@sveltejs/kit": "2.37.0",
