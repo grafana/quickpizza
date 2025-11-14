@@ -158,20 +158,32 @@ async function getPizza() {
 	}
 
 	pizza = json;
-	if (socket.readyState <= 1) {
-		socket.send(
-			JSON.stringify({
-				// FIXME: The 'user' key is present in order not to break
-				// existing examples using QP WS. Remove it at some point.
-				// It has no connection to the user auth itself.
-				user: wsVisitorID,
-				ws_visitor_id: wsVisitorID,
-				msg: 'new_pizza',
-			}),
-		);
+	const wsMsg = JSON.stringify({
+		// FIXME: The 'user' key is present in order not to break
+		// existing examples using QP WS. Remove it at some point.
+		// It has no connection to the user auth itself.
+		user: wsVisitorID,
+		ws_visitor_id: wsVisitorID,
+		msg: 'new_pizza',
+	});
+	if (socket.readyState === WebSocket.OPEN) {
+		socket.send(wsMsg);
+	} else if (socket.readyState === WebSocket.CONNECTING) {
+		const handleOpen = () => {
+			socket.send(wsMsg);
+			socket.removeEventListener('open', handleOpen);
+		};
+		socket.addEventListener('open', handleOpen);
+	} else {
+		faro.api.pushError(new Error('socket state error: ' + socket.readyState));
 	}
+
 	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
-		faro.api.pushError(new Error('Bad Pizza Recommendation'));
+		faro.api.pushError(
+			new Error(
+				'Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!',
+			),
+		);
 	}
 }
 
