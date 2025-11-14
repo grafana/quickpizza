@@ -179,7 +179,11 @@ async function getPizza() {
 	}
 
 	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
-		faro.api.pushError(new Error('Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!'));
+		faro.api.pushError(
+			new Error(
+				'Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!',
+			),
+		);
 	}
 }
 
