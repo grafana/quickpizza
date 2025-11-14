@@ -15,12 +15,13 @@
 
 **QuickPizza** is a simple web application, used for demonstrations and workshops, that generates new and exciting pizza combinations!
 
+It helps you learn app instrumentation and observability with the Grafana stack, and k6 testing from basics to advanced.
 
 You can run QuickPizza locally or deploy it to your own infrastructure. For demo purposes, QuickPizza is also publicly available at:
-1. [quickpizza.grafana.com](https://quickpizza.grafana.com/)— Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
-2. [quickpizza-demo.grafana.fun](https://quickpizza-demo.grafana.fun/) — Install the [SRE Demo environment](https://grafana.com/docs/grafana-cloud/get-started/#install-demo-data-sources-and-dashboards) to observe this deployment, or explore it in [Grafana Play](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/). 
+1. [quickpizza.grafana.fun](https://quickpizza.grafana.fun/) — Experience this demo instrumented in Grafana Play. Explore [Application Observability](https://play.grafana.org/a/grafana-app-observability-app/services?instrumentedFilter=all&sortFilterId=serviceName&var-prometheus=grafanacloud-prom&from=now-30m&to=now&timezone=utc&var-environmentValue=production&var-filterBy=serviceNamespace%7C%3D%7Cquickpizza), [Frontend Observability](https://play.grafana.org/a/grafana-kowalski-app/apps/2410), and more insights in Grafana Play.
+2. [quickpizza-demo.grafana.fun](https://quickpizza-demo.grafana.fun/) — Install the [SRE Demo environment](https://grafana.com/docs/grafana-cloud/get-started/#install-demo-data-sources-and-dashboards) to observe this deployment in this [dashboard](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/).
+3. [quickpizza.grafana.com](https://quickpizza.grafana.com/) — Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
 
-The QuickPizza tests showcase key k6 features, from basic usage to custom modules and extensions.
 
 ## Requirements
 
