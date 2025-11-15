@@ -1,4 +1,3 @@
-
 # service.name: 'public-api'
 # service.component: 'frontend' and 'gateway' (defined in app code)
 apiVersion: apps/v1
@@ -6,8 +5,7 @@ kind: Deployment
 metadata:
   # unique name for this deployment resource
   name: quickpizza-public-api
-  labels: &publicAPILabels
-    # application name: groups all related resources
+  labels: &publicAPILabels # application name: groups all related resources
     app.k8s.io/name: quickpizza
     # component type: defines the role of this deployment
     app.kubernetes.io/component: service
@@ -23,7 +21,7 @@ spec:
     spec:
       containers:
         - name: quickpizza
-          image: ghcr.io/grafana/quickpizza-local:latest
+          image: ghcr.io/grafana/quickpizza-local:0.15.11
           ports:
             - name: http
               containerPort: 3333

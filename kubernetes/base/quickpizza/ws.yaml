@@ -5,8 +5,7 @@ kind: Deployment
 metadata:
   # unique name for this deployment resource
   name: quickpizza-ws
-  labels: &wsLabels
-    # application name: groups all related resources
+  labels: &wsLabels # application name: groups all related resources
     app.k8s.io/name: quickpizza
     # component type: defines the role of this deployment
     app.kubernetes.io/component: service
@@ -22,7 +21,7 @@ spec:
     spec:
       containers:
         - name: quickpizza
-          image: ghcr.io/grafana/quickpizza-local:latest
+          image: ghcr.io/grafana/quickpizza-local:0.15.11
           ports:
             - name: http
               containerPort: 3333
