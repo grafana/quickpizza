@@ -26,6 +26,11 @@ function checkAdminLoggedIn() {
 }
 
 async function handleSubmit() {
+	faro.api.startUserAction(
+		'adminLogin', // name of the user action
+		{ username: username }, // custom attributes attached to the user action
+		{ triggerName: 'adminLoginButtonClick', importance: 'critical' }, // custom config
+	);
 	const res = await fetch(
 		`${PUBLIC_BACKEND_ENDPOINT}/api/admin/login?user=${username}&password=${password}`,
 		{
@@ -45,6 +50,11 @@ async function handleSubmit() {
 }
 
 async function handleLogout() {
+	faro.api.startUserAction(
+		'adminLogout', // name of the user action
+		{ username: username }, // custom attributes attached to the user action
+		{ triggerName: 'adminLogoutButtonClick', importance: 'critical' }, // custom config
+	);
 	faro.api.pushEvent('Admin Logout');
 	// Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
 	document.cookie = 'admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
