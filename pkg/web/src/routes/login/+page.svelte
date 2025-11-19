@@ -43,6 +43,11 @@ async function fetchCSRFToken() {
 }
 
 async function handleSubmit() {
+	faro.api.startUserAction(
+		'userLogin', // name of the user action
+		{ username: username }, // custom attributes attached to the user action
+		{ triggerName: 'userLoginButtonClick', importance: 'critical' }, // custom config
+	);
 	const res = await fetch(
 		`${PUBLIC_BACKEND_ENDPOINT}/api/users/token/login?set_cookie=true`,
 		{
@@ -95,6 +100,11 @@ async function updateRatings() {
 }
 
 async function deleteRatings() {
+	faro.api.startUserAction(
+		'userDeleteRatings', // name of the user action
+		{ username: username }, // custom attributes attached to the user action
+		{ triggerName: 'userDeleteRatingsButtonClick', importance: 'critical' }, // custom config
+	);
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 		method: 'DELETE',
 		credentials: 'same-origin',
@@ -118,6 +128,11 @@ async function deleteRatings() {
 }
 
 async function handleLogout() {
+	faro.api.startUserAction(
+		'userLogout', // name of the user action
+		{ username: username }, // custom attributes attached to the user action
+		{ triggerName: 'userLogoutButtonClick', importance: 'critical' }, // custom config
+	);
 	faro.api.pushEvent('User Logout');
 	document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 	qpUserLoggedIn = false;

@@ -112,6 +112,11 @@ async function ratePizza(stars) {
 		pizza_id: pizza['pizza']['id'],
 		stars: stars,
 	});
+	faro.api.startUserAction(
+		'ratePizza', // name of the user action
+		{ pizza_id: pizza['pizza']['id'], stars: stars }, // custom attributes attached to the user action
+		{ triggerName: 'ratePizzaButtonClick' }, // custom config
+	);
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 		method: 'POST',
 		body: JSON.stringify({
@@ -134,6 +139,11 @@ async function getPizza() {
 	faro.api.pushEvent('Get Pizza Recommendation', {
 		restrictions: restrictions,
 	});
+	faro.api.startUserAction(
+		'getPizza', // name of the user action
+		{ restrictions: restrictions }, // custom attributes attached to the user action
+		{ triggerName: 'getPizzaButtonClick' }, // custom config
+	);
 	if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
 		faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
 	}
