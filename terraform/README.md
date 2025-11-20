@@ -82,3 +82,19 @@ To use a locally built QuickPizza image instead of the default from the registry
    ```bash
    terraform apply
    ```
+
+## Enable Kubernetes Monitoring
+
+Update `terraform.tfvars` and set the required settings:
+
+```hcl
+enable_k8s_monitoring = true
+cluster_name = ""
+externalservices_prometheus_host = ""
+externalservices_prometheus_basicauth_username = ""
+externalservices_prometheus_basicauth_password = ""
+
+externalservices_loki_host = ""
+externalservices_loki_basicauth_username = ""
+externalservices_loki_basicauth_password = ""
+```

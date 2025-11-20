@@ -13,3 +13,14 @@ grafana_cloud_token = "glc_your_token_here"
 # Get these from your Grafana Cloud Faro app configuration
 # quickpizza_conf_faro_url = ""
 # quickpizza_conf_faro_app_name = ""
+
+
+# enable_k8s_monitoring = true
+# cluster_name = ""
+# externalservices_prometheus_host = ""
+# externalservices_prometheus_basicauth_username = ""
+# externalservices_prometheus_basicauth_password = ""
+
+# externalservices_loki_host = ""
+# externalservices_loki_basicauth_username = ""
+# externalservices_loki_basicauth_password = ""
