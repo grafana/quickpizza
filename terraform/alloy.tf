@@ -89,6 +89,10 @@ resource "kubernetes_deployment" "alloy" {
             }
           }
           env {
+            name  = "KUBERNETES_CLUSTER_NAME"
+            value = var.cluster_name
+          }
+          env {
             name  = "QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"
             value = var.quickpizza_git_ref
           }

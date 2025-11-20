@@ -76,10 +76,26 @@ prometheus.scrape "application_pods" {
   targets = discovery.relabel.application_pods.output
 }
 
+discovery.relabel "application_pods_logs" {
+  // Enable logs in Kubernetes Monitoring
+  // Only add cluster_name label if KUBERNETES_CLUSTER_NAME env var is set
+  rule {
+    target_label = "cluster"
+    replacement = env("KUBERNETES_CLUSTER_NAME")
+  }
+  rule {
+    target_label = "pod"
+    source_labels = [
+      "__meta_kubernetes_pod_name",
+    ]
+  }
+  targets = discovery.relabel.application_pods.output
+}
+
 // Logs: application pods
 loki.source.kubernetes "application_pods" {
   forward_to = [grafana_cloud.stack.receivers.logs]
-  targets = discovery.relabel.application_pods.output
+  targets = discovery.relabel.application_pods_logs.output
 }
 
 discovery.relabel "application_pods_profiles" {

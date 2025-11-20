@@ -1,0 +1,25 @@
+metrics:
+  enabled: true
+  kepler:
+    enabled: true
+
+alloy-logs:
+  alloy:
+    mounts:
+      dockercontainers: true
+
+logs:
+  enabled: true
+  pod_logs:
+    enabled: true
+    # The Alloy pod in quickpizza ns collects quickpizza logs
+    excludeNamespaces: [quickpizza]
+
+traces:
+  enabled: false
+
+profiles:
+  enabled: false
+
+kepler:
+  enabled: true

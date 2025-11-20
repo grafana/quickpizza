@@ -66,3 +66,49 @@ variable "quickpizza_log_level" {
   nullable    = false
   type        = string
 }
+
+variable "enable_k8s_monitoring" {
+  description = "Enable or disable Kubernetes monitoring Helm chart"
+  type        = bool
+  default     = false
+}
+
+variable "cluster_name" {
+  type    = string
+  default     = null
+}
+
+variable "externalservices_prometheus_host" {
+  type    = string
+  default     = null
+}
+
+variable "externalservices_prometheus_basicauth_username" {
+  default     = null
+  type    = string
+  sensitive   = true
+}
+
+variable "externalservices_prometheus_basicauth_password" {
+  default     = null
+  type    = string
+  sensitive   = true
+}
+
+variable "externalservices_loki_host" {
+  default     = null
+  type    = string
+  sensitive   = true
+}
+
+variable "externalservices_loki_basicauth_username" {
+  default     = null
+  type    = string
+  sensitive   = true
+}
+
+variable "externalservices_loki_basicauth_password" {
+  default     = null
+  type    = string
+  sensitive   = true
+}
