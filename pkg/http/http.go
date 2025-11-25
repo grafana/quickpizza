@@ -1490,7 +1490,7 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			pizzaCaloriesPerSlice.Observe(float64(pizzaRecommendation.Calories))
 			pizzaCaloriesPerSliceNativeHistogram.Observe(float64(pizzaRecommendation.Calories))
 
-			s.log.DebugContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
+			s.log.InfoContext(r.Context(), "New pizza recommendation", "pizza", pizzaRecommendation.Pizza.Name)
 			s.writeJSONResponse(w, r, pizzaRecommendation, http.StatusOK)
 		})
 	})
