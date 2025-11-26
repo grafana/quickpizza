@@ -14,6 +14,7 @@ import (
 	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/contrib/processors/baggagecopy"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
@@ -38,22 +39,6 @@ func LogTraceID(next http.Handler) http.Handler {
 			httplog.LogEntrySetField(r.Context(), "traceID", slog.StringValue(traceID))
 		}
 		next.ServeHTTP(w, r.WithContext(r.Context()))
-	})
-}
-
-// BaggageToSpanAttributes extracts all baggage members from the context
-// and adds them as attributes to the current span.
-func BaggageToSpanAttributes(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		span := trace.SpanFromContext(r.Context())
-		bag := baggage.FromContext(r.Context())
-
-		// Iterate through all baggage members and add them as span attributes
-		for _, member := range bag.Members() {
-			span.SetAttributes(attribute.String(member.Key(), member.Value()))
-		}
-
-		next.ServeHTTP(w, r)
 	})
 }
 
@@ -107,6 +92,13 @@ func createTraceProvider(ctx context.Context, endpoint *url.URL, otlpProtocol st
 	}
 
 	p := sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(
+			baggagecopy.NewSpanProcessor(
+				func(m baggage.Member) bool {
+					return true // Accept all baggage members
+				},
+			),
+		),
 		sdktrace.WithBatcher(trace_exporter),
 		sdktrace.WithResource(resource),
 	)
@@ -267,7 +259,6 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 			append(defaultOpts, extraOpts...)...,
 		)
 	})
-	r.Use(BaggageToSpanAttributes)
 	r.Use(LogTraceID)
 
 	// Mark as installed after successful installation
