@@ -14,8 +14,10 @@ import (
 	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/contrib/processors/baggagecopy"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -90,6 +92,13 @@ func createTraceProvider(ctx context.Context, endpoint *url.URL, otlpProtocol st
 	}
 
 	p := sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(
+			baggagecopy.NewSpanProcessor(
+				func(m baggage.Member) bool {
+					return true // Accept all baggage members
+				},
+			),
+		),
 		sdktrace.WithBatcher(trace_exporter),
 		sdktrace.WithResource(resource),
 	)
