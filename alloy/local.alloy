@@ -2,10 +2,6 @@ discovery.docker "all_containers" {
   host = "unix:///var/run/docker.sock"
 }
 
-prometheus.exporter.postgres "default" {
-  data_source_names = [coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")]
-}
-
 // set expected labels
 discovery.relabel "app_containers" {
   // Drop containers with service.type=instrumentation
@@ -58,10 +54,39 @@ discovery.relabel "app_containers" {
     target_label = "deployment_environment"
     replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
-  targets = concat(
-    discovery.docker.all_containers.targets,
-    prometheus.exporter.postgres.default.targets,
-  )
+  targets = discovery.docker.all_containers.targets
+}
+
+prometheus.exporter.postgres "default" {
+  data_source_names = [coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")]
+}
+
+discovery.relabel "postgres" {
+  rule {
+    target_label = "job"
+    replacement = format("%s/postgres", env("SERVICE_NAMESPACE"))
+  }
+  rule {
+    target_label = "instance"
+    replacement = "postgres"
+  }
+  rule {
+    target_label = "service_namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "service_name"
+    replacement = "postgres"
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+  }
+  targets = prometheus.exporter.postgres.default.targets
 }
 
 // Metrics
@@ -74,7 +99,7 @@ prometheus.remote_write "local" {
 }
 prometheus.scrape "app_containers" {
   scrape_interval = "10s"
-  targets = discovery.relabel.app_containers.output
+  targets = concat(discovery.relabel.app_containers.output, discovery.relabel.postgres.output)
   forward_to = [prometheus.remote_write.local.receiver]
 }
 
