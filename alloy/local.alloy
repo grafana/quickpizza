@@ -189,8 +189,6 @@ otelcol.connector.spanmetrics "default" {
     enabled = true
   }
 
-  namespace = "traces.spanmetrics"
-
   output {
     metrics = [otelcol.processor.batch.default.input]
   }
