@@ -23,6 +23,8 @@ services:
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
       PROFILES_ENDPOINT: http://pyroscope:4040
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
     depends_on:
       - quickpizza
       - prometheus
@@ -46,8 +48,32 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.1
+    container_name: postgres
+    labels:
+      - "service.type=database"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quickpizza_db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   loki:
     image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
@@ -105,3 +131,6 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=tempoAlerting
     volumes:
       - ./grafana:/etc/grafana/provisioning/
+
+volumes:
+  postgres_data:
