@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.11.3@sha256:8c7256f412feb9f5f48f9f6f9394dc97ca887f63dea9304f347970ecc1787669
+    image: grafana/alloy:v1.11.3
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -11,7 +11,7 @@ services:
       - run
       - /config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
-      - --stability.level=public-preview
+      - --stability.level=experimental
     ports:
       - "12345:12345"
       - "4317:4317" # OTLP gRPC
@@ -22,6 +22,8 @@ services:
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
     depends_on:
       - quickpizza
   quickpizza:
@@ -45,3 +47,43 @@ services:
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.1
+    container_name: postgres
+    labels:
+      - "service.type=database"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quickpizza_db
+      DB_O11Y_USER: db-o11y
+      DB_O11Y_PASSWORD: db-o11y-password
+      DB_O11Y_DATABASES: quickpizza_db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./scripts/init-db-observability.sh:/docker-entrypoint-initdb.d/init-db-observability.sh:Z
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "track_activity_query_size=4096"
+      - "-c"
+      - "pg_stat_statements.track=all"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
