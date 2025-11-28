@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.11.3@sha256:8c7256f412feb9f5f48f9f6f9394dc97ca887f63dea9304f347970ecc1787669
+    image: grafana/alloy:v1.11.3
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -23,6 +23,10 @@ services:
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
       PROFILES_ENDPOINT: http://pyroscope:4040
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
+      SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
+      DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
       - quickpizza
       - prometheus
@@ -46,11 +50,36 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
+    depends_on:
+      quickpizza-db:
+        condition: service_healthy
+
+  quickpizza-db:
+    image: postgres:18.1
+    container_name: quickpizza-db
+    labels:
+      - "service.type=database"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quickpizza_db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   loki:
-    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
+    image: grafana/loki:3.4.3
     container_name: loki
     labels:
       - "service.type=instrumentation"
@@ -58,7 +87,7 @@ services:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.2.1@sha256:6927e0919a144aa7616fd0137d4816816d42f6b816de3af269ab065250859a62
+    image: prom/prometheus:v3.2.1
     container_name: prometheus
     labels:
       - "service.type=instrumentation"
@@ -71,7 +100,7 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.14.0@sha256:0f63959ffcf217e7046d8f7a3d20cf6909f2924f885fc2f0eec58f87f9acf749
+    image: grafana/pyroscope:1.14.0
     container_name: pyroscope
     labels:
       - "service.type=instrumentation"
@@ -79,7 +108,7 @@ services:
       - "4040:4040"
 
   tempo:
-    image: grafana/tempo:2.9.0@sha256:65a5789759435f1ef696f1953258b9bbdb18eb571d5ce711ff812d2e128288a4
+    image: grafana/tempo:2.9.0
     container_name: tempo
     labels:
       - "service.type=instrumentation"
@@ -105,3 +134,6 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=tempoAlerting
     volumes:
       - ./grafana:/etc/grafana/provisioning/
+
+volumes:
+  postgres_data:

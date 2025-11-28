@@ -371,7 +371,7 @@ func envConfig(prefix string) map[string]string {
 // envDBConnString returns the specified db connection string from QUICKPIZZA_DB. It defaults to an in-memory sqlite instance
 func envDBConnString() string {
 	v, found := os.LookupEnv("QUICKPIZZA_DB")
-	if !found {
+	if !found || v == "" {
 		return "file::memory:?cache=shared"
 	}
 	return v
