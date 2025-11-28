@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/pizza.dart';
 import '../models/restrictions.dart';
 import '../services/api_service.dart';
+import '../services/config_service.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -66,7 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error: ${e.toString()}';
+        final errorStr = e.toString();
+        _errorMessage = errorStr.startsWith('Exception: ')
+            ? errorStr.substring(10)
+            : errorStr;
       });
     }
   }
@@ -74,10 +79,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _ratePizza(int stars) async {
     if (_pizza == null) return;
 
-    final success = await widget.apiService.ratePizza(_pizza!.pizza.id, stars);
-    setState(() {
-      _rateResult = success ? 'Rated!' : 'Please log in first.';
-    });
+    try {
+      final success = await widget.apiService.ratePizza(
+        _pizza!.pizza.id,
+        stars,
+      );
+      setState(() {
+        _rateResult = success ? 'Rated!' : 'Please log in first.';
+      });
+    } catch (e) {
+      setState(() {
+        final errorStr = e.toString();
+        _rateResult = errorStr.startsWith('Exception: ')
+            ? errorStr.substring(10)
+            : errorStr;
+      });
+    }
   }
 
   @override
@@ -232,6 +249,72 @@ class _HomeScreenState extends State<HomeScreen> {
               const Text(
                 'Made with ❤️ by QuickPizza Labs.',
                 style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              Text.rich(
+                TextSpan(
+                  style: const TextStyle(fontSize: 12),
+                  children: [
+                    const TextSpan(text: 'Looking for the admin page? '),
+                    WidgetSpan(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final adminUrl = Uri.parse(
+                            '${ConfigService.baseUrl}/admin',
+                          );
+                          if (await canLaunchUrl(adminUrl)) {
+                            await launchUrl(
+                              adminUrl,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Click here',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text.rich(
+                TextSpan(
+                  style: const TextStyle(fontSize: 12),
+                  children: [
+                    const TextSpan(text: 'Contribute to QuickPizza on '),
+                    WidgetSpan(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final githubUrl = Uri.parse(
+                            'https://github.com/grafana/quickpizza',
+                          );
+                          if (await canLaunchUrl(githubUrl)) {
+                            await launchUrl(
+                              githubUrl,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'GitHub',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -407,7 +490,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Text('Tool: ${pizza.tool}'),
               const SizedBox(height: 8),
-              Text('Calories per slice: ${_pizza!.calories}'),
+              Text('Calories per slice: ${_pizza!.calories ?? 'N/A'}'),
+              const SizedBox(height: 8),
+              Text(
+                'Vegetarian: ${_pizza!.vegetarian == true ? 'Yes' : 'No'}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: _pizza!.vegetarian == true
+                      ? Colors.green[700]
+                      : Colors.grey[700],
+                ),
+              ),
             ],
           ),
         ),

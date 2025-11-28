@@ -4,7 +4,6 @@ class Pizza {
   final Dough dough;
   final List<Ingredient> ingredients;
   final String tool;
-  final int calories;
 
   Pizza({
     required this.id,
@@ -12,7 +11,6 @@ class Pizza {
     required this.dough,
     required this.ingredients,
     required this.tool,
-    required this.calories,
   });
 
   factory Pizza.fromJson(Map<String, dynamic> json) {
@@ -24,7 +22,6 @@ class Pizza {
           .map((i) => Ingredient.fromJson(i as Map<String, dynamic>))
           .toList(),
       tool: json['tool'] as String,
-      calories: json['calories'] as int? ?? 0,
     );
   }
 }
@@ -32,13 +29,17 @@ class Pizza {
 class Dough {
   final int id;
   final String name;
+  final int? caloriesPerSlice;
 
-  Dough({required this.id, required this.name});
+  Dough({required this.id, required this.name, this.caloriesPerSlice});
 
   factory Dough.fromJson(Map<String, dynamic> json) {
+    // Handle both "ID" (uppercase) and "id" (lowercase) for compatibility
+    final idValue = json['ID'] ?? json['id'];
     return Dough(
-      id: json['id'] as int,
+      id: idValue as int,
       name: json['name'] as String,
+      caloriesPerSlice: json['caloriesPerSlice'] as int?,
     );
   }
 }
@@ -46,31 +47,40 @@ class Dough {
 class Ingredient {
   final int id;
   final String name;
+  final int? caloriesPerSlice;
+  final bool? vegetarian;
 
-  Ingredient({required this.id, required this.name});
+  Ingredient({
+    required this.id,
+    required this.name,
+    this.caloriesPerSlice,
+    this.vegetarian,
+  });
 
   factory Ingredient.fromJson(Map<String, dynamic> json) {
+    // Handle both "ID" (uppercase) and "id" (lowercase) for compatibility
+    final idValue = json['ID'] ?? json['id'];
     return Ingredient(
-      id: json['id'] as int,
+      id: idValue as int,
       name: json['name'] as String,
+      caloriesPerSlice: json['caloriesPerSlice'] as int?,
+      vegetarian: json['vegetarian'] as bool?,
     );
   }
 }
 
 class PizzaRecommendation {
   final Pizza pizza;
-  final int calories;
+  final int? calories;
+  final bool? vegetarian;
 
-  PizzaRecommendation({
-    required this.pizza,
-    required this.calories,
-  });
+  PizzaRecommendation({required this.pizza, this.calories, this.vegetarian});
 
   factory PizzaRecommendation.fromJson(Map<String, dynamic> json) {
     return PizzaRecommendation(
       pizza: Pizza.fromJson(json['pizza'] as Map<String, dynamic>),
-      calories: json['calories'] as int? ?? 0,
+      calories: json['calories'] as int?,
+      vegetarian: json['vegetarian'] as bool?,
     );
   }
 }
-

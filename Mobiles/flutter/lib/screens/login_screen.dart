@@ -26,8 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    // In a real app, you'd check for stored token
-    // For now, we'll just try to fetch ratings
     await _loadRatings();
   }
 
@@ -87,15 +85,24 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _deleteRatings() async {
-    final success = await widget.apiService.deleteRatings();
-    if (success) {
-      await _loadRatings();
-    } else {
+    try {
+      final success = await widget.apiService.deleteRatings();
+      if (success) {
+        await _loadRatings();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ratings deleted successfully.')),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
+        final errorStr = e.toString();
+        final message = errorStr.startsWith('Exception: ')
+            ? errorStr.substring(10)
+            : errorStr;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete ratings. You may need to be logged in.'),
-          ),
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
     }
@@ -135,10 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Text(
                     'QuickPizza User Login',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
@@ -204,10 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const Text(
               'Your Pizza Ratings:',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             if (_isLoading)
@@ -263,4 +264,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
