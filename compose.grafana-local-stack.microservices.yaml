@@ -36,8 +36,9 @@ services:
       PROFILES_ENDPOINT: http://pyroscope:4040
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
+      DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
       - prometheus
       - tempo
@@ -61,9 +62,9 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "catalog"
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
     depends_on:
-      postgres:
+      quickpizza-db:
         condition: service_healthy
 
   config:
@@ -89,10 +90,12 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "copy"
       QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
     depends_on:
       postgres:
         condition: service_healthy
+      catalog:
+        condition: service_started
 
   public-api:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
@@ -132,9 +135,9 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
 
-  postgres:
+  quickpizza-db:
     image: postgres:18.1
-    container_name: postgres
+    container_name: quickpizza-db
     labels:
       - "service.type=database"
       - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"

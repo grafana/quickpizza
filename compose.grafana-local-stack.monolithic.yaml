@@ -24,8 +24,9 @@ services:
       PROFILES_ENDPOINT: http://pyroscope:4040
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
+      DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
       - quickpizza
       - prometheus
@@ -50,16 +51,16 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       # Enable logging. Possible values: error, warn, debug. Default: info
       # QUICKPIZZA_LOG_LEVEL: debug
     depends_on:
-      postgres:
+      quickpizza-db:
         condition: service_healthy
 
-  postgres:
+  quickpizza-db:
     image: postgres:18.1
-    container_name: postgres
+    container_name: quickpizza-db
     labels:
       - "service.type=database"
       - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"

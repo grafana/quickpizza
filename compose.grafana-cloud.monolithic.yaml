@@ -22,8 +22,9 @@ services:
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
+      DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
       - quickpizza
   quickpizza:
@@ -47,15 +48,18 @@ services:
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      # OTEL `db.name` span attribute. Used by servicegraph to create service nodes with this name
+      # Set to the logical database service name
+      QUICKPIZZA_OTEL_DB_NAME: "quickpizza-db"
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@postgres:5432/quickpizza_db?sslmode=disable}"
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
     depends_on:
-      postgres:
+      quickpizza-db:
         condition: service_healthy
 
-  postgres:
+  quickpizza-db:
     image: postgres:18.1
-    container_name: postgres
+    container_name: quickpizza-db
     labels:
       - "service.type=database"
       - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"

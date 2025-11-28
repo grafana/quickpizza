@@ -64,11 +64,11 @@ prometheus.exporter.postgres "default" {
 discovery.relabel "postgres" {
   rule {
     target_label = "job"
-    replacement = format("%s/postgres", env("SERVICE_NAMESPACE"))
+    replacement = format("%s/%s", env("SERVICE_NAMESPACE"), env("DB_SERVICE_NAME"))
   }
   rule {
     target_label = "instance"
-    replacement = "postgres"
+    replacement = env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "service_namespace"
@@ -80,7 +80,7 @@ discovery.relabel "postgres" {
   }
   rule {
     target_label = "service_name"
-    replacement = "postgres"
+    replacement = env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"

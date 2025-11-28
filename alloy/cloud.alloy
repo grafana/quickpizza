@@ -167,6 +167,15 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     	"delete_key(attributes, \"process.runtime.version\")",
     ]
   }
+
+  trace_statements {
+    context    = "span"
+    statements = [
+      // Without this, servicegraph would use physical addresses (e.g., "localhost:3333", "quickpizza-db:5432")
+      // instead of logical service names (e.g., "quickpizza", "database")
+      "delete_key(attributes, \"server.address\")",
+    ]
+  }
     
   metric_statements {
     context    = "resource"
@@ -293,7 +302,7 @@ loki.relabel "database_observability_postgres_quickpizza" {
   }
   rule {
     target_label = "service_name"
-    replacement = "postgres"
+    replacement = env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
@@ -319,7 +328,7 @@ discovery.relabel "database_observability_postgres_quickpizza" {
   }
   rule {
     target_label = "service_name"
-    replacement = "postgres"
+    replacement = env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
