@@ -5,6 +5,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  - database.yaml
   - catalog.yaml
   - config.yaml
   - copy.yaml
@@ -24,6 +25,7 @@ configMapGenerator:
       - QUICKPIZZA_WS_ENDPOINT=http://quickpizza-ws:3333
       - QUICKPIZZA_RECOMMENDATIONS_ENDPOINT=http://quickpizza-recommendations:3333
       - QUICKPIZZA_CONFIG_ENDPOINT=http://quickpizza-config:3333
+      - QUICKPIZZA_OTEL_DB_NAME=quickpizza-db
 
 # defines shared properties for all deployments
 patches:
@@ -31,6 +33,14 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/imagePullPolicy
         value: IfNotPresent
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: QUICKPIZZA_DB
+          valueFrom:
+            secretKeyRef:
+              name: quickpizza-db-credentials
+              key: CONNECTION_STRING
       - op: add
         path: /spec/template/spec/containers/0/readinessProbe
         value:
