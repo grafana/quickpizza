@@ -82,3 +82,8 @@ Before deployment:
 - Deploy the Kubernetes application using `minikube` and `kubectl`, following the same steps described in the earlier setup instructions.
 
 ![Screenshot of a trace visualized in Grafana Tempo](https://github.com/grafana/QuickPizza/assets/969721/4088f92b-c98c-4631-9681-c2ce8a49d721)
+
+
+## TODOs
+- Enable Database Observability (see the [Terraform setup](../terraform/database.tf))
+- Refine [Kubernetes Monitoring setup](./cloud/monitoring.md)
