@@ -92,7 +92,7 @@ services:
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
       QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
     depends_on:
-      postgres:
+      quickpizza-db:
         condition: service_healthy
       catalog:
         condition: service_started
