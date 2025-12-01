@@ -58,6 +58,9 @@ resource "kubernetes_secret" "alloy_credentials" {
 }
 
 resource "kubernetes_deployment" "alloy" {
+  depends_on = [
+    kubernetes_stateful_set.postgres_statefulset
+  ]
   metadata {
     name      = "alloy"
     namespace = kubernetes_namespace.quickpizza.id
@@ -70,7 +73,14 @@ resource "kubernetes_deployment" "alloy" {
     }
     template {
       metadata {
-        labels = local.alloy_component_labels
+        labels = merge(
+          local.alloy_component_labels,
+          {
+            # Add database-related labels for Database Observability
+            "db.service.namespace" = kubernetes_namespace.quickpizza.metadata[0].name
+            "db.service.name"      = "quickpizza-db"
+          }
+        )
       }
       spec {
         service_account_name = kubernetes_service_account.alloy.metadata[0].name
@@ -89,12 +99,46 @@ resource "kubernetes_deployment" "alloy" {
             }
           }
           env {
+            name = "QUICKPIZZA_DB"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
+                key  = "CONNECTION_STRING"
+              }
+            }
+          }
+          env {
             name  = "KUBERNETES_CLUSTER_NAME"
             value = var.cluster_name
           }
           env {
             name  = "QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"
             value = var.quickpizza_git_ref
+          }
+          # Use Downward API to inject pod labels as environment variables
+          env {
+            name = "DB_SERVICE_NAMESPACE"
+            value_from {
+              field_ref {
+                field_path = "metadata.labels['db.service.namespace']"
+              }
+            }
+          }
+          env {
+            name = "DB_SERVICE_NAME"
+            value_from {
+              field_ref {
+                field_path = "metadata.labels['db.service.name']"
+              }
+            }
+          }
+          env {
+            name = "DEPLOYMENT_ENVIRONMENT"
+            value_from {
+              field_ref {
+                field_path = "metadata.labels['environment']"
+              }
+            }
           }
           port {
             name           = "grpc"

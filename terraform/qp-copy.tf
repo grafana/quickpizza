@@ -9,7 +9,10 @@ locals {
 }
 
 resource "kubernetes_deployment" "copy" {
-  depends_on = [kubernetes_deployment.alloy]
+  depends_on = [
+    kubernetes_deployment.alloy,
+    kubernetes_stateful_set.postgres_statefulset
+  ]
   
   metadata {
     name      = "copy"
@@ -74,6 +77,19 @@ resource "kubernetes_deployment" "copy" {
             value_from {
               field_ref {
                 field_path = "metadata.name"
+              }
+            }
+          }
+          env {
+            name  = "QUICKPIZZA_OTEL_DB_NAME"
+            value = "quickpizza-db"
+          }
+          env {
+            name = "QUICKPIZZA_DB"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
+                key  = "CONNECTION_STRING"
               }
             }
           }

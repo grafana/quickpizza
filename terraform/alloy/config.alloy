@@ -72,8 +72,8 @@ discovery.relabel "application_pods" {
 // Metrics: application pods
 prometheus.scrape "application_pods" {
   scrape_interval = "10s"
+  targets = concat(discovery.relabel.application_pods.output, discovery.relabel.database_observability_postgres_quickpizza.output)
   forward_to = [grafana_cloud.stack.receivers.metrics]
-  targets = discovery.relabel.application_pods.output
 }
 
 discovery.relabel "application_pods_logs" {
@@ -173,6 +173,15 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     	"delete_key(attributes, \"process.runtime.version\")",
     ]
   }
+
+  trace_statements {
+    context    = "span"
+    statements = [
+      // Without this, servicegraph would use physical addresses (e.g., "localhost:3333", "quickpizza-db:5432")
+      // instead of logical service names (e.g., "quickpizza", "database")
+      "delete_key(attributes, \"server.address\")",
+    ]
+  }
     
   metric_statements {
     context    = "resource"
@@ -263,6 +272,77 @@ otelcol.exporter.otlphttp "otlpEndpoint" {
     auth     = otelcol.auth.basic.otlpEndpoint.handler
   }
 }
+
+
+// DB o11y
+prometheus.exporter.postgres "postgres_quickpizza" {
+  data_source_names  = [env("QUICKPIZZA_DB")]
+  enabled_collectors = ["stat_statements"]
+
+  autodiscovery {
+    enabled = true
+  }
+}
+
+database_observability.postgres "postgres_quickpizza" {
+  data_source_name  = env("QUICKPIZZA_DB")
+  forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
+  targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
+  enable_collectors = ["query_details", "query_samples", "schema_details"]
+}
+
+loki.relabel "database_observability_postgres_quickpizza" {
+  forward_to = [grafana_cloud.stack.receivers.logs]
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/db-o11y"
+  }
+
+  rule {
+    target_label = "service_namespace"
+    replacement = env("DB_SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "namespace"
+    replacement = env("DB_SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "service_name"
+    replacement = env("DB_SERVICE_NAME")
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement = env("DEPLOY_ENVIRONMENT")
+  }
+}
+
+discovery.relabel "database_observability_postgres_quickpizza" {
+  targets = database_observability.postgres.postgres_quickpizza.targets
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/db-o11y"
+  }
+
+  rule {
+    target_label = "service_namespace"
+    replacement = env("DB_SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "namespace"
+    replacement = env("DB_SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "service_name"
+    replacement = env("DB_SERVICE_NAME")
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement = env("DEPLOY_ENVIRONMENT")
+  }
+}
+
 
 // Debug Alloy
 // kubectl port-forward -n quickpizza svc/alloy 12345:12345
