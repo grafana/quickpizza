@@ -15,6 +15,7 @@
 		"@biomejs/biome": "2.2.4",
 		"@grafana/faro-web-sdk": "2.0.2",
 		"@grafana/faro-web-tracing": "2.0.2",
+		"@sentry/vite-plugin": "^4.6.1",
 		"@sveltejs/adapter-auto": "6.1.0",
 		"@sveltejs/adapter-static": "3.0.9",
 		"@sveltejs/kit": "2.37.0",
@@ -31,6 +32,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@sentry/svelte": "^9.29.0",
 		"install": "0.13.0",
 		"npm": "11.4.2",
 		"svelte-confetti": "1.2.2"

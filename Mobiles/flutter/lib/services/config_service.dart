@@ -3,6 +3,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ConfigService {
+  /// Sentry DSN for error tracking
+  /// Get your DSN from https://sentry.io
+  static String get sentryDsn {
+    return dotenv.env['SENTRY_DSN'] ?? '';
+  }
+
+  /// Whether Sentry is configured
+  static bool get isSentryEnabled {
+    return sentryDsn.isNotEmpty;
+  }
+
   static String get baseUrl {
     // First, check if BASE_URL is set in .env file
     final envBaseUrl = dotenv.env['BASE_URL'];

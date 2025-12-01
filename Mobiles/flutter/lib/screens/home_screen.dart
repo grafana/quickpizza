@@ -4,6 +4,7 @@ import '../models/pizza.dart';
 import '../models/restrictions.dart';
 import '../services/api_service.dart';
 import '../services/config_service.dart';
+import '../services/sentry_with_context.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -533,6 +534,55 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: const Text('Love it!'),
             ),
+            // Test Sentry button - sends a test error with source context
+            if (ConfigService.isSentryEnabled) ...[
+              const SizedBox(width: 16),
+              PopupMenuButton<String>(
+                onSelected: (errorType) async {
+                  try {
+                    await sendErrorWithContext(errorType);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '$errorType error with context sent to Sentry!',
+                          ),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                    debugPrint('$errorType error with context sent to Sentry');
+                  } catch (e) {
+                    debugPrint('Failed to send error: $e');
+                  }
+                },
+                itemBuilder: (context) => getAvailableErrorTypes()
+                    .map(
+                      (type) =>
+                          PopupMenuItem<String>(value: type, child: Text(type)),
+                    )
+                    .toList(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bug_report, size: 18, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Test Issue', style: TextStyle(color: Colors.white)),
+                      Icon(Icons.arrow_drop_down, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         if (_rateResult != null)

@@ -12,7 +12,7 @@ x-quickpizza-env-common: &quickpizza-env-common
 name: quickpizza
 services:
   alloy:
-    image: grafana/alloy:v1.11.3@sha256:8c7256f412feb9f5f48f9f6f9394dc97ca887f63dea9304f347970ecc1787669
+    image: grafana/alloy:v1.9.1
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -33,6 +33,16 @@ services:
       # must be set with an .env file
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
+      # set only when ALLOY_FILE_NAME=cloud.otlp.alloy
+      GRAFANA_CLOUD_OTLP_ENDPOINT: "${GRAFANA_CLOUD_OTLP_ENDPOINT:-}"
+      GRAFANA_CLOUD_INSTANCE_ID: "${GRAFANA_CLOUD_INSTANCE_ID:-}"
+      # enable Faro integration
+      QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
+      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
+      # enable Sentry Integration
+      QUICKPIZZA_CONF_SENTRY_DSN: "${QUICKPIZZA_CONF_SENTRY_DSN:-}"
+      QUICKPIZZA_CONF_SENTRY_ENVIRONMENT: "${QUICKPIZZA_CONF_SENTRY_ENVIRONMENT:-}"
+      QUICKPIZZA_CONF_SENTRY_RELEASE: "${QUICKPIZZA_CONF_SENTRY_RELEASE:-}"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
     depends_on:
       - catalog
@@ -43,7 +53,7 @@ services:
       - ws
 
   catalog:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
     container_name: catalog
     labels:
       - "service.type=application"
@@ -55,7 +65,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
 
   config:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
     container_name: config
     labels:
       - "service.type=application"
@@ -68,8 +78,12 @@ services:
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
+      # enable Sentry Integration
+      QUICKPIZZA_CONF_SENTRY_DSN: "${QUICKPIZZA_CONF_SENTRY_DSN:-}"
+      QUICKPIZZA_CONF_SENTRY_ENVIRONMENT: "${QUICKPIZZA_CONF_SENTRY_ENVIRONMENT:-}"
+      QUICKPIZZA_CONF_SENTRY_RELEASE: "${QUICKPIZZA_CONF_SENTRY_RELEASE:-}"
   copy:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
     container_name: copy
     labels:
       - "service.type=application"
@@ -81,7 +95,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
 
   public-api:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
     container_name: public-api
     labels:
       - "service.type=application"
@@ -95,7 +109,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
 
   recommendations:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
     container_name: recommendations
     labels:
       - "service.type=application"
@@ -107,7 +121,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
 
   ws:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:latest}
     container_name: ws
     labels:
       - "service.type=application"

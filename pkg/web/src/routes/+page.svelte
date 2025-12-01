@@ -1,6 +1,7 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: organized by hand
 import { faro } from '@grafana/faro-web-sdk';
+import * as Sentry from '@sentry/svelte';
 import {
 	PUBLIC_BACKEND_ENDPOINT,
 	PUBLIC_BACKEND_WS_ENDPOINT,
@@ -9,6 +10,40 @@ import { onMount } from 'svelte';
 import { Confetti } from 'svelte-confetti';
 import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
 import ToggleConfetti from '../lib/ToggleConfetti.svelte';
+import { sendErrorWithContext, getAvailableErrorTypes } from '../lib/sentryWithContext';
+
+// Track if Sentry is enabled (loaded from config)
+let sentryEnabled = false;
+
+// Available error types for the dropdown
+let errorTypes: string[] = [];
+let selectedErrorType = 'TypeError';
+
+// Check if Sentry is configured via backend config
+async function checkSentryEnabled() {
+	try {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/config`);
+		const config = await res.json();
+		sentryEnabled = !!config.sentry_dsn;
+		if (sentryEnabled) {
+			errorTypes = getAvailableErrorTypes();
+			selectedErrorType = errorTypes[0] || 'TypeError';
+		}
+	} catch {
+		sentryEnabled = false;
+	}
+}
+
+// Send a test error to Sentry with source context
+function sendTestSentryError() {
+	sendErrorWithContext(selectedErrorType as any);
+	faro.api.pushEvent('Sentry Test Error Sent', { 
+		timestamp: new Date().toISOString(),
+		errorType: selectedErrorType,
+		hasContext: true
+	});
+	alert(`Test ${selectedErrorType} error with source context sent to Sentry!`);
+}
 
 const defaultRestrictions = {
 	maxCaloriesPerSlice: 1000,
@@ -69,6 +104,8 @@ function randomToken(length) {
 
 let socket: WebSocket;
 onMount(async () => {
+	// Check if Sentry is enabled
+	checkSentryEnabled();
 	// biome-ignore lint/suspicious/noAssignInExpressions: -
 	wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
 	if (wsVisitorID === 0) {
@@ -445,5 +482,25 @@ async function getTools() {
 				>
 			</p>
 		</div>
+		{#if sentryEnabled}
+			<div class="flex justify-center items-center mt-4 gap-2">
+				<select
+					bind:value={selectedErrorType}
+					class="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg px-2 py-1.5"
+				>
+					{#each errorTypes as errorType}
+						<option value={errorType}>{errorType}</option>
+					{/each}
+				</select>
+				<button
+					type="button"
+					on:click={sendTestSentryError}
+					class="text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-xs px-3 py-1.5 text-center"
+					title="Send test error with source context to Sentry"
+				>
+					Test Sentry Error (with context)
+				</button>
+			</div>
+		{/if}
 	</footer>
 {/if}
