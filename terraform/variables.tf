@@ -112,3 +112,18 @@ variable "externalservices_loki_basicauth_password" {
   type    = string
   sensitive   = true
 }
+
+variable "quickpizza_db_name" {
+  default = "quickpizza"
+  type    = string
+}
+
+variable "quickpizza_db_user" {
+  default = "quickpizza"
+  type    = string
+}
+
+variable "quickpizza_db_password" {
+  default = "quickpizza"
+  type    = string
+}

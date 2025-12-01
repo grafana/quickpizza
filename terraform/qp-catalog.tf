@@ -11,7 +11,10 @@ locals {
 
 
 resource "kubernetes_deployment" "catalog" {
-  depends_on = [kubernetes_deployment.alloy]
+  depends_on = [
+    kubernetes_deployment.alloy,
+    kubernetes_stateful_set.postgres_statefulset
+  ]
   
   metadata {
     name      = "catalog"
@@ -82,6 +85,19 @@ resource "kubernetes_deployment" "catalog" {
           env {
             name  = "QUICKPIZZA_OTEL_SERVICE_NAME"
             value = "catalog"
+          }
+          env {
+            name  = "QUICKPIZZA_OTEL_DB_NAME"
+            value = "quickpizza-db"
+          }
+          env {
+            name = "QUICKPIZZA_DB"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
+                key  = "CONNECTION_STRING"
+              }
+            }
           }
           resources {
             requests = local.default_resources.requests

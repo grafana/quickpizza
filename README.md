@@ -281,19 +281,24 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 ![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
 
-### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
+### Monitor QuickPizza with Grafana Cloud Observability solutions
 
 The Docker Compose setup is fully instrumented out of the box, so you can jump right into Grafana Cloud Observability apps and start observing the inner workings of the QuickPizza service components.
 
-To enable [Grafana Cloud Application Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/) for QuickPizza:
+To enable [Application Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/) and [Database Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/database-observability/) for QuickPizza:
 
 1. In your Grafana Cloud instance, navigate to **Observability > Application**.
 2. Click on **Enable metrics generation** to enable the usage of Application Observability. 
 3. Interact with the QuickPizza app to generate traffic. After a few minutes, the QuickPizza components will be automatically discovered and displayed in the UI.
 
-![Application Observability](./docs/images/grafana-cloud-application-observability.png)
+  ![Application Observability](./docs/images/grafana-cloud-application-observability.png)
 
-![Application Observability - Public API Service](./docs/images/grafana-cloud-application-observability-public-api-svc.png)
+  ![Application Observability - Public API Service](./docs/images/grafana-cloud-application-observability-public-api-svc.png)
+
+4. Navigate to **Observability > Database** to understand the performance of the Postgres database:
+
+  ![Database Observability](./docs/images/grafana-cloud-database-observability.png)
+
 
 To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/):
 

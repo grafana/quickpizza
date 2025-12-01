@@ -11,17 +11,19 @@ grafana_cloud.stack "receivers" {
   token = env("GRAFANA_CLOUD_TOKEN")
 }
 
-// discover containers running QuickPizza
-discovery.docker "application_containers" {
+discovery.docker "all_containers" {
   host = "unix:///var/run/docker.sock"
-  filter {
-    name   = "label"
-    values = ["service.type=application"]
-  }
 }
 
 // set expected labels
-discovery.relabel "application_containers" {
+discovery.relabel "app_containers" {
+
+  // Drop containers with service.type=instrumentation
+  rule {
+    source_labels = ["__meta_docker_container_label_service_type"]
+    regex = "instrumentation"
+    action = "drop"
+  }
   // Application Observability expects `job` to be `$service.namespace/$service.name`
   // Reads from service.namespace Docker label and container name to build: namespace/service-name
   rule {
@@ -66,23 +68,23 @@ discovery.relabel "application_containers" {
     target_label = "deployment_environment"
     replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
-  targets = discovery.docker.application_containers.targets
+  targets = discovery.docker.all_containers.targets
 }
 
 // Metrics
-prometheus.scrape "application_containers" {
+prometheus.scrape "app_containers" {
   scrape_interval = "10s"
-  targets = discovery.relabel.application_containers.output
+  targets = concat(discovery.relabel.app_containers.output, discovery.relabel.database_observability_postgres_quickpizza.output)
   forward_to = [grafana_cloud.stack.receivers.metrics]
 }
 // Logs
-loki.source.docker "application_containers" {
+loki.source.docker "app_containers" {
   host       = "unix:///var/run/docker.sock"
-  targets    = discovery.relabel.application_containers.output
+  targets    = discovery.relabel.app_containers.output
   forward_to = [grafana_cloud.stack.receivers.logs]
 }
 
-discovery.relabel "application_containers_profiles" {
+discovery.relabel "app_containers_profiles" {
   // Filter to only scrape port 3333 for profiling.
   // Docker discovery creates separate targets for each exposed port (3333, 3334, 3335).
   // We only keep port 3333 where the HTTP pprof endpoints are available.
@@ -101,14 +103,14 @@ discovery.relabel "application_containers_profiles" {
     target_label = "service_git_ref"
     replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
   }
-  targets = discovery.relabel.application_containers.output
+  targets = discovery.relabel.app_containers.output
 }
 
 // Profiling Pull Mode
-pyroscope.scrape "application_containers" {
+pyroscope.scrape "app_containers" {
   // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
   scrape_interval = "30s"
-  targets = discovery.relabel.application_containers_profiles.output
+  targets = discovery.relabel.app_containers_profiles.output
   forward_to = [grafana_cloud.stack.receivers.profiles]
 }
 
@@ -163,6 +165,15 @@ otelcol.processor.transform "drop_unneeded_resource_attributes" {
     	"delete_key(attributes, \"process.runtime.description\")",
     	"delete_key(attributes, \"process.runtime.name\")",
     	"delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+
+  trace_statements {
+    context    = "span"
+    statements = [
+      // Without this, servicegraph would use physical addresses (e.g., "localhost:3333", "quickpizza-db:5432")
+      // instead of logical service names (e.g., "quickpizza", "database")
+      "delete_key(attributes, \"server.address\")",
     ]
   }
     
@@ -254,4 +265,74 @@ otelcol.exporter.otlphttp "otlpEndpoint" {
     // https://github.com/grafana/beyla/blob/069049182455db603f3bda6865e7de13e45e038f/pkg/export/otel/common.go#L22
     auth     = otelcol.auth.basic.otlpEndpoint.handler
   }
+}
+
+// DB o11y
+prometheus.exporter.postgres "postgres_quickpizza" {
+  data_source_names  = [coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")]
+  enabled_collectors = ["stat_statements"]
+
+  autodiscovery {
+    enabled = true
+  }
+}
+
+database_observability.postgres "postgres_quickpizza" {
+  data_source_name  = coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")
+  forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
+  targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
+  enable_collectors = ["query_details", "query_samples", "schema_details"]
+}
+
+loki.relabel "database_observability_postgres_quickpizza" {
+  forward_to = [grafana_cloud.stack.receivers.logs]
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/db-o11y"
+  }
+
+  rule {
+    target_label = "service_namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "service_name"
+    replacement = env("DB_SERVICE_NAME")
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+  }
+}
+
+discovery.relabel "database_observability_postgres_quickpizza" {
+  targets = database_observability.postgres.postgres_quickpizza.targets
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/db-o11y"
+  }
+
+  rule {
+    target_label = "service_namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "service_name"
+    replacement = env("DB_SERVICE_NAME")
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+  }
+
 }

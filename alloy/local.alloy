@@ -1,14 +1,15 @@
-// discover containers running QuickPizza
-discovery.docker "application_containers" {
+discovery.docker "all_containers" {
   host = "unix:///var/run/docker.sock"
-  filter {
-    name   = "label"
-    values = ["service.type=application"]
-  }
 }
 
 // set expected labels
-discovery.relabel "application_containers" {
+discovery.relabel "app_containers" {
+  // Drop containers with service.type=instrumentation
+  rule {
+    source_labels = ["__meta_docker_container_label_service_type"]
+    regex = "instrumentation"
+    action = "drop"
+  }
   // Application Observability expects `job` to be `$service.namespace/$service.name`
   // Reads from service.namespace Docker label and container name to build: namespace/service-name
   rule {
@@ -53,7 +54,39 @@ discovery.relabel "application_containers" {
     target_label = "deployment_environment"
     replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
-  targets = discovery.docker.application_containers.targets
+  targets = discovery.docker.all_containers.targets
+}
+
+prometheus.exporter.postgres "default" {
+  data_source_names = [coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")]
+}
+
+discovery.relabel "postgres" {
+  rule {
+    target_label = "job"
+    replacement = format("%s/%s", env("SERVICE_NAMESPACE"), env("DB_SERVICE_NAME"))
+  }
+  rule {
+    target_label = "instance"
+    replacement = env("DB_SERVICE_NAME")
+  }
+  rule {
+    target_label = "service_namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "namespace"
+    replacement = env("SERVICE_NAMESPACE")
+  }
+  rule {
+    target_label = "service_name"
+    replacement = env("DB_SERVICE_NAME")
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+  }
+  targets = prometheus.exporter.postgres.default.targets
 }
 
 // Metrics
@@ -64,9 +97,9 @@ prometheus.remote_write "local" {
     send_native_histograms = true
   }
 }
-prometheus.scrape "application_containers" {
+prometheus.scrape "app_containers" {
   scrape_interval = "10s"
-  targets = discovery.relabel.application_containers.output
+  targets = concat(discovery.relabel.app_containers.output, discovery.relabel.postgres.output)
   forward_to = [prometheus.remote_write.local.receiver]
 }
 
@@ -76,9 +109,9 @@ loki.write "local" {
     url = env("LOGS_ENDPOINT")
   }
 }
-loki.source.docker "application_containers" {
+loki.source.docker "app_containers" {
   host       = "unix:///var/run/docker.sock"
-  targets    = discovery.relabel.application_containers.output
+  targets    = discovery.relabel.app_containers.output
   forward_to = [loki.write.local.receiver]
 }
 
@@ -88,7 +121,7 @@ pyroscope.write "local" {
        url = env("PROFILES_ENDPOINT")
    }
 }
-discovery.relabel "application_containers_profiles" {
+discovery.relabel "app_containers_profiles" {
   // Filter to only scrape port 3333 for profiling.
   // Docker discovery creates separate targets for each exposed port (3333, 3334, 3335).
   // We only keep port 3333 where the HTTP pprof endpoints are available.
@@ -107,12 +140,12 @@ discovery.relabel "application_containers_profiles" {
     target_label = "service_git_ref"
     replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
   }
-  targets = discovery.relabel.application_containers.output
+  targets = discovery.relabel.app_containers.output
 }
-pyroscope.scrape "application_containers" {
+pyroscope.scrape "app_containers" {
   // https://grafana.com/docs/pyroscope/latest/configure-client/grafana-alloy/go_pull/
   scrape_interval = "30s"
-  targets = discovery.relabel.application_containers_profiles.output
+  targets = discovery.relabel.app_containers_profiles.output
   forward_to = [pyroscope.write.local.receiver]
 }
 
