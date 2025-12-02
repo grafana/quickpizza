@@ -8,8 +8,8 @@
 - [Run locally with Docker](#run-locally-with-docker)
 - [Run and observe locally with Grafana OSS 🐳📊](#run-and-observe-locally-with-grafana-oss-)
 - [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
-- [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud)
-  - [Monitor QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability)
+- [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud-)
+  - [Enable Grafana Cloud Observability solutions](#enable-grafana-cloud-observability-solutions)
 
 ## What is QuickPizza? 🍕🍕🍕
 
@@ -281,7 +281,7 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 ![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
 
-### Monitor QuickPizza with Grafana Cloud Observability solutions
+### Enable Grafana Cloud Observability solutions
 
 The Docker Compose setup is fully instrumented out of the box, so you can jump right into Grafana Cloud Observability apps and start observing the inner workings of the QuickPizza service components.
 
