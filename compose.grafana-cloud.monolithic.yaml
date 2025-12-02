@@ -30,7 +30,7 @@ services:
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.14}
     # Alloy reads `container_name` to relabel service name in telemetry.
     container_name: quickpizza
     labels:

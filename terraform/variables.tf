@@ -38,14 +38,14 @@ variable "kubernetes_namespace" {
 }
 
 variable "quickpizza_image" {
-  default     = "ghcr.io/grafana/quickpizza-local:0.15.11"
+  default     = "ghcr.io/grafana/quickpizza-local:0.15.14"
   description = "The Image to use for the QuickPizza Demo Application."
   nullable    = false
   type        = string
 }
 
 variable "quickpizza_git_ref" {
-  default     = "79a5de3"
+  default     = "43133ae"
   description = "The GitHub reference to the specific commit of the QuickPizza version"
   nullable    = false
   type        = string
