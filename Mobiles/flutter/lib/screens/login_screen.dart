@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../core/application_layer/o11y/events/o11y_events.dart';
+import '../core/application_layer/o11y/errors/o11y_errors.dart';
+import '../core/application_layer/o11y/loggers/o11y_logger.dart';
 import '../services/api_service.dart';
 import '../models/rating.dart';
 
@@ -22,6 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    o11yEvents.trackEvent('login_screen_opened', attributes: {});
+    o11yLogger.debug('Login screen initialized', context: {});
     _checkLoginStatus();
   }
 
@@ -40,14 +45,34 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoggedIn = ratings.isNotEmpty || _usernameController.text.isNotEmpty;
         _isLoading = false;
       });
-    } catch (e) {
+      o11yLogger.debug(
+        'Ratings loaded',
+        context: {'count': ratings.length.toString()},
+      );
+    } catch (e, stackTrace) {
       setState(() {
         _isLoading = false;
       });
+      o11yErrors.reportError(
+        type: 'UI',
+        error: 'Failed to load ratings: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {'screen': 'login'},
+      );
     }
   }
 
   Future<void> _handleLogin() async {
+    // Track user action for Frontend Observability
+    o11yEvents.startUserAction(
+      'userLogin',
+      {'username': _usernameController.text},
+      triggerName: 'userLoginButtonClick',
+      importance: 'critical',
+    );
+
+    o11yEvents.trackStartEvent('login_attempt', 'user_login');
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -59,22 +84,59 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
       if (success) {
+        o11yEvents.trackEndEvent(
+          'login_attempt',
+          'user_login',
+          attributes: {'success': 'true', 'username': _usernameController.text},
+        );
+        o11yEvents.setUser(
+          id: _usernameController.text,
+          name: _usernameController.text,
+          email: '${_usernameController.text}@quickpizza.com',
+        );
         await _loadRatings();
       } else {
+        o11yEvents.trackEndEvent(
+          'login_attempt',
+          'user_login',
+          attributes: {
+            'success': 'false',
+            'username': _usernameController.text,
+          },
+        );
         setState(() {
           _errorMessage = 'Login failed. Please check your credentials.';
           _isLoading = false;
         });
+        o11yLogger.warning(
+          'Login failed',
+          context: {'username': _usernameController.text},
+        );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      o11yEvents.trackEndEvent(
+        'login_attempt',
+        'user_login',
+        attributes: {'success': 'false', 'error': e.toString()},
+      );
       setState(() {
         _errorMessage = 'Error: ${e.toString()}';
         _isLoading = false;
       });
+      o11yErrors.reportError(
+        type: 'UI',
+        error: 'Login error: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {'screen': 'login', 'username': _usernameController.text},
+      );
     }
   }
 
   Future<void> _handleLogout() async {
+    o11yEvents.trackEvent(
+      'user_logged_out',
+      attributes: {'username': _usernameController.text},
+    );
     widget.apiService.setUserToken(null);
     setState(() {
       _isLoggedIn = false;
@@ -82,9 +144,23 @@ class _LoginScreenState extends State<LoginScreen> {
       _usernameController.clear();
       _passwordController.clear();
     });
+    o11yLogger.debug('User logged out', context: {});
   }
 
   Future<void> _deleteRatings() async {
+    // Track user action for Frontend Observability
+    o11yEvents.startUserAction(
+      'userDeleteRatings',
+      {'username': _usernameController.text},
+      triggerName: 'userDeleteRatingsButtonClick',
+      importance: 'critical',
+    );
+
+    o11yEvents.trackEvent(
+      'ratings_deleted',
+      attributes: {'count': _ratings.length.toString()},
+    );
+
     try {
       final success = await widget.apiService.deleteRatings();
       if (success) {
@@ -94,8 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
             const SnackBar(content: Text('Ratings deleted successfully.')),
           );
         }
+        o11yLogger.debug('Ratings deleted successfully', context: {});
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (mounted) {
         final errorStr = e.toString();
         final message = errorStr.startsWith('Exception: ')
@@ -105,6 +182,12 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
+      o11yErrors.reportError(
+        type: 'UI',
+        error: 'Failed to delete ratings: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {'screen': 'login', 'action': 'deleteRatings'},
+      );
     }
   }
 

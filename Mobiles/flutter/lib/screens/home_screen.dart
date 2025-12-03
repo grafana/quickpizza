@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../core/application_layer/o11y/events/o11y_events.dart';
+import '../core/application_layer/o11y/errors/o11y_errors.dart';
+import '../core/application_layer/o11y/loggers/o11y_logger.dart';
+import '../core/application_layer/o11y/metrics/o11y_metrics.dart';
 import '../models/pizza.dart';
 import '../models/restrictions.dart';
 import '../services/api_service.dart';
@@ -28,25 +32,61 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    o11yEvents.trackEvent('home_screen_opened', attributes: {});
+    o11yLogger.debug('Home screen initialized', context: {});
     _loadInitialData();
   }
 
   Future<void> _loadInitialData() async {
-    // Load quote (doesn't require auth)
-    final quote = await widget.apiService.getQuote();
+    try {
+      // Load quote (doesn't require auth)
+      final quote = await widget.apiService.getQuote();
 
-    // Load tools (requires auth - will fail if user not logged in)
-    final tools = await widget.apiService.getTools();
+      // Load tools (requires auth - will fail if user not logged in)
+      final tools = await widget.apiService.getTools();
 
-    setState(() {
-      _quote = quote;
-      _tools = tools;
-      // If tools is empty, user may not be logged in, but that's OK
-      // They can still use the app and will be prompted to login when needed
-    });
+      setState(() {
+        _quote = quote;
+        _tools = tools;
+        // If tools is empty, user may not be logged in, but that's OK
+        // They can still use the app and will be prompted to login when needed
+      });
+
+      o11yLogger.debug(
+        'Initial data loaded',
+        context: {
+          'has_quote': quote.isNotEmpty.toString(),
+          'tools_count': tools.length.toString(),
+        },
+      );
+    } catch (e, stackTrace) {
+      o11yErrors.reportError(
+        type: 'UI',
+        error: 'Failed to load initial data: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {'screen': 'home'},
+      );
+    }
   }
 
   Future<void> _getPizza() async {
+    // Track user action for Frontend Observability
+    o11yEvents.startUserAction('getPizza', {
+      'advanced_mode': _advanced.toString(),
+      'vegetarian': _restrictions.mustBeVegetarian.toString(),
+      'max_calories': _restrictions.maxCaloriesPerSlice.toString(),
+      'min_toppings': _restrictions.minNumberOfToppings.toString(),
+      'max_toppings': _restrictions.maxNumberOfToppings.toString(),
+    }, triggerName: 'getPizzaButtonClick');
+
+    o11yEvents.trackEvent(
+      'pizza_requested',
+      attributes: {
+        'advanced_mode': _advanced.toString(),
+        'vegetarian': _restrictions.mustBeVegetarian.toString(),
+      },
+    );
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -65,7 +105,24 @@ class _HomeScreenState extends State<HomeScreen> {
               'Failed to get pizza recommendation. Please log in and try again.';
         }
       });
-    } catch (e) {
+
+      if (pizza != null) {
+        o11yEvents.trackEvent(
+          'pizza_received',
+          attributes: {
+            'pizza_id': pizza.pizza.id.toString(),
+            'pizza_name': pizza.pizza.name,
+          },
+        );
+        o11yMetrics.addMeasurement('pizza.recommendation', {
+          'pizza_id': pizza.pizza.id,
+          'calories': pizza.calories ?? 0,
+          'vegetarian': pizza.vegetarian == true ? 1 : 0,
+        });
+      } else {
+        o11yLogger.warning('Pizza recommendation returned null', context: {});
+      }
+    } catch (e, stackTrace) {
       setState(() {
         _isLoading = false;
         final errorStr = e.toString();
@@ -73,11 +130,33 @@ class _HomeScreenState extends State<HomeScreen> {
             ? errorStr.substring(10)
             : errorStr;
       });
+
+      o11yErrors.reportError(
+        type: 'UI',
+        error: 'Failed to get pizza: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {'screen': 'home', 'action': 'getPizza'},
+      );
     }
   }
 
   Future<void> _ratePizza(int stars) async {
     if (_pizza == null) return;
+
+    // Track user action for Frontend Observability
+    o11yEvents.startUserAction('ratePizza', {
+      'pizza_id': _pizza!.pizza.id.toString(),
+      'stars': stars.toString(),
+    }, triggerName: 'ratePizzaButtonClick');
+
+    o11yEvents.trackEvent(
+      'pizza_rated',
+      attributes: {
+        'pizza_id': _pizza!.pizza.id.toString(),
+        'stars': stars.toString(),
+        'rating_type': stars == 5 ? 'love_it' : 'no_thanks',
+      },
+    );
 
     try {
       final success = await widget.apiService.ratePizza(
@@ -87,13 +166,31 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _rateResult = success ? 'Rated!' : 'Please log in first.';
       });
-    } catch (e) {
+
+      if (success) {
+        o11yMetrics.addMeasurement('pizza.rating', {
+          'pizza_id': _pizza!.pizza.id,
+          'stars': stars,
+        });
+      }
+    } catch (e, stackTrace) {
       setState(() {
         final errorStr = e.toString();
         _rateResult = errorStr.startsWith('Exception: ')
             ? errorStr.substring(10)
             : errorStr;
       });
+
+      o11yErrors.reportError(
+        type: 'UI',
+        error: 'Failed to rate pizza: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {
+          'screen': 'home',
+          'action': 'ratePizza',
+          'pizza_id': _pizza!.pizza.id.toString(),
+        },
+      );
     }
   }
 
@@ -121,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () {
+              o11yEvents.trackEvent('login_button_clicked', attributes: {});
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -140,6 +238,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Switch(
                 value: _advanced,
                 onChanged: (value) {
+                  o11yEvents.trackEvent(
+                    'advanced_mode_toggled',
+                    attributes: {'enabled': value.toString()},
+                  );
                   setState(() {
                     _advanced = value;
                     if (!value) {
@@ -259,6 +361,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     WidgetSpan(
                       child: GestureDetector(
                         onTap: () async {
+                          o11yEvents.trackEvent(
+                            'admin_link_clicked',
+                            attributes: {},
+                          );
                           final adminUrl = Uri.parse(
                             '${ConfigService.baseUrl}/admin',
                           );
@@ -292,6 +398,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     WidgetSpan(
                       child: GestureDetector(
                         onTap: () async {
+                          o11yEvents.trackEvent(
+                            'github_link_clicked',
+                            attributes: {},
+                          );
                           final githubUrl = Uri.parse(
                             'https://github.com/grafana/quickpizza',
                           );
