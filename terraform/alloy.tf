@@ -86,7 +86,7 @@ resource "kubernetes_deployment" "alloy" {
         service_account_name = kubernetes_service_account.alloy.metadata[0].name
         container {
           name              = "alloy"
-          image             = "grafana/alloy:v1.11.3"
+          image             = "grafana/alloy:v1.12.0"
           image_pull_policy = "IfNotPresent"
           args = [
             "run",
@@ -108,7 +108,7 @@ resource "kubernetes_deployment" "alloy" {
             }
           }
           env {
-            name  = "KUBERNETES_CLUSTER_NAME"
+            name  = "CLUSTER_NAME"
             value = var.cluster_name
           }
           env {

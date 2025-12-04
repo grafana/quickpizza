@@ -65,6 +65,18 @@ discovery.relabel "application_pods" {
       "__meta_kubernetes_pod_label_environment",
     ]
   }
+  
+  // kubernetes monitoring and knowledge graph
+  rule {
+    target_label = "pod"
+    source_labels = [
+      "__meta_kubernetes_pod_name",
+    ]
+  }
+  rule {
+    target_label = "cluster"
+    replacement = env("CLUSTER_NAME")
+  }
   targets = discovery.kubernetes.application_pods.targets
 }
 
@@ -76,26 +88,10 @@ prometheus.scrape "application_pods" {
   forward_to = [grafana_cloud.stack.receivers.metrics]
 }
 
-discovery.relabel "application_pods_logs" {
-  // Enable logs in Kubernetes Monitoring
-  // Only add cluster_name label if KUBERNETES_CLUSTER_NAME env var is set
-  rule {
-    target_label = "cluster"
-    replacement = env("KUBERNETES_CLUSTER_NAME")
-  }
-  rule {
-    target_label = "pod"
-    source_labels = [
-      "__meta_kubernetes_pod_name",
-    ]
-  }
-  targets = discovery.relabel.application_pods.output
-}
-
 // Logs: application pods
 loki.source.kubernetes "application_pods" {
+  targets = discovery.relabel.application_pods.output
   forward_to = [grafana_cloud.stack.receivers.logs]
-  targets = discovery.relabel.application_pods_logs.output
 }
 
 discovery.relabel "application_pods_profiles" {
@@ -139,21 +135,94 @@ otelcol.receiver.otlp "default" {
     traces  = [otelcol.processor.resourcedetection.default.input]
   }
 }
-    
+
 otelcol.processor.resourcedetection "default" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.resourcedetection/
-  detectors = ["env", "system"] // add "gcp", "ec2", "ecs", "elastic_beanstalk", "eks", "lambda", "azure", "aks", "consul", "heroku"  if you want to use cloud resource detection
+  detectors = ["env", "system"] 
     
   system {
     hostname_sources = ["os"]
   }
     
   output {
+    // metrics = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    // logs    = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    // traces  = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    metrics = [otelcol.processor.k8sattributes.default.input]
+    logs    = [otelcol.processor.k8sattributes.default.input]
+    traces  = [otelcol.processor.k8sattributes.default.input]
+  }
+}
+
+otelcol.processor.k8sattributes "default" {
+  // k8s.pod.ip is the only one that is identified.
+  extract {
+		metadata         = [
+			"k8s.pod.name",
+			"k8s.namespace.name",
+			"k8s.node.name",
+			"k8s.container.name",
+			"k8s.deployment.name",
+			"k8s.statefulset.name",
+		]
+    otel_annotations = true
+	}
+  pod_association {
+    source {
+      from = "connection"
+    }
+  }
+  output {
+    metrics = [otelcol.processor.transform.default.input]
+    logs    = [otelcol.processor.transform.default.input]
+    traces  = [otelcol.processor.transform.default.input]
+  }
+}
+
+otelcol.processor.transform "default" {
+	error_mode = "ignore"
+
+	// Many Grafana solutions are configured to use the cluster and namespace labels to identify the source of the data.
+	// OTEL metrics, logs and traces use the same labels for consistency.
+
+  // Knowledge graph requires span metrics with labels: `k8s.namespace.name`, `k8s.cluster.name`, and `k8s.pod.name` 
+  // https://grafana.com/docs/grafana-cloud/knowledge-graph/get-started/prerequisites-troubleshooting/#red-metrics-troubleshooting
+  // However, `otelcol.processor.k8sattributes` is not able to discover these labels automatically. Why?
+	trace_statements {
+		context    = "resource"
+		statements = [
+			`set(attributes["k8s.cluster.name"], "` + env("CLUSTER_NAME") + `")`,
+			`set(attributes["k8s.namespace.name"], attributes["service.namespace"])`,
+			`set(attributes["k8s.pod.name"], attributes["service.instance.id"])`,
+		]
+	}
+
+	log_statements {
+		context    = "resource"
+		statements = [
+			`set(attributes["k8s.cluster.name"], "` + env("CLUSTER_NAME") + `")`,
+			`set(attributes["k8s.namespace.name"], attributes["service.namespace"])`,
+			`set(attributes["k8s.pod.name"], attributes["service.instance.id"])`,
+		]
+	}
+
+	metric_statements {
+		context    = "resource"
+		statements = [
+			`set(attributes["k8s.cluster.name"], "` + env("CLUSTER_NAME") + `")`,
+			`set(attributes["k8s.namespace.name"], attributes["service.namespace"])`,
+			`set(attributes["k8s.pod.name"], attributes["service.instance.id"])`,
+		]
+	}
+
+  output {
     metrics = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
     logs    = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
     traces  = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
   }
 }
+    
+
     
 otelcol.processor.transform "drop_unneeded_resource_attributes" {
   // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
@@ -347,5 +416,5 @@ discovery.relabel "database_observability_postgres_quickpizza" {
 // Debug Alloy
 // kubectl port-forward -n quickpizza svc/alloy 12345:12345
 // livedebugging {
-// enabled = true
+ // enabled = true
 // }
