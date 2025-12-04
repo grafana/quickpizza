@@ -91,7 +91,7 @@ resource "kubernetes_deployment" "alloy" {
           args = [
             "run",
             "/conf/config.alloy",
-            "--stability.level=experimental"
+            "--stability.level=public-preview"
           ]
           env_from {
             secret_ref {

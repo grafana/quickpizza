@@ -23,7 +23,7 @@ services:
       - run
       - /config.alloy
       - --server.http.listen-addr=0.0.0.0:12345
-      - --stability.level=experimental
+      - --stability.level=public-preview
     ports:
       - "12345:12345"
       - "4317:4317" # OTLP gRPC

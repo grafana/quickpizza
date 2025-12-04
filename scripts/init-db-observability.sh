@@ -60,6 +60,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
 
     -- Grant object privileges for detailed data
     GRANT pg_read_all_data TO "$DB_O11Y_USER";
+
+    -- Disable pg_stat_statements tracking for this user
+    ALTER ROLE "$DB_O11Y_USER" SET pg_stat_statements.track = 'none';
 EOSQL
 
 echo "✓ User $DB_O11Y_USER created with base privileges"
