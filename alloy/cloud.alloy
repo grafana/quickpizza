@@ -281,7 +281,7 @@ database_observability.postgres "postgres_quickpizza" {
   data_source_name  = coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")
   forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
   targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
-  enable_collectors = ["query_details", "query_samples", "schema_details"]
+  enable_collectors = ["query_details", "query_samples", "schema_details", "explain_plans"]
 }
 
 loki.relabel "database_observability_postgres_quickpizza" {
@@ -291,7 +291,10 @@ loki.relabel "database_observability_postgres_quickpizza" {
     target_label = "job"
     replacement  = "integrations/db-o11y"
   }
-
+  rule {
+    target_label = "instance"
+    replacement = "postgres-quickpizza"
+  }
   rule {
     target_label = "service_namespace"
     replacement = env("SERVICE_NAMESPACE")
@@ -317,7 +320,10 @@ discovery.relabel "database_observability_postgres_quickpizza" {
     target_label = "job"
     replacement  = "integrations/db-o11y"
   }
-
+  rule {
+    target_label = "instance"
+    replacement = "postgres-quickpizza"
+  }
   rule {
     target_label = "service_namespace"
     replacement = env("SERVICE_NAMESPACE")
