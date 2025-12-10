@@ -45,6 +45,5 @@ k6/k6
 k6/extensions/internal/k6
 k6/extensions/k6
 
-.vscode
 quickpizza.db
 logs.txt
