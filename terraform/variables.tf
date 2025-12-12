@@ -127,3 +127,15 @@ variable "quickpizza_db_password" {
   default = "quickpizza"
   type    = string
 }
+
+variable "db_o11y_user" {
+  default     = "db-o11y"
+  type    = string
+  sensitive   = true
+}
+
+variable "db_o11y_password" {
+  default     = "db-o11y-password"
+  type    = string
+  sensitive   = true
+}

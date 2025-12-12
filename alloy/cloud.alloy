@@ -269,7 +269,7 @@ otelcol.exporter.otlphttp "otlpEndpoint" {
 
 // DB o11y
 prometheus.exporter.postgres "postgres_quickpizza" {
-  data_source_names  = [coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")]
+  data_source_names  = [coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
   enabled_collectors = ["stat_statements"]
 
   autodiscovery {
@@ -278,7 +278,7 @@ prometheus.exporter.postgres "postgres_quickpizza" {
 }
 
 database_observability.postgres "postgres_quickpizza" {
-  data_source_name  = coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")
+  data_source_name  = coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")
   forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
   targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
   enable_collectors = ["query_details", "query_samples", "schema_details", "explain_plans"]

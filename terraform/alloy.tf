@@ -99,11 +99,11 @@ resource "kubernetes_deployment" "alloy" {
             }
           }
           env {
-            name = "QUICKPIZZA_DB"
+            name = "DB_O11Y_CONNECTION"
             value_from {
               secret_key_ref {
                 name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
-                key  = "CONNECTION_STRING"
+                key  = "DB_O11Y_CONNECTION_STRING"
               }
             }
           }
