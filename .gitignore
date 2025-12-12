@@ -47,3 +47,6 @@ k6/extensions/k6
 
 quickpizza.db
 logs.txt
+
+# macOS
+.DS_Store
