@@ -17,7 +17,7 @@ github.com/felixge/httpsnoop
 ## explicit; go 1.20
 github.com/go-chi/chi/v5
 github.com/go-chi/chi/v5/middleware
-# github.com/go-chi/cors v1.2.1
+# github.com/go-chi/cors v1.2.2
 ## explicit; go 1.14
 github.com/go-chi/cors
 # github.com/go-chi/httplog/v2 v2.1.1
