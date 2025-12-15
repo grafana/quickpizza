@@ -17,7 +17,7 @@ services:
     labels:
       - "service.type=instrumentation"
     volumes:
-      - "./alloy/${ALLOY_FILE_NAME:-local.alloy}:/config.alloy:Z"
+      - "./deployments/docker-compose/grafana-local-stack/${ALLOY_FILE_NAME:-config.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
@@ -177,7 +177,7 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.16.0@sha256:58e49fa3443195c7b95f5c9821ce8920a8627f215c2ccdf955a9cd78c76a3468
+    image: grafana/pyroscope:1.16.0
     container_name: pyroscope
     labels:
       - "service.type=instrumentation"
@@ -191,7 +191,7 @@ services:
       - "service.type=instrumentation"
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
-      - ./alloy/local-tempo.yaml:/etc/tempo.yaml
+      - ./deployments/docker-compose/grafana-local-stack/tempo.yaml:/etc/tempo.yaml
     ports:
       - "3200:3200" # Tempo API/UI
     depends_on:
@@ -210,7 +210,7 @@ services:
       - GF_AUTH_BASIC_ENABLED=false
       - GF_FEATURE_TOGGLES_ENABLE=tempoAlerting
     volumes:
-      - ./grafana:/etc/grafana/provisioning/
+      - ./deployments/docker-compose/grafana-local-stack/grafana:/etc/grafana/provisioning/
 
 volumes:
   postgres_data:
