@@ -23,8 +23,8 @@ services:
       LOGS_ENDPOINT: http://loki:3100/loki/api/v1/push
       PROFILES_ENDPOINT: http://pyroscope:4040
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
-      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
-      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
+      # Default uses the same DB connection as the Quickpizza service. Use empty string to disable.
+      DB_O11Y_CONNECTION: "${DB_O11Y_CONNECTION-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
       DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
