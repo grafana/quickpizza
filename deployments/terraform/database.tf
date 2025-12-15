@@ -13,7 +13,7 @@ resource "kubernetes_config_map" "postgres_init_script" {
     namespace = kubernetes_namespace.quickpizza.metadata[0].name
   }
   data = {
-    "init-db-observability.sh" = file("${path.module}/../scripts/init-db-observability.sh")
+    "init-db-observability.sh" = file("${path.module}/../init-db-observability.sh")
   }
 }
 
@@ -25,7 +25,7 @@ resource "kubernetes_secret" "quickpizza_postgres_credentials" {
   data = {
     DATABASE_PASSWORD = var.quickpizza_db_password
     CONNECTION_STRING = format("postgres://%s:%s@%s/%s?sslmode=disable", var.quickpizza_db_user, var.quickpizza_db_password, kubernetes_service.postgres.metadata[0].name, var.quickpizza_db_name)
-    # see scripts/init-db-observability.sh for usage
+    # see init-db-observability.sh for usage
     DB_O11Y_CONNECTION_STRING = format("postgres://%s:%s@%s/%s?sslmode=disable", var.db_o11y_user, var.db_o11y_password, kubernetes_service.postgres.metadata[0].name, var.quickpizza_db_name)
   }
 }

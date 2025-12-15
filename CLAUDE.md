@@ -26,8 +26,8 @@ QuickPizza is a demonstration web application that generates pizza recommendatio
 - `make proto` - Generate protobuf files from proto/quickpizza.proto
 
 ### Testing
-- `./scripts/run-tests.sh` - Run k6 tests (requires k6 installed)
-- `./scripts/run-tests.sh -u http://localhost:3333 -t "k6/foundations/*.js"` - Run specific tests
+- `./k6/run-tests.sh` - Run k6 tests (requires k6 installed)
+- `./k6/run-tests.sh -u http://localhost:3333 -t "k6/foundations/*.js"` - Run specific tests
 - All k6 tests are in the `k6/` directory organized by category
 
 ### Docker Development

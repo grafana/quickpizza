@@ -54,16 +54,16 @@ jobs:
         uses: dcarbone/install-jq-action@e397bd87438d72198f81efd21f876461183d383a # v3.0.1
 
       - name: Run k6 foundations tests
-        run: ./scripts/run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
+        run: ./k6/run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
 
       - name: Run k6 foundations TS tests
-        run: ./scripts/run-tests.sh -t **/k6/foundations/*.ts -u http://localhost:3333
+        run: ./k6/run-tests.sh -t **/k6/foundations/*.ts -u http://localhost:3333
 
       - name: Run k6 internal tests
-        run: ./scripts/run-tests.sh -t **/k6/internal/*.js -u http://localhost:3333
+        run: ./k6/run-tests.sh -t **/k6/internal/*.js -u http://localhost:3333
 
       - name: Run k6 browser tests
-        run: ./scripts/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
+        run: ./k6/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
 
       - name: Stop Server
         run: pkill -9 quickpizza

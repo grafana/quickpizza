@@ -5,7 +5,7 @@ services:
     labels:
       - "service.type=instrumentation"
     volumes:
-      - "./alloy/${ALLOY_FILE_NAME:-cloud.alloy}:/config.alloy:Z"
+      - "./deployments/docker-compose/grafana-cloud/${ALLOY_FILE_NAME:-config.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
@@ -75,7 +75,7 @@ services:
       DB_O11Y_DATABASES: quickpizza_db
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./scripts/init-db-observability.sh:/docker-entrypoint-initdb.d/init-db-observability.sh:Z
+      - ./deployments/init-db-observability.sh:/docker-entrypoint-initdb.d/init-db-observability.sh:Z
     command:
       - "postgres"
       - "-c"
