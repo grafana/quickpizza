@@ -11,7 +11,7 @@ require (
 	github.com/grafana/otel-profiling-go v0.5.1
 	github.com/grafana/pyroscope-go v1.2.1
 	github.com/grafana/pyroscope-go/x/k6 v0.0.0-20240618140011-f1a626fc4fe0
-	github.com/hashicorp/go-retryablehttp v0.7.7
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/olahol/melody v1.1.3
 	github.com/prometheus/client_golang v1.14.1-0.20221122130035-8b6e68085b10
 	github.com/rs/xid v1.4.0
