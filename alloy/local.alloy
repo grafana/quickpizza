@@ -58,7 +58,7 @@ discovery.relabel "app_containers" {
 }
 
 prometheus.exporter.postgres "default" {
-  data_source_names = [coalesce(env("QUICKPIZZA_DB"), "postgresql://localhost:5432/notexist")]
+  data_source_names  = [coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
 }
 
 discovery.relabel "postgres" {

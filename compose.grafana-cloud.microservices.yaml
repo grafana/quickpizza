@@ -34,7 +34,8 @@ services:
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
-      DB_O11Y_CONNECTION: "postgres://db-o11y:db-o11y-password@quickpizza-db:5432/quickpizza_db?sslmode=disable"
+      # Use empty string to disable.
+      DB_O11Y_CONNECTION: "${DB_O11Y_CONNECTION-postgres://db-o11y:db-o11y-password@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
       DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
