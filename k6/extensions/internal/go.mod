@@ -21,7 +21,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.27.6 // indirect
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/sirupsen/logrus v1.9.1 // indirect
 	github.com/spf13/afero v1.1.2 // indirect
 	github.com/stretchr/testify v1.8.3 // indirect
 	golang.org/x/sys v0.8.0 // indirect
