@@ -152,6 +152,7 @@ pyroscope.scrape "app_containers" {
 
 // Receive traces and metrics with OTEL setup
 otelcol.receiver.otlp "default" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
   // configures the default grpc endpoint "0.0.0.0:4317"
   grpc {
     endpoint = "0.0.0.0:4317"
@@ -163,16 +164,112 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    // Receive metrics
-    metrics = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.resourcedetection.default.input]
+    logs    = [otelcol.processor.resourcedetection.default.input]
+    traces  = [otelcol.processor.resourcedetection.default.input]
+  }
+}
+
+otelcol.processor.resourcedetection "default" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.resourcedetection/
+  detectors = ["env", "system"]
+  
+  system {
+    hostname_sources = ["os"]
+  }
+  
+  output {
+    metrics = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    logs    = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+    traces  = [otelcol.processor.transform.drop_unneeded_resource_attributes.input]
+  }
+}
+
+otelcol.processor.transform "drop_unneeded_resource_attributes" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
+  error_mode = "ignore"
+  
+  trace_statements {
+    context    = "resource"
+    statements = [
+      "delete_key(attributes, \"os.description\")",
+      "delete_key(attributes, \"os.type\")",
+      "delete_key(attributes, \"process.command_args\")",
+      "delete_key(attributes, \"process.executable.path\")",
+      "delete_key(attributes, \"process.pid\")",
+      "delete_key(attributes, \"process.runtime.description\")",
+      "delete_key(attributes, \"process.runtime.name\")",
+      "delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+
+  trace_statements {
+    context    = "span"
+    statements = [
+      // Without this, servicegraph would use physical addresses (e.g., "localhost:3333", "quickpizza-db:5432")
+      // instead of logical service names (e.g., "quickpizza", "database")
+      "delete_key(attributes, \"server.address\")",
+    ]
+  }
+  
+  metric_statements {
+    context    = "resource"
+    statements = [
+      "delete_key(attributes, \"os.description\")",
+      "delete_key(attributes, \"os.type\")",
+      "delete_key(attributes, \"process.command_args\")",
+      "delete_key(attributes, \"process.executable.path\")",
+      "delete_key(attributes, \"process.pid\")",
+      "delete_key(attributes, \"process.runtime.description\")",
+      "delete_key(attributes, \"process.runtime.name\")",
+      "delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+  
+  log_statements {
+    context    = "resource"
+    statements = [
+      "delete_key(attributes, \"os.description\")",
+      "delete_key(attributes, \"os.type\")",
+      "delete_key(attributes, \"process.command_args\")",
+      "delete_key(attributes, \"process.executable.path\")",
+      "delete_key(attributes, \"process.pid\")",
+      "delete_key(attributes, \"process.runtime.description\")",
+      "delete_key(attributes, \"process.runtime.name\")",
+      "delete_key(attributes, \"process.runtime.version\")",
+    ]
+  }
+  
+  output {
+    metrics = [otelcol.processor.transform.add_resource_attributes_as_metric_attributes.input]
+    logs    = [otelcol.processor.batch.default.input]
     traces  = [
-               // Traces to ServiceGraph metrics
-               otelcol.connector.servicegraph.default.input,
-               // Traces to SpanMetrics
-               otelcol.processor.transform.spanmetrics.input,
-               // Traces to OTLP endpoint
-               otelcol.processor.batch.default.input,
-               ]
+      // Traces to ServiceGraph metrics
+      otelcol.connector.servicegraph.default.input,
+      // Traces to SpanMetrics
+      otelcol.processor.transform.spanmetrics.input,
+      // Traces to OTLP endpoint
+      otelcol.processor.batch.default.input,
+    ]
+  }
+}
+
+otelcol.processor.transform "add_resource_attributes_as_metric_attributes" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
+  error_mode = "ignore"
+  
+  metric_statements {
+    context    = "datapoint"
+    statements = [
+      "set(attributes[\"service_name\"], resource.attributes[\"service.name\"])",
+      "set(attributes[\"service_namespace\"], resource.attributes[\"service.namespace\"])",
+      "set(attributes[\"deployment.environment\"], resource.attributes[\"deployment.environment\"])",
+      "set(attributes[\"service.version\"], resource.attributes[\"service.version\"])",
+    ]
+  }
+  
+  output {
+    metrics = [otelcol.processor.batch.default.input]
   }
 }
 
@@ -186,13 +283,13 @@ otelcol.processor.transform "spanmetrics" {
   trace_statements {
     context = "resource"
     statements = [
-      // We keep only the "service.name" and "special.attr" resource attributes,
-      // because they are the only ones which otelcol.connector.spanmetrics needs.
+      // We keep only the "service.name" resource attribute,
+      // because it is the only one which otelcol.connector.spanmetrics needs.
       //
       // There is no need to list "span.name", "span.kind", and "status.code"
       // here because they are properties of the span (and not resource attributes):
       // https://github.com/open-telemetry/opentelemetry-proto/blob/v1.0.0/opentelemetry/proto/trace/v1/trace.proto
-      `keep_keys(attributes, ["service.name", "special.attr"])`,
+      `keep_keys(attributes, ["service.name"])`,
     ]
   }
   output {
@@ -214,16 +311,13 @@ otelcol.connector.spanmetrics "default" {
     // `explicit` converts to classic histograms
     // explicit { buckets = ["50ms", "100ms", "250ms", "1s", "5s", "10s"]}
   }
-  dimension {
-    name = "special.attr"
-  }
 
   exemplars {
     enabled = true
   }
 
   output {
-    metrics = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.transform.add_namespace_labels_to_trace_metrics.input]
   }
 }
 
@@ -236,9 +330,28 @@ otelcol.connector.servicegraph "default" {
   // enable `exponential_histogram_max_size` option to send native histogram metrics
   // exponential_histogram_max_size = 16
   output {
+    metrics = [otelcol.processor.transform.add_namespace_labels_to_trace_metrics.input]
+  }
+}
+
+// Add namespace labels to trace-derived metrics (spanmetrics and servicegraph)
+otelcol.processor.transform "add_namespace_labels_to_trace_metrics" {
+  // https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.transform/
+  error_mode = "ignore"
+  
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      "set(attributes[\"service_namespace\"], \"" + env("SERVICE_NAMESPACE") + "\")",
+      "set(attributes[\"namespace\"], \"" + env("SERVICE_NAMESPACE") + "\")",
+    ]
+  }
+  
+  output {
     metrics = [otelcol.processor.batch.default.input]
   }
 }
+
 // Traces to OTLP endpoint and Metrics to Prometheus
 otelcol.processor.batch "default" {
   output {
