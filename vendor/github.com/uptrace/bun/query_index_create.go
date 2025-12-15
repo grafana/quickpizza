@@ -41,7 +41,7 @@ func (q *CreateIndexQuery) Conn(db IConn) *CreateIndexQuery {
 	return q
 }
 
-func (q *CreateIndexQuery) Model(model interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) Model(model any) *CreateIndexQuery {
 	q.setModel(model)
 	return q
 }
@@ -73,7 +73,7 @@ func (q *CreateIndexQuery) Index(query string) *CreateIndexQuery {
 	return q
 }
 
-func (q *CreateIndexQuery) IndexExpr(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) IndexExpr(query string, args ...any) *CreateIndexQuery {
 	q.index = schema.SafeQuery(query, args)
 	return q
 }
@@ -87,17 +87,17 @@ func (q *CreateIndexQuery) Table(tables ...string) *CreateIndexQuery {
 	return q
 }
 
-func (q *CreateIndexQuery) TableExpr(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) TableExpr(query string, args ...any) *CreateIndexQuery {
 	q.addTable(schema.SafeQuery(query, args))
 	return q
 }
 
-func (q *CreateIndexQuery) ModelTableExpr(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) ModelTableExpr(query string, args ...any) *CreateIndexQuery {
 	q.modelTableName = schema.SafeQuery(query, args)
 	return q
 }
 
-func (q *CreateIndexQuery) Using(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) Using(query string, args ...any) *CreateIndexQuery {
 	q.using = schema.SafeQuery(query, args)
 	return q
 }
@@ -111,7 +111,7 @@ func (q *CreateIndexQuery) Column(columns ...string) *CreateIndexQuery {
 	return q
 }
 
-func (q *CreateIndexQuery) ColumnExpr(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) ColumnExpr(query string, args ...any) *CreateIndexQuery {
 	q.addColumn(schema.SafeQuery(query, args))
 	return q
 }
@@ -130,19 +130,19 @@ func (q *CreateIndexQuery) Include(columns ...string) *CreateIndexQuery {
 	return q
 }
 
-func (q *CreateIndexQuery) IncludeExpr(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) IncludeExpr(query string, args ...any) *CreateIndexQuery {
 	q.include = append(q.include, schema.SafeQuery(query, args))
 	return q
 }
 
 //------------------------------------------------------------------------------
 
-func (q *CreateIndexQuery) Where(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) Where(query string, args ...any) *CreateIndexQuery {
 	q.addWhere(schema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
-func (q *CreateIndexQuery) WhereOr(query string, args ...interface{}) *CreateIndexQuery {
+func (q *CreateIndexQuery) WhereOr(query string, args ...any) *CreateIndexQuery {
 	q.addWhere(schema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
@@ -161,7 +161,7 @@ func (q *CreateIndexQuery) Operation() string {
 	return "CREATE INDEX"
 }
 
-func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte, err error) {
+func (q *CreateIndexQuery) AppendQuery(gen schema.QueryGen, b []byte) (_ []byte, err error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -189,20 +189,20 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 		b = append(b, "IF NOT EXISTS "...)
 	}
 
-	b, err = q.index.AppendQuery(fmter, b)
+	b, err = q.index.AppendQuery(gen, b)
 	if err != nil {
 		return nil, err
 	}
 
 	b = append(b, " ON "...)
-	b, err = q.appendFirstTable(fmter, b)
+	b, err = q.appendFirstTable(gen, b)
 	if err != nil {
 		return nil, err
 	}
 
 	if !q.using.IsZero() {
 		b = append(b, " USING "...)
-		b, err = q.using.AppendQuery(fmter, b)
+		b, err = q.using.AppendQuery(gen, b)
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +213,7 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b, err = col.AppendQuery(fmter, b)
+		b, err = col.AppendQuery(gen, b)
 		if err != nil {
 			return nil, err
 		}
@@ -226,7 +226,7 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 			if i > 0 {
 				b = append(b, ", "...)
 			}
-			b, err = col.AppendQuery(fmter, b)
+			b, err = col.AppendQuery(gen, b)
 			if err != nil {
 				return nil, err
 			}
@@ -236,7 +236,7 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 
 	if len(q.where) > 0 {
 		b = append(b, " WHERE "...)
-		b, err = appendWhere(fmter, b, q.where)
+		b, err = appendWhere(gen, b, q.where)
 		if err != nil {
 			return nil, err
 		}
@@ -247,11 +247,11 @@ func (q *CreateIndexQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []by
 
 //------------------------------------------------------------------------------
 
-func (q *CreateIndexQuery) Exec(ctx context.Context, dest ...interface{}) (sql.Result, error) {
+func (q *CreateIndexQuery) Exec(ctx context.Context, dest ...any) (sql.Result, error) {
 	// if a comment is propagated via the context, use it
 	setCommentFromContext(ctx, q)
 
-	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
+	queryBytes, err := q.AppendQuery(q.db.gen, q.db.makeQueryBytes())
 	if err != nil {
 		return nil, err
 	}
