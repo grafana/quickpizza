@@ -50,14 +50,14 @@ import (
 // Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "pizza_recommendations_total",
 		Help:      "The total number of pizza recommendations",
 	}, []string{"vegetarian", "tool"})
 
 	numberOfIngredientsPerPizza = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "number_of_ingredients_per_pizza",
 		Help:      "The number of ingredients per pizza",
@@ -65,7 +65,7 @@ var (
 	})
 
 	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace:                       "k6quickpizza",
+		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
 		Name:                            "number_of_ingredients_per_pizza_alternate",
 		Help:                            "The number of ingredients per pizza (Native Histogram)",
@@ -75,7 +75,7 @@ var (
 	})
 
 	pizzaCaloriesPerSlice = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "pizza_calories_per_slice",
 		Help:      "The number of calories per slice of pizza",
@@ -83,7 +83,7 @@ var (
 	})
 
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace:                       "k6quickpizza",
+		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
 		Name:                            "pizza_calories_per_slice_alternate",
 		Help:                            "The number of calories per slice of pizza (Native Histogram)",
@@ -93,14 +93,14 @@ var (
 	})
 
 	httpRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "http_requests_total",
 		Help:      "The total number of HTTP requests",
 	}, []string{"method", "path", "status"})
 
 	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "http_request_duration_seconds",
 		Help:      "The duration of HTTP requests",

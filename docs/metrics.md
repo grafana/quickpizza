@@ -48,20 +48,20 @@ These metrics are generated from distributed traces and are configured in Grafan
 
 ## QuickPizza Application Metrics
 
-`k6quickpizza_server_*`
+`quickpizza_server_*`
 
 These are custom application metrics specific to the QuickPizza application, implemented using the Prometheus Go client library. 
 
-- `k6quickpizza_server_pizza_recommendations_total`: Total number of pizza recommendations served (Counter metric).
+- `quickpizza_server_pizza_recommendations_total`: Total number of pizza recommendations served (Counter metric).
 
-- `k6quickpizza_server_number_of_ingredients_per_pizza`: Distribution of ingredients per pizza (Classic Histogram).
+- `quickpizza_server_number_of_ingredients_per_pizza`: Distribution of ingredients per pizza (Classic Histogram).
 
-- `k6quickpizza_server_number_of_ingredients_per_pizza_alternate`: Distribution of ingredients per pizza (Native Histogram).
+- `quickpizza_server_number_of_ingredients_per_pizza_alternate`: Distribution of ingredients per pizza (Native Histogram).
 
-- `k6quickpizza_server_pizza_calories_per_slice`: Distribution of calories per pizza slice (Classic Histogram).
+- `quickpizza_server_pizza_calories_per_slice`: Distribution of calories per pizza slice (Classic Histogram).
 
-- `k6quickpizza_server_pizza_calories_per_slice_alternate`: Distribution of calories per pizza slice (Native Histogram).
+- `quickpizza_server_pizza_calories_per_slice_alternate`: Distribution of calories per pizza slice (Native Histogram).
 
-- `k6quickpizza_server_http_requests_total`: Total number of HTTP requests received (Counter metric).
+- `quickpizza_server_http_requests_total`: Total number of HTTP requests received (Counter metric).
 
-- `k6quickpizza_server_http_request_duration_seconds`: Duration of HTTP request processing (Classic Histogram).
+- `quickpizza_server_http_request_duration_seconds`: Duration of HTTP request processing (Classic Histogram).
