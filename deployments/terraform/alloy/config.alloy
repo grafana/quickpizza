@@ -28,7 +28,7 @@ discovery.relabel "application_pods" {
     target_label = "job"
     separator = "/"
     source_labels = [
-      "__meta_kubernetes_namespace_v1",
+      "__meta_kubernetes_namespace",
       "__meta_kubernetes_pod_label_app_kubernetes_io_instance",
     ]
   }
@@ -42,7 +42,7 @@ discovery.relabel "application_pods" {
     target_label = "service_namespace"
     source_labels = [
       // The Kubernetes namespace where the pod is running
-      "__meta_kubernetes_namespace_v1",
+      "__meta_kubernetes_namespace",
     ]
   }
   // the `namespace` label is for visualizing Profiles in Application Observability
@@ -50,7 +50,7 @@ discovery.relabel "application_pods" {
     target_label = "namespace"
     source_labels = [
       // The Kubernetes namespace where the pod is running
-      "__meta_kubernetes_namespace_v1",
+      "__meta_kubernetes_namespace",
     ]
   }
   rule {
