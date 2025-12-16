@@ -104,14 +104,14 @@ func (tm *NullTime) UnmarshalJSON(b []byte) error {
 	return tm.Time.UnmarshalJSON(b)
 }
 
-func (tm NullTime) AppendQuery(fmter Formatter, b []byte) ([]byte, error) {
+func (tm NullTime) AppendQuery(gen QueryGen, b []byte) ([]byte, error) {
 	if tm.IsZero() {
 		return dialect.AppendNull(b), nil
 	}
-	return fmter.Dialect().AppendTime(b, tm.Time), nil
+	return gen.Dialect().AppendTime(b, tm.Time), nil
 }
 
-func (tm *NullTime) Scan(src interface{}) error {
+func (tm *NullTime) Scan(src any) error {
 	if src == nil {
 		tm.Time = time.Time{}
 		return nil

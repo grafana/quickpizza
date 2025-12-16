@@ -32,7 +32,7 @@ func (q *DropTableQuery) Conn(db IConn) *DropTableQuery {
 	return q
 }
 
-func (q *DropTableQuery) Model(model interface{}) *DropTableQuery {
+func (q *DropTableQuery) Model(model any) *DropTableQuery {
 	q.setModel(model)
 	return q
 }
@@ -51,12 +51,12 @@ func (q *DropTableQuery) Table(tables ...string) *DropTableQuery {
 	return q
 }
 
-func (q *DropTableQuery) TableExpr(query string, args ...interface{}) *DropTableQuery {
+func (q *DropTableQuery) TableExpr(query string, args ...any) *DropTableQuery {
 	q.addTable(schema.SafeQuery(query, args))
 	return q
 }
 
-func (q *DropTableQuery) ModelTableExpr(query string, args ...interface{}) *DropTableQuery {
+func (q *DropTableQuery) ModelTableExpr(query string, args ...any) *DropTableQuery {
 	q.modelTableName = schema.SafeQuery(query, args)
 	return q
 }
@@ -92,7 +92,7 @@ func (q *DropTableQuery) Operation() string {
 	return "DROP TABLE"
 }
 
-func (q *DropTableQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte, err error) {
+func (q *DropTableQuery) AppendQuery(gen schema.QueryGen, b []byte) (_ []byte, err error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -104,19 +104,19 @@ func (q *DropTableQuery) AppendQuery(fmter schema.Formatter, b []byte) (_ []byte
 		b = append(b, "IF EXISTS "...)
 	}
 
-	b, err = q.appendTables(fmter, b)
+	b, err = q.appendTables(gen, b)
 	if err != nil {
 		return nil, err
 	}
 
-	b = q.appendCascade(fmter, b)
+	b = q.appendCascade(gen, b)
 
 	return b, nil
 }
 
 //------------------------------------------------------------------------------
 
-func (q *DropTableQuery) Exec(ctx context.Context, dest ...interface{}) (sql.Result, error) {
+func (q *DropTableQuery) Exec(ctx context.Context, dest ...any) (sql.Result, error) {
 	if q.table != nil {
 		if err := q.beforeDropTableHook(ctx); err != nil {
 			return nil, err
@@ -126,7 +126,7 @@ func (q *DropTableQuery) Exec(ctx context.Context, dest ...interface{}) (sql.Res
 	// if a comment is propagated via the context, use it
 	setCommentFromContext(ctx, q)
 
-	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
+	queryBytes, err := q.AppendQuery(q.db.gen, q.db.makeQueryBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (q *DropTableQuery) afterDropTableHook(ctx context.Context) error {
 // String returns the generated SQL query string. The DropTableQuery instance must not be
 // modified during query generation to ensure multiple calls to String() return identical results.
 func (q *DropTableQuery) String() string {
-	buf, err := q.AppendQuery(q.db.Formatter(), nil)
+	buf, err := q.AppendQuery(q.db.QueryGen(), nil)
 	if err != nil {
 		panic(err)
 	}

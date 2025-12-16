@@ -27,7 +27,7 @@ type ArrayValue struct {
 // For struct fields you can use array tag:
 //
 //	Emails  []string `bun:",array"`
-func Array(vi interface{}) *ArrayValue {
+func Array(vi any) *ArrayValue {
 	v := reflect.ValueOf(vi)
 	if !v.IsValid() {
 		panic(fmt.Errorf("bun: Array(nil)"))
@@ -46,14 +46,14 @@ var (
 	_ sql.Scanner          = (*ArrayValue)(nil)
 )
 
-func (a *ArrayValue) AppendQuery(fmter schema.Formatter, b []byte) ([]byte, error) {
+func (a *ArrayValue) AppendQuery(gen schema.QueryGen, b []byte) ([]byte, error) {
 	if a.append == nil {
 		panic(fmt.Errorf("bun: Array(unsupported %s)", a.v.Type()))
 	}
-	return a.append(fmter, b, a.v), nil
+	return a.append(gen, b, a.v), nil
 }
 
-func (a *ArrayValue) Scan(src interface{}) error {
+func (a *ArrayValue) Scan(src any) error {
 	if a.scan == nil {
 		return fmt.Errorf("bun: Array(unsupported %s)", a.v.Type())
 	}
@@ -63,7 +63,7 @@ func (a *ArrayValue) Scan(src interface{}) error {
 	return a.scan(a.v, src)
 }
 
-func (a *ArrayValue) Value() interface{} {
+func (a *ArrayValue) Value() any {
 	if a.v.IsValid() {
 		return a.v.Interface()
 	}
@@ -108,7 +108,7 @@ func (d *Dialect) arrayAppender(typ reflect.Type) schema.AppenderFunc {
 		panic(fmt.Errorf("pgdialect: %s is not supported", typ))
 	}
 
-	return func(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+	return func(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 		kind := v.Kind()
 		switch kind {
 		case reflect.Ptr, reflect.Slice:
@@ -129,7 +129,7 @@ func (d *Dialect) arrayAppender(typ reflect.Type) schema.AppenderFunc {
 			if i > 0 {
 				b = append(b, ',')
 			}
-			b = appendElem(fmter, b, elem)
+			b = appendElem(gen, b, elem)
 		}
 
 		b = append(b, "}'"...)
@@ -159,7 +159,7 @@ func (d *Dialect) arrayElemAppender(typ reflect.Type) schema.AppenderFunc {
 	return schema.Appender(d, typ)
 }
 
-func appendTimeElemValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendTimeElemValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	ts := v.Convert(timeType).Interface().(time.Time)
 
 	b = append(b, '"')
@@ -167,15 +167,15 @@ func appendTimeElemValue(fmter schema.Formatter, b []byte, v reflect.Value) []by
 	return append(b, '"')
 }
 
-func appendStringElemValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendStringElemValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	return appendStringElem(b, v.String())
 }
 
-func appendBytesElemValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendBytesElemValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	return appendBytesElem(b, v.Bytes())
 }
 
-func arrayAppendDriverValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func arrayAppendDriverValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	iface, err := v.Interface().(driver.Valuer).Value()
 	if err != nil {
 		return dialect.AppendError(b, err)
@@ -183,7 +183,7 @@ func arrayAppendDriverValue(fmter schema.Formatter, b []byte, v reflect.Value) [
 	return appendElem(b, iface)
 }
 
-func appendStringSliceValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendStringSliceValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	ss := v.Convert(sliceStringType).Interface().([]string)
 	return appendStringSlice(b, ss)
 }
@@ -211,7 +211,7 @@ func appendStringSlice(b []byte, ss []string) []byte {
 	return b
 }
 
-func appendIntSliceValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendIntSliceValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	ints := v.Convert(sliceIntType).Interface().([]int)
 	return appendIntSlice(b, ints)
 }
@@ -239,7 +239,7 @@ func appendIntSlice(b []byte, ints []int) []byte {
 	return b
 }
 
-func appendInt64SliceValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendInt64SliceValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	ints := v.Convert(sliceInt64Type).Interface().([]int64)
 	return appendInt64Slice(b, ints)
 }
@@ -267,7 +267,7 @@ func appendInt64Slice(b []byte, ints []int64) []byte {
 	return b
 }
 
-func appendFloat64SliceValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendFloat64SliceValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	floats := v.Convert(sliceFloat64Type).Interface().([]float64)
 	return appendFloat64Slice(b, floats)
 }
@@ -308,12 +308,12 @@ func arrayAppendFloat64(b []byte, num float64) []byte {
 	}
 }
 
-func appendTimeSliceValue(fmter schema.Formatter, b []byte, v reflect.Value) []byte {
+func appendTimeSliceValue(gen schema.QueryGen, b []byte, v reflect.Value) []byte {
 	ts := v.Convert(sliceTimeType).Interface().([]time.Time)
-	return appendTimeSlice(fmter, b, ts)
+	return appendTimeSlice(gen, b, ts)
 }
 
-func appendTimeSlice(fmter schema.Formatter, b []byte, ts []time.Time) []byte {
+func appendTimeSlice(gen schema.QueryGen, b []byte, ts []time.Time) []byte {
 	if ts == nil {
 		return dialect.AppendNull(b)
 	}
@@ -366,7 +366,7 @@ func arrayScanner(typ reflect.Type) schema.ScannerFunc {
 	}
 
 	scanElem := schema.Scanner(elemType)
-	return func(dest reflect.Value, src interface{}) error {
+	return func(dest reflect.Value, src any) error {
 		dest = reflect.Indirect(dest)
 		if !dest.CanSet() {
 			return fmt.Errorf("bun: Scan(non-settable %s)", dest.Type())
@@ -411,7 +411,7 @@ func arrayScanner(typ reflect.Type) schema.ScannerFunc {
 	}
 }
 
-func scanStringSliceValue(dest reflect.Value, src interface{}) error {
+func scanStringSliceValue(dest reflect.Value, src any) error {
 	dest = reflect.Indirect(dest)
 	if !dest.CanSet() {
 		return fmt.Errorf("bun: Scan(non-settable %s)", dest.Type())
@@ -426,7 +426,7 @@ func scanStringSliceValue(dest reflect.Value, src interface{}) error {
 	return nil
 }
 
-func decodeStringSlice(src interface{}) ([]string, error) {
+func decodeStringSlice(src any) ([]string, error) {
 	if src == nil {
 		return nil, nil
 	}
@@ -449,7 +449,7 @@ func decodeStringSlice(src interface{}) ([]string, error) {
 	return slice, nil
 }
 
-func scanIntSliceValue(dest reflect.Value, src interface{}) error {
+func scanIntSliceValue(dest reflect.Value, src any) error {
 	dest = reflect.Indirect(dest)
 	if !dest.CanSet() {
 		return fmt.Errorf("bun: Scan(non-settable %s)", dest.Type())
@@ -464,7 +464,7 @@ func scanIntSliceValue(dest reflect.Value, src interface{}) error {
 	return nil
 }
 
-func decodeIntSlice(src interface{}) ([]int, error) {
+func decodeIntSlice(src any) ([]int, error) {
 	if src == nil {
 		return nil, nil
 	}
@@ -498,7 +498,7 @@ func decodeIntSlice(src interface{}) ([]int, error) {
 	return slice, nil
 }
 
-func scanInt64SliceValue(dest reflect.Value, src interface{}) error {
+func scanInt64SliceValue(dest reflect.Value, src any) error {
 	dest = reflect.Indirect(dest)
 	if !dest.CanSet() {
 		return fmt.Errorf("bun: Scan(non-settable %s)", dest.Type())
@@ -513,7 +513,7 @@ func scanInt64SliceValue(dest reflect.Value, src interface{}) error {
 	return nil
 }
 
-func decodeInt64Slice(src interface{}) ([]int64, error) {
+func decodeInt64Slice(src any) ([]int64, error) {
 	if src == nil {
 		return nil, nil
 	}
@@ -547,7 +547,7 @@ func decodeInt64Slice(src interface{}) ([]int64, error) {
 	return slice, nil
 }
 
-func scanFloat64SliceValue(dest reflect.Value, src interface{}) error {
+func scanFloat64SliceValue(dest reflect.Value, src any) error {
 	dest = reflect.Indirect(dest)
 	if !dest.CanSet() {
 		return fmt.Errorf("bun: Scan(non-settable %s)", dest.Type())
@@ -562,7 +562,7 @@ func scanFloat64SliceValue(dest reflect.Value, src interface{}) error {
 	return nil
 }
 
-func scanFloat64Slice(src interface{}) ([]float64, error) {
+func scanFloat64Slice(src any) ([]float64, error) {
 	if src == nil {
 		return nil, nil
 	}
@@ -596,7 +596,7 @@ func scanFloat64Slice(src interface{}) ([]float64, error) {
 	return slice, nil
 }
 
-func toBytes(src interface{}) ([]byte, error) {
+func toBytes(src any) ([]byte, error) {
 	switch src := src.(type) {
 	case string:
 		return internal.Bytes(src), nil

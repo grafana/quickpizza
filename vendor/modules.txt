@@ -79,13 +79,13 @@ github.com/klauspost/compress/gzip
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/mattn/go-sqlite3 v1.14.28
+# github.com/mattn/go-sqlite3 v1.14.32
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/ncruces/go-strftime v0.1.9
+# github.com/ncruces/go-strftime v1.0.0
 ## explicit; go 1.17
 github.com/ncruces/go-strftime
 # github.com/olahol/melody v1.1.3
@@ -122,8 +122,8 @@ github.com/rs/xid
 # github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc
 ## explicit
 github.com/tmthrgd/go-hex
-# github.com/uptrace/bun v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun
 github.com/uptrace/bun/dialect
 github.com/uptrace/bun/dialect/feature
@@ -136,23 +136,23 @@ github.com/uptrace/bun/internal/tagparser
 github.com/uptrace/bun/migrate
 github.com/uptrace/bun/migrate/sqlschema
 github.com/uptrace/bun/schema
-# github.com/uptrace/bun/dbfixture v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun/dbfixture v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun/dbfixture
-# github.com/uptrace/bun/dialect/pgdialect v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun/dialect/pgdialect v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun/dialect/pgdialect
-# github.com/uptrace/bun/dialect/sqlitedialect v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun/dialect/sqlitedialect v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun/dialect/sqlitedialect
-# github.com/uptrace/bun/driver/pgdriver v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun/driver/pgdriver v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun/driver/pgdriver
-# github.com/uptrace/bun/driver/sqliteshim v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun/driver/sqliteshim v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun/driver/sqliteshim
-# github.com/uptrace/bun/extra/bunotel v1.2.15
-## explicit; go 1.23.0
+# github.com/uptrace/bun/extra/bunotel v1.2.16
+## explicit; go 1.24.0
 github.com/uptrace/bun/extra/bunotel
 # github.com/uptrace/opentelemetry-go-extra/otelsql v0.3.2
 ## explicit; go 1.22
@@ -287,8 +287,8 @@ go.opentelemetry.io/proto/otlp/trace/v1
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/pbkdf2
-# golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc
-## explicit; go 1.23.0
+# golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
+## explicit; go 1.24.0
 golang.org/x/exp/constraints
 # golang.org/x/net v0.47.0
 ## explicit; go 1.24.0
@@ -431,8 +431,8 @@ gopkg.in/yaml.v3
 # mellium.im/sasl v0.3.2
 ## explicit; go 1.20
 mellium.im/sasl
-# modernc.org/libc v1.66.3
-## explicit; go 1.23.0
+# modernc.org/libc v1.67.0
+## explicit; go 1.24.0
 modernc.org/libc
 modernc.org/libc/errno
 modernc.org/libc/fcntl
@@ -465,7 +465,7 @@ modernc.org/mathutil
 # modernc.org/memory v1.11.0
 ## explicit; go 1.23.0
 modernc.org/memory
-# modernc.org/sqlite v1.38.0
-## explicit; go 1.23.0
+# modernc.org/sqlite v1.40.1
+## explicit; go 1.24.0
 modernc.org/sqlite
 modernc.org/sqlite/lib
