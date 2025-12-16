@@ -9,19 +9,19 @@ locals {
   }
 }
 
-resource "kubernetes_service_account" "alloy" {
+resource "kubernetes_service_account_v1" "alloy" {
   metadata {
     name      = "alloy"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
 }
 
-// Grant the "view" ClusterRole to kubernetes_service_account
+// Grant the "view" ClusterRole to kubernetes_service_account_v1
 // This allows Alloy (`service_account_name`) to discover application pods and scrape metrics. 
-resource "kubernetes_role_binding" "alloy" {
+resource "kubernetes_role_binding_v1" "alloy" {
   metadata {
     name      = "alloy"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -30,25 +30,25 @@ resource "kubernetes_role_binding" "alloy" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.alloy.metadata[0].name
-    namespace = kubernetes_namespace.quickpizza.id
+    name      = kubernetes_service_account_v1.alloy.metadata[0].name
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
 }
 
-resource "kubernetes_config_map" "alloy_config" {
+resource "kubernetes_config_map_v1" "alloy_config" {
   metadata {
     name      = "alloy-config"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
     "config.alloy" = file("${path.module}/alloy/config.alloy")
   }
 }
 
-resource "kubernetes_secret" "alloy_credentials" {
+resource "kubernetes_secret_v1" "alloy_credentials" {
   metadata {
     name      = "alloy-credentials"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
     GRAFANA_CLOUD_STACK = var.grafana_cloud_stack
@@ -57,13 +57,13 @@ resource "kubernetes_secret" "alloy_credentials" {
   type = "Opaque"
 }
 
-resource "kubernetes_deployment" "alloy" {
+resource "kubernetes_deployment_v1" "alloy" {
   depends_on = [
-    kubernetes_stateful_set.postgres_statefulset
+    kubernetes_stateful_set_v1.postgres_statefulset
   ]
   metadata {
     name      = "alloy"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
     labels = local.alloy_component_labels
   }
   spec {
@@ -77,13 +77,13 @@ resource "kubernetes_deployment" "alloy" {
           local.alloy_component_labels,
           {
             # Add database-related labels for Database Observability
-            "db.service.namespace" = kubernetes_namespace.quickpizza.metadata[0].name
+            "db.service.namespace" = kubernetes_namespace_v1.quickpizza.metadata[0].name
             "db.service.name"      = "quickpizza-db"
           }
         )
       }
       spec {
-        service_account_name = kubernetes_service_account.alloy.metadata[0].name
+        service_account_name = kubernetes_service_account_v1.alloy.metadata[0].name
         container {
           name              = "alloy"
           image             = "grafana/alloy:v1.12.0"
@@ -95,14 +95,14 @@ resource "kubernetes_deployment" "alloy" {
           ]
           env_from {
             secret_ref {
-              name = kubernetes_secret.alloy_credentials.metadata[0].name
+              name = kubernetes_secret_v1.alloy_credentials.metadata[0].name
             }
           }
           env {
             name = "DB_O11Y_CONNECTION"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
+                name = kubernetes_secret_v1.quickpizza_postgres_credentials.metadata[0].name
                 key  = "DB_O11Y_CONNECTION_STRING"
               }
             }
@@ -171,10 +171,10 @@ resource "kubernetes_deployment" "alloy" {
   }
 }
 
-resource "kubernetes_service" "alloy" {
+resource "kubernetes_service_v1" "alloy" {
   metadata {
     name      = "alloy"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   spec {
     port {

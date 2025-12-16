@@ -9,12 +9,12 @@ locals {
   }
 }
 
-resource "kubernetes_deployment" "ws" {
-  depends_on = [kubernetes_deployment.alloy]
+resource "kubernetes_deployment_v1" "ws" {
+  depends_on = [kubernetes_deployment_v1.alloy]
   
   metadata {
     name      = "ws"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
     labels    = local.ws_component_labels
   }
   spec {
@@ -88,10 +88,10 @@ resource "kubernetes_deployment" "ws" {
   }
 }
 
-resource "kubernetes_service" "ws" {
+resource "kubernetes_service_v1" "ws" {
   metadata {
     name      = "ws"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   spec {
     port {

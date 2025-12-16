@@ -1,6 +1,6 @@
-resource "kubernetes_namespace" "quickpizza" {
+resource "kubernetes_namespace_v1" "quickpizza" {
   metadata {
-    name = var.kubernetes_namespace
+    name = var.quickpizza_kubernetes_namespace
   }
 }
 
