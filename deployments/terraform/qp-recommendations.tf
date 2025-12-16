@@ -9,12 +9,12 @@ locals {
 }
 
 
-resource "kubernetes_deployment" "recommendations" {
-  depends_on = [kubernetes_deployment.alloy]
+resource "kubernetes_deployment_v1" "recommendations" {
+  depends_on = [kubernetes_deployment_v1.alloy]
   
   metadata {
     name      = "recommendations"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
     labels    = local.recommendations_component_labels
   }
   spec {
@@ -88,10 +88,10 @@ resource "kubernetes_deployment" "recommendations" {
   }
 }
 
-resource "kubernetes_service" "recommendations" {
+resource "kubernetes_service_v1" "recommendations" {
   metadata {
     name      = "recommendations"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   spec {
     port {

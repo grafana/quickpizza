@@ -30,7 +30,7 @@ variable "deployment_environment" {
   nullable    = false
   type        = string
 }
-variable "kubernetes_namespace" {
+variable "quickpizza_kubernetes_namespace" {
   default     = "quickpizza"
   description = "The name of the Namespace to create and install the QuickPizza Application in."
   nullable    = false

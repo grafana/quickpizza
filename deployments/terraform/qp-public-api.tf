@@ -7,10 +7,10 @@ locals {
   }
 }
 
-resource "kubernetes_secret" "public_api" {
+resource "kubernetes_secret_v1" "public_api" {
   metadata {
     name      = "public-api"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
     QUICKPIZZA_CONF_FARO_URL = var.quickpizza_conf_faro_url
@@ -18,12 +18,12 @@ resource "kubernetes_secret" "public_api" {
   }
 }
 
-resource "kubernetes_deployment" "public_api" {
-  depends_on = [kubernetes_deployment.alloy]
+resource "kubernetes_deployment_v1" "public_api" {
+  depends_on = [kubernetes_deployment_v1.alloy]
   
   metadata {
     name      = "public-api"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
     labels    = local.public_api_component_labels
   }
   spec {
@@ -66,7 +66,7 @@ resource "kubernetes_deployment" "public_api" {
           }
           env_from {
             secret_ref {
-              name = kubernetes_secret.public_api.metadata[0].name
+              name = kubernetes_secret_v1.public_api.metadata[0].name
             }
           }
           dynamic "env" {
@@ -102,10 +102,10 @@ resource "kubernetes_deployment" "public_api" {
   }
 }
 
-resource "kubernetes_service" "public_api" {
+resource "kubernetes_service_v1" "public_api" {
   metadata {
     name      = "public-api"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   spec {
     port {

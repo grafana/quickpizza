@@ -8,15 +8,15 @@ locals {
   }
 }
 
-resource "kubernetes_deployment" "copy" {
+resource "kubernetes_deployment_v1" "copy" {
   depends_on = [
-    kubernetes_deployment.alloy,
-    kubernetes_stateful_set.postgres_statefulset
+    kubernetes_deployment_v1.alloy,
+    kubernetes_stateful_set_v1.postgres_statefulset
   ]
   
   metadata {
     name      = "copy"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
     labels    = local.copy_component_labels
   }
   spec {
@@ -88,7 +88,7 @@ resource "kubernetes_deployment" "copy" {
             name = "QUICKPIZZA_DB"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
+                name = kubernetes_secret_v1.quickpizza_postgres_credentials.metadata[0].name
                 key  = "CONNECTION_STRING"
               }
             }
@@ -103,10 +103,10 @@ resource "kubernetes_deployment" "copy" {
   }
 }
 
-resource "kubernetes_service" "copy" {
+resource "kubernetes_service_v1" "copy" {
   metadata {
     name      = "copy"
-    namespace = kubernetes_namespace.quickpizza.id
+    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   spec {
     port {

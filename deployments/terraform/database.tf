@@ -7,33 +7,33 @@ locals {
   }
 }
 
-resource "kubernetes_config_map" "postgres_init_script" {
+resource "kubernetes_config_map_v1" "postgres_init_script" {
   metadata {
     name      = "postgres-init-script"
-    namespace = kubernetes_namespace.quickpizza.metadata[0].name
+    namespace = kubernetes_namespace_v1.quickpizza.metadata[0].name
   }
   data = {
     "init-db-observability.sh" = file("${path.module}/../init-db-observability.sh")
   }
 }
 
-resource "kubernetes_secret" "quickpizza_postgres_credentials" {
+resource "kubernetes_secret_v1" "quickpizza_postgres_credentials" {
   metadata {
     name      = "quickpizza-db-credentials"
-    namespace = kubernetes_namespace.quickpizza.metadata[0].name
+    namespace = kubernetes_namespace_v1.quickpizza.metadata[0].name
   }
   data = {
     DATABASE_PASSWORD = var.quickpizza_db_password
-    CONNECTION_STRING = format("postgres://%s:%s@%s/%s?sslmode=disable", var.quickpizza_db_user, var.quickpizza_db_password, kubernetes_service.postgres.metadata[0].name, var.quickpizza_db_name)
+    CONNECTION_STRING = format("postgres://%s:%s@%s/%s?sslmode=disable", var.quickpizza_db_user, var.quickpizza_db_password, kubernetes_service_v1.postgres.metadata[0].name, var.quickpizza_db_name)
     # see init-db-observability.sh for usage
-    DB_O11Y_CONNECTION_STRING = format("postgres://%s:%s@%s/%s?sslmode=disable", var.db_o11y_user, var.db_o11y_password, kubernetes_service.postgres.metadata[0].name, var.quickpizza_db_name)
+    DB_O11Y_CONNECTION_STRING = format("postgres://%s:%s@%s/%s?sslmode=disable", var.db_o11y_user, var.db_o11y_password, kubernetes_service_v1.postgres.metadata[0].name, var.quickpizza_db_name)
   }
 }
 
-resource "kubernetes_stateful_set" "postgres_statefulset" {
+resource "kubernetes_stateful_set_v1" "postgres_statefulset" {
   metadata {
     name      = "quickpizza-db"
-    namespace = kubernetes_namespace.quickpizza.metadata[0].name
+    namespace = kubernetes_namespace_v1.quickpizza.metadata[0].name
     labels    = local.database_component_labels
   }
   spec {
@@ -41,7 +41,7 @@ resource "kubernetes_stateful_set" "postgres_statefulset" {
     selector {
       match_labels = local.database_component_labels
     }
-    service_name = kubernetes_service.postgres.metadata[0].name
+    service_name = kubernetes_service_v1.postgres.metadata[0].name
     volume_claim_template {
       metadata {
         name = "data"
@@ -89,7 +89,7 @@ resource "kubernetes_stateful_set" "postgres_statefulset" {
             name = "POSTGRES_PASSWORD"
             value_from {
               secret_key_ref {
-                name = kubernetes_secret.quickpizza_postgres_credentials.metadata[0].name
+                name = kubernetes_secret_v1.quickpizza_postgres_credentials.metadata[0].name
                 key  = "DATABASE_PASSWORD"
               }
             }
@@ -128,10 +128,10 @@ resource "kubernetes_stateful_set" "postgres_statefulset" {
   }
 }
 
-resource "kubernetes_service" "postgres" {
+resource "kubernetes_service_v1" "postgres" {
   metadata {
     name      = "quickpizza-db"
-    namespace = kubernetes_namespace.quickpizza.metadata[0].name
+    namespace = kubernetes_namespace_v1.quickpizza.metadata[0].name
   }
   spec {
     port {
