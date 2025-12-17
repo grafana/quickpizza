@@ -1,38 +1,39 @@
 {
-	"name": "web",
-	"version": "0.0.1",
-	"private": true,
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"biome-check": "biome check",
-		"biome-format": "biome format --fix"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
-		"@grafana/faro-web-sdk": "2.0.2",
-		"@grafana/faro-web-tracing": "2.0.2",
-		"@sveltejs/adapter-auto": "6.1.1",
-		"@sveltejs/adapter-static": "3.0.10",
-		"@sveltejs/kit": "2.37.0",
-		"@sveltejs/vite-plugin-svelte": "6.1.4",
-		"autoprefixer": "10.4.22",
-		"biome": "0.3.3",
-		"postcss": "8.5.6",
-		"svelte": "5.38.6",
-		"svelte-check": "4.3.4",
-		"tailwindcss": "3.2.7",
-		"tslib": "2.5.0",
-		"typescript": "5.9.3",
-		"vite": "7.1.11"
-	},
-	"type": "module",
-	"dependencies": {
-		"install": "0.13.0",
-		"npm": "11.4.2",
-		"svelte-confetti": "1.2.2"
-	}
+  "name": "web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "biome-check": "biome check",
+    "biome-format": "biome format --fix"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.4",
+    "@grafana/faro-instrumentation-replay": "2.1.0",
+    "@grafana/faro-web-sdk": "2.1.0",
+    "@grafana/faro-web-tracing": "2.1.0",
+    "@sveltejs/adapter-auto": "6.1.1",
+    "@sveltejs/adapter-static": "3.0.10",
+    "@sveltejs/kit": "2.37.0",
+    "@sveltejs/vite-plugin-svelte": "6.1.4",
+    "autoprefixer": "10.4.22",
+    "biome": "0.3.3",
+    "postcss": "8.5.6",
+    "svelte": "5.38.6",
+    "svelte-check": "4.3.4",
+    "tailwindcss": "3.2.7",
+    "tslib": "2.5.0",
+    "typescript": "5.9.3",
+    "vite": "7.1.11"
+  },
+  "type": "module",
+  "dependencies": {
+    "install": "0.13.0",
+    "npm": "11.4.2",
+    "svelte-confetti": "1.2.2"
+  }
 }
