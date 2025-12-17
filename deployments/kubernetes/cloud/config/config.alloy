@@ -82,6 +82,13 @@ loki.source.kubernetes "application_pods" {
 }
 
 discovery.relabel "application_pods_profiles" {
+
+  // Drop database pods - they don't expose pprof endpoints
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+    regex = "database"
+    action = "drop"
+  }
   // https://grafana.com/docs/pyroscope/latest/view-and-analyze-profile-data/line-by-line/
   rule {
     target_label = "service_repository"

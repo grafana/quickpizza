@@ -5,7 +5,7 @@ metadata:
   name: grafana-alloy
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: grafana-alloy
 roleRef:
@@ -13,15 +13,15 @@ roleRef:
   kind: ClusterRole
   name: view
 subjects:
-- kind: ServiceAccount
-  name: grafana-alloy
+  - kind: ServiceAccount
+    name: grafana-alloy
+    namespace: quickpizza
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana-alloy
-  labels: &alloyLabels
-    # application name: groups all related resources
+  labels: &alloyLabels # application name: groups all related resources
     app.k8s.io/name: grafana-alloy
     # component type: defines the role of this deployment
     app.kubernetes.io/component: service
