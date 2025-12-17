@@ -1,7 +1,7 @@
+import { ReplayInstrumentation } from '@grafana/faro-instrumentation-replay';
 import { getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk';
 import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
-import { ReplayInstrumentation } from '@grafana/faro-instrumentation-replay';
 
 function setupFaro() {
 	fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/config`)
