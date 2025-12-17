@@ -18,10 +18,9 @@ resource "kubernetes_service_account_v1" "alloy" {
 
 // Grant the "view" ClusterRole to kubernetes_service_account_v1
 // This allows Alloy (`service_account_name`) to discover application pods and scrape metrics. 
-resource "kubernetes_role_binding_v1" "alloy" {
+resource "kubernetes_cluster_role_binding_v1" "alloy" {
   metadata {
     name      = "alloy"
-    namespace = kubernetes_namespace_v1.quickpizza.id
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
