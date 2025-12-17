@@ -312,6 +312,9 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
 
     # FRONTEND OBSERVABILITY APPLICATION NAME
     QUICKPIZZA_CONF_FARO_APP_NAME=
+
+    # ENABLE FARO SESSION REPLAY INSTRUMENTATION (default: false)
+    QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY=true
     ```
 
 4. Restart the `compose.grafana-cloud.microservices.yaml` environment:
