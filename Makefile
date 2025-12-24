@@ -18,6 +18,19 @@ build-go: # Build Go binary (doesn't rebuild frontend)
 		cp pkg/web/dev.html $(FRONTEND_BUILD_DIR)/index.html
 	go build -o bin/quickpizza ./cmd
 
+.PHONY: install-web
+install-web: # Install frontend dependencies
+	cd pkg/web && npm install
+
+.PHONY: dev
+dev: # Run with live-reload (frontend dev server + backend with -dev flag)
+	@echo "Starting dev server with live-reload"
+	@trap 'kill 0' EXIT; \
+	(export PUBLIC_BACKEND_ENDPOINT="http://localhost:3333" && \
+	export PUBLIC_BACKEND_WS_ENDPOINT="ws://localhost:3333/ws" && \
+	cd pkg/web && npm run dev) & \
+	go run ./cmd -dev
+
 .PHONY: proto
 proto: # Generate protobuf files
 	protoc --go_out=. --go-grpc_out=. proto/quickpizza.proto
