@@ -346,7 +346,7 @@ func (s *Server) AddPrometheusHandler() {
 }
 
 // AddFrontend enables serving the embedded Svelte frontend.
-func (s *Server) AddFrontend() {
+func (s *Server) AddFrontend(devMode bool) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "frontend",
 			// The frontend serves a lot of static files on different paths. To save on cardinality, we override the
@@ -357,7 +357,14 @@ func (s *Server) AddFrontend() {
 		)
 
 		r.Handle("/favicon.ico", FaviconHandler())
-		r.Handle("/*", SvelteKitHandler())
+
+		if devMode {
+			// In dev mode, proxy to Vite dev server
+			r.Handle("/*", ViteProxyHandler())
+		} else {
+			// Production: serve embedded files
+			r.Handle("/*", SvelteKitHandler())
+		}
 	})
 }
 
@@ -1531,6 +1538,23 @@ func SvelteKitHandler() http.Handler {
 		r.URL.Path = path
 		http.FileServer(filesystem).ServeHTTP(w, r)
 	})
+}
+
+// ViteProxyHandler returns an http.Handler that proxies requests to the Vite dev server.
+func ViteProxyHandler() http.Handler {
+	target, _ := url.Parse("http://localhost:5173")
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.Director = func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.Host = target.Host
+		slog.Debug("Proxying request to Vite", "path", req.URL.Path)
+	}
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		slog.Error("Vite proxy error", "err", err, "path", r.URL.Path)
+		http.Error(w, "Vite dev server unavailable. Make sure it's running on http://localhost:5173", http.StatusBadGateway)
+	}
+	return proxy
 }
 
 func PrometheusMiddleware(next http.Handler) http.Handler {
