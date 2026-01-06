@@ -1270,7 +1270,7 @@ func (s *Server) AddChatHandler(chatClient ChatClient) {
 			// Demo mode: return a default response if no external endpoint is configured
 			if chatClient.Endpoint() == "" {
 				s.writeJSONResponse(w, r, map[string]string{
-					"response": "I'm QuickPizza Assistant! I can help you with pizza recommendations. Currently, I'm running in demo mode without an AI backend configured.",
+					"response": "I'm QuickPizza Assistant, currently being set up! Pizza recommendations coming soon. For now, try the 'Pizza, Please!' button.",
 				}, http.StatusOK)
 				return
 			}
