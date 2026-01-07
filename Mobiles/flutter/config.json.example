@@ -1,0 +1,6 @@
+{
+  "FARO_COLLECTOR_URL": "https://your-faro-collector-url.grafana.net/collect/xxx",
+  "BASE_URL": "",
+  "PORT": "3333"
+}
+

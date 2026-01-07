@@ -81,19 +81,21 @@ This script will:
 1. **Make sure the emulator is running** (you should see the Android home screen)
 
 2. **Run the app:**
+
+**Using the helper script (recommended):**
 ```bash
 cd Mobiles/flutter
-flutter run
-```
-
-Or specify Android explicitly:
-```bash
-flutter run -d android
+./scripts/run-android.sh
 ```
 
 **Using VS Code:**
-- Press **F5**
-- Select "Flutter: Run (Android)"
+- Press **F5** (uses the configured launch.json with config.json)
+
+**Or manually:**
+```bash
+cd Mobiles/flutter
+flutter run -d android --dart-define-from-file=config.json
+```
 
 ---
 

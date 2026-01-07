@@ -43,34 +43,40 @@ For detailed simulator/emulator setup and troubleshooting, see the documentation
 flutter pub get
 ```
 
-2. Configure the backend endpoint:
+2. Configure the app:
    
-   The app automatically detects the platform and uses appropriate URLs:
-   - **Android emulator**: `http://10.0.2.2:3333` (automatically used)
-   - **iOS simulator**: `http://localhost:3333` (automatically used)
-   - **Physical devices**: Requires manual configuration via `.env` file
-   
-   To customize the backend URL:
-   
-   a. Copy the example environment file:
+   a. Copy the example config file:
    ```bash
-   cp .env.example .env
+   cp config.json.example config.json
    ```
    
-   b. Edit `.env` and set `BASE_URL`:
-   ```bash
-   # For physical devices, use your machine's IP address
-   BASE_URL=http://192.168.1.100:3333
-   
-   # Or use a remote server
-   BASE_URL=https://api.example.com
+   b. Edit `config.json` with your values:
+   ```json
+   {
+     "FARO_COLLECTOR_URL": "https://your-faro-collector.grafana.net/collect/xxx",
+     "BASE_URL": "",
+     "PORT": "3333"
+   }
    ```
    
-   If `BASE_URL` is not set in `.env`, the app will use platform-specific defaults.
+   **Configuration options:**
+   - `FARO_COLLECTOR_URL`: Your Grafana Faro collector URL for observability
+   - `BASE_URL`: Backend API URL (optional - see platform defaults below)
+   - `PORT`: Backend port (optional, defaults to `3333`)
+   
+   **Platform defaults for BASE_URL:**
+   - **Android emulator**: `http://10.0.2.2:3333` (automatically used if BASE_URL is empty)
+   - **iOS simulator**: `http://localhost:3333` (automatically used if BASE_URL is empty)
+   - **Physical devices**: You must set BASE_URL to your machine's IP (e.g., `http://192.168.1.100:3333`)
 
 3. Run the app:
 ```bash
-flutter run
+# Using the helper scripts (recommended - includes config validation):
+./scripts/run-android.sh
+./scripts/run-ios.sh
+
+# Or manually with flutter:
+flutter run --dart-define-from-file=config.json
 ```
 
 ## Project Structure

@@ -5,6 +5,45 @@
 
 cd "$(dirname "$0")/.."
 
+# ============================================
+# Config file check
+# ============================================
+CONFIG_FILE="config.json"
+CONFIG_EXAMPLE="config.json.example"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo ""
+    echo "⚠️  WARNING: $CONFIG_FILE not found!"
+    echo ""
+    
+    if [ -f "$CONFIG_EXAMPLE" ]; then
+        echo "Creating $CONFIG_FILE from $CONFIG_EXAMPLE..."
+        cp "$CONFIG_EXAMPLE" "$CONFIG_FILE"
+        echo ""
+        echo "📝 Please edit $CONFIG_FILE with your actual values:"
+        echo "   - FARO_COLLECTOR_URL: Your Grafana Faro collector URL"
+        echo "   - BASE_URL: Backend API URL (optional, has platform defaults)"
+        echo "   - PORT: Backend port (optional, defaults to 3333)"
+        echo ""
+        echo "Then run this script again."
+        exit 1
+    else
+        echo "❌ ERROR: $CONFIG_EXAMPLE not found either!"
+        echo "Please create $CONFIG_FILE manually with the following structure:"
+        echo '{'
+        echo '  "FARO_COLLECTOR_URL": "https://your-collector-url",'
+        echo '  "BASE_URL": "",'
+        echo '  "PORT": "3333"'
+        echo '}'
+        exit 1
+    fi
+fi
+
+echo "✅ Using config from $CONFIG_FILE"
+
+# ============================================
+# Android device detection
+# ============================================
 echo "Checking for Android devices..."
 # Extract device IDs (the field after the first bullet point, e.g., "emulator-5554")
 INITIAL_DEVICES=$(flutter devices 2>&1 | grep android | awk -F'•' '{print $2}' | awk '{print $1}' | tr -d ' ' || echo "")
@@ -69,5 +108,4 @@ else
 fi
 
 echo "Running Flutter app on device: $DEVICE_ID"
-flutter run -d "$DEVICE_ID"
-
+flutter run -d "$DEVICE_ID" --dart-define-from-file="$CONFIG_FILE"

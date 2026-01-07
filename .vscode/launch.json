@@ -7,7 +7,10 @@
       "name": "Flutter (debug)",
       "program": "lib/main.dart",
       "cwd": "Mobiles/flutter",
-      "flutterMode": "debug"
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define-from-file=config.json"
+      ]
     }
   ]
 }

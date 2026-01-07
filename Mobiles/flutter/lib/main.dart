@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/application_layer/o11y/loggers/o11y_logger.dart';
 import 'core/application_layer/o11y/events/o11y_events.dart';
 import 'services/api_service.dart';
@@ -15,11 +14,8 @@ void main() async {
 
   o11yLogger.debug('App initialization started', context: {});
 
-  // Initialize config service (loads .env file)
-  await ConfigService.init();
-
-  // Extract token from collector URL
-  final collectorUrl = dotenv.env['FARO_COLLECTOR_URL'];
+  // Get collector URL from build-time config
+  final collectorUrl = ConfigService.faroCollectorUrl;
   final apiKey = extractTokenFromCollectorUrl(collectorUrl);
 
   // Initialize Faro instance first
@@ -33,10 +29,7 @@ void main() async {
     OfflineTransport(maxCacheDuration: const Duration(days: 3)),
   );
 
-  o11yLogger.debug(
-    'Faro initialized',
-    context: {'collectorUrl': collectorUrl ?? 'not_set'},
-  );
+  o11yLogger.debug('Faro initialized', context: {'collectorUrl': collectorUrl});
 
   o11yEvents.trackEvent('app_started', attributes: {'app_version': '1.0.0'});
 
