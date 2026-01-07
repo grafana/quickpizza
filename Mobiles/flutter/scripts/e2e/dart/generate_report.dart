@@ -35,7 +35,7 @@ void main(List<String> arguments) async {
 
     await generateHtml(resultPath, basePath);
     print(
-        'Report generated successfully at: ${path.join(basePath, "simple_results.html")}');
+        'Report generated successfully at: ${path.join(basePath, "visual_report.html")}');
   } catch (e) {
     print('Error: ${e.toString()}');
     print('\nUsage:');
@@ -1130,6 +1130,6 @@ Future<void> generateHtml(String resultPath, String basePath) async {
     </html>
   ''';
 
-  final outputFile = File(path.join(basePath, 'simple_results.html'));
+  final outputFile = File(path.join(basePath, 'visual_report.html'));
   await outputFile.writeAsString(htmlTemplate);
 }
