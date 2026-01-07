@@ -1,0 +1,13 @@
+name: e2e_report_generator
+description: Generates HTML report from E2E test results
+version: 1.0.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  yaml: ^3.1.2
+  path: ^1.8.3
+  intl: ^0.20.2
+  args: ^2.4.2
+

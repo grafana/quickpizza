@@ -47,3 +47,9 @@ app.*.map.json
 # Environment variables / Build config
 .env
 config.json
+
+# E2E test results (Arbigent)
+arbigent-result/
+arbigent-result-*/
+scripts/e2e/dart/.dart_tool/
+scripts/e2e/dart/pubspec.lock
