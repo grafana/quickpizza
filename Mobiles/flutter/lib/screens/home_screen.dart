@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../core/application_layer/o11y/events/o11y_events.dart';
 import '../core/application_layer/o11y/errors/o11y_errors.dart';
 import '../core/application_layer/o11y/loggers/o11y_logger.dart';
@@ -7,7 +6,6 @@ import '../core/application_layer/o11y/metrics/o11y_metrics.dart';
 import '../models/pizza.dart';
 import '../models/restrictions.dart';
 import '../services/api_service.dart';
-import '../services/config_service.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,37 +17,55 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   String _quote = '';
   PizzaRecommendation? _pizza;
   bool _isLoading = false;
   String? _errorMessage;
   String? _rateResult;
-  bool _advanced = false;
+  bool _customizeExpanded = false;
   Restrictions _restrictions = Restrictions();
   List<String> _tools = [];
+  bool _isLoggedIn = false;
+  String? _username;
+
+  late AnimationController _expandController;
+  late Animation<double> _expandAnimation;
 
   @override
   void initState() {
     super.initState();
     o11yEvents.trackEvent('home_screen_opened', attributes: {});
     o11yLogger.debug('Home screen initialized', context: {});
+
+    _expandController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _expandController,
+      curve: Curves.easeInOut,
+    );
+
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _expandController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
     try {
-      // Load quote (doesn't require auth)
       final quote = await widget.apiService.getQuote();
-
-      // Load tools (requires auth - will fail if user not logged in)
       final tools = await widget.apiService.getTools();
 
       setState(() {
         _quote = quote;
         _tools = tools;
-        // If tools is empty, user may not be logged in, but that's OK
-        // They can still use the app and will be prompted to login when needed
+        _isLoggedIn = tools.isNotEmpty;
       });
 
       o11yLogger.debug(
@@ -69,10 +85,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _toggleCustomize() {
+    setState(() {
+      _customizeExpanded = !_customizeExpanded;
+      if (_customizeExpanded) {
+        _expandController.forward();
+      } else {
+        _expandController.reverse();
+        _restrictions = Restrictions();
+      }
+    });
+    o11yEvents.trackEvent(
+      'customize_toggled',
+      attributes: {'expanded': _customizeExpanded.toString()},
+    );
+  }
+
+  Future<void> _navigateToProfile() async {
+    o11yEvents.trackEvent('profile_button_clicked', attributes: {});
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(apiService: widget.apiService),
+      ),
+    );
+    // Refresh data when returning from login/profile
+    await _loadInitialData();
+  }
+
   Future<void> _getPizza() async {
-    // Track user action for Frontend Observability
     o11yEvents.startUserAction('getPizza', {
-      'advanced_mode': _advanced.toString(),
+      'customized': _customizeExpanded.toString(),
       'vegetarian': _restrictions.mustBeVegetarian.toString(),
       'max_calories': _restrictions.maxCaloriesPerSlice.toString(),
       'min_toppings': _restrictions.minNumberOfToppings.toString(),
@@ -82,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
     o11yEvents.trackEvent(
       'pizza_requested',
       attributes: {
-        'advanced_mode': _advanced.toString(),
+        'customized': _customizeExpanded.toString(),
         'vegetarian': _restrictions.mustBeVegetarian.toString(),
       },
     );
@@ -140,13 +183,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _ratePizza(int stars) async {
+  Future<void> _ratePizza(int stars, String type) async {
     if (_pizza == null) return;
 
-    // Track user action for Frontend Observability
     o11yEvents.startUserAction('ratePizza', {
       'pizza_id': _pizza!.pizza.id.toString(),
       'stars': stars.toString(),
+      'type': type,
     }, triggerName: 'ratePizzaButtonClick');
 
     o11yEvents.trackEvent(
@@ -154,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
       attributes: {
         'pizza_id': _pizza!.pizza.id.toString(),
         'stars': stars.toString(),
-        'rating_type': stars == 5 ? 'love_it' : 'no_thanks',
+        'rating_type': type,
       },
     );
 
@@ -164,7 +207,9 @@ class _HomeScreenState extends State<HomeScreen> {
         stars,
       );
       setState(() {
-        _rateResult = success ? 'Rated!' : 'Please log in first.';
+        _rateResult = success
+            ? (type == 'love' ? '❤️ Saved to favorites!' : '👎 Got it, next time!')
+            : 'Please log in first.';
       });
 
       if (success) {
@@ -197,18 +242,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5E6), // Light cream background
+      backgroundColor: const Color(0xFFFFF5E6),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         title: Row(
           children: [
-            const Icon(Icons.local_pizza, color: Colors.red, size: 28),
+            Icon(Icons.local_pizza, color: Colors.red.shade600, size: 28),
             const SizedBox(width: 8),
-            const Text(
+            Text(
               'QuickPizza',
               style: TextStyle(
-                color: Colors.red,
+                color: Colors.red.shade600,
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
@@ -216,216 +261,51 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              o11yEvents.trackEvent('login_button_clicked', attributes: {});
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      LoginScreen(apiService: widget.apiService),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: _navigateToProfile,
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor:
+                    _isLoggedIn ? Colors.orange : Colors.grey.shade300,
+                child: Icon(
+                  _isLoggedIn ? Icons.person : Icons.person_outline,
+                  color: _isLoggedIn ? Colors.white : Colors.grey.shade600,
+                  size: 20,
                 ),
-              );
-            },
-            child: const Text(
-              'Login/Profile',
-              style: TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Row(
-            children: [
-              Switch(
-                value: _advanced,
-                onChanged: (value) {
-                  o11yEvents.trackEvent(
-                    'advanced_mode_toggled',
-                    attributes: {'enabled': value.toString()},
-                  );
-                  setState(() {
-                    _advanced = value;
-                    if (!value) {
-                      _restrictions = Restrictions();
-                    }
-                  });
-                },
-                activeThumbColor: Colors.red,
               ),
-              const Text('Advanced', style: TextStyle(fontSize: 12)),
-              const SizedBox(width: 16),
-            ],
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              if (_quote.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _quote,
-                    style: const TextStyle(fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              const SizedBox(height: 20),
-              const Text(
-                'Looking to break out of your pizza routine?',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'QuickPizza has your back!',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'With just one click, you\'ll discover new and exciting pizza combinations that you never knew existed.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              if (_advanced) _buildAdvancedOptions(),
+              // Quote Card
+              if (_quote.isNotEmpty) _buildQuoteCard(),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _getPizza,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : const Text(
-                        'Pizza, Please!',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-              if (_errorMessage != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
+
+              // Hero Text
+              _buildHeroText(),
+              const SizedBox(height: 24),
+
+              // Customize Card (Expandable)
+              _buildCustomizeCard(),
+              const SizedBox(height: 24),
+
+              // Pizza Please Button
+              _buildPizzaButton(),
+
+              // Error Message
+              if (_errorMessage != null) _buildErrorMessage(),
+
+              // Pizza Recommendation
               if (_pizza != null) _buildPizzaRecommendation(),
+
               const SizedBox(height: 40),
-              const Text(
-                'Made with ❤️ by QuickPizza Labs.',
-                style: TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              Text.rich(
-                TextSpan(
-                  style: const TextStyle(fontSize: 12),
-                  children: [
-                    const TextSpan(text: 'Looking for the admin page? '),
-                    WidgetSpan(
-                      child: GestureDetector(
-                        onTap: () async {
-                          o11yEvents.trackEvent(
-                            'admin_link_clicked',
-                            attributes: {},
-                          );
-                          final adminUrl = Uri.parse(
-                            '${ConfigService.baseUrl}/admin',
-                          );
-                          if (await canLaunchUrl(adminUrl)) {
-                            await launchUrl(
-                              adminUrl,
-                              mode: LaunchMode.externalApplication,
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'Click here',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text.rich(
-                TextSpan(
-                  style: const TextStyle(fontSize: 12),
-                  children: [
-                    const TextSpan(text: 'Contribute to QuickPizza on '),
-                    WidgetSpan(
-                      child: GestureDetector(
-                        onTap: () async {
-                          o11yEvents.trackEvent(
-                            'github_link_clicked',
-                            attributes: {},
-                          );
-                          final githubUrl = Uri.parse(
-                            'https://github.com/grafana/quickpizza',
-                          );
-                          if (await canLaunchUrl(githubUrl)) {
-                            await launchUrl(
-                              githubUrl,
-                              mode: LaunchMode.externalApplication,
-                            );
-                          }
-                        },
-                        child: const Text(
-                          'GitHub',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
             ],
           ),
         ),
@@ -433,89 +313,246 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAdvancedOptions() {
+  Widget _buildQuoteCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16),
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.format_quote, color: Colors.orange.shade300, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _quote,
+              style: TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroText() {
+    return Column(
+      children: [
+        const Text(
+          'Looking to break out of\nyour pizza routine?',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            height: 1.2,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'QuickPizza has your back!',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.red.shade600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'With just one click, you\'ll discover new and exciting pizza combinations.',
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.grey.shade600,
+            height: 1.4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomizeCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Max Calories per Slice',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+          // Header (always visible)
+          InkWell(
+            onTap: _toggleCustomize,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.tune,
+                      color: Colors.orange.shade600,
+                      size: 20,
+                    ),
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    _restrictions.maxCaloriesPerSlice =
-                        int.tryParse(value) ?? 1000;
-                  },
-                  controller: TextEditingController(
-                    text: _restrictions.maxCaloriesPerSlice.toString(),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Customize Your Pizza',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
+                  AnimatedRotation(
+                    turns: _customizeExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Min Toppings',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    _restrictions.minNumberOfToppings =
-                        int.tryParse(value) ?? 2;
-                  },
-                  controller: TextEditingController(
-                    text: _restrictions.minNumberOfToppings.toString(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Max Toppings',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    _restrictions.maxNumberOfToppings =
-                        int.tryParse(value) ?? 5;
-                  },
-                  controller: TextEditingController(
-                    text: _restrictions.maxNumberOfToppings.toString(),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Excluded Tools:'),
+
+          // Expandable Content
+          SizeTransition(
+            sizeFactor: _expandAnimation,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: [
+                  const Divider(),
+                  const SizedBox(height: 12),
+
+                  // Calories and Toppings Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildNumberField(
+                          label: 'Max Calories',
+                          value: _restrictions.maxCaloriesPerSlice,
+                          onChanged: (v) =>
+                              _restrictions.maxCaloriesPerSlice = v,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildNumberField(
+                          label: 'Min Toppings',
+                          value: _restrictions.minNumberOfToppings,
+                          onChanged: (v) =>
+                              _restrictions.minNumberOfToppings = v,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildNumberField(
+                          label: 'Max Toppings',
+                          value: _restrictions.maxNumberOfToppings,
+                          onChanged: (v) =>
+                              _restrictions.maxNumberOfToppings = v,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Vegetarian Toggle
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _restrictions.mustBeVegetarian
+                          ? Colors.green.shade50
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _restrictions.mustBeVegetarian
+                            ? Colors.green.shade200
+                            : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.eco,
+                          color: _restrictions.mustBeVegetarian
+                              ? Colors.green.shade600
+                              : Colors.grey.shade400,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Vegetarian only',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ),
+                        Switch(
+                          value: _restrictions.mustBeVegetarian,
+                          onChanged: (value) {
+                            setState(() {
+                              _restrictions.mustBeVegetarian = value;
+                            });
+                          },
+                          activeColor: Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Excluded Tools
+                  if (_tools.isNotEmpty) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Exclude tools:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: _tools.map((tool) {
+                        final isSelected =
+                            _restrictions.excludedTools.contains(tool);
                         return FilterChip(
                           label: Text(tool),
-                          selected: _restrictions.excludedTools.contains(tool),
+                          selected: isSelected,
                           onSelected: (selected) {
                             setState(() {
                               if (selected) {
@@ -525,40 +562,122 @@ class _HomeScreenState extends State<HomeScreen> {
                               }
                             });
                           },
+                          selectedColor: Colors.red.shade100,
+                          checkmarkColor: Colors.red.shade700,
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 16),
                   ],
-                ),
+
+                  // Custom Name
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Custom Pizza Name (optional)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      isDense: true,
+                    ),
+                    onChanged: (value) {
+                      _restrictions.customName = value;
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Checkbox(
-                value: _restrictions.mustBeVegetarian,
-                onChanged: (value) {
-                  setState(() {
-                    _restrictions.mustBeVegetarian = value ?? false;
-                  });
-                },
-                fillColor: WidgetStateProperty.all(Colors.red),
-              ),
-              const Text('Must be vegetarian'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            decoration: const InputDecoration(
-              labelText: 'Custom Pizza Name',
-              border: OutlineInputBorder(),
-              isDense: true,
             ),
-            onChanged: (value) {
-              _restrictions.customName = value;
-            },
-            controller: TextEditingController(text: _restrictions.customName),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNumberField({
+    required String label,
+    required int value,
+    required Function(int) onChanged,
+  }) {
+    return TextField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
+        isDense: true,
+      ),
+      keyboardType: TextInputType.number,
+      controller: TextEditingController(text: value.toString()),
+      onChanged: (v) => onChanged(int.tryParse(v) ?? value),
+    );
+  }
+
+  Widget _buildPizzaButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _getPizza,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.local_pizza, size: 22),
+                  SizedBox(width: 8),
+                  Text(
+                    'Pizza, Please!',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+            ),
           ),
         ],
       ),
@@ -569,90 +688,238 @@ class _HomeScreenState extends State<HomeScreen> {
     final pizza = _pizza!.pizza;
     return Column(
       children: [
+        const SizedBox(height: 24),
+
+        // Pizza Card
         Container(
-          margin: const EdgeInsets.only(top: 24),
-          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withOpacity(0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Our recommendation:',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              // Header with pizza icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.local_pizza,
+                      color: Colors.orange,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Our Recommendation',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          pizza.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              // Details
+              _buildPizzaDetail(
+                icon: Icons.layers,
+                label: 'Dough',
+                value: pizza.dough.name,
+              ),
+              const SizedBox(height: 8),
+              _buildPizzaDetail(
+                icon: Icons.restaurant,
+                label: 'Tool',
+                value: pizza.tool,
+              ),
+              const SizedBox(height: 8),
+              _buildPizzaDetail(
+                icon: Icons.local_fire_department,
+                label: 'Calories',
+                value: '${_pizza!.calories ?? 'N/A'} per slice',
               ),
               const SizedBox(height: 12),
-              Text('Name: ${pizza.name}'),
-              const SizedBox(height: 8),
-              Text('Dough: ${pizza.dough.name}'),
-              const SizedBox(height: 8),
-              const Text('Ingredients:'),
-              const SizedBox(height: 4),
-              ...pizza.ingredients.map(
-                (ingredient) => Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Text('• ${ingredient.name}'),
+
+              // Vegetarian badge
+              if (_pizza!.vegetarian == true)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.eco, size: 16, color: Colors.green.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Vegetarian',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // Ingredients
+              const Text(
+                'Ingredients',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 8),
-              Text('Tool: ${pizza.tool}'),
-              const SizedBox(height: 8),
-              Text('Calories per slice: ${_pizza!.calories ?? 'N/A'}'),
-              const SizedBox(height: 8),
-              Text(
-                'Vegetarian: ${_pizza!.vegetarian == true ? 'Yes' : 'No'}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: _pizza!.vegetarian == true
-                      ? Colors.green[700]
-                      : Colors.grey[700],
-                ),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: pizza.ingredients.map((ingredient) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      ingredient.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+
+        const SizedBox(height: 20),
+
+        // Rating Buttons
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () => _ratePizza(1),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[400],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _ratePizza(1, 'pass'),
+                icon: const Text('👎', style: TextStyle(fontSize: 18)),
+                label: const Text('Pass'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
-              child: const Text('No thanks'),
             ),
             const SizedBox(width: 16),
-            ElevatedButton(
-              onPressed: () => _ratePizza(5),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[400],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _ratePizza(5, 'love'),
+                icon: const Text('❤️', style: TextStyle(fontSize: 18)),
+                label: const Text('Love it!'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade400,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
-              child: const Text('Love it!'),
             ),
           ],
         ),
+
+        // Rate Result
         if (_rateResult != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 12),
             child: Text(
               _rateResult!,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _rateResult!.contains('❤️')
+                    ? Colors.red.shade600
+                    : Colors.grey.shade600,
+              ),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildPizzaDetail({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade500),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }

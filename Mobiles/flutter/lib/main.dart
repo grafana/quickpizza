@@ -6,7 +6,7 @@ import 'core/application_layer/o11y/loggers/o11y_logger.dart';
 import 'core/application_layer/o11y/events/o11y_events.dart';
 import 'services/api_service.dart';
 import 'services/config_service.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell.dart';
 import 'utils/faro_utils.dart';
 
 void main() async {
@@ -79,7 +79,7 @@ class QuickPizzaApp extends StatelessWidget {
         useMaterial3: true,
       ),
       navigatorObservers: [FaroNavigationObserver()],
-      home: HomeScreen(apiService: apiService),
+      home: MainShell(apiService: apiService),
     );
   }
 }
