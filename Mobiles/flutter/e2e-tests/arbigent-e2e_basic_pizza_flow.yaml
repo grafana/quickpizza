@@ -1,97 +1,76 @@
 scenarios:
-  #############################################################################
-  # Basic Pizza Flow - Simple smoke test to generate Faro telemetry
-  #############################################################################
-
-  ## Sub-flow: Verify app launches and home screen is visible
-  - id: "basic_pizza_flow__verify_home_screen"
+  - id: "start_app"
     goal: |
       You should see the QuickPizza home screen.
 
-      INFO:
-      - The home screen has:
-        - A "QuickPizza" title with a pizza icon at the top
-        - A quote box with some text
-        - Text saying "Looking to break out of your pizza routine?"
-        - Text saying "QuickPizza has your back!"
-        - An orange "Pizza, Please!" button
-
-      INSTRUCTIONS:
-      1. Wait a bit for the app to fully load.
-      2. As soon as you see the home screen with the "Pizza, Please!" button, you are done!
-      3. Do nothing more after seeing the home screen!
-
       SUCCESS CRITERIA:
-      - You see the QuickPizza title at the top
-      - You see the "Pizza, Please!" button
-      - If these are visible, STOP IMMEDIATELY and mark goal achieved!
+      - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
     initializationMethods:
       - type: "Back"
         times: 3
+      - type: "CleanupData"
+        packageName: "com.example.flutter_mobile_o11y_demo"
       - type: "LaunchApp"
         packageName: "com.example.flutter_mobile_o11y_demo"
     maxRetry: 0
     maxStep: 5
-    imageAssertions:
-      - assertionPrompt: |
-          You see the QuickPizza home screen with a "Pizza, Please!" button.
 
-  ## Sub-flow: Request a pizza recommendation
-  - id: "basic_pizza_flow__request_pizza"
-    dependency: "basic_pizza_flow__verify_home_screen"
+  - id: "request_pizza"
     goal: |
       You should see a pizza recommendation on the screen.
 
-      INFO:
-      - After tapping "Pizza, Please!", a recommendation card appears with:
-        - Text "Our recommendation:"
-        - A pizza name
-        - Dough type
-        - List of ingredients
-        - Calories per slice
-        - Two buttons: "No thanks" and "Love it!"
-
       INSTRUCTIONS:
-      1. Tap the orange "Pizza, Please!" button.
-      2. Wait for the recommendation to load (may take a few seconds).
-      3. As soon as you see "Our recommendation:" with pizza details, you are done!
-      4. Do NOT tap any other buttons!
+      1. Tap the "Pizza, Please!" button.
 
-      SUCCESS CRITERIA:
-      - You see "Our recommendation:" text
-      - You see a pizza name and ingredients
-      - You see "No thanks" and "Love it!" buttons
-      - If these are visible, STOP IMMEDIATELY and mark goal achieved!
+      A Pizza Recommendation has the following elements:
+      - a pizza name
+      - some ingredients
+      - "No thanks" and "Love it!" buttons
+
+      HINTS:
+      - The rating buttons might not be visible, you need to scroll down to see them.
     maxRetry: 0
-    maxStep: 5
-    imageAssertions:
-      - assertionPrompt: |
-          You see a pizza recommendation card with "Our recommendation:" text,
-          pizza details (name, dough, ingredients), and rating buttons.
+    maxStep: 15 # Allow many steps here, since we might need to go though login flow first.
 
-  ## Sub-flow: Rate the pizza
-  - id: "basic_pizza_flow__rate_pizza"
-    dependency: "basic_pizza_flow__request_pizza"
+  - id: "rate_pizza"
+    dependency: "request_pizza"
     goal: |
       You should rate the pizza by tapping "Love it!" and see confirmation.
 
       INSTRUCTIONS:
-      1. Tap the "Love it!" button (it's a red/pink button).
-      2. Wait a moment for the rating to be submitted.
-      3. You should see "Rated!" text appear, OR a message about logging in.
-      4. As soon as you see any feedback after tapping, you are done!
+      1. Tap the "Love it!" button to rate the pizza.
 
       SUCCESS CRITERIA:
-      - You tapped the "Love it!" button
-      - You see some feedback (either "Rated!" or a login prompt)
-      - If you see feedback, STOP IMMEDIATELY and mark goal achieved!
+      - You see "Rated!" text appear.
     maxRetry: 0
     maxStep: 5
-    imageAssertions:
-      - assertionPrompt: |
-          You see feedback after rating - either "Rated!" text or a message about logging in.
 
-#############################################################################
-# END OF TEST
-#############################################################################
+  - id: "put_app_to_background"
+    goal: |
+      You should see the Android home screen.
 
+      INSTRUCTIONS:
+      1. Tap the "Home button" on the phone to leave the app.
+
+      SUCCESS CRITERIA:
+      - You see the Android home screen.
+    maxRetry: 0
+    maxStep: 5
+
+  - id: "bring_app_to_foreground"
+    dependency: "put_app_to_background"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      INSTRUCTIONS:
+      1. Open the Android recent apps list and tap on the QuickPizza app.
+
+      HINTS:
+      - To open the recent apps list, tap the navigation button:
+        usually a square icon (or three vertical lines on some devices).
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen.
+    maxRetry: 0
+    maxStep: 5

@@ -371,16 +371,6 @@ Future<void> generateHtml(String resultPath, String basePath) async {
               infoSections.add(getFeedbackBadge(parsed['feedback']));
             }
 
-            // AI Reasoning section
-            if (parsed['memo'] != null && parsed['memo']!.isNotEmpty) {
-              infoSections.add('''
-                <div class="reasoning-section">
-                  <div class="section-label">🧠 AI Reasoning</div>
-                  <div class="reasoning-text">${parsed['memo']}</div>
-                </div>
-              ''');
-            }
-
             // What the AI sees
             if (parsed['imageDescription'] != null &&
                 parsed['imageDescription']!.isNotEmpty) {
@@ -388,6 +378,16 @@ Future<void> generateHtml(String resultPath, String basePath) async {
                 <div class="vision-section">
                   <div class="section-label">👁️ What AI Sees</div>
                   <div class="vision-text">${parsed['imageDescription']}</div>
+                </div>
+              ''');
+            }
+
+            // AI Reasoning section
+            if (parsed['memo'] != null && parsed['memo']!.isNotEmpty) {
+              infoSections.add('''
+                <div class="reasoning-section">
+                  <div class="section-label">🧠 AI Reasoning</div>
+                  <div class="reasoning-text">${parsed['memo']}</div>
                 </div>
               ''');
             }
