@@ -62,6 +62,8 @@ These are custom application metrics specific to the QuickPizza application, imp
 
 - `quickpizza_server_pizza_calories_per_slice_native`: Distribution of calories per pizza slice (Native Histogram).
 
-- `quickpizza_server_http_requests_total`: Total number of HTTP requests received (Counter metric).
-
 - `quickpizza_server_http_request_duration_seconds`: Duration of HTTP request processing (Classic Histogram).
+
+- `quickpizza_server_http_request_duration_seconds_native`: Duration of HTTP request processing (Native Histogram).
+
+- `quickpizza_server_http_requests_total`: Total number of HTTP requests received (Counter metric).
