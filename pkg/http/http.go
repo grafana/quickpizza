@@ -67,7 +67,7 @@ var (
 	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
-		Name:                            "number_of_ingredients_per_pizza_alternate",
+		Name:                            "number_of_ingredients_per_pizza_native",
 		Help:                            "The number of ingredients per pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
@@ -85,7 +85,7 @@ var (
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
-		Name:                            "pizza_calories_per_slice_alternate",
+		Name:                            "pizza_calories_per_slice_native",
 		Help:                            "The number of calories per slice of pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
@@ -104,6 +104,16 @@ var (
 		Subsystem: "server",
 		Name:      "http_request_duration_seconds",
 		Help:      "The duration of HTTP requests",
+	}, []string{"method", "path", "status"})
+
+	httpRequestDurationNativeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:                       "quickpizza",
+		Subsystem:                       "server",
+		Name:                            "http_request_duration_seconds_native",
+		Help:                            "The duration of HTTP requests (Native Histogram)",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
 	}, []string{"method", "path", "status"})
 )
 
@@ -1568,5 +1578,6 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 
 		httpRequests.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Inc()
 		httpRequestDuration.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
+		httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
 	})
 }
