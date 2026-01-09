@@ -67,7 +67,7 @@ var (
 	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
-		Name:                            "number_of_ingredients_per_pizza_alternate",
+		Name:                            "number_of_ingredients_per_pizza_native",
 		Help:                            "The number of ingredients per pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
@@ -85,7 +85,7 @@ var (
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
-		Name:                            "pizza_calories_per_slice_alternate",
+		Name:                            "pizza_calories_per_slice_native",
 		Help:                            "The number of calories per slice of pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
