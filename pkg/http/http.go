@@ -1064,12 +1064,6 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		// Given a user token, return 200 or 401 (depending on whether token is valid).
 		r.Post("/api/users/token/authenticate", func(w http.ResponseWriter, r *http.Request) {
-			// This endpoint is only to be used by other QP services.
-			if r.Header.Get("X-Is-Internal") == "" {
-				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
-				return
-			}
-
 			token := getRequestToken(r)
 			if token == "" {
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
