@@ -307,6 +307,9 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) 
 // where K == fixed (even if this would make the table exceed N rows).
 // If maximum is 0 or negative, then do not enforce any limits.
 // Useful for keeping an in-memory SQLite database size below a certain number.
+// Note: We use ORDER BY id DESC instead of created_at because not all models
+// have a created_at column (e.g., Rating, User). Since IDs are auto-incrementing,
+// ordering by id achieves the same result of keeping the newest records.
 func (c *Catalog) enforceTableSizeLimits(ctx context.Context, tx bun.Tx, model any, fixed, maximum int) error {
 	if maximum <= 0 {
 		return nil
@@ -315,7 +318,7 @@ func (c *Catalog) enforceTableSizeLimits(ctx context.Context, tx bun.Tx, model a
 		Model(model).
 		Where(fmt.Sprintf("id NOT IN (?) AND id > %v", fixed), tx.NewSelect().
 			Model(model).
-			Order("created_at DESC").
+			Order("id DESC").
 			Column("id").
 			Limit(maximum)).
 		Exec(ctx)
