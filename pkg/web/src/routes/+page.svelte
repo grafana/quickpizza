@@ -7,7 +7,8 @@ import {
 } from '$env/static/public';
 import { onMount } from 'svelte';
 import { Confetti } from 'svelte-confetti';
-import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
+import { wsVisitorIDStore, isLoggedInStore } from '../lib/stores';
+import { verifyUserLoggedIn } from '../lib/auth';
 import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 
 const defaultRestrictions = {
@@ -26,15 +27,10 @@ var ratingStars = 5;
 // Completely unrelated to users, user tokens, authentication, etc.
 var wsVisitorID = 0;
 
-// A randomly-generated user token that can be used to authenticate against the QP API.
-// Since this token is not actually stored in the database, the returned user will always
-// be user with ID 1 (default). This is implemented like so in order to not break the
-// way QP was set up originally (i.e. one can open the website and start creating pizzas
-// immediately, without logging in anywhere). So technically, the user is already logged
-// in the moment they open the page.
-// Additionally, if the qp_user_token Cookie has been set via the /login page, the value
-// of the Cookie will take priority over this token sent over the Authorization header.
-var userToken = '';
+// A randomly-generated token used for anonymous API access.
+// This authenticates as the default user (ID 1) when not logged in.
+// When logged in, the qp_user_token cookie is used instead.
+var anonymousToken = '';
 
 var render = false;
 var quote = '';
@@ -45,6 +41,7 @@ let restrictions = defaultRestrictions;
 var advanced = false;
 var rateResult = null;
 var errorResult = null;
+var isLoggedIn = false;
 
 $: if (advanced) {
 	pizza = '';
@@ -74,11 +71,14 @@ onMount(async () => {
 	if (wsVisitorID === 0) {
 		wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
 	}
-	// biome-ignore lint/suspicious/noAssignInExpressions: -
-	userTokenStore.subscribe((value) => (userToken = value));
-	if (userToken === '') {
-		userTokenStore.set(randomToken(16));
-	}
+
+	// Generate a random token for anonymous API access
+	anonymousToken = randomToken(16);
+
+	// Check if user is logged in via cookie
+	isLoggedIn = await verifyUserLoggedIn();
+	isLoggedInStore.set(isLoggedIn);
+
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
 	const json = await res.json();
 	quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
@@ -147,13 +147,20 @@ async function getPizza() {
 	if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
 		faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
 	}
+
+	// Build headers: use cookie auth if logged in, otherwise use anonymous token
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+	};
+	if (!isLoggedIn) {
+		headers['Authorization'] = 'Token ' + anonymousToken;
+	}
+
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
 		method: 'POST',
 		body: JSON.stringify(restrictions),
-		headers: {
-			Authorization: 'Token ' + userToken,
-			'Content-Type': 'application/json',
-		},
+		headers,
+		credentials: 'same-origin',
 	});
 	const json = await res.json();
 
@@ -199,10 +206,16 @@ async function getPizza() {
 
 async function getTools() {
 	faro.api.pushEvent('Get Pizza Tools', { tools: tools });
+
+	// Build headers: use cookie auth if logged in, otherwise use anonymous token
+	const headers: Record<string, string> = {};
+	if (!isLoggedIn) {
+		headers['Authorization'] = 'Token ' + anonymousToken;
+	}
+
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
-		headers: {
-			Authorization: 'Token ' + userToken,
-		},
+		headers,
+		credentials: 'same-origin',
 	});
 	const json = await res.json();
 	tools = json.tools;
@@ -224,7 +237,11 @@ async function getTools() {
 		<div class="flex float-right">
 			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
 				<span class="ml-3 text-xs text-red-600 font-bold"
-					><a data-sveltekit-reload href="/login">Login/Profile</a></span
+					>{#if isLoggedIn}
+						<a data-sveltekit-reload href="/login">Profile</a>
+					{:else}
+						<a data-sveltekit-reload href="/login">Login</a>
+					{/if}</span
 				>
 			</span>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">
