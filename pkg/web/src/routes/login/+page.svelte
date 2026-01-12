@@ -3,7 +3,11 @@
 import { faro } from '@grafana/faro-web-sdk';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 import { onMount } from 'svelte';
-import { getCookie, verifyUserLoggedIn, hasUserTokenCookie } from '../../lib/auth';
+import {
+	getCookie,
+	verifyUserLoggedIn,
+	hasUserTokenCookie,
+} from '../../lib/auth';
 import { isLoggedInStore } from '../../lib/stores';
 
 var loginError = '';
