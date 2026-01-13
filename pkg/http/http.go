@@ -115,6 +115,13 @@ var (
 		NativeHistogramMaxBucketNumber:  100,
 		NativeHistogramMinResetDuration: 1 * time.Hour,
 	}, []string{"method", "path", "status"})
+
+	httpRequestDurationGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "quickpizza",
+		Subsystem: "server",
+		Name:      "http_request_duration_seconds_gauge",
+		Help:      "The duration of HTTP requests (Gauge)",
+	}, []string{"method", "path", "status"})
 )
 
 // PizzaRecommendation is the object returned by the /api/pizza endpoint.
@@ -1573,5 +1580,6 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 		httpRequests.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Inc()
 		httpRequestDuration.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
 		httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
+		httpRequestDurationGauge.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Set(duration.Seconds())
 	})
 }

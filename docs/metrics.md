@@ -66,4 +66,6 @@ These are custom application metrics specific to the QuickPizza application, imp
 
 - `quickpizza_server_http_request_duration_seconds_native`: Duration of HTTP request processing (Native Histogram).
 
+- `quickpizza_server_http_request_duration_seconds_gauge`: Duration of HTTP request processing (Gauge).
+
 - `quickpizza_server_http_requests_total`: Total number of HTTP requests received (Counter metric).
