@@ -67,11 +67,23 @@ discovery.relabel "application_pods" {
   targets = discovery.kubernetes.application_pods.targets
 }
 
-
+// Use explicit remote_write to enable native histograms
+// (grafana_cloud.stack.receivers.metrics doesn't support send_native_histograms )
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = grafana_cloud.stack.receivers.info["hmInstancePromUrl"] + "/api/prom/push"
+    basic_auth {
+      username = grafana_cloud.stack.receivers.info["hmInstancePromId"]
+      password = env("GRAFANA_CLOUD_TOKEN")
+    }
+    send_native_histograms = true
+  }
+}
 // Metrics: application pods
 prometheus.scrape "application_pods" {
   scrape_interval = "10s"
-  forward_to = [grafana_cloud.stack.receivers.metrics]
+  scrape_native_histograms = true
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
   targets = discovery.relabel.application_pods.output
 }
 
