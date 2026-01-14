@@ -99,6 +99,7 @@ prometheus.remote_write "local" {
 }
 prometheus.scrape "app_containers" {
   scrape_interval = "10s"
+  scrape_native_histograms = true
   targets = concat(discovery.relabel.app_containers.output, discovery.relabel.postgres.output)
   forward_to = [prometheus.remote_write.local.receiver]
 }

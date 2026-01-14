@@ -164,15 +164,16 @@ services:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.2.1
+    image: prom/prometheus:v3.9.1
     container_name: prometheus
     labels:
       - "service.type=instrumentation"
+    volumes:
+      - ./deployments/docker-compose/grafana-local-stack/prometheus.yaml:/etc/prometheus.yaml
     command:
       - --web.enable-remote-write-receiver
       - --enable-feature=exemplar-storage
-      - --enable-feature=native-histograms
-      - --config.file=/etc/prometheus/prometheus.yml
+      - --config.file=/etc/prometheus.yaml
     ports:
       - "9090:9090"
 

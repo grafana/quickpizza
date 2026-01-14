@@ -71,11 +71,24 @@ discovery.relabel "app_containers" {
   targets = discovery.docker.all_containers.targets
 }
 
-// Metrics
+// Use explicit remote_write to enable native histograms
+// (grafana_cloud.stack.receivers.metrics doesn't support send_native_histograms )
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = grafana_cloud.stack.receivers.info["hmInstancePromUrl"] + "/api/prom/push"
+    basic_auth {
+      username = grafana_cloud.stack.receivers.info["hmInstancePromId"]
+      password = env("GRAFANA_CLOUD_TOKEN")
+    }
+    send_native_histograms = true
+  }
+}
+
 prometheus.scrape "app_containers" {
   scrape_interval = "10s"
+  scrape_native_histograms = true
   targets = concat(discovery.relabel.app_containers.output, discovery.relabel.database_observability_postgres_quickpizza.output)
-  forward_to = [grafana_cloud.stack.receivers.metrics]
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 }
 // Logs
 loki.source.docker "app_containers" {
