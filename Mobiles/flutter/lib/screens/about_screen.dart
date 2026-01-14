@@ -7,8 +7,12 @@ import '../services/config_service.dart';
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
-  Future<void> _launchUrl(String url, String eventName) async {
-    o11yEvents.trackEvent(eventName, attributes: {'url': url});
+  Future<void> _launchUrl(
+    String url,
+    String eventName,
+    O11yEvents o11yEvents,
+  ) async {
+    o11yEvents.trackEvent(eventName, context: {'url': url});
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -18,6 +22,8 @@ class AboutScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configService = ref.watch(configServiceProvider);
+    final o11yEvents = ref.watch(o11yEventsProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF5E6),
       appBar: AppBar(
@@ -87,6 +93,7 @@ class AboutScreen extends ConsumerWidget {
                 onTap: () => _launchUrl(
                   'https://github.com/grafana/quickpizza',
                   'github_link_clicked',
+                  o11yEvents,
                 ),
               ),
               const SizedBox(height: 8),
@@ -98,6 +105,7 @@ class AboutScreen extends ConsumerWidget {
                 onTap: () => _launchUrl(
                   '${configService.baseUrl}/admin',
                   'admin_link_clicked',
+                  o11yEvents,
                 ),
               ),
               const SizedBox(height: 8),
@@ -109,6 +117,7 @@ class AboutScreen extends ConsumerWidget {
                 onTap: () => _launchUrl(
                   'https://grafana.com/products/cloud/',
                   'grafana_link_clicked',
+                  o11yEvents,
                 ),
               ),
 

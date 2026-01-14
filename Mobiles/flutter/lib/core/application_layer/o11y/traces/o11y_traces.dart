@@ -2,12 +2,35 @@ import 'dart:async';
 
 import 'package:faro/faro.dart';
 import 'package:flutter_mobile_o11y_demo/core/application_layer/o11y/faro/faro.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class O11yTraces {
-  O11yTraces() : _faro = faro;
+final o11yTracesProvider = Provider<O11yTraces>((ref) {
+  return FaroO11yTraces(faro: ref.watch(faroProvider));
+});
+
+abstract class O11yTraces {
+  FutureOr<T> startSpan<T>(
+    String name,
+    FutureOr<T> Function(Span) body, {
+    Map<String, String> attributes = const {},
+    Span? parentSpan,
+  });
+
+  Span startSpanManual(
+    String name, {
+    Map<String, String> attributes = const {},
+    Span? parentSpan,
+  });
+
+  Span? getActiveSpan();
+}
+
+class FaroO11yTraces implements O11yTraces {
+  FaroO11yTraces({required Faro faro}) : _faro = faro;
 
   final Faro _faro;
 
+  @override
   FutureOr<T> startSpan<T>(
     String name,
     FutureOr<T> Function(Span) body, {
@@ -22,6 +45,7 @@ class O11yTraces {
     );
   }
 
+  @override
   Span startSpanManual(
     String name, {
     Map<String, String> attributes = const {},
@@ -34,9 +58,8 @@ class O11yTraces {
     );
   }
 
+  @override
   Span? getActiveSpan() {
     return _faro.getActiveSpan();
   }
 }
-
-final o11yTraces = O11yTraces();

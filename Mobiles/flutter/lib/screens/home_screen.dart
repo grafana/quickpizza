@@ -34,10 +34,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late AnimationController _expandController;
   late Animation<double> _expandAnimation;
 
+  O11yEvents get _o11yEvents => ref.read(o11yEventsProvider);
+  O11yErrors get _o11yErrors => ref.read(o11yErrorsProvider);
+  O11yMetrics get _o11yMetrics => ref.read(o11yMetricsProvider);
+
   @override
   void initState() {
     super.initState();
-    o11yEvents.trackEvent('home_screen_opened', attributes: {});
     ref.read(o11yLoggerProvider).debug('Home screen initialized');
 
     _expandController = AnimationController(
@@ -79,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             },
           );
     } catch (e, stackTrace) {
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'UI',
         error: 'Failed to load initial data: ${e.toString()}',
         stacktrace: stackTrace,
@@ -98,14 +101,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _restrictions = Restrictions();
       }
     });
-    o11yEvents.trackEvent(
+    _o11yEvents.trackEvent(
       'customize_toggled',
-      attributes: {'expanded': _customizeExpanded.toString()},
+      context: {'expanded': _customizeExpanded.toString()},
     );
   }
 
   Future<void> _navigateToProfile() async {
-    o11yEvents.trackEvent('profile_button_clicked', attributes: {});
+    _o11yEvents.trackEvent('profile_button_clicked');
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -117,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _getPizza() async {
-    o11yEvents.startUserAction('getPizza', {
+    _o11yEvents.startUserAction('getPizza', {
       'customized': _customizeExpanded.toString(),
       'vegetarian': _restrictions.mustBeVegetarian.toString(),
       'max_calories': _restrictions.maxCaloriesPerSlice.toString(),
@@ -125,9 +128,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       'max_toppings': _restrictions.maxNumberOfToppings.toString(),
     }, triggerName: 'getPizzaButtonClick');
 
-    o11yEvents.trackEvent(
+    _o11yEvents.trackEvent(
       'pizza_requested',
-      attributes: {
+      context: {
         'customized': _customizeExpanded.toString(),
         'vegetarian': _restrictions.mustBeVegetarian.toString(),
       },
@@ -153,14 +156,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
 
       if (pizza != null) {
-        o11yEvents.trackEvent(
+        _o11yEvents.trackEvent(
           'pizza_received',
-          attributes: {
+          context: {
             'pizza_id': pizza.pizza.id.toString(),
             'pizza_name': pizza.pizza.name,
           },
         );
-        o11yMetrics.addMeasurement('pizza.recommendation', {
+        _o11yMetrics.addMeasurement('pizza.recommendation', {
           'pizza_id': pizza.pizza.id,
           'calories': pizza.calories ?? 0,
           'vegetarian': pizza.vegetarian == true ? 1 : 0,
@@ -179,7 +182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : errorStr;
       });
 
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'UI',
         error: 'Failed to get pizza: ${e.toString()}',
         stacktrace: stackTrace,
@@ -191,15 +194,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _ratePizza(int stars, String type) async {
     if (_pizza == null) return;
 
-    o11yEvents.startUserAction('ratePizza', {
+    _o11yEvents.startUserAction('ratePizza', {
       'pizza_id': _pizza!.pizza.id.toString(),
       'stars': stars.toString(),
       'type': type,
     }, triggerName: 'ratePizzaButtonClick');
 
-    o11yEvents.trackEvent(
+    _o11yEvents.trackEvent(
       'pizza_rated',
-      attributes: {
+      context: {
         'pizza_id': _pizza!.pizza.id.toString(),
         'stars': stars.toString(),
         'rating_type': type,
@@ -220,7 +223,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
 
       if (success) {
-        o11yMetrics.addMeasurement('pizza.rating', {
+        _o11yMetrics.addMeasurement('pizza.rating', {
           'pizza_id': _pizza!.pizza.id,
           'stars': stars,
         });
@@ -233,7 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             : errorStr;
       });
 
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'UI',
         error: 'Failed to rate pizza: ${e.toString()}',
         stacktrace: stackTrace,

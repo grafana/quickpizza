@@ -23,10 +23,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  O11yEvents get _o11yEvents => ref.read(o11yEventsProvider);
+  O11yErrors get _o11yErrors => ref.read(o11yErrorsProvider);
+
   @override
   void initState() {
     super.initState();
-    o11yEvents.trackEvent('login_screen_opened', attributes: {});
+    _o11yEvents.trackEvent('login_screen_opened');
     ref.read(o11yLoggerProvider).debug('Login screen initialized');
     _checkLoginStatus();
   }
@@ -56,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() {
         _isLoading = false;
       });
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'UI',
         error: 'Failed to load ratings: ${e.toString()}',
         stacktrace: stackTrace,
@@ -66,14 +69,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    o11yEvents.startUserAction(
+    _o11yEvents.startUserAction(
       'userLogin',
       {'username': _usernameController.text},
       triggerName: 'userLoginButtonClick',
       importance: 'critical',
     );
 
-    o11yEvents.trackStartEvent('login_attempt', 'user_login');
+    _o11yEvents.trackStartEvent('login_attempt', 'user_login');
 
     setState(() {
       _isLoading = true;
@@ -86,25 +89,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _passwordController.text,
       );
       if (success) {
-        o11yEvents.trackEndEvent(
+        _o11yEvents.trackEndEvent(
           'login_attempt',
           'user_login',
-          attributes: {'success': 'true', 'username': _usernameController.text},
+          context: {'success': 'true', 'username': _usernameController.text},
         );
-        o11yEvents.setUser(
+        _o11yEvents.setUser(
           id: _usernameController.text,
           name: _usernameController.text,
           email: '${_usernameController.text}@quickpizza.com',
         );
         await _loadRatings();
       } else {
-        o11yEvents.trackEndEvent(
+        _o11yEvents.trackEndEvent(
           'login_attempt',
           'user_login',
-          attributes: {
-            'success': 'false',
-            'username': _usernameController.text,
-          },
+          context: {'success': 'false', 'username': _usernameController.text},
         );
         setState(() {
           _errorMessage = 'Login failed. Please check your credentials.';
@@ -118,16 +118,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             );
       }
     } catch (e, stackTrace) {
-      o11yEvents.trackEndEvent(
+      _o11yEvents.trackEndEvent(
         'login_attempt',
         'user_login',
-        attributes: {'success': 'false', 'error': e.toString()},
+        context: {'success': 'false', 'error': e.toString()},
       );
       setState(() {
         _errorMessage = 'Error: ${e.toString()}';
         _isLoading = false;
       });
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'UI',
         error: 'Login error: ${e.toString()}',
         stacktrace: stackTrace,
@@ -137,9 +137,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleLogout() async {
-    o11yEvents.trackEvent(
+    _o11yEvents.trackEvent(
       'user_logged_out',
-      attributes: {'username': _usernameController.text},
+      context: {'username': _usernameController.text},
     );
     widget.apiService.setUserToken(null);
     setState(() {
@@ -152,16 +152,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _deleteRatings() async {
-    o11yEvents.startUserAction(
+    _o11yEvents.startUserAction(
       'userDeleteRatings',
       {'username': _usernameController.text},
       triggerName: 'userDeleteRatingsButtonClick',
       importance: 'critical',
     );
 
-    o11yEvents.trackEvent(
+    _o11yEvents.trackEvent(
       'ratings_deleted',
-      attributes: {'count': _ratings.length.toString()},
+      context: {'count': _ratings.length.toString()},
     );
 
     try {
@@ -202,7 +202,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         );
       }
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'UI',
         error: 'Failed to delete ratings: ${e.toString()}',
         stacktrace: stackTrace,

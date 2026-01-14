@@ -4,7 +4,6 @@ import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/application_layer/o11y/loggers/o11y_logger.dart';
-import 'core/application_layer/o11y/events/o11y_events.dart';
 import 'services/api_service.dart';
 import 'services/config_service.dart';
 import 'screens/main_shell.dart';

@@ -13,6 +13,8 @@ final apiServiceProvider = Provider.autoDispose((ref) {
   return ApiService(
     configService: ref.watch(configServiceProvider),
     o11yLogger: ref.watch(o11yLoggerProvider),
+    o11yMetrics: ref.watch(o11yMetricsProvider),
+    o11yErrors: ref.watch(o11yErrorsProvider),
   );
 });
 
@@ -20,11 +22,17 @@ class ApiService {
   ApiService({
     required ConfigService configService,
     required O11yLogger o11yLogger,
+    required O11yMetrics o11yMetrics,
+    required O11yErrors o11yErrors,
   }) : _configService = configService,
-       _o11yLogger = o11yLogger;
+       _o11yLogger = o11yLogger,
+       _o11yMetrics = o11yMetrics,
+       _o11yErrors = o11yErrors;
 
   final ConfigService _configService;
   final O11yLogger _o11yLogger;
+  final O11yMetrics _o11yMetrics;
+  final O11yErrors _o11yErrors;
 
   String get baseUrl => _configService.baseUrl;
 
@@ -49,7 +57,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'getQuote',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -70,7 +78,7 @@ class ApiService {
       }
       return '';
     } catch (e, stackTrace) {
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'API',
         error: 'Failed to get quote: ${e.toString()}',
         stacktrace: stackTrace,
@@ -89,7 +97,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'getTools',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -111,7 +119,7 @@ class ApiService {
       // User can still use the app, they just won't see tools in advanced options
       return [];
     } catch (e, stackTrace) {
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'API',
         error: 'Failed to get tools: ${e.toString()}',
         stacktrace: stackTrace,
@@ -136,7 +144,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'getPizzaRecommendation',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -164,7 +172,7 @@ class ApiService {
           final json = jsonDecode(response.body) as Map<String, dynamic>;
           final error = json['error'] as String?;
           final errorMsg = error ?? 'Operation not permitted';
-          o11yErrors.reportError(
+          _o11yErrors.reportError(
             type: 'API',
             error: errorMsg,
             context: {
@@ -186,7 +194,7 @@ class ApiService {
       }
     } catch (e, stackTrace) {
       if (e is Exception) {
-        o11yErrors.reportError(
+        _o11yErrors.reportError(
           type: 'API',
           error: 'Failed to get pizza recommendation: ${e.toString()}',
           stacktrace: stackTrace,
@@ -208,7 +216,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'ratePizza',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -232,7 +240,7 @@ class ApiService {
           final error = json['error'] as String?;
           final errorMsg =
               error ?? 'You don\'t have permission to do this operation';
-          o11yErrors.reportError(
+          _o11yErrors.reportError(
             type: 'API',
             error: errorMsg,
             context: {'endpoint': 'ratePizza', 'status_code': '403'},
@@ -244,7 +252,7 @@ class ApiService {
         }
       } else {
         final errorMsg = 'Failed to rate pizza. Please try again.';
-        o11yErrors.reportError(
+        _o11yErrors.reportError(
           type: 'API',
           error: errorMsg,
           context: {
@@ -256,7 +264,7 @@ class ApiService {
       }
     } catch (e, stackTrace) {
       if (e is Exception) {
-        o11yErrors.reportError(
+        _o11yErrors.reportError(
           type: 'API',
           error: 'Error rating pizza: ${e.toString()}',
           stacktrace: stackTrace,
@@ -276,7 +284,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'getRatings',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -296,7 +304,7 @@ class ApiService {
       }
       return [];
     } catch (e, stackTrace) {
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'API',
         error: 'Failed to get ratings: ${e.toString()}',
         stacktrace: stackTrace,
@@ -315,7 +323,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'deleteRatings',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -333,7 +341,7 @@ class ApiService {
           final error = json['error'] as String?;
           final errorMsg =
               error ?? 'You don\'t have permission to do this operation';
-          o11yErrors.reportError(
+          _o11yErrors.reportError(
             type: 'API',
             error: errorMsg,
             context: {'endpoint': 'deleteRatings', 'status_code': '403'},
@@ -345,7 +353,7 @@ class ApiService {
         }
       } else {
         final errorMsg = 'Failed to delete ratings. Please try again.';
-        o11yErrors.reportError(
+        _o11yErrors.reportError(
           type: 'API',
           error: errorMsg,
           context: {
@@ -357,7 +365,7 @@ class ApiService {
       }
     } catch (e, stackTrace) {
       if (e is Exception) {
-        o11yErrors.reportError(
+        _o11yErrors.reportError(
           type: 'API',
           error: 'Error deleting ratings: ${e.toString()}',
           stacktrace: stackTrace,
@@ -380,7 +388,7 @@ class ApiService {
       );
       stopwatch.stop();
 
-      o11yMetrics.addMeasurement('api.request.duration', {
+      _o11yMetrics.addMeasurement('api.request.duration', {
         'endpoint': 'login',
         'status_code': response.statusCode,
         'duration_ms': stopwatch.elapsedMilliseconds,
@@ -408,7 +416,7 @@ class ApiService {
       }
       return false;
     } catch (e, stackTrace) {
-      o11yErrors.reportError(
+      _o11yErrors.reportError(
         type: 'API',
         error: 'Failed to login: ${e.toString()}',
         stacktrace: stackTrace,
