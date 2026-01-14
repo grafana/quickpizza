@@ -25,11 +25,13 @@ A Flutter mobile application that replicates the QuickPizza web application func
 ### Platform-Specific Setup
 
 **For Android development:**
+
 - Follow the setup guide: [`../docs/ANDROID_SETUP.md`](../docs/ANDROID_SETUP.md)
 - Quick check: Run `flutter doctor` - Android toolchain should show ✓
 - **Quick start:** After setup, use `./scripts/run-android.sh` to automatically open emulator and run the app
 
 **For iOS development (macOS only):**
+
 - Follow the setup guide: [`../docs/XCODE_SETUP.md`](../docs/XCODE_SETUP.md)
 - Quick check: Run `flutter doctor` - Xcode should show ✓
 - **Quick start:** After setup, use `./scripts/run-ios.sh` to automatically open simulator and run the app
@@ -39,18 +41,21 @@ For detailed simulator/emulator setup and troubleshooting, see the documentation
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 flutter pub get
 ```
 
 2. Configure the app:
-   
+
    a. Copy the example config file:
+
    ```bash
    cp config.json.example config.json
    ```
-   
+
    b. Edit `config.json` with your values:
+
    ```json
    {
      "FARO_COLLECTOR_URL": "https://your-faro-collector.grafana.net/collect/xxx",
@@ -58,18 +63,26 @@ flutter pub get
      "PORT": "3333"
    }
    ```
-   
+
    **Configuration options:**
+
    - `FARO_COLLECTOR_URL`: Your Grafana Faro collector URL for observability
    - `BASE_URL`: Backend API URL (optional - see platform defaults below)
    - `PORT`: Backend port (optional, defaults to `3333`)
-   
+
    **Platform defaults for BASE_URL:**
+
    - **Android emulator**: `http://10.0.2.2:3333` (automatically used if BASE_URL is empty)
    - **iOS simulator**: `http://localhost:3333` (automatically used if BASE_URL is empty)
    - **Physical devices**: You must set BASE_URL to your machine's IP (e.g., `http://192.168.1.100:3333`)
 
+   > **💡 Tip:** To find your machine's IP address:
+   >
+   > - macOS: `ifconfig | grep "inet " | grep -v 127.0.0.1`
+   > - Make sure your phone is on the same WiFi network as your development machine
+
 3. Run the app:
+
 ```bash
 # Using the helper scripts (recommended - includes config validation):
 ./scripts/run-android.sh
@@ -114,16 +127,19 @@ lib/
 ## Running on Different Platforms
 
 ### Web
+
 ```bash
 flutter run -d chrome
 ```
 
 ### Android
+
 ```bash
 flutter run -d android
 ```
 
 ### iOS
+
 ```bash
 flutter run -d ios
 ```

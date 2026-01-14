@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/application_layer/o11y/events/o11y_events.dart';
 import '../core/application_layer/o11y/errors/o11y_errors.dart';
 import '../core/application_layer/o11y/loggers/o11y_logger.dart';
@@ -8,16 +9,16 @@ import '../models/restrictions.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final ApiService apiService;
 
   const HomeScreen({super.key, required this.apiService});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
   String _quote = '';
   PizzaRecommendation? _pizza;
@@ -37,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     o11yEvents.trackEvent('home_screen_opened', attributes: {});
-    o11yLogger.debug('Home screen initialized', context: {});
+    ref.read(o11yLoggerProvider).debug('Home screen initialized');
 
     _expandController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -68,13 +69,15 @@ class _HomeScreenState extends State<HomeScreen>
         _isLoggedIn = tools.isNotEmpty;
       });
 
-      o11yLogger.debug(
-        'Initial data loaded',
-        context: {
-          'has_quote': quote.isNotEmpty.toString(),
-          'tools_count': tools.length.toString(),
-        },
-      );
+      ref
+          .read(o11yLoggerProvider)
+          .debug(
+            'Initial data loaded',
+            context: {
+              'has_quote': quote.isNotEmpty.toString(),
+              'tools_count': tools.length.toString(),
+            },
+          );
     } catch (e, stackTrace) {
       o11yErrors.reportError(
         type: 'UI',
@@ -163,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen>
           'vegetarian': pizza.vegetarian == true ? 1 : 0,
         });
       } else {
-        o11yLogger.warning('Pizza recommendation returned null', context: {});
+        ref
+            .read(o11yLoggerProvider)
+            .warning('Pizza recommendation returned null');
       }
     } catch (e, stackTrace) {
       setState(() {
@@ -208,7 +213,9 @@ class _HomeScreenState extends State<HomeScreen>
       );
       setState(() {
         _rateResult = success
-            ? (type == 'love' ? '❤️ Saved to favorites!' : '👎 Got it, next time!')
+            ? (type == 'love'
+                  ? '❤️ Saved to favorites!'
+                  : '👎 Got it, next time!')
             : 'Please log in first.';
       });
 
@@ -267,8 +274,9 @@ class _HomeScreenState extends State<HomeScreen>
               onTap: _navigateToProfile,
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor:
-                    _isLoggedIn ? Colors.orange : Colors.grey.shade300,
+                backgroundColor: _isLoggedIn
+                    ? Colors.orange
+                    : Colors.grey.shade300,
                 child: Icon(
                   _isLoggedIn ? Icons.person : Icons.person_outline,
                   color: _isLoggedIn ? Colors.white : Colors.grey.shade600,
@@ -548,8 +556,9 @@ class _HomeScreenState extends State<HomeScreen>
                       spacing: 8,
                       runSpacing: 8,
                       children: _tools.map((tool) {
-                        final isSelected =
-                            _restrictions.excludedTools.contains(tool);
+                        final isSelected = _restrictions.excludedTools.contains(
+                          tool,
+                        );
                         return FilterChip(
                           label: Text(tool),
                           selected: isSelected,
@@ -604,9 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
     return TextField(
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 12,
@@ -649,10 +656,7 @@ class _HomeScreenState extends State<HomeScreen>
                   SizedBox(width: 8),
                   Text(
                     'Pizza, Please!',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -908,17 +912,11 @@ class _HomeScreenState extends State<HomeScreen>
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ],
     );

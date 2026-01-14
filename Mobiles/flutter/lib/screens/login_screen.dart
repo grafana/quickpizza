@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/application_layer/o11y/events/o11y_events.dart';
 import '../core/application_layer/o11y/errors/o11y_errors.dart';
 import '../core/application_layer/o11y/loggers/o11y_logger.dart';
 import '../services/api_service.dart';
 import '../models/rating.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   final ApiService apiService;
 
   const LoginScreen({super.key, required this.apiService});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoggedIn = false;
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     o11yEvents.trackEvent('login_screen_opened', attributes: {});
-    o11yLogger.debug('Login screen initialized', context: {});
+    ref.read(o11yLoggerProvider).debug('Login screen initialized');
     _checkLoginStatus();
   }
 
@@ -45,10 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoggedIn = ratings.isNotEmpty || _usernameController.text.isNotEmpty;
         _isLoading = false;
       });
-      o11yLogger.debug(
-        'Ratings loaded',
-        context: {'count': ratings.length.toString()},
-      );
+      ref
+          .read(o11yLoggerProvider)
+          .debug(
+            'Ratings loaded',
+            context: {'count': ratings.length.toString()},
+          );
     } catch (e, stackTrace) {
       setState(() {
         _isLoading = false;
@@ -107,10 +110,12 @@ class _LoginScreenState extends State<LoginScreen> {
           _errorMessage = 'Login failed. Please check your credentials.';
           _isLoading = false;
         });
-        o11yLogger.warning(
-          'Login failed',
-          context: {'username': _usernameController.text},
-        );
+        ref
+            .read(o11yLoggerProvider)
+            .warning(
+              'Login failed',
+              context: {'username': _usernameController.text},
+            );
       }
     } catch (e, stackTrace) {
       o11yEvents.trackEndEvent(
@@ -143,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _usernameController.clear();
       _passwordController.clear();
     });
-    o11yLogger.debug('User logged out', context: {});
+    ref.read(o11yLoggerProvider).debug('User logged out');
   }
 
   Future<void> _deleteRatings() async {
@@ -181,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         }
-        o11yLogger.debug('Ratings deleted successfully', context: {});
+        ref.read(o11yLoggerProvider).debug('Ratings deleted successfully');
       }
     } catch (e, stackTrace) {
       if (mounted) {

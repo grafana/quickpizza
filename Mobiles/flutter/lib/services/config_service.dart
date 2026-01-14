@@ -1,8 +1,13 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final configServiceProvider = Provider((ref) {
+  return ConfigService();
+});
 
 class ConfigService {
-  static String get baseUrl {
+  String get baseUrl {
     // Check if BASE_URL is set via build-time config
     const baseUrl = String.fromEnvironment('BASE_URL');
     if (baseUrl.isNotEmpty) {
@@ -17,7 +22,9 @@ class ConfigService {
 
     if (Platform.isAndroid) {
       // Android emulator uses 10.0.2.2 to access host's localhost
-      // For physical devices, you need to set BASE_URL in config.json with your machine's IP
+      // For physical devices, you need to set BASE_URL in config.json
+      //with your machine's IP, and with the port at the end.
+      //(e.g. http://192.168.178.130:3333)
       return 'http://10.0.2.2:$port';
     } else if (Platform.isIOS) {
       // iOS simulator can access localhost directly

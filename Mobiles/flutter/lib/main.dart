@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/application_layer/o11y/loggers/o11y_logger.dart';
 import 'core/application_layer/o11y/events/o11y_events.dart';
 import 'services/api_service.dart';
@@ -12,7 +13,13 @@ import 'utils/faro_utils.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  o11yLogger.debug('App initialization started', context: {});
+  // Create ProviderContainer first - this is Riverpod's root
+  // and allows us to access providers before runApp()
+  final container = ProviderContainer();
+
+  // Access the logger via Riverpod
+  final logger = container.read(o11yLoggerProvider);
+  logger.debug('App initialization started');
 
   // Get collector URL from build-time config
   final collectorUrl = ConfigService.faroCollectorUrl;
@@ -28,10 +35,6 @@ void main() async {
   faro.transports.add(
     OfflineTransport(maxCacheDuration: const Duration(days: 3)),
   );
-
-  o11yLogger.debug('Faro initialized', context: {'collectorUrl': collectorUrl});
-
-  o11yEvents.trackEvent('app_started', attributes: {'app_version': '1.0.0'});
 
   faro.runApp(
     optionsConfiguration: FaroConfig(
@@ -49,21 +52,24 @@ void main() async {
     ),
     appRunner: () {
       runApp(
-        DefaultAssetBundle(
-          bundle: FaroAssetBundle(),
-          child: const FaroUserInteractionWidget(child: QuickPizzaApp()),
+        UncontrolledProviderScope(
+          container: container,
+          child: DefaultAssetBundle(
+            bundle: FaroAssetBundle(),
+            child: const FaroUserInteractionWidget(child: QuickPizzaApp()),
+          ),
         ),
       );
     },
   );
 }
 
-class QuickPizzaApp extends StatelessWidget {
+class QuickPizzaApp extends ConsumerWidget {
   const QuickPizzaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final apiService = ApiService();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apiService = ref.watch(apiServiceProvider);
 
     // Note: User must login via LoginScreen to get a valid token.
     // Some APIs (quotes, config) work without auth, but others (ratings, pizza, tools) require authentication.

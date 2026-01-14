@@ -7,7 +7,8 @@ class O11yMetrics {
   final Faro _faro;
 
   void addMeasurement(String name, Map<String, dynamic> values) {
-    _faro.pushMeasurement(values, name);
+    // TODO: Commented out for now. Investigate later why this is not working.
+    // _faro.pushMeasurement(values, name);
   }
 }
 

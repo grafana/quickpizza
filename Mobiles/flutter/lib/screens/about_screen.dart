@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/application_layer/o11y/events/o11y_events.dart';
 import '../services/config_service.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
   Future<void> _launchUrl(String url, String eventName) async {
@@ -15,7 +16,8 @@ class AboutScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final configService = ref.watch(configServiceProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFFFF5E6),
       appBar: AppBar(
@@ -47,11 +49,7 @@ class AboutScreen extends StatelessWidget {
               const Center(
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.local_pizza,
-                      size: 64,
-                      color: Colors.orange,
-                    ),
+                    Icon(Icons.local_pizza, size: 64, color: Colors.orange),
                     SizedBox(height: 16),
                     Text(
                       'About QuickPizza',
@@ -64,10 +62,7 @@ class AboutScreen extends StatelessWidget {
                     Text(
                       'Discover new and exciting pizza\ncombinations with just one click!',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -101,7 +96,7 @@ class AboutScreen extends StatelessWidget {
                 title: 'Admin Dashboard',
                 subtitle: 'Manage pizzas and ingredients',
                 onTap: () => _launchUrl(
-                  '${ConfigService.baseUrl}/admin',
+                  '${configService.baseUrl}/admin',
                   'admin_link_clicked',
                 ),
               ),
@@ -175,10 +170,7 @@ class AboutScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'Made with ❤️ by QuickPizza Labs',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -270,10 +262,7 @@ class AboutScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey.shade400,
-              ),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400),
             ],
           ),
         ),
@@ -293,16 +282,9 @@ class _FeatureItem extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(
-            Icons.check_circle,
-            size: 16,
-            color: Colors.green.shade600,
-          ),
+          Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 14),
-          ),
+          Text(text, style: const TextStyle(fontSize: 14)),
         ],
       ),
     );

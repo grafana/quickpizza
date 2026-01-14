@@ -20,19 +20,13 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    _screens = [
-      HomeScreen(apiService: widget.apiService),
-      const AboutScreen(),
-    ];
+    _screens = [HomeScreen(apiService: widget.apiService), const AboutScreen()];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
