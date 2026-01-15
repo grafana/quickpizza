@@ -42,6 +42,26 @@ func LogTraceID(next http.Handler) http.Handler {
 	})
 }
 
+// OTelRouteLabeler is a middleware that adds the chi route pattern to OTel metrics.
+// This must be used AFTER otelhttp.NewHandler and will add an "http.route" label
+// to the http_server_request_duration_seconds metric.
+//
+// Note: otelhttp.WithMetricAttributesFn cannot be used for this because the chi
+// route pattern is only resolved after routing, but WithMetricAttributesFn runs
+// before the handler. The Labeler is the recommended approach for dynamic attributes.
+func OTelRouteLabeler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if labeler, ok := otelhttp.LabelerFromContext(r.Context()); ok {
+			if rctx := chi.RouteContext(r.Context()); rctx != nil {
+				if routePattern := rctx.RoutePattern(); routePattern != "" {
+					labeler.Add(attribute.String("http.route", routePattern))
+				}
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // OTelInstaller installs tracing middleware into a chi router.
 // An uninitialized OTelInstaller behaves like a noop, where calls to Install have no effect.
 type OTelInstaller struct {
@@ -259,6 +279,7 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 			append(defaultOpts, extraOpts...)...,
 		)
 	})
+	r.Use(OTelRouteLabeler)
 	r.Use(LogTraceID)
 
 	// Mark as installed after successful installation
