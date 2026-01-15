@@ -1,34 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../about/ui/about_screen.dart';
-import '../../pizza/ui/home_screen.dart';
+import '../../../core/router/app_router.dart';
 
-class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+class MainShell extends StatelessWidget {
+  final Widget child;
 
-  @override
-  State<MainShell> createState() => _MainShellState();
-}
-
-class _MainShellState extends State<MainShell> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    AboutScreen(),
-  ];
+  const MainShell({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        selectedIndex: _calculateSelectedIndex(context),
+        onDestinationSelected: (index) => _onItemTapped(index, context),
         backgroundColor: Colors.white,
         elevation: 8,
         shadowColor: Colors.black26,
@@ -47,5 +33,24 @@ class _MainShellState extends State<MainShell> {
         ],
       ),
     );
+  }
+
+  int _calculateSelectedIndex(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    if (location.startsWith(AppRoutes.about)) {
+      return 1;
+    }
+    return 0;
+  }
+
+  void _onItemTapped(int index, BuildContext context) {
+    switch (index) {
+      case 0:
+        context.go(AppRoutes.home);
+        break;
+      case 1:
+        context.go(AppRoutes.about);
+        break;
+    }
   }
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
-import '../../profile/ui/profile_screen.dart';
+import '../../../core/router/app_router.dart';
 import '../logic/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -26,10 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // If already logged in, redirect to profile
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ref.read(isLoggedInProvider)) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-        );
+        context.pushReplacement(AppRoutes.profile);
       }
     });
   }
@@ -47,7 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _passwordController.text,
         );
     if (success && mounted) {
-      Navigator.pop(context, true);
+      context.pop(true);
     }
   }
 
@@ -62,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: const Text(
           'Login',

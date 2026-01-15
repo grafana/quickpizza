@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_mobile_o11y_demo/core/o11y/faro/faro.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/config_service.dart';
+import 'core/o11y/faro/faro.dart';
 import 'core/o11y/loggers/o11y_logger.dart';
+import 'core/router/app_router.dart';
 import 'core/utils/faro_utils.dart';
-import 'features/shell/ui/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,12 +62,14 @@ void main() async {
   );
 }
 
-class QuickPizzaApp extends StatelessWidget {
+class QuickPizzaApp extends ConsumerWidget {
   const QuickPizzaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       title: 'QuickPizza',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -77,8 +79,7 @@ class QuickPizzaApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      navigatorObservers: [FaroNavigationObserver()],
-      home: const MainShell(),
+      routerConfig: router,
     );
   }
 }

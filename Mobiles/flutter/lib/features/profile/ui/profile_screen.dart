@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
@@ -28,7 +29,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.read(authStateProvider.notifier).logout();
     ref.read(ratingsProvider.notifier).clear();
     if (mounted) {
-      Navigator.pop(context);
+      context.pop();
     }
   }
 
@@ -89,7 +90,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: const Text(
           'Profile',

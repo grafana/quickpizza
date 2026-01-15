@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
+import '../../../core/router/app_router.dart';
 import '../../auth/logic/auth_provider.dart';
-import '../../auth/ui/login_screen.dart';
 import '../../ratings/logic/ratings_provider.dart';
 import '../logic/pizza_provider.dart';
 import '../models/restrictions.dart';
@@ -30,12 +31,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _navigateToProfile() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-    if (result == true) {
-      // User logged in, refresh tools
+    final isLoggedIn = ref.read(isLoggedInProvider);
+    if (isLoggedIn) {
+      context.push(AppRoutes.profile);
+    } else {
+      await context.push<bool>(AppRoutes.login);
+      // Refresh tools after returning (user may have logged in)
       ref.invalidate(toolsProvider);
     }
   }
