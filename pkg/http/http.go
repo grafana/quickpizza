@@ -122,6 +122,41 @@ var (
 		Name:      "http_request_duration_seconds_gauge",
 		Help:      "The duration of HTTP requests (Gauge)",
 	}, []string{"method", "path", "status"})
+
+	// WebSocket metrics
+	wsConnectionsActive = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "quickpizza",
+		Subsystem: "server",
+		Name:      "ws_connections_active",
+		Help:      "Number of active WebSocket connections",
+	})
+
+	wsConnectionDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "quickpizza",
+		Subsystem:                       "server",
+		Name:                            "ws_connection_duration_seconds",
+		Help:                            "Duration of WebSocket connections",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
+	})
+
+	wsMessagesReceived = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "quickpizza",
+		Subsystem: "server",
+		Name:      "ws_messages_received_total",
+		Help:      "Total number of messages received via WebSocket",
+	})
+
+	wsMessageProcessingDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "quickpizza",
+		Subsystem:                       "server",
+		Name:                            "ws_message_processing_duration_seconds",
+		Help:                            "Time to process and broadcast incoming WebSocket messages",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
+	})
 )
 
 // PizzaRecommendation is the object returned by the /api/pizza endpoint.
@@ -401,7 +436,7 @@ func (s *Server) AddConfigHandler(config map[string]string) {
 // TODO: So far the gateway only handles a few endpoints.
 func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "gateway")
+		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
 		// Generate client traces for requests proxied by the gateway.
 		otelTransport := otelhttp.NewTransport(
@@ -457,7 +492,7 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 // AddWebSocket enables serving and handle websockets.
 func (s *Server) AddWebSocket() {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "ws")
+		s.traceInstaller.Install(r, "ws", excludeWebSocketFromOTel())
 
 		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 			err := s.melody.HandleRequest(w, r)
@@ -470,8 +505,26 @@ func (s *Server) AddWebSocket() {
 		})
 	})
 
-	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {
+	// Track connection lifecycle
+	s.melody.HandleConnect(func(session *melody.Session) {
+		session.Set("connected_at", time.Now())
+		wsConnectionsActive.Inc()
+	})
+
+	s.melody.HandleDisconnect(func(session *melody.Session) {
+		wsConnectionsActive.Dec()
+		if connectedAt, ok := session.Get("connected_at"); ok {
+			duration := time.Since(connectedAt.(time.Time))
+			wsConnectionDuration.Observe(duration.Seconds())
+		}
+	})
+
+	// Track message metrics
+	s.melody.HandleMessage(func(session *melody.Session, msg []byte) {
+		start := time.Now()
+		wsMessagesReceived.Inc()
 		s.melody.Broadcast(msg)
+		wsMessageProcessingDuration.Observe(time.Since(start).Seconds())
 	})
 }
 
@@ -1573,10 +1626,18 @@ func ViteProxyHandler() http.Handler {
 // (they are defined outside router.Group() blocks with traceInstaller.Install()).
 func isInternalRoute(pattern string) bool {
 	switch pattern {
-	case "/metrics", "/ready", "/healthz":
+	case "/metrics", "/ready", "/healthz", "/ws":
 		return true
 	}
 	return strings.HasPrefix(pattern, "/debug/pprof/")
+}
+
+// excludeWebSocketFromOTel returns an otelhttp.Option that excludes /ws from tracing and metrics.
+// WebSocket connections are long-lived and would skew HTTP latency data.
+func excludeWebSocketFromOTel() otelhttp.Option {
+	return otelhttp.WithFilter(func(r *http.Request) bool {
+		return r.URL.Path != "/ws"
+	})
 }
 
 // HTTPMetricsMiddleware records Prometheus metrics for HTTP requests.
