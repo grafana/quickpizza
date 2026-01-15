@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_version_provider.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/config/config_service.dart';
 import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/o11y/events/o11y_events.dart';
@@ -30,7 +31,7 @@ class AboutScreen extends ConsumerWidget {
     final o11yEvents = ref.watch(o11yEventsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5E6),
+      backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

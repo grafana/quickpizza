@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/app_localizations_provider.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/router/app_router.dart';
@@ -52,20 +53,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (pizzaState.pizza == null) return;
 
     try {
-      final success = await ref.read(ratingsProvider.notifier).ratePizza(
-            pizzaState.pizza!.pizza.id,
-            stars,
-            type,
-          );
+      final success = await ref
+          .read(ratingsProvider.notifier)
+          .ratePizza(pizzaState.pizza!.pizza.id, stars, type);
 
       if (success) {
-        ref.read(pizzaStateProvider.notifier).setRateResult(
+        ref
+            .read(pizzaStateProvider.notifier)
+            .setRateResult(
               type == 'love'
                   ? '❤️ ${l10n.savedToFavorites}'
                   : '👎 ${l10n.gotItNextTime}',
             );
       } else {
-        ref.read(pizzaStateProvider.notifier).setRateResult(l10n.pleaseLoginFirst);
+        ref
+            .read(pizzaStateProvider.notifier)
+            .setRateResult(l10n.pleaseLoginFirst);
       }
     } catch (e, stackTrace) {
       final errorStr = e.toString();
@@ -74,7 +77,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           : errorStr;
       ref.read(pizzaStateProvider.notifier).setRateResult(message);
 
-      ref.read(o11yErrorsProvider).reportError(
+      ref
+          .read(o11yErrorsProvider)
+          .reportError(
             type: 'UI',
             error: 'Failed to rate pizza: ${e.toString()}',
             stacktrace: stackTrace,
@@ -96,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pizzaState = ref.watch(pizzaStateProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5E6),
+      backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -121,7 +126,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onTap: _navigateToProfile,
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: isLoggedIn ? Colors.orange : Colors.grey.shade300,
+                backgroundColor: isLoggedIn
+                    ? Colors.orange
+                    : Colors.grey.shade300,
                 child: Icon(
                   isLoggedIn ? Icons.person : Icons.person_outline,
                   color: isLoggedIn ? Colors.white : Colors.grey.shade600,
@@ -173,7 +180,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildPizzaButton(pizzaState.isLoading, l10n.pizzaPleaseButton),
 
               // Error Message
-              if (pizzaState.errorMessage != null) _buildErrorMessage(pizzaState.errorMessage!),
+              if (pizzaState.errorMessage != null)
+                _buildErrorMessage(pizzaState.errorMessage!),
 
               // Pizza Recommendation
               if (pizzaState.pizza != null)
@@ -221,7 +229,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(width: 8),
                   Text(
                     buttonText,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),

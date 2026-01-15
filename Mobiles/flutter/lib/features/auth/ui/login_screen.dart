@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/app_localizations_provider.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/router/app_router.dart';
@@ -41,10 +42,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final success = await ref.read(authStateProvider.notifier).login(
-          _usernameController.text,
-          _passwordController.text,
-        );
+    final success = await ref
+        .read(authStateProvider.notifier)
+        .login(_usernameController.text, _passwordController.text);
     if (success && mounted) {
       context.pop(true);
     }
@@ -56,7 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authStateProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5E6),
+      backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -95,7 +95,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 24),
                 Text(
                   l10n.welcomeToQuickPizza,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
