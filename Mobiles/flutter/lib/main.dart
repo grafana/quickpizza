@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_mobile_o11y_demo/core/o11y/faro/faro.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/config_service.dart';
@@ -24,13 +25,10 @@ void main() async {
   final collectorUrl = ConfigService.faroCollectorUrl;
   final apiKey = extractTokenFromCollectorUrl(collectorUrl);
 
-  // Initialize Faro instance first
-  final faro = Faro();
+  // Access Faro instance from the container
+  final faro = container.read(faroProvider);
 
-  // Set HttpOverrides AFTER Faro instance is created to ensure HTTP tracing works
-  // This must be done before any HTTP calls are made
   HttpOverrides.global = FaroHttpOverrides(HttpOverrides.current);
-
   faro.transports.add(
     OfflineTransport(maxCacheDuration: const Duration(days: 3)),
   );
@@ -51,6 +49,7 @@ void main() async {
     ),
     appRunner: () {
       runApp(
+        // Used by Riverpod to provide providers to the app
         UncontrolledProviderScope(
           container: container,
           child: DefaultAssetBundle(
