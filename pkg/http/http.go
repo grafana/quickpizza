@@ -264,7 +264,7 @@ func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
 
 	router := chi.NewRouter()
 	router.Use(
-		PrometheusMiddleware,
+		HTTPMetricsMiddleware,
 		httplog.RequestLogger(reqLogger),
 		middleware.Recoverer,
 		cors.New(cors.Options{
@@ -1568,7 +1568,21 @@ func ViteProxyHandler() http.Handler {
 	return proxy
 }
 
-func PrometheusMiddleware(next http.Handler) http.Handler {
+// isInternalRoute returns true for infrastructure/instrumentations endpoints that should be excluded from
+// Prometheus metrics. These routes are also excluded from OTel instrumentation by design
+// (they are defined outside router.Group() blocks with traceInstaller.Install()).
+func isInternalRoute(pattern string) bool {
+	switch pattern {
+	case "/metrics", "/ready", "/healthz":
+		return true
+	}
+	return strings.HasPrefix(pattern, "/debug/pprof/")
+}
+
+// HTTPMetricsMiddleware records Prometheus metrics for HTTP requests.
+// It captures request count, duration (histogram), and duration (gauge) with labels
+// for method, path (route pattern), and status code.
+func HTTPMetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -1576,6 +1590,11 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 		duration := time.Since(start)
 
 		pattern := chi.RouteContext(r.Context()).RoutePattern()
+
+		// Skip metrics for internal/infrastructure routes
+		if isInternalRoute(pattern) {
+			return
+		}
 
 		httpRequests.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Inc()
 		httpRequestDuration.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
