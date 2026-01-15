@@ -61,6 +61,7 @@ The external IP should now be assigned:
 kubectl get services
 
 NAME                    TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)          AGE
+quickpizza-grpc         LoadBalancer   10.107.206.64   127.0.0.1     3334:30334/TCP 
 quickpizza-public-api   LoadBalancer   10.99.177.165    127.0.0.1   3333:30333/TCP   3m9s
 # Other services elided for brevity
 ```

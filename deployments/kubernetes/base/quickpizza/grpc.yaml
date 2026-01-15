@@ -1,0 +1,80 @@
+# service.name: 'grpc'
+# service.component: 'grpc' (defined in app code)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # unique name for this deployment resource
+  name: quickpizza-grpc
+  labels: &grpcLabels # application name: groups all related resources
+    app.k8s.io/name: quickpizza
+    # component type: defines the role of this deployment
+    app.kubernetes.io/component: service
+    # instance id: used for service discovery and telemetry (service.name/service_name attrs)
+    app.kubernetes.io/instance: grpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *grpcLabels
+  template:
+    metadata:
+      labels: *grpcLabels
+    spec:
+      containers:
+        - name: quickpizza
+          image: ghcr.io/grafana/quickpizza-local:0.15.20
+          ports:
+            - name: grpc
+              containerPort: 3334
+            - name: grpc-health
+              containerPort: 3335
+          envFrom:
+            - configMapRef:
+                name: quickpizza-env-common
+            - configMapRef:
+                name: quickpizza-env
+                optional: true
+          env:
+            - name: QUICKPIZZA_ENABLE_GRPC_SERVICE
+              value: "1"
+            - name: QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: QUICKPIZZA_OTEL_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/instance']
+          # gRPC service uses different probes - override the common patch
+          readinessProbe:
+            httpGet:
+              path: /grpchealthz
+              port: 3335
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /grpchealthz
+              port: 3335
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+---
+# PUBLIC ENDPOINT for gRPC service
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickpizza-grpc
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/instance: grpc
+  ports:
+    - protocol: TCP
+      port: 3334
+      targetPort: 3334
+      nodePort: 30334

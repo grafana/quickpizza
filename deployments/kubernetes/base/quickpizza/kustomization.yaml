@@ -9,6 +9,7 @@ resources:
   - catalog.yaml
   - config.yaml
   - copy.yaml
+  - grpc.yaml
   - public-api.yaml
   - recommendations.yaml
   - ws.yaml
@@ -29,6 +30,7 @@ configMapGenerator:
 
 # defines shared properties for all deployments
 patches:
+  # Common settings for all deployments
   - patch: |-
       - op: add
         path: /spec/template/spec/containers/0/imagePullPolicy
@@ -41,6 +43,10 @@ patches:
             secretKeyRef:
               name: quickpizza-db-credentials
               key: CONNECTION_STRING
+    target:
+      kind: Deployment
+  # HTTP probes for all deployments except gRPC (which defines its own probes)
+  - patch: |-
       - op: add
         path: /spec/template/spec/containers/0/readinessProbe
         value:
@@ -65,3 +71,4 @@ patches:
           failureThreshold: 3
     target:
       kind: Deployment
+      name: "!quickpizza-grpc"

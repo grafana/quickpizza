@@ -49,6 +49,7 @@ services:
       - public-api
       - recommendations
       - ws
+      - grpc
 
   catalog:
     image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.20}
@@ -134,6 +135,21 @@ services:
       QUICKPIZZA_ENABLE_WS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
+
+  grpc:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.19}
+    container_name: grpc
+    labels:
+      - "service.type=application"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
+    ports:
+      - "3334:3334"
+      - "3335:3335"
+    environment:
+      <<: *quickpizza-env-common
+      QUICKPIZZA_ENABLE_GRPC_SERVICE: "1"
+      QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "grpc"
+      QUICKPIZZA_OTEL_SERVICE_NAME: "grpc"
 
   quickpizza-db:
     image: postgres:18.1
