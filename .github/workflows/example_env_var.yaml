@@ -8,7 +8,7 @@ jobs:
 
     services:
       quickpizza:
-        image: ghcr.io/grafana/quickpizza-local:0.15.20 # zizmor: ignore[unpinned-images]
+        image: ghcr.io/grafana/quickpizza-local:0.15.21 # zizmor: ignore[unpinned-images]
         ports:
           - 3355:3333
 

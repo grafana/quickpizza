@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: quickpizza
-          image: ghcr.io/grafana/quickpizza-local:0.15.20
+          image: ghcr.io/grafana/quickpizza-local:0.15.21
           ports:
             - name: http
               containerPort: 3333
