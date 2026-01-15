@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'core/application_layer/o11y/loggers/o11y_logger.dart';
-import 'services/api_service.dart';
-import 'services/config_service.dart';
-import 'screens/main_shell.dart';
-import 'utils/faro_utils.dart';
+
+import 'core/config/config_service.dart';
+import 'core/o11y/loggers/o11y_logger.dart';
+import 'core/utils/faro_utils.dart';
+import 'features/shell/ui/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,16 +63,11 @@ void main() async {
   );
 }
 
-class QuickPizzaApp extends ConsumerWidget {
+class QuickPizzaApp extends StatelessWidget {
   const QuickPizzaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final apiService = ref.watch(apiServiceProvider);
-
-    // Note: User must login via LoginScreen to get a valid token.
-    // Some APIs (quotes, config) work without auth, but others (ratings, pizza, tools) require authentication.
-
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'QuickPizza',
       debugShowCheckedModeBanner: false,
@@ -84,7 +79,7 @@ class QuickPizzaApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       navigatorObservers: [FaroNavigationObserver()],
-      home: MainShell(apiService: apiService),
+      home: const MainShell(),
     );
   }
 }
