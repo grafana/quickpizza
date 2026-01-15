@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/config/app_version_provider.dart';
 import '../../../core/config/config_service.dart';
+import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 
 class AboutScreen extends ConsumerWidget {
@@ -22,6 +24,8 @@ class AboutScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appLocalizationsProvider);
+    final appVersion = ref.watch(appVersionProvider);
     final configService = ref.watch(configServiceProvider);
     final o11yEvents = ref.watch(o11yEventsProvider);
 
@@ -35,7 +39,7 @@ class AboutScreen extends ConsumerWidget {
             Icon(Icons.local_pizza, color: Colors.red.shade600, size: 28),
             const SizedBox(width: 8),
             Text(
-              'QuickPizza',
+              l10n.appName,
               style: TextStyle(
                 color: Colors.red.shade600,
                 fontWeight: FontWeight.bold,
@@ -53,23 +57,27 @@ class AboutScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 16),
               // Header
-              const Center(
+              Center(
                 child: Column(
                   children: [
-                    Icon(Icons.local_pizza, size: 64, color: Colors.orange),
-                    SizedBox(height: 16),
+                    const Icon(
+                      Icons.local_pizza,
+                      size: 64,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(height: 16),
                     Text(
-                      'About QuickPizza',
-                      style: TextStyle(
+                      l10n.aboutQuickPizza,
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Discover new and exciting pizza\ncombinations with just one click!',
+                      l10n.aboutDescription,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -77,9 +85,9 @@ class AboutScreen extends ConsumerWidget {
               const SizedBox(height: 40),
 
               // Links Section
-              const Text(
-                'Links',
-                style: TextStyle(
+              Text(
+                l10n.links,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -89,8 +97,8 @@ class AboutScreen extends ConsumerWidget {
               _buildLinkCard(
                 icon: Icons.code,
                 iconColor: Colors.black87,
-                title: 'Contribute on GitHub',
-                subtitle: 'View source code and contribute',
+                title: l10n.contributeOnGitHub,
+                subtitle: l10n.viewSourceCodeAndContribute,
                 onTap: () => _launchUrl(
                   'https://github.com/grafana/quickpizza',
                   'github_link_clicked',
@@ -101,8 +109,8 @@ class AboutScreen extends ConsumerWidget {
               _buildLinkCard(
                 icon: Icons.admin_panel_settings,
                 iconColor: Colors.blue,
-                title: 'Admin Dashboard',
-                subtitle: 'Manage pizzas and ingredients',
+                title: l10n.adminDashboard,
+                subtitle: l10n.managePizzasAndIngredients,
                 onTap: () => _launchUrl(
                   '${configService.baseUrl}/admin',
                   'admin_link_clicked',
@@ -113,8 +121,8 @@ class AboutScreen extends ConsumerWidget {
               _buildLinkCard(
                 icon: Icons.analytics,
                 iconColor: Colors.orange,
-                title: 'Grafana Observability',
-                subtitle: 'View app telemetry and dashboards',
+                title: l10n.grafanaObservability,
+                subtitle: l10n.viewAppTelemetryAndDashboards,
                 onTap: () => _launchUrl(
                   'https://grafana.com/products/cloud/',
                   'grafana_link_clicked',
@@ -125,9 +133,9 @@ class AboutScreen extends ConsumerWidget {
               const SizedBox(height: 40),
 
               // About Section
-              const Text(
-                'About This Demo',
-                style: TextStyle(
+              Text(
+                l10n.aboutThisDemo,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -141,33 +149,32 @@ class AboutScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'QuickPizza is a demo application showcasing '
-                      'Grafana\'s mobile observability capabilities using Faro.',
-                      style: TextStyle(
+                      l10n.aboutDemoDescription,
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.black87,
                         height: 1.5,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
-                      'Features demonstrated:',
-                      style: TextStyle(
+                      l10n.featuresDemo,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
                     ),
-                    SizedBox(height: 8),
-                    _FeatureItem(text: 'Real User Monitoring (RUM)'),
-                    _FeatureItem(text: 'Error tracking & crash reporting'),
-                    _FeatureItem(text: 'Custom events & metrics'),
-                    _FeatureItem(text: 'Distributed tracing'),
-                    _FeatureItem(text: 'Performance vitals'),
+                    const SizedBox(height: 8),
+                    _FeatureItem(text: l10n.featureRum),
+                    _FeatureItem(text: l10n.featureErrorTracking),
+                    _FeatureItem(text: l10n.featureCustomEvents),
+                    _FeatureItem(text: l10n.featureDistributedTracing),
+                    _FeatureItem(text: l10n.featurePerformanceVitals),
                   ],
                 ),
               ),
@@ -178,9 +185,9 @@ class AboutScreen extends ConsumerWidget {
               Center(
                 child: Column(
                   children: [
-                    const Text(
-                      'Made with ❤️ by QuickPizza Labs',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    Text(
+                      l10n.madeWithLove,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -193,7 +200,7 @@ class AboutScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Powered by Grafana Faro',
+                          l10n.poweredByGrafanaFaro,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -203,7 +210,7 @@ class AboutScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Version 1.0.0',
+                      '${l10n.versionLabel} $appVersion',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade400,

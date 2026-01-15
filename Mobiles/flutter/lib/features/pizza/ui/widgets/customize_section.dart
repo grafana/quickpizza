@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/app_localizations_provider.dart';
 import '../../models/restrictions.dart';
 
-class CustomizeSection extends StatefulWidget {
+class CustomizeSection extends ConsumerStatefulWidget {
   const CustomizeSection({
     super.key,
     required this.restrictions,
@@ -15,10 +17,10 @@ class CustomizeSection extends StatefulWidget {
   final VoidCallback onRestrictionsChanged;
 
   @override
-  State<CustomizeSection> createState() => _CustomizeSectionState();
+  ConsumerState<CustomizeSection> createState() => _CustomizeSectionState();
 }
 
-class _CustomizeSectionState extends State<CustomizeSection>
+class _CustomizeSectionState extends ConsumerState<CustomizeSection>
     with SingleTickerProviderStateMixin {
   bool _expanded = false;
   late AnimationController _expandController;
@@ -56,6 +58,8 @@ class _CustomizeSectionState extends State<CustomizeSection>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -91,10 +95,10 @@ class _CustomizeSectionState extends State<CustomizeSection>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Customize Your Pizza',
-                      style: TextStyle(
+                      l10n.customizeYourPizza,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -128,7 +132,7 @@ class _CustomizeSectionState extends State<CustomizeSection>
                     children: [
                       Expanded(
                         child: _buildNumberField(
-                          label: 'Max Calories',
+                          label: l10n.maxCalories,
                           value: widget.restrictions.maxCaloriesPerSlice,
                           onChanged: (v) {
                             widget.restrictions.maxCaloriesPerSlice = v;
@@ -139,7 +143,7 @@ class _CustomizeSectionState extends State<CustomizeSection>
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildNumberField(
-                          label: 'Min Toppings',
+                          label: l10n.minToppings,
                           value: widget.restrictions.minNumberOfToppings,
                           onChanged: (v) {
                             widget.restrictions.minNumberOfToppings = v;
@@ -150,7 +154,7 @@ class _CustomizeSectionState extends State<CustomizeSection>
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildNumberField(
-                          label: 'Max Toppings',
+                          label: l10n.maxToppings,
                           value: widget.restrictions.maxNumberOfToppings,
                           onChanged: (v) {
                             widget.restrictions.maxNumberOfToppings = v;
@@ -189,10 +193,10 @@ class _CustomizeSectionState extends State<CustomizeSection>
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Vegetarian only',
-                            style: TextStyle(fontSize: 14),
+                            l10n.vegetarianOnly,
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
                         Switch(
@@ -215,7 +219,7 @@ class _CustomizeSectionState extends State<CustomizeSection>
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Exclude tools:',
+                        l10n.excludeTools,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade600,
@@ -253,7 +257,7 @@ class _CustomizeSectionState extends State<CustomizeSection>
                   // Custom Name
                   TextField(
                     decoration: InputDecoration(
-                      labelText: 'Custom Pizza Name (optional)',
+                      labelText: l10n.customPizzaName,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

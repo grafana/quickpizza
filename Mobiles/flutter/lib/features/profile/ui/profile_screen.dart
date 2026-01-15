@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../auth/logic/auth_provider.dart';
@@ -34,16 +35,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _deleteRatings() async {
+    final l10n = ref.read(appLocalizationsProvider);
     try {
       final success = await ref.read(ratingsProvider.notifier).deleteRatings();
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Ratings cleared successfully!'),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(l10n.ratingsClearedSuccessfully),
               ],
             ),
             backgroundColor: Colors.green.shade600,
@@ -69,7 +71,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
       }
-      ref.read(o11yErrorsProvider).reportError(
+      ref
+          .read(o11yErrorsProvider)
+          .reportError(
             type: 'UI',
             error: 'Failed to delete ratings: ${e.toString()}',
             stacktrace: stackTrace,
@@ -80,6 +84,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final authState = ref.watch(authStateProvider);
     final ratingsAsync = ref.watch(ratingsProvider);
 
@@ -92,9 +97,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Profile',
-          style: TextStyle(
+        title: Text(
+          l10n.profile,
+          style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.w600,
           ),
@@ -135,7 +140,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      authState.username ?? 'Pizza Lover',
+                      authState.username ?? l10n.pizzaLover,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -144,16 +149,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 4),
                     ratingsAsync.when(
                       data: (ratings) => Text(
-                        '${ratings.length} pizza${ratings.length == 1 ? '' : 's'} rated',
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        l10n.pizzasRated(ratings.length),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                       loading: () => Text(
-                        'Loading...',
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        l10n.loading,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                       error: (_, __) => Text(
-                        '0 pizzas rated',
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        l10n.pizzasRated(0),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ),
                   ],
@@ -162,14 +176,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 24),
 
               // Ratings Section
-              _buildRatingsSection(ratingsAsync),
+              _buildRatingsSection(ratingsAsync, l10n),
               const SizedBox(height: 24),
 
               // Action Buttons
               ratingsAsync.when(
-                data: (ratings) => _buildActionButtons(ratings),
-                loading: () => _buildActionButtons([]),
-                error: (_, __) => _buildActionButtons([]),
+                data: (ratings) => _buildActionButtons(ratings, l10n),
+                loading: () => _buildActionButtons([], l10n),
+                error: (_, __) => _buildActionButtons([], l10n),
               ),
             ],
           ),
@@ -178,7 +192,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildRatingsSection(AsyncValue<List<Rating>> ratingsAsync) {
+  Widget _buildRatingsSection(
+    AsyncValue<List<Rating>> ratingsAsync,
+    dynamic l10n,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -200,9 +217,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               Icon(Icons.star, color: Colors.orange.shade400, size: 22),
               const SizedBox(width: 8),
-              const Text(
-                'Your Ratings',
-                style: TextStyle(
+              Text(
+                l10n.yourRatings,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -212,22 +229,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 16),
           ratingsAsync.when(
             data: (ratings) => ratings.isEmpty
-                ? _buildEmptyRatings()
-                : _buildRatingsList(ratings),
+                ? _buildEmptyRatings(l10n)
+                : _buildRatingsList(ratings, l10n),
             loading: () => const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: CircularProgressIndicator(),
               ),
             ),
-            error: (_, __) => _buildEmptyRatings(),
+            error: (_, _) => _buildEmptyRatings(l10n),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyRatings() {
+  Widget _buildEmptyRatings(dynamic l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -240,19 +257,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'No ratings yet',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade500,
-              ),
+              l10n.noRatingsYet,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
             Text(
-              'Rate some pizzas to see them here!',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade400,
-              ),
+              l10n.rateSomePizzas,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
             ),
           ],
         ),
@@ -260,7 +271,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildRatingsList(List<Rating> ratings) {
+  Widget _buildRatingsList(List<Rating> ratings, dynamic l10n) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -294,13 +305,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pizza #${rating.pizzaId}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      l10n.pizzaNumber(rating.pizzaId),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
-                      rating.stars >= 4 ? 'Loved it!' : 'Passed',
+                      rating.stars >= 4 ? l10n.lovedIt : l10n.passed,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -315,7 +324,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   (i) => Icon(
                     i < rating.stars ? Icons.star : Icons.star_border,
                     size: 16,
-                    color: i < rating.stars ? Colors.orange : Colors.grey.shade300,
+                    color: i < rating.stars
+                        ? Colors.orange
+                        : Colors.grey.shade300,
                   ),
                 ),
               ),
@@ -326,7 +337,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildActionButtons(List<Rating> ratings) {
+  Widget _buildActionButtons(List<Rating> ratings, dynamic l10n) {
     return Row(
       children: [
         if (ratings.isNotEmpty)
@@ -334,7 +345,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: OutlinedButton.icon(
               onPressed: _deleteRatings,
               icon: const Icon(Icons.delete_outline, size: 20),
-              label: const Text('Clear Ratings'),
+              label: Text(l10n.clearRatings),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red.shade600,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -350,7 +361,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: ElevatedButton.icon(
             onPressed: _handleLogout,
             icon: const Icon(Icons.logout, size: 20),
-            label: const Text('Sign Out'),
+            label: Text(l10n.signOut),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.grey.shade600,
               foregroundColor: Colors.white,

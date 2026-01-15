@@ -4,7 +4,9 @@ import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/config/app_version_provider.dart';
 import 'core/config/config_service.dart';
+import 'core/localization/app_localizations.dart';
 import 'core/o11y/faro/faro.dart';
 import 'core/o11y/loggers/o11y_logger.dart';
 import 'core/router/app_router.dart';
@@ -21,6 +23,12 @@ void main() async {
   final logger = container.read(o11yLoggerProvider);
   logger.debug('App initialization started');
 
+  // Get app version from package info provider (warms up the provider for later use)
+  final packageInfo = await container.read(packageInfoProvider.future);
+  final appVersion = packageInfo.version;
+
+  logger.debug('App version: $appVersion');
+
   // Get collector URL from build-time config
   final collectorUrl = ConfigService.faroCollectorUrl;
   final apiKey = extractTokenFromCollectorUrl(collectorUrl);
@@ -36,7 +44,7 @@ void main() async {
   faro.runApp(
     optionsConfiguration: FaroConfig(
       appName: 'QuickPizza_Flutter',
-      appVersion: '1.0.0',
+      appVersion: appVersion,
       appEnv: 'production',
       apiKey: apiKey,
       collectorUrl: collectorUrl,
@@ -72,6 +80,8 @@ class QuickPizzaApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'QuickPizza',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.red,

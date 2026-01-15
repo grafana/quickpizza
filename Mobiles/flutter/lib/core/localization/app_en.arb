@@ -1,0 +1,101 @@
+{
+  "@@locale": "en",
+
+  "appName": "QuickPizza",
+
+  "navHome": "Home",
+  "navAbout": "About",
+
+  "heroTitle": "Looking to break out of\nyour pizza routine?",
+  "heroSubtitle": "QuickPizza has your back!",
+  "heroDescription": "With just one click, you'll discover new and exciting pizza combinations.",
+
+  "pizzaPleaseButton": "Pizza, Please!",
+
+  "customizeYourPizza": "Customize Your Pizza",
+  "maxCalories": "Max Calories",
+  "minToppings": "Min Toppings",
+  "maxToppings": "Max Toppings",
+  "vegetarianOnly": "Vegetarian only",
+  "excludeTools": "Exclude tools:",
+  "customPizzaName": "Custom Pizza Name (optional)",
+
+  "ourRecommendation": "Our Recommendation",
+  "dough": "Dough",
+  "tool": "Tool",
+  "calories": "Calories",
+  "caloriesPerSlice": "{calories} per slice",
+  "@caloriesPerSlice": {
+    "placeholders": {
+      "calories": {
+        "type": "String"
+      }
+    }
+  },
+  "vegetarian": "Vegetarian",
+  "ingredients": "Ingredients",
+  "pass": "Pass",
+  "loveIt": "Love it!",
+  "savedToFavorites": "Saved to favorites!",
+  "gotItNextTime": "Got it, next time!",
+  "pleaseLoginFirst": "Please log in first.",
+  "notAvailable": "N/A",
+
+  "aboutQuickPizza": "About QuickPizza",
+  "aboutDescription": "Discover new and exciting pizza\ncombinations with just one click!",
+  "links": "Links",
+  "contributeOnGitHub": "Contribute on GitHub",
+  "viewSourceCodeAndContribute": "View source code and contribute",
+  "adminDashboard": "Admin Dashboard",
+  "managePizzasAndIngredients": "Manage pizzas and ingredients",
+  "grafanaObservability": "Grafana Observability",
+  "viewAppTelemetryAndDashboards": "View app telemetry and dashboards",
+  "aboutThisDemo": "About This Demo",
+  "aboutDemoDescription": "QuickPizza is a demo application showcasing Grafana's mobile observability capabilities using Faro.",
+  "featuresDemo": "Features demonstrated:",
+  "featureRum": "Real User Monitoring (RUM)",
+  "featureErrorTracking": "Error tracking & crash reporting",
+  "featureCustomEvents": "Custom events & metrics",
+  "featureDistributedTracing": "Distributed tracing",
+  "featurePerformanceVitals": "Performance vitals",
+  "madeWithLove": "Made with love by QuickPizza Labs",
+  "poweredByGrafanaFaro": "Powered by Grafana Faro",
+  "versionLabel": "Version",
+
+  "login": "Login",
+  "welcomeToQuickPizza": "Welcome to QuickPizza",
+  "signInToSaveFavorites": "Sign in to save your favorite pizzas",
+  "username": "Username",
+  "password": "Password",
+  "signIn": "Sign In",
+  "loginHint": "Hint: Use \"default\" / \"12345678\" to login",
+  "loginTip": "Tip: You can create a new user via the POST http://quickpizza.grafana.com/api/users endpoint. Attach a JSON payload with username and password keys.",
+
+  "profile": "Profile",
+  "pizzaLover": "Pizza Lover",
+  "pizzasRated": "{count,plural, =1{{count} pizza rated} other{{count} pizzas rated}}",
+  "@pizzasRated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loading": "Loading...",
+  "yourRatings": "Your Ratings",
+  "noRatingsYet": "No ratings yet",
+  "rateSomePizzas": "Rate some pizzas to see them here!",
+  "pizzaNumber": "Pizza #{pizzaId}",
+  "@pizzaNumber": {
+    "placeholders": {
+      "pizzaId": {
+        "type": "int"
+      }
+    }
+  },
+  "lovedIt": "Loved it!",
+  "passed": "Passed",
+  "clearRatings": "Clear Ratings",
+  "signOut": "Sign Out",
+  "ratingsClearedSuccessfully": "Ratings cleared successfully!"
+}

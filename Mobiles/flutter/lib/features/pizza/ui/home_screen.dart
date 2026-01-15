@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/router/app_router.dart';
@@ -46,6 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _ratePizza(int stars, String type) async {
+    final l10n = ref.read(appLocalizationsProvider);
     final pizzaState = ref.read(pizzaStateProvider);
     if (pizzaState.pizza == null) return;
 
@@ -58,10 +60,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       if (success) {
         ref.read(pizzaStateProvider.notifier).setRateResult(
-              type == 'love' ? '❤️ Saved to favorites!' : '👎 Got it, next time!',
+              type == 'love'
+                  ? '❤️ ${l10n.savedToFavorites}'
+                  : '👎 ${l10n.gotItNextTime}',
             );
       } else {
-        ref.read(pizzaStateProvider.notifier).setRateResult('Please log in first.');
+        ref.read(pizzaStateProvider.notifier).setRateResult(l10n.pleaseLoginFirst);
       }
     } catch (e, stackTrace) {
       final errorStr = e.toString();
@@ -85,6 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final isLoggedIn = ref.watch(isLoggedInProvider);
     final quoteAsync = ref.watch(quoteProvider);
     final toolsAsync = ref.watch(toolsProvider);
@@ -100,7 +105,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Icon(Icons.local_pizza, color: Colors.red.shade600, size: 28),
             const SizedBox(width: 8),
             Text(
-              'QuickPizza',
+              l10n.appName,
               style: TextStyle(
                 color: Colors.red.shade600,
                 fontWeight: FontWeight.bold,
@@ -165,7 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
 
               // Pizza Please Button
-              _buildPizzaButton(pizzaState.isLoading),
+              _buildPizzaButton(pizzaState.isLoading, l10n.pizzaPleaseButton),
 
               // Error Message
               if (pizzaState.errorMessage != null) _buildErrorMessage(pizzaState.errorMessage!),
@@ -186,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildPizzaButton(bool isLoading) {
+  Widget _buildPizzaButton(bool isLoading, String buttonText) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -209,14 +214,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
-            : const Row(
+            : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.local_pizza, size: 22),
-                  SizedBox(width: 8),
+                  const Icon(Icons.local_pizza, size: 22),
+                  const SizedBox(width: 8),
                   Text(
-                    'Pizza, Please!',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    buttonText,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),

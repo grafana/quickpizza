@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/router/app_router.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final Widget child;
 
   const MainShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appLocalizationsProvider);
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
@@ -19,16 +23,16 @@ class MainShell extends StatelessWidget {
         elevation: 8,
         shadowColor: Colors.black26,
         indicatorColor: Colors.orange.shade100,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: Colors.orange),
-            label: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home, color: Colors.orange),
+            label: l10n.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.info_outline),
-            selectedIcon: Icon(Icons.info, color: Colors.orange),
-            label: 'About',
+            icon: const Icon(Icons.info_outline),
+            selectedIcon: const Icon(Icons.info, color: Colors.orange),
+            label: l10n.navAbout,
           ),
         ],
       ),
