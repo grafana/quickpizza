@@ -43,6 +43,7 @@ services:
       - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     ports:
       - "3333:3333"
+      - "3334:3334" # gRPC
     environment:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
