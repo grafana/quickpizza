@@ -2,19 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/app_localizations_provider.dart';
-import '../../models/restrictions.dart';
+import '../../domain/pizza_provider.dart';
+import '../../domain/restrictions_provider.dart';
 
+/// Self-contained widget that allows users to customize their pizza preferences.
+/// Watches toolsProvider and restrictionsProvider directly.
 class CustomizeSection extends ConsumerStatefulWidget {
-  const CustomizeSection({
-    super.key,
-    required this.restrictions,
-    required this.tools,
-    required this.onRestrictionsChanged,
-  });
-
-  final Restrictions restrictions;
-  final List<String> tools;
-  final VoidCallback onRestrictionsChanged;
+  const CustomizeSection({super.key});
 
   @override
   ConsumerState<CustomizeSection> createState() => _CustomizeSectionState();
@@ -59,6 +53,9 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appLocalizationsProvider);
+    final restrictions = ref.watch(restrictionsProvider);
+    final restrictionsNotifier = ref.read(restrictionsProvider.notifier);
+    final toolsAsync = ref.watch(toolsProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -133,33 +130,27 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
                       Expanded(
                         child: _buildNumberField(
                           label: l10n.maxCalories,
-                          value: widget.restrictions.maxCaloriesPerSlice,
-                          onChanged: (v) {
-                            widget.restrictions.maxCaloriesPerSlice = v;
-                            widget.onRestrictionsChanged();
-                          },
+                          value: restrictions.maxCaloriesPerSlice,
+                          onChanged:
+                              restrictionsNotifier.setMaxCaloriesPerSlice,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildNumberField(
                           label: l10n.minToppings,
-                          value: widget.restrictions.minNumberOfToppings,
-                          onChanged: (v) {
-                            widget.restrictions.minNumberOfToppings = v;
-                            widget.onRestrictionsChanged();
-                          },
+                          value: restrictions.minNumberOfToppings,
+                          onChanged:
+                              restrictionsNotifier.setMinNumberOfToppings,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildNumberField(
                           label: l10n.maxToppings,
-                          value: widget.restrictions.maxNumberOfToppings,
-                          onChanged: (v) {
-                            widget.restrictions.maxNumberOfToppings = v;
-                            widget.onRestrictionsChanged();
-                          },
+                          value: restrictions.maxNumberOfToppings,
+                          onChanged:
+                              restrictionsNotifier.setMaxNumberOfToppings,
                         ),
                       ),
                     ],
@@ -173,12 +164,12 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.restrictions.mustBeVegetarian
+                      color: restrictions.mustBeVegetarian
                           ? Colors.green.shade50
                           : Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: widget.restrictions.mustBeVegetarian
+                        color: restrictions.mustBeVegetarian
                             ? Colors.green.shade200
                             : Colors.grey.shade200,
                       ),
@@ -187,7 +178,7 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
                       children: [
                         Icon(
                           Icons.eco,
-                          color: widget.restrictions.mustBeVegetarian
+                          color: restrictions.mustBeVegetarian
                               ? Colors.green.shade600
                               : Colors.grey.shade400,
                           size: 20,
@@ -200,13 +191,8 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
                           ),
                         ),
                         Switch(
-                          value: widget.restrictions.mustBeVegetarian,
-                          onChanged: (value) {
-                            setState(() {
-                              widget.restrictions.mustBeVegetarian = value;
-                            });
-                            widget.onRestrictionsChanged();
-                          },
+                          value: restrictions.mustBeVegetarian,
+                          onChanged: restrictionsNotifier.setMustBeVegetarian,
                           activeColor: Colors.green,
                         ),
                       ],
@@ -214,45 +200,45 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
                   ),
                   const SizedBox(height: 16),
 
-                  // Excluded Tools
-                  if (widget.tools.isNotEmpty) ...[
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        l10n.excludeTools,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: widget.tools.map((tool) {
-                        final isSelected =
-                            widget.restrictions.excludedTools.contains(tool);
-                        return FilterChip(
-                          label: Text(tool),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setState(() {
-                              if (selected) {
-                                widget.restrictions.excludedTools.add(tool);
-                              } else {
-                                widget.restrictions.excludedTools.remove(tool);
-                              }
-                            });
-                            widget.onRestrictionsChanged();
-                          },
-                          selectedColor: Colors.red.shade100,
-                          checkmarkColor: Colors.red.shade700,
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  // Excluded Tools - only shown when loaded and not empty
+                  ...toolsAsync.maybeWhen(
+                    data: (tools) => tools.isEmpty
+                        ? []
+                        : [
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.excludeTools,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: tools.map((tool) {
+                                final isSelected = restrictions.excludedTools
+                                    .contains(tool);
+                                return FilterChip(
+                                  label: Text(tool),
+                                  selected: isSelected,
+                                  onSelected: (_) {
+                                    restrictionsNotifier.toggleExcludedTool(
+                                      tool,
+                                    );
+                                  },
+                                  selectedColor: Colors.red.shade100,
+                                  checkmarkColor: Colors.red.shade700,
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                    orElse: () => [],
+                  ),
 
                   // Custom Name
                   TextField(
@@ -267,10 +253,7 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
                       ),
                       isDense: true,
                     ),
-                    onChanged: (value) {
-                      widget.restrictions.customName = value;
-                      widget.onRestrictionsChanged();
-                    },
+                    onChanged: restrictionsNotifier.setCustomName,
                   ),
                 ],
               ),

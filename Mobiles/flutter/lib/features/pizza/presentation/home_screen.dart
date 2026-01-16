@@ -1,31 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobile_o11y_demo/core/localization/app_localizations_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/quick_pizza_app_bar.dart';
-import '../models/restrictions.dart';
 import 'home_screen_view_model.dart';
 import 'widgets/customize_section.dart';
 import 'widgets/hero_text.dart';
+import 'widgets/pizza_button.dart';
 import 'widgets/pizza_card.dart';
 import 'widgets/quote_card.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  final Restrictions _restrictions = Restrictions();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final uiState = ref.watch(homeScreenUiStateProvider);
     final actions = ref.read(homeScreenActionsProvider);
-    final l10n = ref.watch(appLocalizationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
@@ -43,38 +34,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const HeroText(),
               const SizedBox(height: 24),
 
-              // Customize Card (Expandable)
-              uiState.toolsAsync.when(
-                data: (tools) => CustomizeSection(
-                  restrictions: _restrictions,
-                  tools: tools,
-                  onRestrictionsChanged: () => setState(() {}),
-                ),
-                loading: () => CustomizeSection(
-                  restrictions: _restrictions,
-                  tools: const [],
-                  onRestrictionsChanged: () => setState(() {}),
-                ),
-                error: (_, _) => CustomizeSection(
-                  restrictions: _restrictions,
-                  tools: const [],
-                  onRestrictionsChanged: () => setState(() {}),
-                ),
-              ),
+              const CustomizeSection(),
               const SizedBox(height: 24),
 
-              // Pizza Please Button
-              _buildPizzaButton(
-                isLoading: uiState.pizzaState.isLoading,
-                buttonText: l10n.pizzaPleaseButton,
-                onPressed: () => actions.getPizza(_restrictions),
-              ),
+              const PizzaButton(),
 
               // Error Message
               if (uiState.pizzaState.errorMessage != null)
                 _buildErrorMessage(uiState.pizzaState.errorMessage!),
 
-              // Pizza Recommendation
               if (uiState.pizzaState.pizza != null)
                 PizzaCard(
                   recommendation: uiState.pizzaState.pizza!,
@@ -86,51 +54,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPizzaButton({
-    required bool isLoading,
-    required String buttonText,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 2,
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.local_pizza, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    buttonText,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
       ),
     );
   }

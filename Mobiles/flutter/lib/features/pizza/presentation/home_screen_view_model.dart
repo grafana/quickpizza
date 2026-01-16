@@ -1,16 +1,12 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_mobile_o11y_demo/core/localization/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
-import '../../../core/router/app_router.dart';
-import '../../auth/domain/auth_provider.dart';
 import '../../ratings/domain/ratings_provider.dart';
 import '../domain/pizza_provider.dart';
-import '../models/restrictions.dart';
 
 // =============================================================================
 // UI State
@@ -22,18 +18,12 @@ import '../models/restrictions.dart';
 /// Extends [Equatable] to enable value-based equality, which allows Riverpod
 /// to skip unnecessary widget rebuilds when the state values haven't changed.
 class HomeScreenUiState extends Equatable {
-  const HomeScreenUiState({
-    required this.isLoggedIn,
-    required this.toolsAsync,
-    required this.pizzaState,
-  });
+  const HomeScreenUiState({required this.pizzaState});
 
-  final bool isLoggedIn;
-  final AsyncValue<List<String>> toolsAsync;
   final PizzaState pizzaState;
 
   @override
-  List<Object?> get props => [isLoggedIn, toolsAsync, pizzaState];
+  List<Object?> get props => [pizzaState];
 }
 
 // =============================================================================
@@ -43,12 +33,6 @@ class HomeScreenUiState extends Equatable {
 /// Defines the actions available on the HomeScreen.
 /// This interface hides Riverpod implementation details from the UI layer.
 abstract interface class HomeScreenActions {
-  /// Navigates to the profile screen if logged in, otherwise to login.
-  Future<void> navigateToProfile();
-
-  /// Requests a pizza recommendation with the given restrictions.
-  Future<void> getPizza(Restrictions restrictions);
-
   /// Rates the current pizza recommendation.
   Future<void> ratePizza(int stars, String type);
 }
@@ -65,7 +49,6 @@ class _HomeScreenViewModel extends Notifier<HomeScreenUiState>
   // Dependencies (initialized in build)
   // ---------------------------------------------------------------------------
 
-  late GoRouter _router;
   late PizzaStateNotifier _pizzaStateNotifier;
   late RatingsNotifier _ratingsNotifier;
   late O11yErrors _o11yErrors;
@@ -75,7 +58,6 @@ class _HomeScreenViewModel extends Notifier<HomeScreenUiState>
   @override
   HomeScreenUiState build() {
     // Initialize dependencies (watch to ensure we always have current instances)
-    _router = ref.watch(appRouterProvider);
     _pizzaStateNotifier = ref.watch(pizzaStateProvider.notifier);
     _ratingsNotifier = ref.watch(ratingsProvider.notifier);
     _o11yErrors = ref.watch(o11yErrorsProvider);
@@ -83,17 +65,11 @@ class _HomeScreenViewModel extends Notifier<HomeScreenUiState>
     _l10n = ref.watch(appLocalizationsProvider);
 
     // Watch state providers (triggers rebuild when these change)
-    final isLoggedIn = ref.watch(isLoggedInProvider);
-    final toolsAsync = ref.watch(toolsProvider);
     final pizzaState = ref.watch(pizzaStateProvider);
 
     _o11yLogger.debug('Home screen ViewModel initialized');
 
-    return HomeScreenUiState(
-      isLoggedIn: isLoggedIn,
-      toolsAsync: toolsAsync,
-      pizzaState: pizzaState,
-    );
+    return HomeScreenUiState(pizzaState: pizzaState);
   }
 
   // ---------------------------------------------------------------------------
@@ -101,25 +77,8 @@ class _HomeScreenViewModel extends Notifier<HomeScreenUiState>
   // ---------------------------------------------------------------------------
 
   @override
-  Future<void> navigateToProfile() async {
-    if (state.isLoggedIn) {
-      _router.push(AppRoutes.profile);
-    } else {
-      await _router.push(AppRoutes.login);
-      // TODO: Do we need this?
-      // Refresh tools after returning (user may have logged in)
-      ref.invalidate(toolsProvider);
-    }
-  }
-
-  @override
-  Future<void> getPizza(Restrictions restrictions) async {
-    await _pizzaStateNotifier.getPizza(restrictions);
-  }
-
-  @override
   Future<void> ratePizza(int stars, String type) async {
-    final pizzaState = state.pizzaState;
+    final pizzaState = ref.read(pizzaStateProvider);
     if (pizzaState.pizza == null) return;
 
     try {
@@ -187,7 +146,7 @@ final homeScreenUiStateProvider = Provider<HomeScreenUiState>((ref) {
 /// Example:
 /// ```dart
 /// final actions = ref.read(homeScreenActionsProvider);
-/// actions.navigateToProfile();
+/// actions.ratePizza(5, 'love');
 /// ```
 final homeScreenActionsProvider = Provider<HomeScreenActions>((ref) {
   return ref.read(_homeScreenViewModelProvider.notifier);
