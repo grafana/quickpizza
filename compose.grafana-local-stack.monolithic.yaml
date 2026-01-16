@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.12.0
+    image: grafana/alloy:v1.12.0@sha256:85e4a706181741dd735d9a69bea81f9e03e16d5349bff46dd9640379f143c007
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -36,7 +36,7 @@ services:
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: quickpizza
     labels:
       - "service.type=application"
@@ -60,7 +60,7 @@ services:
         condition: service_healthy
 
   quickpizza-db:
-    image: postgres:18.1
+    image: postgres:18.1@sha256:5773fe724c49c42a7a9ca70202e11e1dff21fb7235b335a73f39297d200b73a2
     container_name: quickpizza-db
     labels:
       - "service.type=database"
@@ -80,7 +80,7 @@ services:
       retries: 5
 
   loki:
-    image: grafana/loki:3.4.3
+    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
     container_name: loki
     labels:
       - "service.type=instrumentation"
@@ -88,7 +88,7 @@ services:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.9.1
+    image: prom/prometheus:v3.9.1@sha256:1f0f50f06acaceb0f5670d2c8a658a599affe7b0d8e78b898c1035653849a702
     container_name: prometheus
     labels:
       - "service.type=instrumentation"
@@ -110,7 +110,7 @@ services:
       - "4040:4040"
 
   tempo:
-    image: grafana/tempo:2.9.0
+    image: grafana/tempo:2.9.0@sha256:65a5789759435f1ef696f1953258b9bbdb18eb571d5ce711ff812d2e128288a4
     container_name: tempo
     labels:
       - "service.type=instrumentation"
