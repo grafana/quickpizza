@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobile_o11y_demo/core/localization/app_localizations.dart';
 import 'package:flutter_mobile_o11y_demo/core/localization/app_localizations_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/quick_pizza_app_bar.dart';
 import '../models/restrictions.dart';
 import 'home_screen_view_model.dart';
 import 'widgets/customize_section.dart';
@@ -29,7 +29,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      appBar: _buildAppBar(uiState, actions, l10n),
+      appBar: const QuickPizzaAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -91,50 +91,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  AppBar _buildAppBar(
-    HomeScreenUiState uiState,
-    HomeScreenActions actions,
-    AppLocalizations l10n,
-  ) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      title: Row(
-        children: [
-          Icon(Icons.local_pizza, color: Colors.red.shade600, size: 28),
-          const SizedBox(width: 8),
-          Text(
-            l10n.appName,
-            style: TextStyle(
-              color: Colors.red.shade600,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: GestureDetector(
-            onTap: actions.navigateToProfile,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: uiState.isLoggedIn
-                  ? Colors.orange
-                  : Colors.grey.shade300,
-              child: Icon(
-                uiState.isLoggedIn ? Icons.person : Icons.person_outline,
-                color: uiState.isLoggedIn ? Colors.white : Colors.grey.shade600,
-                size: 20,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

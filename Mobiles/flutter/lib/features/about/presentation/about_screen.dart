@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_version_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/config/config_service.dart';
 import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/o11y/events/o11y_events.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/quick_pizza_app_bar.dart';
 
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
@@ -32,24 +33,7 @@ class AboutScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          children: [
-            Icon(Icons.local_pizza, color: Colors.red.shade600, size: 28),
-            const SizedBox(width: 8),
-            Text(
-              l10n.appName,
-              style: TextStyle(
-                color: Colors.red.shade600,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-      ),
+      appBar: const QuickPizzaAppBar(),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
