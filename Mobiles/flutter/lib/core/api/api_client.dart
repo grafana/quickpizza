@@ -14,6 +14,7 @@ final apiClientProvider = Provider((ref) {
     o11yLogger: ref.watch(o11yLoggerProvider),
     o11yMetrics: ref.watch(o11yMetricsProvider),
     o11yErrors: ref.watch(o11yErrorsProvider),
+    httpClient: http.Client(),
   );
 });
 
@@ -24,11 +25,16 @@ class ApiClient {
     required O11yLogger o11yLogger,
     required O11yMetrics o11yMetrics,
     required O11yErrors o11yErrors,
-  })  : _configService = configService,
-        _o11yLogger = o11yLogger,
-        _o11yMetrics = o11yMetrics,
-        _o11yErrors = o11yErrors;
+    required http.Client httpClient,
+  }) : _configService = configService,
+       _o11yLogger = o11yLogger,
+       _o11yMetrics = o11yMetrics,
+       _o11yErrors = o11yErrors,
+       _httpClient = httpClient;
 
+  static const _timeout = Duration(seconds: 30);
+
+  final http.Client _httpClient;
   final ConfigService _configService;
   // ignore: unused_field
   final O11yLogger _o11yLogger;
@@ -48,23 +54,19 @@ class ApiClient {
   bool get isAuthenticated => _userToken != null && _userToken!.isNotEmpty;
 
   Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        if (_userToken != null && _userToken!.isNotEmpty)
-          'Authorization': 'Token $_userToken',
-      };
+    'Content-Type': 'application/json',
+    if (_userToken != null && _userToken!.isNotEmpty)
+      'Authorization': 'Token $_userToken',
+  };
 
-  Future<http.Response> get(
-    String endpoint, {
-    String? endpointName,
-  }) async {
+  Future<http.Response> get(String endpoint, {String? endpointName}) async {
     final name = endpointName ?? endpoint;
     final stopwatch = Stopwatch()..start();
 
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _headers,
-      );
+      final response = await _httpClient
+          .get(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .timeout(_timeout);
       stopwatch.stop();
 
       _o11yMetrics.addMeasurement('api.request.duration', {
@@ -96,12 +98,16 @@ class ApiClient {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final headers = includeAuth ? _headers : {'Content-Type': 'application/json'};
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final headers = includeAuth
+          ? _headers
+          : {'Content-Type': 'application/json'};
+      final response = await _httpClient
+          .post(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(_timeout);
       stopwatch.stop();
 
       _o11yMetrics.addMeasurement('api.request.duration', {
@@ -123,18 +129,14 @@ class ApiClient {
     }
   }
 
-  Future<http.Response> delete(
-    String endpoint, {
-    String? endpointName,
-  }) async {
+  Future<http.Response> delete(String endpoint, {String? endpointName}) async {
     final name = endpointName ?? endpoint;
     final stopwatch = Stopwatch()..start();
 
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: _headers,
-      );
+      final response = await _httpClient
+          .delete(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .timeout(_timeout);
       stopwatch.stop();
 
       _o11yMetrics.addMeasurement('api.request.duration', {
