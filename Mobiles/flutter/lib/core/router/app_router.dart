@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/about/ui/about_screen.dart';
-import '../../features/auth/ui/login_screen.dart';
-import '../../features/pizza/ui/home_screen.dart';
-import '../../features/profile/ui/profile_screen.dart';
-import '../../features/shell/ui/main_shell.dart';
+import '../../features/about/presentation/about_screen.dart';
+import '../../features/auth/presentation/login_screen.dart';
+import '../../features/pizza/presentation/home_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/shell/presentation/main_shell.dart';
 
 /// Route paths as constants for type-safe navigation
 abstract class AppRoutes {

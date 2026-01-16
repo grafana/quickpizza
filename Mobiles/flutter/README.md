@@ -97,17 +97,79 @@ flutter run --dart-define-from-file=config.json
 ```
 lib/
 ├── main.dart                 # App entry point
-├── models/
-│   ├── pizza.dart           # Pizza data models
-│   ├── rating.dart          # Rating data model
-│   └── restrictions.dart    # Pizza search restrictions model
-├── screens/
-│   ├── home_screen.dart     # Main pizza recommendation screen
-│   └── login_screen.dart    # Login and profile screen
-└── services/
-    ├── api_service.dart     # API communication service
-    └── config_service.dart  # Configuration service (handles env vars and platform detection)
+├── core/                     # Shared infrastructure & cross-cutting concerns
+│   ├── config/              # App configuration & environment
+│   ├── localization/        # i18n/l10n support
+│   ├── o11y/                # Observability (logging, errors, events, metrics)
+│   ├── router/              # Navigation/routing setup
+│   └── theme/               # Theming & colors
+└── features/                 # Feature modules (see Architecture below)
 ```
+
+## Architecture
+
+This app follows an **MVVM (Model-View-ViewModel)** architecture pattern with clear separation of concerns. Each feature is organized into three layers:
+
+### Feature Folder Structure
+
+```
+features/
+└── pizza/                    # Example feature
+    ├── domain/              # Business logic layer
+    │   ├── pizza_provider.dart      # Domain providers & notifiers
+    │   └── pizza_repository.dart    # Data access & API calls
+    ├── presentation/        # Presentation layer
+    │   ├── home_screen.dart         # UI (widgets)
+    │   ├── home_screen_view_model.dart  # ViewModel (UI state + actions)
+    │   └── widgets/                 # Reusable UI components
+    └── models/              # Data models
+        ├── pizza.dart
+        └── restrictions.dart
+```
+
+### Layer Responsibilities
+
+| Layer             | Purpose                      | Contains                                       |
+| ----------------- | ---------------------------- | ---------------------------------------------- |
+| **domain/**       | Business logic & data access | Repositories, domain providers, business rules |
+| **presentation/** | UI & presentation logic      | Screens, ViewModels, widgets                   |
+| **models/**       | Data structures              | Pure data classes, no behavior                 |
+
+### ViewModel Pattern
+
+ViewModels follow a hybrid Riverpod pattern that provides clean separation:
+
+```dart
+// UI State - pure data class
+class HomeScreenUiState {
+  final bool isLoggedIn;
+  final PizzaState pizzaState;
+  // ...
+}
+
+// Actions Interface - hides Riverpod implementation
+abstract interface class HomeScreenActions {
+  Future<void> navigateToProfile();
+  Future<void> getPizza(Restrictions restrictions);
+}
+
+// Usage in widgets - clean and testable
+final uiState = ref.watch(homeScreenUiStateProvider);
+final actions = ref.read(homeScreenActionsProvider);
+
+// State access
+backgroundColor: uiState.isLoggedIn ? Colors.orange : Colors.grey;
+
+// Action calls
+onTap: actions.navigateToProfile;
+```
+
+**Benefits:**
+
+- **Testability**: Easy to mock `HomeScreenActions` interface in tests
+- **Readability**: No Riverpod-specific syntax (`.notifier`) in widget code
+- **Separation**: UI state is a pure data class, actions are interface methods
+- **Discoverability**: New developers see plain Dart interfaces
 
 ## API Endpoints Used
 

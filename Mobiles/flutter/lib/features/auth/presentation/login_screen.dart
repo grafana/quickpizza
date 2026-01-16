@@ -7,7 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/router/app_router.dart';
-import '../logic/auth_provider.dart';
+import '../domain/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

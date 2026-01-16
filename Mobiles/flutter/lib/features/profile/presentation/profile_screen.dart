@@ -6,8 +6,8 @@ import '../../../core/localization/app_localizations_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
-import '../../auth/logic/auth_provider.dart';
-import '../../ratings/logic/ratings_provider.dart';
+import '../../auth/domain/auth_provider.dart';
+import '../../ratings/domain/ratings_provider.dart';
 import '../../ratings/models/rating.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
