@@ -20,7 +20,12 @@ class PizzaButton extends ConsumerWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: isLoading ? null : () => _onPressed(ref),
+        onPressed: isLoading
+            ? null
+            : () {
+                final restrictions = ref.read(restrictionsProvider);
+                ref.read(pizzaStateProvider.notifier).getPizza(restrictions);
+              },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.orange,
           foregroundColor: Colors.white,
@@ -55,10 +60,5 @@ class PizzaButton extends ConsumerWidget {
               ),
       ),
     );
-  }
-
-  void _onPressed(WidgetRef ref) {
-    final restrictions = ref.read(restrictionsProvider);
-    ref.read(pizzaStateProvider.notifier).getPizza(restrictions);
   }
 }

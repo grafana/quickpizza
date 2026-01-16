@@ -16,7 +16,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uiState = ref.watch(homeScreenUiStateProvider);
-    final actions = ref.read(homeScreenActionsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
@@ -44,11 +43,7 @@ class HomeScreen extends ConsumerWidget {
                 _ErrorMessage(message: uiState.pizzaState.errorMessage!),
 
               if (uiState.pizzaState.pizza != null)
-                PizzaCard(
-                  recommendation: uiState.pizzaState.pizza!,
-                  onRate: actions.ratePizza,
-                  rateResult: uiState.pizzaState.rateResult,
-                ),
+                PizzaCard(recommendation: uiState.pizzaState.pizza!),
 
               const SizedBox(height: 40),
             ],

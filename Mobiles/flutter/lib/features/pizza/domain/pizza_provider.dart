@@ -25,29 +25,21 @@ final pizzaStateProvider = NotifierProvider<PizzaStateNotifier, PizzaState>(
 );
 
 class PizzaState {
-  const PizzaState({
-    this.pizza,
-    this.isLoading = false,
-    this.errorMessage,
-    this.rateResult,
-  });
+  const PizzaState({this.pizza, this.isLoading = false, this.errorMessage});
 
   final PizzaRecommendation? pizza;
   final bool isLoading;
   final String? errorMessage;
-  final String? rateResult;
 
   PizzaState copyWith({
     PizzaRecommendation? pizza,
     bool? isLoading,
     String? errorMessage,
-    String? rateResult,
   }) {
     return PizzaState(
       pizza: pizza ?? this.pizza,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
-      rateResult: rateResult,
     );
   }
 }
@@ -62,29 +54,24 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
   O11yMetrics get _o11yMetrics => ref.read(o11yMetricsProvider);
 
   Future<void> getPizza(Restrictions restrictions) async {
-    _o11yEvents.startUserAction(
-      'getPizza',
-      {
-        'customized': (restrictions.maxCaloriesPerSlice != 1000 ||
-                restrictions.mustBeVegetarian ||
-                restrictions.excludedTools.isNotEmpty)
-            .toString(),
-        'vegetarian': restrictions.mustBeVegetarian.toString(),
-        'max_calories': restrictions.maxCaloriesPerSlice.toString(),
-        'min_toppings': restrictions.minNumberOfToppings.toString(),
-        'max_toppings': restrictions.maxNumberOfToppings.toString(),
-      },
-      triggerName: 'getPizzaButtonClick',
-    );
+    _o11yEvents.startUserAction('getPizza', {
+      'customized':
+          (restrictions.maxCaloriesPerSlice != 1000 ||
+                  restrictions.mustBeVegetarian ||
+                  restrictions.excludedTools.isNotEmpty)
+              .toString(),
+      'vegetarian': restrictions.mustBeVegetarian.toString(),
+      'max_calories': restrictions.maxCaloriesPerSlice.toString(),
+      'min_toppings': restrictions.minNumberOfToppings.toString(),
+      'max_toppings': restrictions.maxNumberOfToppings.toString(),
+    }, triggerName: 'getPizzaButtonClick');
 
     _o11yEvents.trackEvent(
       'pizza_requested',
-      context: {
-        'vegetarian': restrictions.mustBeVegetarian.toString(),
-      },
+      context: {'vegetarian': restrictions.mustBeVegetarian.toString()},
     );
 
-    state = state.copyWith(isLoading: true, errorMessage: null, rateResult: null);
+    state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
       final pizza = await _pizzaRepository.getPizzaRecommendation(restrictions);
@@ -107,7 +94,8 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
         _o11yLogger.warning('Pizza recommendation returned null');
         state = state.copyWith(
           isLoading: false,
-          errorMessage: 'Failed to get pizza recommendation. Please log in and try again.',
+          errorMessage:
+              'Failed to get pizza recommendation. Please log in and try again.',
         );
       }
     } catch (e, _) {
@@ -116,18 +104,7 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
           ? errorStr.substring(10)
           : errorStr;
 
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: errorMessage,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: errorMessage);
     }
-  }
-
-  void setRateResult(String result) {
-    state = state.copyWith(rateResult: result);
-  }
-
-  void clearRateResult() {
-    state = state.copyWith(rateResult: null);
   }
 }

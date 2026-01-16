@@ -3,18 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/app_localizations_provider.dart';
 import '../../models/pizza.dart';
+import 'rating_buttons.dart';
 
 class PizzaCard extends ConsumerWidget {
-  const PizzaCard({
-    super.key,
-    required this.recommendation,
-    required this.onRate,
-    this.rateResult,
-  });
+  const PizzaCard({super.key, required this.recommendation});
 
   final PizzaRecommendation recommendation;
-  final void Function(int stars, String type) onRate;
-  final String? rateResult;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,7 +28,7 @@ class PizzaCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.orange.withOpacity(0.15),
+                color: Colors.orange.withValues(alpha: 0.15),
                 blurRadius: 20,
                 offset: const Offset(0, 4),
               ),
@@ -43,64 +37,25 @@ class PizzaCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with pizza icon
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.local_pizza,
-                      color: Colors.orange,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.ourRecommendation,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          pizza.name,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              _PizzaHeader(title: pizza.name, subtitle: l10n.ourRecommendation),
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 12),
 
               // Details
-              _buildPizzaDetail(
+              _PizzaDetailRow(
                 icon: Icons.layers,
                 label: l10n.dough,
                 value: pizza.dough.name,
               ),
               const SizedBox(height: 8),
-              _buildPizzaDetail(
+              _PizzaDetailRow(
                 icon: Icons.restaurant,
                 label: l10n.tool,
                 value: pizza.tool,
               ),
               const SizedBox(height: 8),
-              _buildPizzaDetail(
+              _PizzaDetailRow(
                 icon: Icons.local_fire_department,
                 label: l10n.calories,
                 value: l10n.caloriesPerSlice(
@@ -109,69 +64,14 @@ class PizzaCard extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-              // Vegetarian badge
               if (recommendation.vegetarian == true)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.eco, size: 16, color: Colors.green.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.vegetarian,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _VegetarianBadge(label: l10n.vegetarian),
 
               const SizedBox(height: 16),
 
-              // Ingredients
-              Text(
-                l10n.ingredients,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: pizza.ingredients.map((ingredient) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      ingredient.name,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  );
-                }).toList(),
+              _IngredientsSection(
+                label: l10n.ingredients,
+                ingredients: pizza.ingredients,
               ),
             ],
           ),
@@ -179,66 +79,146 @@ class PizzaCard extends ConsumerWidget {
 
         const SizedBox(height: 20),
 
-        // Rating Buttons
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => onRate(1, 'pass'),
-                icon: const Text('👎', style: TextStyle(fontSize: 18)),
-                label: Text(l10n.pass),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(color: Colors.grey.shade300),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => onRate(5, 'love'),
-                icon: const Text('❤️', style: TextStyle(fontSize: 18)),
-                label: Text(l10n.loveIt),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade400,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        // Rate Result
-        if (rateResult != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(
-              rateResult!,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: rateResult!.contains('❤️')
-                    ? Colors.red.shade600
-                    : Colors.grey.shade600,
-              ),
-            ),
-          ),
+        RatingButtons(pizza: recommendation),
       ],
     );
   }
+}
 
-  Widget _buildPizzaDetail({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+class _IngredientsSection extends StatelessWidget {
+  const _IngredientsSection({required this.label, required this.ingredients});
+
+  final String label;
+  final List<Ingredient> ingredients;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: ingredients.map((ingredient) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                ingredient.name,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _VegetarianBadge extends StatelessWidget {
+  const _VegetarianBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.eco, size: 16, color: Colors.green.shade600),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.green.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PizzaHeader extends StatelessWidget {
+  const _PizzaHeader({required this.subtitle, required this.title});
+
+  final String subtitle;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.local_pizza, color: Colors.orange, size: 28),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PizzaDetailRow extends StatelessWidget {
+  const _PizzaDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Icon(icon, size: 18, color: Colors.grey.shade500),

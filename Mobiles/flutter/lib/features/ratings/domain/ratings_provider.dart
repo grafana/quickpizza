@@ -6,8 +6,9 @@ import '../models/rating.dart';
 import 'ratings_repository.dart';
 
 /// Provider for the list of user ratings
-final ratingsProvider =
-    AsyncNotifierProvider<RatingsNotifier, List<Rating>>(RatingsNotifier.new);
+final ratingsProvider = AsyncNotifierProvider<RatingsNotifier, List<Rating>>(
+  RatingsNotifier.new,
+);
 
 class RatingsNotifier extends AsyncNotifier<List<Rating>> {
   @override
@@ -15,7 +16,8 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
     return [];
   }
 
-  RatingsRepository get _ratingsRepository => ref.read(ratingsRepositoryProvider);
+  RatingsRepository get _ratingsRepository =>
+      ref.read(ratingsRepositoryProvider);
   O11yEvents get _o11yEvents => ref.read(o11yEventsProvider);
   O11yMetrics get _o11yMetrics => ref.read(o11yMetricsProvider);
 
@@ -29,28 +31,22 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
     }
   }
 
-  Future<bool> ratePizza(int pizzaId, int stars, String type) async {
-    _o11yEvents.startUserAction(
-      'ratePizza',
-      {
-        'pizza_id': pizzaId.toString(),
-        'stars': stars.toString(),
-        'type': type,
-      },
-      triggerName: 'ratePizzaButtonClick',
-    );
+  Future<bool> ratePizza({required int pizzaId, required int stars}) async {
+    _o11yEvents.startUserAction('ratePizza', {
+      'pizza_id': pizzaId.toString(),
+      'stars': stars.toString(),
+    }, triggerName: 'ratePizzaButtonClick');
 
     _o11yEvents.trackEvent(
       'pizza_rated',
-      context: {
-        'pizza_id': pizzaId.toString(),
-        'stars': stars.toString(),
-        'rating_type': type,
-      },
+      context: {'pizza_id': pizzaId.toString(), 'stars': stars.toString()},
     );
 
     try {
-      final success = await _ratingsRepository.ratePizza(pizzaId, stars);
+      final success = await _ratingsRepository.ratePizza(
+        pizzaId: pizzaId,
+        stars: stars,
+      );
       if (success) {
         _o11yMetrics.addMeasurement('pizza.rating', {
           'pizza_id': pizzaId,

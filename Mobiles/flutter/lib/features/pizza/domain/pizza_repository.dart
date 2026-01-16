@@ -24,10 +24,10 @@ class PizzaRepository {
     required O11yLogger o11yLogger,
     required O11yMetrics o11yMetrics,
     required O11yErrors o11yErrors,
-  })  : _apiClient = apiClient,
-        _o11yLogger = o11yLogger,
-        _o11yMetrics = o11yMetrics,
-        _o11yErrors = o11yErrors;
+  }) : _apiClient = apiClient,
+       _o11yLogger = o11yLogger,
+       _o11yMetrics = o11yMetrics,
+       _o11yErrors = o11yErrors;
 
   final ApiClient _apiClient;
   final O11yLogger _o11yLogger;
@@ -134,10 +134,7 @@ class PizzaRepository {
         _o11yErrors.reportError(
           type: 'API',
           error: errorMsg,
-          context: {
-            'endpoint': 'getPizzaRecommendation',
-            'status_code': '403',
-          },
+          context: {'endpoint': 'getPizzaRecommendation', 'status_code': '403'},
         );
         throw Exception(errorMsg);
       } else {

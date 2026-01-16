@@ -81,6 +81,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loveIt => 'Love it!';
 
   @override
+  String get rated => 'Rated!';
+
+  @override
   String get savedToFavorites => 'Saved to favorites!';
 
   @override

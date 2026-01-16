@@ -141,32 +141,50 @@ ViewModels follow a hybrid Riverpod pattern that provides clean separation:
 
 ```dart
 // UI State - pure data class
-class HomeScreenUiState {
-  final bool isLoggedIn;
-  final PizzaState pizzaState;
-  // ...
+class RatingButtonsUiState {
+  const RatingButtonsUiState({this.rateResult, this.isLoading = false});
+
+  final String? rateResult;
+  final bool isLoading;
 }
 
-// Actions Interface - hides Riverpod implementation
-abstract interface class HomeScreenActions {
-  Future<void> navigateToProfile();
-  Future<void> getPizza(Restrictions restrictions);
+// Actions interface - defines what the ViewModel can do
+abstract interface class RatingButtonsActions {
+  Future<void> ratePizza({required int stars});
 }
 
-// Usage in widgets - clean and testable
-final uiState = ref.watch(homeScreenUiStateProvider);
-final actions = ref.read(homeScreenActionsProvider);
+class RatingButtonsViewModel extends Notifier<RatingButtonsUiState>
+    implements RatingButtonsActions {
+  RatingButtonsViewModel(this.pizzaId);
+  final int pizzaId;
 
-// State access
-backgroundColor: uiState.isLoggedIn ? Colors.orange : Colors.grey;
+  @override
+  RatingButtonsUiState build() => const RatingButtonsUiState();
 
-// Action calls
-onTap: actions.navigateToProfile;
+  @override
+  Future<void> ratePizza({required int stars}) async { /* ... */ }
+}
+
+// UI State provider with family parameter
+final ratingButtonsUiStateProvider = NotifierProvider.family<
+    RatingButtonsViewModel, RatingButtonsUiState, int>(
+  RatingButtonsViewModel.new,
+);
+
+// Actions provider - exposes the interface, hides Riverpod details
+final ratingButtonsActionsProvider = Provider.family<RatingButtonsActions, int>(
+  (ref, pizzaId) => ref.watch(ratingButtonsUiStateProvider(pizzaId).notifier),
+);
+
+// Usage in widgets
+final uiState = ref.watch(ratingButtonsUiStateProvider(pizzaId));
+final actions = ref.watch(ratingButtonsActionsProvider(pizzaId));
+onPressed: () => actions.ratePizza(stars: 5);
 ```
 
 **Benefits:**
 
-- **Testability**: Easy to mock `HomeScreenActions` interface in tests
+- **Testability**: Easy to mock `RatingButtonsActions` interface in tests
 - **Readability**: No Riverpod-specific syntax (`.notifier`) in widget code
 - **Separation**: UI state is a pure data class, actions are interface methods
 - **Discoverability**: New developers see plain Dart interfaces

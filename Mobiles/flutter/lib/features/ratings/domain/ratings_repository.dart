@@ -23,17 +23,17 @@ class RatingsRepository {
     required O11yLogger o11yLogger,
     required O11yMetrics o11yMetrics,
     required O11yErrors o11yErrors,
-  })  : _apiClient = apiClient,
-        _o11yLogger = o11yLogger,
-        _o11yMetrics = o11yMetrics,
-        _o11yErrors = o11yErrors;
+  }) : _apiClient = apiClient,
+       _o11yLogger = o11yLogger,
+       _o11yMetrics = o11yMetrics,
+       _o11yErrors = o11yErrors;
 
   final ApiClient _apiClient;
   final O11yLogger _o11yLogger;
   final O11yMetrics _o11yMetrics;
   final O11yErrors _o11yErrors;
 
-  Future<bool> ratePizza(int pizzaId, int stars) async {
+  Future<bool> ratePizza({required int pizzaId, required int stars}) async {
     try {
       final rating = Rating(id: 0, pizzaId: pizzaId, stars: stars);
       final response = await _apiClient.post(
