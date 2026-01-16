@@ -41,7 +41,7 @@ class HomeScreen extends ConsumerWidget {
 
               // Error Message
               if (uiState.pizzaState.errorMessage != null)
-                _buildErrorMessage(uiState.pizzaState.errorMessage!),
+                _ErrorMessage(message: uiState.pizzaState.errorMessage!),
 
               if (uiState.pizzaState.pizza != null)
                 PizzaCard(
@@ -57,8 +57,15 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildErrorMessage(String message) {
+class _ErrorMessage extends StatelessWidget {
+  const _ErrorMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(12),
