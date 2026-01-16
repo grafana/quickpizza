@@ -12,7 +12,7 @@ x-quickpizza-env-common: &quickpizza-env-common
 name: quickpizza
 services:
   alloy:
-    image: grafana/alloy:v1.12.0
+    image: grafana/alloy:v1.12.0@sha256:85e4a706181741dd735d9a69bea81f9e03e16d5349bff46dd9640379f143c007
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -48,7 +48,7 @@ services:
       - grpc
 
   catalog:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: catalog
     labels:
       - "service.type=application"
@@ -68,7 +68,7 @@ services:
         condition: service_healthy
 
   config:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: config
     labels:
       - "service.type=application"
@@ -83,7 +83,7 @@ services:
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-QuickPizza}"
       QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY: "${QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY:-false}"
   copy:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: copy
     labels:
       - "service.type=application"
@@ -105,7 +105,7 @@ services:
         condition: service_started
 
   public-api:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: public-api
     labels:
       - "service.type=application"
@@ -119,7 +119,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
 
   recommendations:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: recommendations
     labels:
       - "service.type=application"
@@ -131,7 +131,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
 
   ws:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: ws
     labels:
       - "service.type=application"
@@ -143,7 +143,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
 
   grpc:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     container_name: grpc
     labels:
       - "service.type=application"
@@ -157,7 +157,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "grpc"
 
   quickpizza-db:
-    image: postgres:18.1
+    image: postgres:18.1@sha256:5773fe724c49c42a7a9ca70202e11e1dff21fb7235b335a73f39297d200b73a2
     container_name: quickpizza-db
     labels:
       - "service.type=database"

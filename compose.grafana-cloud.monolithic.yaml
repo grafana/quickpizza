@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.12.0
+    image: grafana/alloy:v1.12.0@sha256:85e4a706181741dd735d9a69bea81f9e03e16d5349bff46dd9640379f143c007
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -31,7 +31,7 @@ services:
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     # Alloy reads `container_name` to relabel service name in telemetry.
     container_name: quickpizza
     labels:
@@ -61,7 +61,7 @@ services:
         condition: service_healthy
 
   quickpizza-db:
-    image: postgres:18.1
+    image: postgres:18.1@sha256:5773fe724c49c42a7a9ca70202e11e1dff21fb7235b335a73f39297d200b73a2
     container_name: quickpizza-db
     labels:
       - "service.type=database"
