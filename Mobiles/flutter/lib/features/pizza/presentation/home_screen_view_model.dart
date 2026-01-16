@@ -24,18 +24,16 @@ import '../models/restrictions.dart';
 class HomeScreenUiState extends Equatable {
   const HomeScreenUiState({
     required this.isLoggedIn,
-    required this.quoteAsync,
     required this.toolsAsync,
     required this.pizzaState,
   });
 
   final bool isLoggedIn;
-  final AsyncValue<String> quoteAsync;
   final AsyncValue<List<String>> toolsAsync;
   final PizzaState pizzaState;
 
   @override
-  List<Object?> get props => [isLoggedIn, quoteAsync, toolsAsync, pizzaState];
+  List<Object?> get props => [isLoggedIn, toolsAsync, pizzaState];
 }
 
 // =============================================================================
@@ -86,7 +84,6 @@ class _HomeScreenViewModel extends Notifier<HomeScreenUiState>
 
     // Watch state providers (triggers rebuild when these change)
     final isLoggedIn = ref.watch(isLoggedInProvider);
-    final quoteAsync = ref.watch(quoteProvider);
     final toolsAsync = ref.watch(toolsProvider);
     final pizzaState = ref.watch(pizzaStateProvider);
 
@@ -94,7 +91,6 @@ class _HomeScreenViewModel extends Notifier<HomeScreenUiState>
 
     return HomeScreenUiState(
       isLoggedIn: isLoggedIn,
-      quoteAsync: quoteAsync,
       toolsAsync: toolsAsync,
       pizzaState: pizzaState,
     );

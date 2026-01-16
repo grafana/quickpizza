@@ -36,11 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             children: [
               // Quote Card
-              uiState.quoteAsync.when(
-                data: (quote) => QuoteCard(quote: quote),
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
+              const QuoteCard(),
               const SizedBox(height: 24),
 
               // Hero Text
