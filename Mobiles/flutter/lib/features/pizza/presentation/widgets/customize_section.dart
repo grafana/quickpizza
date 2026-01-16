@@ -239,7 +239,11 @@ class _VegetarianToggle extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
-          Switch(value: value, onChanged: onChanged, activeColor: Colors.green),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: Colors.green,
+          ),
         ],
       ),
     );

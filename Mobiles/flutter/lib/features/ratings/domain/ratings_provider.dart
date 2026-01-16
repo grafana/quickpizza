@@ -32,11 +32,6 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
   }
 
   Future<bool> ratePizza({required int pizzaId, required int stars}) async {
-    _o11yEvents.startUserAction('ratePizza', {
-      'pizza_id': pizzaId.toString(),
-      'stars': stars.toString(),
-    }, triggerName: 'ratePizzaButtonClick');
-
     _o11yEvents.trackEvent(
       'pizza_rated',
       context: {'pizza_id': pizzaId.toString(), 'stars': stars.toString()},
@@ -63,12 +58,6 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
 
   Future<bool> deleteRatings() async {
     final currentRatings = state.value ?? [];
-    _o11yEvents.startUserAction(
-      'userDeleteRatings',
-      {'count': currentRatings.length.toString()},
-      triggerName: 'userDeleteRatingsButtonClick',
-      importance: 'critical',
-    );
 
     _o11yEvents.trackEvent(
       'ratings_deleted',

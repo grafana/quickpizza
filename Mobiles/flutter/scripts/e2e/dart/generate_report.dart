@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'package:yaml/yaml.dart';
 import 'package:path/path.dart' as path;
@@ -403,7 +405,7 @@ Future<void> generateHtml(String resultPath, String basePath) async {
                   <div class="section-label">📊 Assertion Check</div>
                   <div class="assertion-content">
                     <div class="progress-bar $progressClass" style="--progress: $percent%">
-                      <span class="progress-value">${percent}%</span>
+                      <span class="progress-value">$percent%</span>
                     </div>
                     ${parsed['prompt'] != null ? '<div class="assertion-prompt"><strong>Checking:</strong> ${parsed['prompt']}</div>' : ''}
                     ${parsed['explanation'] != null ? '<div class="assertion-explanation">${parsed['explanation']}</div>' : ''}

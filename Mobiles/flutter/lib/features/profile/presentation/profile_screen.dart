@@ -119,7 +119,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -163,7 +163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      error: (_, __) => Text(
+                      error: (_, _) => Text(
                         l10n.pizzasRated(0),
                         style: TextStyle(
                           fontSize: 14,
@@ -184,7 +184,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ratingsAsync.when(
                 data: (ratings) => _buildActionButtons(ratings, l10n),
                 loading: () => _buildActionButtons([], l10n),
-                error: (_, __) => _buildActionButtons([], l10n),
+                error: (_, _) => _buildActionButtons([], l10n),
               ),
             ],
           ),
@@ -205,7 +205,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -277,7 +277,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: ratings.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final rating = ratings[index];
         return Padding(

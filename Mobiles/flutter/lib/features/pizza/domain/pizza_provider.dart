@@ -59,18 +59,6 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
   O11yMetrics get _o11yMetrics => ref.read(o11yMetricsProvider);
 
   Future<void> getPizza(Restrictions restrictions) async {
-    _o11yEvents.startUserAction('getPizza', {
-      'customized':
-          (restrictions.maxCaloriesPerSlice != 1000 ||
-                  restrictions.mustBeVegetarian ||
-                  restrictions.excludedTools.isNotEmpty)
-              .toString(),
-      'vegetarian': restrictions.mustBeVegetarian.toString(),
-      'max_calories': restrictions.maxCaloriesPerSlice.toString(),
-      'min_toppings': restrictions.minNumberOfToppings.toString(),
-      'max_toppings': restrictions.maxNumberOfToppings.toString(),
-    }, triggerName: 'getPizzaButtonClick');
-
     _o11yEvents.trackEvent(
       'pizza_requested',
       context: {'vegetarian': restrictions.mustBeVegetarian.toString()},

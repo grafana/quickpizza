@@ -18,12 +18,6 @@ abstract class O11yEvents {
     String? email,
     Map<String, String>? attributes,
   });
-  void startUserAction(
-    String actionName,
-    Map<String, String>? context, {
-    String? triggerName,
-    String? importance,
-  });
 }
 
 class FaroO11yEvents implements O11yEvents {
@@ -63,36 +57,5 @@ class FaroO11yEvents implements O11yEvents {
             attributes: attributes,
           );
     _faro.setUser(user);
-  }
-
-  /// Start tracking a user action (equivalent to faro.api.startUserAction in web SDK)
-  /// This method marks the start of a user action that will be visible in Frontend Observability
-
-  @override
-  void startUserAction(
-    String actionName,
-    Map<String, String>? context, {
-    String? triggerName,
-    String? importance,
-  }) {
-    // Convert context to a format suitable for markEventStart
-    // Use actionName as both key and name for consistency
-    final eventKey = 'userAction_$actionName';
-    final eventName = actionName;
-
-    // Add trigger name and importance to context if provided
-    final enhancedContext = <String, String>{...context ?? {}};
-    if (triggerName != null) {
-      enhancedContext['triggerName'] = triggerName;
-    }
-    if (importance != null) {
-      enhancedContext['importance'] = importance;
-    }
-
-    // Mark the start of the user action
-    _faro.markEventStart(eventKey, eventName);
-
-    // Also push an event with attributes for better visibility
-    _faro.pushEvent(actionName, attributes: enhancedContext);
   }
 }

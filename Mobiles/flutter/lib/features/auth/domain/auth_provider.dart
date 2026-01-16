@@ -51,12 +51,6 @@ class AuthStateNotifier extends Notifier<AuthState> {
   O11yLogger get _o11yLogger => ref.read(o11yLoggerProvider);
 
   Future<bool> login(String username, String password) async {
-    _o11yEvents.startUserAction(
-      'userLogin',
-      {'username': username},
-      triggerName: 'userLoginButtonClick',
-      importance: 'critical',
-    );
     _o11yEvents.trackStartEvent('login_attempt', 'user_login');
 
     state = state.copyWith(isLoading: true, errorMessage: null);
