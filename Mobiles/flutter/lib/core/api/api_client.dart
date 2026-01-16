@@ -32,7 +32,7 @@ class ApiClient {
        _o11yErrors = o11yErrors,
        _httpClient = httpClient;
 
-  static const _timeout = Duration(seconds: 30);
+  static const _timeout = Duration(seconds: 10);
 
   final http.Client _httpClient;
   final ConfigService _configService;
