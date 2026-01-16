@@ -137,6 +137,12 @@ class PizzaRepository {
           context: {'endpoint': 'getPizzaRecommendation', 'status_code': '403'},
         );
         throw Exception(errorMsg);
+      } else if (response.statusCode >= 500) {
+        _o11yLogger.warning(
+          'Server error for pizza recommendation',
+          context: {'status_code': response.statusCode.toString()},
+        );
+        throw Exception('Server error - please try again later');
       } else {
         _o11yLogger.warning(
           'Unexpected status code for pizza recommendation',

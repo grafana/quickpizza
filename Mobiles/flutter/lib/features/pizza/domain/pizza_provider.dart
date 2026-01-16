@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/o11y/metrics/o11y_metrics.dart';
+import '../../auth/domain/auth_provider.dart';
 import '../models/pizza.dart';
 import '../models/restrictions.dart';
 import 'pizza_repository.dart';
@@ -14,7 +15,11 @@ final quoteProvider = FutureProvider.autoDispose<String>((ref) async {
 });
 
 /// Provider for available tools
+/// Watches [isLoggedInProvider] to automatically refetch when auth state changes
 final toolsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
+  // Watch auth state - this causes the provider to refetch when login/logout occurs
+  ref.watch(isLoggedInProvider);
+
   final repository = ref.watch(pizzaRepositoryProvider);
   return repository.getTools();
 });
