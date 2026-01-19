@@ -11,6 +11,17 @@
       "toolArgs": [
         "--dart-define-from-file=config.json"
       ]
+    },
+    {
+      "type": "dart",
+      "request": "launch",
+      "name": "Flutter (debug with driver)",
+      "program": "lib/driver_main.dart",
+      "cwd": "Mobiles/flutter",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define-from-file=config.json"
+      ]
     }
   ]
 }

@@ -224,6 +224,38 @@ flutter run -d android
 flutter run -d ios
 ```
 
+## AI-Assisted Testing with MCP
+
+This app supports AI-assisted testing via the Dart MCP server. An AI assistant (like Cursor) can navigate, interact with, and test the running app.
+
+### Setup
+
+1. **Launch with Flutter Driver enabled:**
+
+   - In VS Code/Cursor, select **"Flutter (debug with driver)"** from the Run and Debug panel
+   - Or run: `flutter run --dart-define-from-file=config.json lib/driver_main.dart`
+
+2. **Get the DTD (Dart Tooling Daemon) URI:**
+
+   - After the app launches, look in the Debug Console for the DTD URI
+   - Or use the **"Copy DTD URI to clipboard"** action in VS Code/Cursor
+   - The URI looks like: `ws://127.0.0.1:61788/Jc_1sL6labM=`
+
+3. **Provide the DTD URI to your AI assistant:**
+   - Tell the AI: "Here is the DTD: `ws://...`"
+   - The AI can then connect and interact with your app (tap buttons, enter text, scroll, inspect widgets)
+
+### What the AI can do
+
+- Navigate between screens
+- Tap buttons and interact with UI elements
+- Enter text in form fields
+- Scroll views
+- Inspect the widget tree
+- Verify UI state and content
+
+> **Note:** The `driver_main.dart` entry point enables Flutter Driver extension which is required for programmatic interaction.
+
 ## Notes
 
 - The app generates a random token for anonymous usage on first launch

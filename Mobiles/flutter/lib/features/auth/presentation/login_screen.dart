@@ -125,6 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       TextField(
+                        key: const ValueKey('username_field'),
                         controller: _usernameController,
                         decoration: InputDecoration(
                           labelText: l10n.username,
@@ -140,6 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextField(
+                        key: const ValueKey('password_field'),
                         controller: _passwordController,
                         decoration: InputDecoration(
                           labelText: l10n.password,
@@ -185,6 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       const SizedBox(height: 24),
                       ElevatedButton(
+                        key: const ValueKey('sign_in_button'),
                         onPressed: authState.isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
