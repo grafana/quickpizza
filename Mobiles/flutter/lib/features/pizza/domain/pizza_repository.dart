@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/exceptions/app_exception.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/o11y/metrics/o11y_metrics.dart';
@@ -136,13 +137,13 @@ class PizzaRepository {
           error: errorMsg,
           context: {'endpoint': 'getPizzaRecommendation', 'status_code': '403'},
         );
-        throw Exception(errorMsg);
+        throw AppException(errorMsg);
       } else if (response.statusCode >= 500) {
         _o11yLogger.warning(
           'Server error for pizza recommendation',
           context: {'status_code': response.statusCode.toString()},
         );
-        throw Exception('Server error - please try again later');
+        throw AppException('Server error - please try again later');
       } else {
         _o11yLogger.warning(
           'Unexpected status code for pizza recommendation',
@@ -150,15 +151,15 @@ class PizzaRepository {
         );
         return null;
       }
+    } on AppException {
+      rethrow;
     } catch (e, stackTrace) {
-      if (e is Exception) {
-        _o11yErrors.reportError(
-          type: 'API',
-          error: 'Failed to get pizza recommendation: ${e.toString()}',
-          stacktrace: stackTrace,
-          context: {'endpoint': 'getPizzaRecommendation'},
-        );
-      }
+      _o11yErrors.reportError(
+        type: 'API',
+        error: 'Failed to get pizza recommendation: ${e.toString()}',
+        stacktrace: stackTrace,
+        context: {'endpoint': 'getPizzaRecommendation'},
+      );
       rethrow;
     }
   }

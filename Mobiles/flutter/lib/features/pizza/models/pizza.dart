@@ -1,11 +1,13 @@
-class Pizza {
+import 'package:equatable/equatable.dart';
+
+class Pizza extends Equatable {
   final int id;
   final String name;
   final Dough dough;
   final List<Ingredient> ingredients;
   final String tool;
 
-  Pizza({
+  const Pizza({
     required this.id,
     required this.name,
     required this.dough,
@@ -24,14 +26,17 @@ class Pizza {
       tool: json['tool'] as String,
     );
   }
+
+  @override
+  List<Object?> get props => [id, name, dough, ingredients, tool];
 }
 
-class Dough {
+class Dough extends Equatable {
   final int id;
   final String name;
   final int? caloriesPerSlice;
 
-  Dough({required this.id, required this.name, this.caloriesPerSlice});
+  const Dough({required this.id, required this.name, this.caloriesPerSlice});
 
   factory Dough.fromJson(Map<String, dynamic> json) {
     // Handle both "ID" (uppercase) and "id" (lowercase) for compatibility
@@ -42,15 +47,18 @@ class Dough {
       caloriesPerSlice: json['caloriesPerSlice'] as int?,
     );
   }
+
+  @override
+  List<Object?> get props => [id, name, caloriesPerSlice];
 }
 
-class Ingredient {
+class Ingredient extends Equatable {
   final int id;
   final String name;
   final int? caloriesPerSlice;
   final bool? vegetarian;
 
-  Ingredient({
+  const Ingredient({
     required this.id,
     required this.name,
     this.caloriesPerSlice,
@@ -67,14 +75,21 @@ class Ingredient {
       vegetarian: json['vegetarian'] as bool?,
     );
   }
+
+  @override
+  List<Object?> get props => [id, name, caloriesPerSlice, vegetarian];
 }
 
-class PizzaRecommendation {
+class PizzaRecommendation extends Equatable {
   final Pizza pizza;
   final int? calories;
   final bool? vegetarian;
 
-  PizzaRecommendation({required this.pizza, this.calories, this.vegetarian});
+  const PizzaRecommendation({
+    required this.pizza,
+    this.calories,
+    this.vegetarian,
+  });
 
   factory PizzaRecommendation.fromJson(Map<String, dynamic> json) {
     return PizzaRecommendation(
@@ -83,4 +98,7 @@ class PizzaRecommendation {
       vegetarian: json['vegetarian'] as bool?,
     );
   }
+
+  @override
+  List<Object?> get props => [pizza, calories, vegetarian];
 }

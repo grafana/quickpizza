@@ -50,13 +50,19 @@ class PizzaState {
 }
 
 class PizzaStateNotifier extends Notifier<PizzaState> {
-  @override
-  PizzaState build() => const PizzaState();
+  late PizzaRepository _pizzaRepository;
+  late O11yEvents _o11yEvents;
+  late O11yLogger _o11yLogger;
+  late O11yMetrics _o11yMetrics;
 
-  PizzaRepository get _pizzaRepository => ref.read(pizzaRepositoryProvider);
-  O11yEvents get _o11yEvents => ref.read(o11yEventsProvider);
-  O11yLogger get _o11yLogger => ref.read(o11yLoggerProvider);
-  O11yMetrics get _o11yMetrics => ref.read(o11yMetricsProvider);
+  @override
+  PizzaState build() {
+    _pizzaRepository = ref.watch(pizzaRepositoryProvider);
+    _o11yEvents = ref.watch(o11yEventsProvider);
+    _o11yLogger = ref.watch(o11yLoggerProvider);
+    _o11yMetrics = ref.watch(o11yMetricsProvider);
+    return PizzaState();
+  }
 
   Future<void> getPizza(Restrictions restrictions) async {
     _o11yEvents.trackEvent(
@@ -91,13 +97,13 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
               'Failed to get pizza recommendation. Please log in and try again.',
         );
       }
-    } catch (e, _) {
-      final errorStr = e.toString();
-      final errorMessage = errorStr.startsWith('Exception: ')
-          ? errorStr.substring(10)
-          : errorStr;
-
-      state = state.copyWith(isLoading: false, errorMessage: errorMessage);
+    } catch (error, stackTrace) {
+      _o11yLogger.error(
+        'Failed to get pizza recommendation',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      state = state.copyWith(isLoading: false, errorMessage: error.toString());
     }
   }
 }
