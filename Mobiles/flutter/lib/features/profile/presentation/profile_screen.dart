@@ -106,9 +106,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
               // Profile Header
@@ -188,6 +189,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );
