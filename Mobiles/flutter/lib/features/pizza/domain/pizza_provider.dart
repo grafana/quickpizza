@@ -62,11 +62,14 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
     _o11yLogger = ref.watch(o11yLoggerProvider);
     _o11yMetrics = ref.watch(o11yMetricsProvider);
 
-    // Reset pizza state when user logs out
+    // Reset pizza state when user logs out, clear error when user logs in
     ref.listen(isLoggedInProvider, (prev, next) {
       if (prev == true && next == false) {
-        // Delay to avoid modifying state during widget tree build
+        // User logged out - reset entire state
         Future.microtask(() => state = const PizzaState());
+      } else if (prev == false && next == true && state.errorMessage != null) {
+        // User logged in - clear any "please login" error messages
+        Future.microtask(() => state = state.copyWith(errorMessage: null));
       }
     });
 
