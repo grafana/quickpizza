@@ -1,35 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_version_provider.dart';
-import '../../../core/config/config_service.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/localization/app_localizations_provider.dart';
-import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/quick_pizza_app_bar.dart';
+import 'about_screen_view_model.dart';
+import 'widgets/feature_item.dart';
+import 'widgets/link_card.dart';
 
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
-  Future<void> _launchUrl(
-    String url,
-    String eventName,
-    O11yEvents o11yEvents,
-  ) async {
-    o11yEvents.trackEvent(eventName, context: {'url': url});
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = ref.watch(appLocalizationsProvider);
-    final appVersion = ref.watch(appVersionProvider);
-    final configService = ref.watch(configServiceProvider);
-    final o11yEvents = ref.watch(o11yEventsProvider);
+    final uiState = ref.watch(aboutScreenUiStateProvider);
+    final actions = ref.watch(aboutScreenActionsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
@@ -41,230 +28,22 @@ class AboutScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
+
               // Header
-              Center(
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.local_pizza,
-                      size: 64,
-                      color: Colors.orange,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.aboutQuickPizza,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.aboutDescription,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
+              _Header(l10n: l10n),
               const SizedBox(height: 40),
 
               // Links Section
-              Text(
-                l10n.links,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildLinkCard(
-                icon: Icons.code,
-                iconColor: Colors.black87,
-                title: l10n.contributeOnGitHub,
-                subtitle: l10n.viewSourceCodeAndContribute,
-                onTap: () => _launchUrl(
-                  'https://github.com/grafana/quickpizza',
-                  'github_link_clicked',
-                  o11yEvents,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildLinkCard(
-                icon: Icons.admin_panel_settings,
-                iconColor: Colors.blue,
-                title: l10n.adminDashboard,
-                subtitle: l10n.managePizzasAndIngredients,
-                onTap: () => _launchUrl(
-                  '${configService.baseUrl}/admin',
-                  'admin_link_clicked',
-                  o11yEvents,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildLinkCard(
-                icon: Icons.analytics,
-                iconColor: Colors.orange,
-                title: l10n.grafanaObservability,
-                subtitle: l10n.viewAppTelemetryAndDashboards,
-                onTap: () => _launchUrl(
-                  'https://grafana.com/products/cloud/',
-                  'grafana_link_clicked',
-                  o11yEvents,
-                ),
-              ),
-
+              _LinksSection(l10n: l10n, uiState: uiState, actions: actions),
               const SizedBox(height: 40),
 
               // About Section
-              Text(
-                l10n.aboutThisDemo,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.aboutDemoDescription,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.featuresDemo,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _FeatureItem(text: l10n.featureRum),
-                    _FeatureItem(text: l10n.featureErrorTracking),
-                    _FeatureItem(text: l10n.featureCustomEvents),
-                    _FeatureItem(text: l10n.featureDistributedTracing),
-                    _FeatureItem(text: l10n.featurePerformanceVitals),
-                  ],
-                ),
-              ),
-
+              _AboutSection(l10n: l10n, uiState: uiState),
               const SizedBox(height: 40),
 
               // Footer
-              Center(
-                child: Column(
-                  children: [
-                    Text(
-                      l10n.madeWithLove,
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.analytics,
-                          size: 16,
-                          color: Colors.orange.shade400,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          l10n.poweredByGrafanaFaro,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${l10n.versionLabel} $appVersion',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _Footer(l10n: l10n, appVersion: uiState.appVersion),
               const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLinkCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.grey.shade400),
             ],
           ),
         ),
@@ -273,20 +52,171 @@ class AboutScreen extends ConsumerWidget {
   }
 }
 
-class _FeatureItem extends StatelessWidget {
-  final String text;
+// =============================================================================
+// Private Widgets
+// =============================================================================
 
-  const _FeatureItem({required this.text});
+class _Header extends StatelessWidget {
+  const _Header({required this.l10n});
+
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+    return Center(
+      child: Column(
         children: [
-          Icon(Icons.check_circle, size: 16, color: Colors.green.shade600),
-          const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontSize: 14)),
+          const Icon(Icons.local_pizza, size: 64, color: Colors.orange),
+          const SizedBox(height: 16),
+          Text(
+            l10n.aboutQuickPizza,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.aboutDescription,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LinksSection extends StatelessWidget {
+  const _LinksSection({
+    required this.l10n,
+    required this.uiState,
+    required this.actions,
+  });
+
+  final AppLocalizations l10n;
+  final AboutScreenUiState uiState;
+  final AboutScreenActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.links,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...uiState.links.map(
+          (link) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: LinkCard(
+              icon: link.icon,
+              iconColor: link.iconColor,
+              title: link.title,
+              subtitle: link.subtitle,
+              onTap: () => actions.launchLink(link),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AboutSection extends StatelessWidget {
+  const _AboutSection({required this.l10n, required this.uiState});
+
+  final AppLocalizations l10n;
+  final AboutScreenUiState uiState;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.aboutThisDemo,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.aboutDemoDescription,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.featuresDemo,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...uiState.features.map(
+                (feature) => FeatureItem(text: feature),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer({required this.l10n, required this.appVersion});
+
+  final AppLocalizations l10n;
+  final String appVersion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        children: [
+          Text(
+            l10n.madeWithLove,
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.analytics, size: 16, color: Colors.orange.shade400),
+              const SizedBox(width: 4),
+              Text(
+                l10n.poweredByGrafanaFaro,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${l10n.versionLabel} $appVersion',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+          ),
         ],
       ),
     );
