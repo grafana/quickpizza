@@ -256,6 +256,19 @@ This app supports AI-assisted testing via the Dart MCP server. An AI assistant (
 
 > **Note:** The `driver_main.dart` entry point enables Flutter Driver extension which is required for programmatic interaction.
 
+## Versioning
+
+When adding new features or making significant changes, bump the version in `pubspec.yaml`:
+
+```yaml
+version: 1.2.0
+```
+
+This ensures the Faro SDK tracks different versions in telemetry, which is useful for:
+- Demonstrating version-based filtering in Grafana dashboards
+- Showing how metrics differ between app versions
+- Creating realistic observability demo scenarios
+
 ## Notes
 
 - The app generates a random token for anonymous usage on first launch
