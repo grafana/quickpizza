@@ -11,6 +11,7 @@ import 'core/o11y/faro/faro.dart';
 import 'core/o11y/loggers/o11y_logger.dart';
 import 'core/router/app_router.dart';
 import 'core/utils/faro_utils.dart';
+import 'features/auth/domain/auth_provider.dart';
 
 /// Bootstrap configuration for the app.
 class BootstrapConfig {
@@ -42,6 +43,9 @@ Future<void> bootstrap(BootstrapConfig config) async {
       ? ' (with Flutter Driver)'
       : '';
   logger.debug('App initialization started$driverSuffix');
+
+  // Restore auth session if user was previously logged in
+  await container.read(authStateProvider.notifier).restoreSession();
 
   // Get app version from package info provider (warms up the provider for later use)
   final packageInfo = await container.read(packageInfoProvider.future);

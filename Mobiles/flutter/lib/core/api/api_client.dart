@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,61 +6,80 @@ import 'package:http/http.dart' as http;
 
 import '../config/config_service.dart';
 import '../o11y/errors/o11y_errors.dart';
-import '../o11y/loggers/o11y_logger.dart';
 import '../o11y/metrics/o11y_metrics.dart';
+import '../storage/token_storage.dart';
 
 final apiClientProvider = Provider((ref) {
-  return ApiClient(
+  final apiClient = ApiClient(
     configService: ref.watch(configServiceProvider),
-    o11yLogger: ref.watch(o11yLoggerProvider),
+    tokenStorage: ref.watch(tokenStorageProvider),
     o11yMetrics: ref.watch(o11yMetricsProvider),
     o11yErrors: ref.watch(o11yErrorsProvider),
     httpClient: http.Client(),
   );
+  ref.onDispose(apiClient.dispose);
+  return apiClient;
 });
 
 /// Base API client that handles HTTP requests with observability
 class ApiClient {
   ApiClient({
     required ConfigService configService,
-    required O11yLogger o11yLogger,
+    required TokenStorage tokenStorage,
     required O11yMetrics o11yMetrics,
     required O11yErrors o11yErrors,
     required http.Client httpClient,
   }) : _configService = configService,
-       _o11yLogger = o11yLogger,
+       _tokenStorage = tokenStorage,
        _o11yMetrics = o11yMetrics,
        _o11yErrors = o11yErrors,
-       _httpClient = httpClient;
+       _httpClient = httpClient {
+    // Subscribe to session changes to keep cached token in sync
+    _sessionSubscription = _tokenStorage.sessionChanges.listen((session) {
+      _cachedToken = session.token;
+      _hasLoadedInitialToken = true;
+    });
+  }
 
   static const _timeout = Duration(seconds: 10);
 
   final http.Client _httpClient;
   final ConfigService _configService;
-  // ignore: unused_field
-  final O11yLogger _o11yLogger;
+  final TokenStorage _tokenStorage;
   final O11yMetrics _o11yMetrics;
   final O11yErrors _o11yErrors;
 
+  StreamSubscription<StoredSession>? _sessionSubscription;
+  String? _cachedToken;
+  bool _hasLoadedInitialToken = false;
+
   String get baseUrl => _configService.baseUrl;
 
-  String? _userToken;
-
-  void setUserToken(String? token) {
-    _userToken = token;
+  void dispose() {
+    _sessionSubscription?.cancel();
   }
 
-  String? get userToken => _userToken;
+  /// Ensures the token is loaded, either from cache or storage.
+  Future<void> _ensureTokenLoaded() async {
+    if (!_hasLoadedInitialToken) {
+      final session = await _tokenStorage.loadSession();
+      _cachedToken = session.token;
+      _hasLoadedInitialToken = true;
+    }
+  }
 
-  bool get isAuthenticated => _userToken != null && _userToken!.isNotEmpty;
+  String? get userToken => _cachedToken;
+
+  bool get isAuthenticated => _cachedToken != null && _cachedToken!.isNotEmpty;
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
-    if (_userToken != null && _userToken!.isNotEmpty)
-      'Authorization': 'Token $_userToken',
+    if (_cachedToken != null && _cachedToken!.isNotEmpty)
+      'Authorization': 'Token $_cachedToken',
   };
 
   Future<http.Response> get(String endpoint, {String? endpointName}) async {
+    await _ensureTokenLoaded();
     final name = endpointName ?? endpoint;
     final stopwatch = Stopwatch()..start();
 
@@ -94,6 +114,7 @@ class ApiClient {
     String? endpointName,
     bool includeAuth = true,
   }) async {
+    if (includeAuth) await _ensureTokenLoaded();
     final name = endpointName ?? endpoint;
     final stopwatch = Stopwatch()..start();
 
@@ -130,6 +151,7 @@ class ApiClient {
   }
 
   Future<http.Response> delete(String endpoint, {String? endpointName}) async {
+    await _ensureTokenLoaded();
     final name = endpointName ?? endpoint;
     final stopwatch = Stopwatch()..start();
 

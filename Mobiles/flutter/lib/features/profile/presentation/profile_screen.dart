@@ -28,7 +28,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _handleLogout() async {
-    ref.read(authStateProvider.notifier).logout();
+    await ref.read(authStateProvider.notifier).logout();
     ref.read(ratingsProvider.notifier).clear();
     if (mounted) {
       context.pop();

@@ -63,11 +63,7 @@ class AuthStateNotifier extends Notifier<AuthState> {
         'user_login',
         context: {'success': 'true', 'username': username},
       );
-      _o11yEvents.setUser(
-        id: username,
-        name: username,
-        email: '$username@quickpizza.com',
-      );
+      _o11yEvents.setUser(id: username, name: username);
       state = state.copyWith(
         isLoggedIn: true,
         username: username,
@@ -89,13 +85,34 @@ class AuthStateNotifier extends Notifier<AuthState> {
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
     final username = state.username;
     _o11yEvents.trackEvent(
       'user_logged_out',
       context: {'username': username ?? ''},
     );
-    _authRepository.logout();
+    _o11yEvents.setUser(); // Clear user in Faro
+    await _authRepository.logout();
     state = const AuthState();
+  }
+
+  /// Restores the user session from persistent storage.
+  ///
+  /// Called during app startup to restore the logged-in state
+  /// if the user was previously authenticated.
+  Future<void> restoreSession() async {
+    final session = await _authRepository.loadSession();
+
+    if (session.isValid) {
+      // Note: ApiClient will lazily load the token from TokenStorage when needed
+      // Note: Faro SDK auto-restores persisted user (persistUser: true by default)
+
+      state = state.copyWith(isLoggedIn: true, username: session.username);
+
+      _o11yLogger.debug(
+        'Session restored',
+        context: {'username': session.username!},
+      );
+    }
   }
 }

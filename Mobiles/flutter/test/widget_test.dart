@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_mobile_o11y_demo/main.dart';
+import 'package:flutter_mobile_o11y_demo/bootstrap.dart';
 
 void main() {
   testWidgets('QuickPizza app loads', (WidgetTester tester) async {
@@ -16,6 +16,9 @@ void main() {
 
     // Verify that the app title is present
     expect(find.text('QuickPizza'), findsWidgets);
-    expect(find.text('Looking to break out of your pizza routine?'), findsOneWidget);
+    expect(
+      find.text('Looking to break out of your pizza routine?'),
+      findsOneWidget,
+    );
   });
 }
