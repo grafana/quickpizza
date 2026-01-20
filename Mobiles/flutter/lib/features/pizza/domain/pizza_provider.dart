@@ -61,7 +61,16 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
     _o11yEvents = ref.watch(o11yEventsProvider);
     _o11yLogger = ref.watch(o11yLoggerProvider);
     _o11yMetrics = ref.watch(o11yMetricsProvider);
-    return PizzaState();
+
+    // Reset pizza state when user logs out
+    ref.listen(isLoggedInProvider, (prev, next) {
+      if (prev == true && next == false) {
+        // Delay to avoid modifying state during widget tree build
+        Future.microtask(() => state = const PizzaState());
+      }
+    });
+
+    return const PizzaState();
   }
 
   Future<void> getPizza(Restrictions restrictions) async {
