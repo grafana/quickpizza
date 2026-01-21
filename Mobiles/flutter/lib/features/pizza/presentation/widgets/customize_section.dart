@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/app_localizations_provider.dart';
@@ -43,6 +44,8 @@ class _CustomizeSectionState extends ConsumerState<CustomizeSection>
       if (_expanded) {
         _expandController.forward();
       } else {
+        // Unfocus any text fields before collapsing to prevent floating cursor
+        FocusScope.of(context).unfocus();
         _expandController.reverse();
       }
     });
@@ -306,7 +309,7 @@ class _Header extends StatelessWidget {
 
 /// Private widget for number input fields in the customize section.
 /// Wraps itself in [Expanded] for use in a [Row].
-class _NumberField extends StatelessWidget {
+class _NumberField extends StatefulWidget {
   const _NumberField({
     required this.label,
     required this.value,
@@ -318,11 +321,71 @@ class _NumberField extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
+  State<_NumberField> createState() => _NumberFieldState();
+}
+
+class _NumberFieldState extends State<_NumberField> {
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value.toString());
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update the controller if the external value changed
+    // and is different from what's currently in the text field.
+    // This prevents cursor jumps during user typing.
+    final currentTextValue = int.tryParse(_controller.text);
+    if (widget.value != oldWidget.value && widget.value != currentTextValue) {
+      _controller.text = widget.value.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    // Validate when the field loses focus
+    if (!_focusNode.hasFocus) {
+      final text = _controller.text;
+
+      // Treat empty string as 0
+      final parsed = text.isEmpty ? 0 : int.tryParse(text);
+      if (parsed != null) {
+        widget.onChanged(parsed);
+
+        // If the field was empty, update it after the state has been corrected
+        if (text.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _controller.text = widget.value.toString();
+            }
+          });
+        }
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Expanded(
       child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
         decoration: InputDecoration(
-          labelText: label,
+          labelText: widget.label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -330,9 +393,8 @@ class _NumberField extends StatelessWidget {
           ),
           isDense: true,
         ),
-        keyboardType: TextInputType.number,
-        controller: TextEditingController(text: value.toString()),
-        onChanged: (v) => onChanged(int.tryParse(v) ?? value),
+        keyboardType: const TextInputType.numberWithOptions(decimal: false),
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       ),
     );
   }

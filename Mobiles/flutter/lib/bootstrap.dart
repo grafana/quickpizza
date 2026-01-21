@@ -11,6 +11,7 @@ import 'core/o11y/faro/faro.dart';
 import 'core/o11y/loggers/o11y_logger.dart';
 import 'core/router/app_router.dart';
 import 'core/utils/faro_utils.dart';
+import 'core/widgets/toast_listener.dart';
 import 'features/auth/domain/auth_provider.dart';
 
 /// Bootstrap configuration for the app.
@@ -115,6 +116,10 @@ class QuickPizzaApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       routerConfig: router,
+      // Wrap all routes with ToastListener to enable global toast messages
+      builder: (context, child) {
+        return ToastListener(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }
