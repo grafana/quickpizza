@@ -92,6 +92,22 @@ flutter pub get
 flutter run --dart-define-from-file=config.json
 ```
 
+## App Icon & Splash Screen
+
+The app uses `flutter_launcher_icons` and `flutter_native_splash` packages to manage branding assets. These packages read image files from the `assets/` directory and generate platform-specific resources.
+
+**Regenerate after updating assets:**
+
+```bash
+# Update app icon (reads from assets/icon.png and assets/icon_ios.png)
+dart run flutter_launcher_icons
+
+# Update splash screen (reads from assets/splash.png)
+dart run flutter_native_splash:create
+```
+
+Configuration for these packages is in `pubspec.yaml`.
+
 ## Project Structure
 
 ```
