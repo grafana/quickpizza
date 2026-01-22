@@ -34,6 +34,12 @@ class BootstrapConfig {
 Future<void> bootstrap(BootstrapConfig config) async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // IMPORTANT: Set HttpOverrides BEFORE creating any http.Client instances!
+  // The http package uses IOClient on mobile, which creates an HttpClient
+  // at construction time. If HttpOverrides is set after the client is created,
+  // Faro won't intercept those HTTP requests.
+  HttpOverrides.global = FaroHttpOverrides(HttpOverrides.current);
+
   // Create ProviderContainer first - this is Riverpod's root
   // and allows us to access providers before runApp()
   final container = ProviderContainer();
@@ -61,7 +67,6 @@ Future<void> bootstrap(BootstrapConfig config) async {
   // Access Faro instance from the container
   final faro = container.read(faroProvider);
 
-  HttpOverrides.global = FaroHttpOverrides(HttpOverrides.current);
   faro.transports.add(
     OfflineTransport(maxCacheDuration: const Duration(days: 3)),
   );
