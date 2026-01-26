@@ -84,9 +84,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rated => 'Rated!';
 
   @override
-  String get savedToFavorites => 'Saved to favorites!';
-
-  @override
   String get gotItNextTime => 'Got it, next time!';
 
   @override
