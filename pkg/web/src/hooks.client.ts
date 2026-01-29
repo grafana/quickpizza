@@ -14,6 +14,9 @@ function setupFaro() {
 			const faroAppEnvironment = config.faro_app_environment || 'production';
 			const faroInstrumentationEnableReplay =
 				config.faro_instrumentation_enable_replay === 'true';
+			const faroSessionSampleRate = config.faro_session_sample_rate
+				? parseFloat(config.faro_session_sample_rate)
+				: 1.0;
 
 			if (!url) {
 				console.warn('Grafana Faro is not configured.');
@@ -39,7 +42,9 @@ function setupFaro() {
 				);
 			}
 
-			console.log(`Initializing Grafana Faro to '${url}'`);
+			console.log(
+				`Initializing Grafana Faro to '${url}' with session sample rate ${faroSessionSampleRate}`,
+			);
 			initializeFaro({
 				url,
 				app: {
@@ -49,6 +54,10 @@ function setupFaro() {
 					environment: faroAppEnvironment,
 				},
 				instrumentations,
+				sessionTracking: {
+					enabled: true,
+					samplingRate: faroSessionSampleRate,
+				},
 			});
 		})
 		.catch((e) => {
