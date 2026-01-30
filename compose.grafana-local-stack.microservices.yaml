@@ -12,7 +12,7 @@ x-quickpizza-env-common: &quickpizza-env-common
 name: quickpizza
 services:
   alloy:
-    image: grafana/alloy:v1.12.0@sha256:85e4a706181741dd735d9a69bea81f9e03e16d5349bff46dd9640379f143c007
+    image: grafana/alloy:v1.12.2@sha256:f94b1c82957accb77cd11385fd5e3600758ef1b1ab79557c97319ad28590735a
     container_name: alloy
     labels:
       - "service.type=instrumentation"
