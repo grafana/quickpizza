@@ -1,0 +1,10 @@
+# Dev override - adds local grafana_cloud_stack module for dev stacks
+# Usage: docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up
+#        docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml up
+services:
+  alloy:
+    volumes:
+      - "./alloy/grafana_cloud_stack.alloy:/etc/alloy/grafana_cloud_stack.alloy:Z"
+    environment:
+      GRAFANA_CLOUD_API_URL: "${GRAFANA_CLOUD_API_URL:-https://grafana-dev.com/api/instances/}"
+

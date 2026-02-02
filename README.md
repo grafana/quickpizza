@@ -280,7 +280,25 @@ Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and 
 
 ![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
 
+### Run locally and observe with Grafana Cloud Dev Instance
 
+If you want to send the data to a `dev` environment, You need to use a different alloy configuration:
+
+1. Define these new environment variables in `.env` file:
+   ```
+    ALLOY_FILE_NAME=cloud-dev.alloy
+    GRAFANA_CLOUD_TOKEN="your-dev-token"
+    GRAFANA_CLOUD_STACK="your-dev-stack-name"
+   
+    # Optional if the api url is different to https://grafana-dev.com/api/instances/
+    GRAFANA_CLOUD_API_URL="different-api-url"
+    ```
+
+2. Start the docker instance wit this command:
+    ```
+    docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up
+   ```
+   
 ### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
 
 The Docker Compose setup is fully instrumented out of the box, so you can jump right into Grafana Cloud Observability apps and start observing the inner workings of the QuickPizza service components.

@@ -1,0 +1,9 @@
+{
+  "FARO_COLLECTOR_URL": "https://your-faro-collector-url.grafana.net/collect/xxx",
+  
+  "_BASE_URL_comment": "Leave empty for emulators (uses 10.0.2.2 for Android, localhost for iOS). For physical devices, set to your machine's IP like http://192.168.1.100:3333",
+  "BASE_URL": "",
+  
+  "PORT": "3333"
+}
+

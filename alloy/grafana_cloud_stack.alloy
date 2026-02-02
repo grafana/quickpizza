@@ -1,0 +1,99 @@
+// Local copy of the grafana_cloud.stack module from:
+// https://github.com/grafana/alloy-modules/blob/main/modules/cloud/grafana/cloud/module.alloy
+//
+// This local version adds support for a configurable API URL to allow usage with
+// dev stacks (e.g., https://grafana-dev.com/api/instances/) instead of the
+// hardcoded production URL (https://grafana.com/api/instances/).
+
+declare "stack" {
+  argument "stack_name" {
+    comment = "The name of the grafana cloud stack to get the configuration from."
+  }
+
+  argument "token" {
+    comment = "The token to authenticate with the Grafana Cloud API."
+  }
+
+  argument "api_url" {
+    comment  = "The base URL for the Grafana Cloud API. Defaults to production."
+    optional = true
+    default  = "https://grafana.com/api/instances/"
+  }
+
+  // Get the configuration from the Grafana Cloud API
+  remote.http "config" {
+    url = argument.api_url.value + argument.stack_name.value
+    client {
+      bearer_token = argument.token.value
+    }
+    poll_frequency = "24h"
+  }
+
+  // Setup the prometheus remote write receiver
+  prometheus.remote_write "default" {
+    endpoint {
+      url = json_decode(remote.http.config.content)["hmInstancePromUrl"] + "/api/prom/push"
+
+      basic_auth {
+        username = json_decode(remote.http.config.content)["hmInstancePromId"]
+        password = argument.token.value
+      }
+    }
+  }
+
+  // Setup the loki write receiver
+  loki.write "default" {
+    endpoint {
+      url = json_decode(remote.http.config.content)["hlInstanceUrl"] + "/loki/api/v1/push"
+
+      basic_auth {
+        username = json_decode(remote.http.config.content)["hlInstanceId"]
+        password = argument.token.value
+      }
+    }
+  }
+
+  // Setup the traces receiver
+  otelcol.auth.basic "default" {
+    username = json_decode(remote.http.config.content)["htInstanceId"]
+    password = argument.token.value
+  }
+
+  otelcol.exporter.otlp "default" {
+    client {
+      endpoint = json_decode(remote.http.config.content)["htInstanceUrl"] + ":443"
+      auth     = otelcol.auth.basic.default.handler
+    }
+  }
+
+  // Setup the pyroscope write receiver
+  pyroscope.write "default" {
+    endpoint {
+      url = json_decode(remote.http.config.content)["hpInstanceUrl"]
+
+      basic_auth {
+        username = json_decode(remote.http.config.content)["hpInstanceId"]
+        password = argument.token.value
+      }
+    }
+  }
+
+
+  // Export the receivers
+  export "metrics" {
+    value = prometheus.remote_write.default.receiver
+  }
+  export "logs" {
+    value = loki.write.default.receiver
+  }
+  export "traces" {
+    value = otelcol.exporter.otlp.default.input
+  }
+  export "profiles" {
+    value = pyroscope.write.default.receiver
+  }
+  export "info" {
+    value = json_decode(remote.http.config.content)
+  }
+}
+

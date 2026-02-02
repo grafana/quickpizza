@@ -1,0 +1,77 @@
+scenarios:
+  - id: "start_app"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
+    initializationMethods:
+      - type: "Back"
+        times: 3
+      - type: "CleanupData"
+        packageName: "com.example.flutter_mobile_o11y_demo"
+      - type: "LaunchApp"
+        packageName: "com.example.flutter_mobile_o11y_demo"
+    maxRetry: 0
+    maxStep: 5
+
+  - id: "request_pizza"
+    goal: |
+      You should see a pizza recommendation on the screen.
+
+      INSTRUCTIONS:
+      1. Tap the "Pizza, Please!" button.
+
+      A Pizza Recommendation has the following elements:
+      - a pizza name
+      - some ingredients
+      - "No thanks" and "Love it!" buttons
+
+      HINTS:
+      - The rating buttons might not be visible, you need to scroll down to see them.
+      - If you need to login, consider using the "default" / "12345678" credentials.
+    maxRetry: 0
+    maxStep: 15 # Allow many steps here, since we might need to go though login flow first.
+
+  - id: "rate_pizza"
+    dependency: "request_pizza"
+    goal: |
+      You should rate the pizza by tapping "Love it!" and see confirmation.
+
+      INSTRUCTIONS:
+      1. Tap the "Love it!" button to rate the pizza.
+
+      SUCCESS CRITERIA:
+      - You see "Rated!" text appear.
+    maxRetry: 0
+    maxStep: 5
+
+  - id: "put_app_to_background"
+    goal: |
+      You should see the Android home screen.
+
+      INSTRUCTIONS:
+      1. Tap the "Home button" on the phone to leave the app.
+
+      SUCCESS CRITERIA:
+      - You see the Android home screen.
+    maxRetry: 0
+    maxStep: 5
+
+  - id: "bring_app_to_foreground"
+    dependency: "put_app_to_background"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      INSTRUCTIONS:
+      1. Open the Android recent apps list and tap on the QuickPizza app.
+
+      HINTS:
+      - To open the recent apps list, tap the navigation button:
+        usually a square icon (or three vertical lines on some devices).
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen.
+    maxRetry: 0
+    maxStep: 5
