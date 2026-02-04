@@ -1,4 +1,5 @@
 name: Mobile Demo Telemetry
+# Cache verification trigger
 
 on:
   # For development: trigger on PR changes to iterate easily
