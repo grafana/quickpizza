@@ -213,8 +213,8 @@ jobs:
             echo "Installing APK..."
             adb install -r apk/app-debug.apk
             
-            # Get package name from APK
-            PACKAGE_NAME=$(aapt dump badging apk/app-debug.apk | grep package | awk -F"'" '{print $2}')
+            # Package name from android/app/build.gradle.kts
+            PACKAGE_NAME="com.example.flutter_mobile_o11y_demo"
             echo "Package name: $PACKAGE_NAME"
             
             # Launch the app
