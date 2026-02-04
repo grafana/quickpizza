@@ -75,16 +75,29 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
-      # TODO: Add APK caching to skip rebuild when version unchanged
-      # Use actions/cache with key: apk-cache-v${{ steps.app-version.outputs.version }}
-      # GitHub cache retention: 7 days (or LRU eviction at 10GB limit)
-      # Skip build steps if cache hit
+      - name: Cache APK
+        id: cache-apk
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
+          key: apk-cache-v${{ steps.app-version.outputs.version }}
+
+      - name: Log cache status
+        run: |
+          if [ "${{ steps.cache-apk.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ APK found in cache, skipping build"
+            ls -la Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
+          else
+            echo "❌ APK not in cache, will build"
+          fi
 
       - name: Install Flutter dependencies
+        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         run: flutter pub get
 
       - name: Create config.json for CI
+        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         env:
           FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
@@ -100,6 +113,7 @@ jobs:
           cat config.json
 
       - name: Build APK (debug)
+        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         run: |
           echo "Building APK..."
