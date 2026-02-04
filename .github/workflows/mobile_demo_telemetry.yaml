@@ -217,9 +217,9 @@ jobs:
             PACKAGE_NAME="com.example.flutter_mobile_o11y_demo"
             echo "Package name: $PACKAGE_NAME"
             
-            # Launch the app
+            # Launch the app using am start
             echo "Launching app..."
-            adb shell monkey -p "$PACKAGE_NAME" -c android.intent.category.LAUNCHER 1
+            adb shell am start -n "$PACKAGE_NAME/.MainActivity"
             
             # Wait for app to start and generate some telemetry
             echo "Waiting for app to start and generate telemetry..."
