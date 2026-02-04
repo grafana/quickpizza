@@ -1,0 +1,267 @@
+name: Mobile Demo Telemetry
+
+on:
+  # For development: trigger on PR changes to iterate easily
+  pull_request:
+    paths:
+      - ".github/workflows/mobile_demo_telemetry.yaml"
+      - "Mobiles/flutter/**"
+      - "compose.grafana-cloud.monolithic.yaml"
+  # Manual trigger for testing
+  workflow_dispatch:
+  # Scheduled run - enable after PR is merged and tested
+  # schedule:
+  #   - cron: "0 */6 * * *" # Every 6 hours
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_CHANNEL: "stable"
+
+jobs:
+  build-flutter-apk:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Get Vault secrets
+        id: get-secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
+        with:
+          repo_secrets: |
+            FARO_COLLECTOR_URL=faro_collector_url:value
+
+      # TODO: Remove this step after verifying Vault secrets work
+      - name: Verify Vault secrets (temporary)
+        run: |
+          echo "Checking if FARO_COLLECTOR_URL secret was retrieved..."
+          if [ -n "${{ env.FARO_COLLECTOR_URL }}" ]; then
+            echo "✅ FARO_COLLECTOR_URL is set (length: ${#FARO_COLLECTOR_URL})"
+            # Print first 20 chars to verify format without exposing full secret
+            echo "First 20 chars: ${FARO_COLLECTOR_URL:0:20}..."
+          else
+            echo "❌ FARO_COLLECTOR_URL is NOT set or empty"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Java
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93601a5a40bde3801046 # v2.19.0
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Get App Version
+        id: app-version
+        working-directory: Mobiles/flutter
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | cut -d' ' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Install Flutter dependencies
+        working-directory: Mobiles/flutter
+        run: flutter pub get
+
+      - name: Create config.json for CI
+        working-directory: Mobiles/flutter
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333"
+          }
+          EOF
+          echo "Created config.json:"
+          cat config.json
+
+      - name: Build APK (debug)
+        working-directory: Mobiles/flutter
+        run: |
+          echo "Building APK..."
+          flutter build apk --debug --dart-define-from-file=config.json
+          echo "APK built successfully"
+          ls -la build/app/outputs/flutter-apk/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flutter-apk
+          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 1
+
+  run-mobile-demo:
+    name: Run Mobile Demo
+    needs: build-flutter-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Get Vault secrets
+        id: get-secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
+        with:
+          repo_secrets: |
+            GRAFANA_CLOUD_STACK=grafana_cloud_stack:value
+            GRAFANA_CLOUD_TOKEN=grafana_cloud_token:value
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: flutter-apk
+          path: apk/
+
+      - name: Verify APK
+        run: |
+          echo "Verifying downloaded APK..."
+          ls -la apk/
+          file apk/app-debug.apk
+          echo "APK size: $(du -h apk/app-debug.apk | cut -f1)"
+          echo "APK verified"
+
+      - name: Start QuickPizza backend (Docker Compose)
+        env:
+          GRAFANA_CLOUD_STACK: ${{ env.GRAFANA_CLOUD_STACK }}
+          GRAFANA_CLOUD_TOKEN: ${{ env.GRAFANA_CLOUD_TOKEN }}
+          DEPLOYMENT_ENVIRONMENT: ci
+        run: |
+          echo "Starting QuickPizza backend..."
+          docker compose -f compose.grafana-cloud.monolithic.yaml up -d
+          docker compose -f compose.grafana-cloud.monolithic.yaml ps
+          
+          echo "Waiting for backend to be ready..."
+          for i in {1..60}; do
+            if curl -fsS "http://localhost:3333/ready" > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              exit 0
+            fi
+            echo "Waiting for backend... attempt $i/60"
+            sleep 2
+          done
+          
+          echo "Backend did not become ready in time"
+          docker compose -f compose.grafana-cloud.monolithic.yaml logs --no-color
+          exit 1
+
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls /dev/kvm
+
+      - name: Free disk space for Android emulator
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          
+          echo "Removing unnecessary tools..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo apt-get clean
+          
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Run Android emulator and app
+        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f8db72807de5e036a4ed # v2.34.0
+        with:
+          api-level: 34
+          arch: x86_64
+          disable-animations: true
+          disk-size: 6000M
+          heap-size: 600M
+          emulator-options: "-no-window -no-metrics"
+          script: |
+            echo "Emulator is running!"
+            adb devices -l
+            
+            # Set up port forwarding so app can reach backend via localhost
+            echo "Setting up ADB reverse port forwarding..."
+            adb reverse tcp:3333 tcp:3333
+            
+            # Install the APK
+            echo "Installing APK..."
+            adb install -r apk/app-debug.apk
+            
+            # Get package name from APK
+            PACKAGE_NAME=$(aapt dump badging apk/app-debug.apk | grep package | awk -F"'" '{print $2}')
+            echo "Package name: $PACKAGE_NAME"
+            
+            # Launch the app
+            echo "Launching app..."
+            adb shell monkey -p "$PACKAGE_NAME" -c android.intent.category.LAUNCHER 1
+            
+            # Wait for app to start and generate some telemetry
+            echo "Waiting for app to start and generate telemetry..."
+            sleep 30
+            
+            # Take a screenshot for debugging
+            adb exec-out screencap -p > screenshot.png || true
+            
+            # Check if app is still running
+            if adb shell pidof "$PACKAGE_NAME" > /dev/null 2>&1; then
+              echo "App is running successfully!"
+            else
+              echo "Warning: App may have crashed"
+            fi
+            
+            # Let it run a bit more
+            echo "Letting app run to generate telemetry..."
+            sleep 30
+            
+            echo "Demo run completed!"
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: emulator-screenshot
+          path: screenshot.png
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Collect backend logs
+        if: always()
+        run: |
+          docker compose -f compose.grafana-cloud.monolithic.yaml logs --no-color > backend.log 2>&1 || true
+
+      - name: Stop backend
+        if: always()
+        run: |
+          docker compose -f compose.grafana-cloud.monolithic.yaml down -v || true
+
+      - name: Upload backend logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-logs
+          path: backend.log
+          retention-days: 3
+          if-no-files-found: ignore
