@@ -75,6 +75,11 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
+      # TODO: Add APK caching to skip rebuild when version unchanged
+      # Use actions/cache with key: apk-cache-v${{ steps.app-version.outputs.version }}
+      # GitHub cache retention: 7 days (or LRU eviction at 10GB limit)
+      # Skip build steps if cache hit
+
       - name: Install Flutter dependencies
         working-directory: Mobiles/flutter
         run: flutter pub get
