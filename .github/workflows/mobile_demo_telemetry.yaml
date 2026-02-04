@@ -9,9 +9,9 @@ on:
       - "compose.grafana-cloud.monolithic.yaml"
   # Manual trigger for testing
   workflow_dispatch:
-  # Scheduled run - enable after PR is merged and tested
-  # schedule:
-  #   - cron: "0 */6 * * *" # Every 6 hours
+  # Scheduled run every hour for continuous telemetry
+  schedule:
+    - cron: "0 * * * *"
 
 permissions:
   contents: read
@@ -39,19 +39,6 @@ jobs:
         with:
           repo_secrets: |
             FARO_COLLECTOR_URL=faro_collector_url:value
-
-      # TODO: Remove this step after verifying Vault secrets work
-      - name: Verify Vault secrets (temporary)
-        run: |
-          echo "Checking if FARO_COLLECTOR_URL secret was retrieved..."
-          if [ -n "${{ env.FARO_COLLECTOR_URL }}" ]; then
-            echo "✅ FARO_COLLECTOR_URL is set (length: ${#FARO_COLLECTOR_URL})"
-            # Print first 20 chars to verify format without exposing full secret
-            echo "First 20 chars: ${FARO_COLLECTOR_URL:0:20}..."
-          else
-            echo "❌ FARO_COLLECTOR_URL is NOT set or empty"
-            exit 1
-          fi
 
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -251,7 +238,7 @@ jobs:
         with:
           name: e2e-test-results
           path: Mobiles/flutter/arbigent-result/
-          retention-days: 3
+          retention-days: 1
           if-no-files-found: ignore
 
       - name: Collect backend logs
