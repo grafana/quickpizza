@@ -240,9 +240,7 @@ jobs:
             
             # Run e2e tests (this will launch the app and interact with it)
             echo "Running e2e tests..."
-            cd Mobiles/flutter
-            chmod +x scripts/e2e/run_e2e_tests.sh
-            ./scripts/e2e/run_e2e_tests.sh
+            cd Mobiles/flutter && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh
             
             echo "E2E tests completed!"
 
