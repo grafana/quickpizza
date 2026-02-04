@@ -149,10 +149,13 @@ jobs:
           GRAFANA_CLOUD_STACK: ${{ env.GRAFANA_CLOUD_STACK }}
           GRAFANA_CLOUD_TOKEN: ${{ env.GRAFANA_CLOUD_TOKEN }}
           DEPLOYMENT_ENVIRONMENT: ci
+          # Use dev Alloy config for grafana-dev.net stack
+          ALLOY_FILE_NAME: cloud-dev.alloy
         run: |
-          echo "Starting QuickPizza backend..."
-          docker compose -f compose.grafana-cloud.monolithic.yaml up -d
-          docker compose -f compose.grafana-cloud.monolithic.yaml ps
+          echo "Starting QuickPizza backend with dev config..."
+          # Use dev override for grafana-dev.net stack (adds required module mount)
+          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml up -d
+          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml ps
           
           echo "Waiting for backend to be ready..."
           for i in {1..60}; do
@@ -165,7 +168,7 @@ jobs:
           done
           
           echo "Backend did not become ready in time"
-          docker compose -f compose.grafana-cloud.monolithic.yaml logs --no-color
+          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color
           exit 1
 
       - name: Enable KVM group permissions
@@ -250,12 +253,12 @@ jobs:
       - name: Collect backend logs
         if: always()
         run: |
-          docker compose -f compose.grafana-cloud.monolithic.yaml logs --no-color > backend.log 2>&1 || true
+          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color > backend.log 2>&1 || true
 
       - name: Stop backend
         if: always()
         run: |
-          docker compose -f compose.grafana-cloud.monolithic.yaml down -v || true
+          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml down -v || true
 
       - name: Upload backend logs
         if: always()
