@@ -213,13 +213,9 @@ jobs:
             echo "Installing APK..."
             adb install -r apk/app-debug.apk
             
-            # Package name from android/app/build.gradle.kts
-            PACKAGE_NAME="com.example.flutter_mobile_o11y_demo"
-            echo "Package name: $PACKAGE_NAME"
-            
-            # Launch the app using am start
+            # Launch the app (package name from android/app/build.gradle.kts)
             echo "Launching app..."
-            adb shell am start -n "$PACKAGE_NAME/.MainActivity"
+            adb shell am start -n "com.example.flutter_mobile_o11y_demo/.MainActivity"
             
             # Wait for app to start and generate some telemetry
             echo "Waiting for app to start and generate telemetry..."
@@ -229,11 +225,7 @@ jobs:
             adb exec-out screencap -p > screenshot.png || true
             
             # Check if app is still running
-            if adb shell pidof "$PACKAGE_NAME" > /dev/null 2>&1; then
-              echo "App is running successfully!"
-            else
-              echo "Warning: App may have crashed"
-            fi
+            adb shell pidof "com.example.flutter_mobile_o11y_demo" && echo "App is running successfully!" || echo "Warning: App may have crashed"
             
             # Let it run a bit more
             echo "Letting app run to generate telemetry..."
