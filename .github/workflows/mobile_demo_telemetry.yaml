@@ -1,5 +1,4 @@
 name: Mobile Demo Telemetry
-# Cache verification trigger
 
 on:
   # For development: trigger on PR changes to iterate easily
@@ -123,7 +122,7 @@ jobs:
           ls -la build/app/outputs/flutter-apk/
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: flutter-apk
           path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
@@ -146,6 +145,7 @@ jobs:
           repo_secrets: |
             GRAFANA_CLOUD_STACK=grafana_cloud_stack:value
             GRAFANA_CLOUD_TOKEN=grafana_cloud_token:value
+            OPENAI_API_KEY=openai_api_key:value
 
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -212,8 +212,13 @@ jobs:
           echo "Disk space after cleanup:"
           df -h
 
-      - name: Run Android emulator and app
-        uses: reactivecircus/android-emulator-runner@1dcd0090116d15e7c562f8db72807de5e036a4ed # v2.34.0
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c # v1.7.1
+
+      - name: Run Android emulator and e2e tests
+        uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # v2.35.0
+        env:
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
         with:
           api-level: 34
           arch: x86_64
@@ -233,32 +238,20 @@ jobs:
             echo "Installing APK..."
             adb install -r apk/app-debug.apk
             
-            # Launch the app (package name from android/app/build.gradle.kts)
-            echo "Launching app..."
-            adb shell am start -n "com.example.flutter_mobile_o11y_demo/.MainActivity"
+            # Run e2e tests (this will launch the app and interact with it)
+            echo "Running e2e tests..."
+            cd Mobiles/flutter
+            chmod +x scripts/e2e/run_e2e_tests.sh
+            ./scripts/e2e/run_e2e_tests.sh
             
-            # Wait for app to start and generate some telemetry
-            echo "Waiting for app to start and generate telemetry..."
-            sleep 30
-            
-            # Take a screenshot for debugging
-            adb exec-out screencap -p > screenshot.png || true
-            
-            # Check if app is still running
-            adb shell pidof "com.example.flutter_mobile_o11y_demo" && echo "App is running successfully!" || echo "Warning: App may have crashed"
-            
-            # Let it run a bit more
-            echo "Letting app run to generate telemetry..."
-            sleep 30
-            
-            echo "Demo run completed!"
+            echo "E2E tests completed!"
 
-      - name: Upload screenshot
+      - name: Upload e2e test results
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: emulator-screenshot
-          path: screenshot.png
+          name: e2e-test-results
+          path: Mobiles/flutter/arbigent-result/
           retention-days: 3
           if-no-files-found: ignore
 
@@ -274,7 +267,7 @@ jobs:
 
       - name: Upload backend logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: backend-logs
           path: backend.log
