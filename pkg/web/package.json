@@ -33,7 +33,7 @@
   "type": "module",
   "dependencies": {
     "install": "0.13.0",
-    "npm": "11.4.2",
+    "npm": "11.9.0",
     "svelte-confetti": "1.2.2"
   }
 }
