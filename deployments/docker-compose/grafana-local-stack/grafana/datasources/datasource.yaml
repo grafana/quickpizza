@@ -41,6 +41,24 @@ datasources:
         datasourceUid: "prometheus"
       nodeGraph:
         enabled: true
+      # traces to metrics configuration
+      #https://grafana.com/docs/grafana-cloud/connect-externally-hosted/data-sources/tempo/configure-tempo-data-source/#trace-to-metrics
+      tracesToMetrics:
+        datasourceUid: "prometheus"
+      # traces to logs configuration
+      # https://grafana.com/docs/grafana-cloud/connect-externally-hosted/data-sources/tempo/configure-tempo-data-source/#trace-to-logs
+      tracesToLogs:
+        datasourceUid: "loki"
+      # traces to profiles configuration
+      # https://grafana.com/docs/grafana-cloud/connect-externally-hosted/data-sources/tempo/configure-tempo-data-source/#trace-to-profiles
+      tracesToProfiles:
+        datasourceUid: "pyroscope"
+        tags:
+          - key: "service.name"
+            value: "service_name"
+          - key: "service.namespace"
+            value: "service_namespace"
+        profileTypeId: "process_cpu:cpu:nanoseconds:cpu:nanoseconds"
   - name: Pyroscope
     type: "phlare"
     uid: pyroscope
@@ -51,6 +69,7 @@ datasources:
     editable: false
   - name: Loki
     type: loki
+    uid: loki
     access: proxy
     orgId: 1
     url: http://loki:3100
