@@ -104,15 +104,15 @@ onMount(async () => {
 	});
 	getTools();
 	render = true;
-	faro.api.pushEvent('Navigation', { url: window.location.href });
+	window.faro?.api?.pushEvent('Navigation', { url: window.location.href });
 });
 
 async function ratePizza(stars) {
-	faro.api.pushEvent('Submit Pizza Rating', {
+	window.faro?.api?.pushEvent('Submit Pizza Rating', {
 		pizza_id: pizza['pizza']['id'],
 		stars: stars,
 	});
-	faro.api.startUserAction(
+	window.faro?.api?.startUserAction(
 		'ratePizza', // name of the user action
 		{ pizza_id: pizza['pizza']['id'], stars: stars }, // custom attributes attached to the user action
 		{ triggerName: 'ratePizzaButtonClick' }, // custom config
@@ -131,21 +131,23 @@ async function ratePizza(stars) {
 		rateResult = 'Rated!';
 	} else {
 		rateResult = 'Please log in first.';
-		faro.api.pushError(new Error('Unauthenticated Ratings Submission'));
+		window.faro?.api?.pushError(
+			new Error('Unauthenticated Ratings Submission'),
+		);
 	}
 }
 
 async function getPizza() {
-	faro.api.pushEvent('Get Pizza Recommendation', {
+	window.faro?.api?.pushEvent('Get Pizza Recommendation', {
 		restrictions: restrictions,
 	});
-	faro.api.startUserAction(
+	window.faro?.api?.startUserAction(
 		'getPizza', // name of the user action
 		{ restrictions: restrictions }, // custom attributes attached to the user action
 		{ triggerName: 'getPizzaButtonClick' }, // custom config
 	);
 	if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
-		faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
+		window.faro?.api?.pushError(new Error('Invalid Restrictions, Min > Max'));
 	}
 
 	// Build headers: use cookie auth if logged in, otherwise use anonymous token
@@ -170,7 +172,7 @@ async function getPizza() {
 		pizza = '';
 		errorResult =
 			json.error || 'Failed to get pizza recommendation. Please try again.';
-		faro.api.pushError(new Error(errorResult));
+		window.faro?.api?.pushError(new Error(errorResult));
 		return;
 	}
 
@@ -192,11 +194,13 @@ async function getPizza() {
 		};
 		socket.addEventListener('open', handleOpen);
 	} else {
-		faro.api.pushError(new Error('socket state error: ' + socket.readyState));
+		window.faro?.api?.pushError(
+			new Error('socket state error: ' + socket.readyState),
+		);
 	}
 
 	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
-		faro.api.pushError(
+		window.faro?.api?.pushError(
 			new Error(
 				'Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!',
 			),
@@ -205,7 +209,7 @@ async function getPizza() {
 }
 
 async function getTools() {
-	faro.api.pushEvent('Get Pizza Tools', { tools: tools });
+	window.faro?.api?.pushEvent('Get Pizza Tools', { tools: tools });
 
 	// Build headers: use cookie auth if logged in, otherwise use anonymous token
 	const headers: Record<string, string> = {};
