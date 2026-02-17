@@ -1,12 +1,11 @@
 import Foundation
-import OpenTelemetryApi
 import SwiftiePod
 
 let pizzaRepositoryProvider = Provider<PizzaRepositoryProtocol> { pod in
     PizzaRepository(
         apiClient: pod.resolve(apiClientProvider),
         logger: pod.resolve(loggerProvider),
-        otelService: pod.resolve(otelServiceProvider)
+        tracer: pod.resolve(tracerProvider)
     )
 }
 
@@ -14,12 +13,12 @@ let pizzaRepositoryProvider = Provider<PizzaRepositoryProtocol> { pod in
 final class PizzaRepository: PizzaRepositoryProtocol {
     private let apiClient: APIClientProtocol
     private let logger: Logging
-    private let otelService: OTelService
+    private let tracer: Tracing
 
-    init(apiClient: APIClientProtocol, logger: Logging, otelService: OTelService) {
+    init(apiClient: APIClientProtocol, logger: Logging, tracer: Tracing) {
         self.apiClient = apiClient
         self.logger = logger
-        self.otelService = otelService
+        self.tracer = tracer
     }
 
     func getQuote() async -> String {
@@ -57,60 +56,57 @@ final class PizzaRepository: PizzaRepositoryProtocol {
     }
 
     func getRecommendation(_ restrictions: Restrictions) async throws -> PizzaRecommendation? {
-        let tracer = otelService.getTracer()
-        let span = tracer.spanBuilder(spanName: "pizza.get_recommendation").setSpanKind(spanKind: .client).startSpan()
-        span.setAttribute(key: "pizza.vegetarian", value: restrictions.mustBeVegetarian)
-        span.setAttribute(key: "pizza.max_calories", value: restrictions.maxCaloriesPerSlice)
-        defer { span.end() }
+        try await tracer.withActiveSpan("pizza.get_recommendation", kind: .client) { span in
+            span.setAttribute(key: "pizza.vegetarian", value: restrictions.mustBeVegetarian)
+            span.setAttribute(key: "pizza.max_calories", value: restrictions.maxCaloriesPerSlice)
 
-        let (data, response) = try await apiClient.post("/api/pizza", body: restrictions)
-        span.setAttribute(key: "http.status_code", value: response.statusCode)
+            let (data, response) = try await apiClient.post("/api/pizza", body: restrictions)
+            span.setAttribute(key: "http.status_code", value: response.statusCode)
 
-        if response.statusCode == 200 {
-            let recommendation = try JSONDecoder().decode(PizzaRecommendation.self, from: data)
-            span.setAttribute(key: "pizza.id", value: recommendation.pizza.id)
-            span.setAttribute(key: "pizza.name", value: recommendation.pizza.name)
-            logger.info("Pizza recommendation fetched", attributes: [
-                "pizza_id": "\(recommendation.pizza.id)",
-                "pizza_name": recommendation.pizza.name,
-            ])
-            return recommendation
-        } else if response.statusCode == 401 {
-            logger.warning("Pizza recommendation requires authentication")
+            if response.statusCode == 200 {
+                let recommendation = try JSONDecoder().decode(PizzaRecommendation.self, from: data)
+                span.setAttribute(key: "pizza.id", value: recommendation.pizza.id)
+                span.setAttribute(key: "pizza.name", value: recommendation.pizza.name)
+                logger.info("Pizza recommendation fetched", attributes: [
+                    "pizza_id": "\(recommendation.pizza.id)",
+                    "pizza_name": recommendation.pizza.name,
+                ])
+                return recommendation
+            } else if response.statusCode == 401 {
+                logger.warning("Pizza recommendation requires authentication")
+                return nil
+            } else if response.statusCode == 403 {
+                struct ErrorResponse: Decodable { let error: String? }
+                let errorResp = try? JSONDecoder().decode(ErrorResponse.self, from: data)
+                let message = errorResp?.error ?? "Operation not permitted"
+                throw PizzaError.forbidden(message)
+            } else if response.statusCode >= 500 {
+                throw PizzaError.serverError
+            }
             return nil
-        } else if response.statusCode == 403 {
-            struct ErrorResponse: Decodable { let error: String? }
-            let errorResp = try? JSONDecoder().decode(ErrorResponse.self, from: data)
-            let message = errorResp?.error ?? "Operation not permitted"
-            throw PizzaError.forbidden(message)
-        } else if response.statusCode >= 500 {
-            throw PizzaError.serverError
         }
-        return nil
     }
 
     func ratePizza(pizzaId: Int, stars: Int) async throws {
-        let tracer = otelService.getTracer()
-        let span = tracer.spanBuilder(spanName: "pizza.rate").setSpanKind(spanKind: .client).startSpan()
-        span.setAttribute(key: "pizza.id", value: pizzaId)
-        span.setAttribute(key: "pizza.stars", value: stars)
-        defer { span.end() }
+        try await tracer.withActiveSpan("pizza.rate", kind: .client) { span in
+            span.setAttribute(key: "pizza.id", value: pizzaId)
+            span.setAttribute(key: "pizza.stars", value: stars)
 
-        let body = RatingRequest(pizzaId: pizzaId, stars: stars)
-        let (_, response) = try await apiClient.post("/api/ratings", body: body)
-        span.setAttribute(key: "http.status_code", value: response.statusCode)
+            let body = RatingRequest(pizzaId: pizzaId, stars: stars)
+            let (_, response) = try await apiClient.post("/api/ratings", body: body)
+            span.setAttribute(key: "http.status_code", value: response.statusCode)
 
-        if response.statusCode == 200 || response.statusCode == 201 {
-            logger.info("Pizza rated", attributes: [
-                "pizza_id": "\(pizzaId)",
-                "stars": "\(stars)",
-            ])
-        } else {
-            span.status = .error(description: "Rating failed with status \(response.statusCode)")
-            logger.warning("Failed to rate pizza", attributes: [
-                "status_code": "\(response.statusCode)",
-            ])
-            throw PizzaError.ratingFailed
+            if response.statusCode == 200 || response.statusCode == 201 {
+                logger.info("Pizza rated", attributes: [
+                    "pizza_id": "\(pizzaId)",
+                    "stars": "\(stars)",
+                ])
+            } else {
+                logger.warning("Failed to rate pizza", attributes: [
+                    "status_code": "\(response.statusCode)",
+                ])
+                throw PizzaError.ratingFailed
+            }
         }
     }
 }

@@ -127,10 +127,10 @@ final class OTelService {
         let customResource = Resource(
             attributes: [
                 "service.name": .string(config.serviceName),
-                "deployment.environment": .string(config.deploymentEnvironment),
+                "service.namespace": .string("quickpizza"),
                 "service.version": .string(config.appVersion),
-                "telemetry.sdk.name": .string("opentelemetry-swift"),
-                "telemetry.sdk.language": .string("swift"),
+                "service.build": .string(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"),
+                "deployment.environment": .string(config.deploymentEnvironment),
             ]
         )
         return defaultResources.merging(other: customResource)
