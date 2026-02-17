@@ -61,7 +61,7 @@ class ProfileViewModel {
             ratings = []
             logger.info("Ratings cleared by user")
         } catch {
-            errorMessage = "Failed to clear ratings"
+            errorMessage = error.localizedDescription
             logger.error("Failed to clear ratings", error: error)
         }
     }

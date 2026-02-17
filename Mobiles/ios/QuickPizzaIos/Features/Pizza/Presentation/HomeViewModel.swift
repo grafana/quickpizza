@@ -42,6 +42,12 @@ class HomeViewModel {
     /// Loads initial data and listens for logout events.
     /// Auto-cancelled when the view disappears (structured concurrency).
     func start() async {
+        // Catch any auth changes that happened while the view was off-screen
+        // (e.g. logout from another tab while the listener task was cancelled).
+        if !isAuthenticated {
+            clearRecommendationState()
+        }
+
         await withTaskGroup(of: Void.self) { group in
             group.addTask { @MainActor in
                 await self.loadInitialData()

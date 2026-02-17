@@ -6,36 +6,29 @@ struct MainShell: View {
     @State private var viewModel = pod.resolve(mainShellViewModelProvider)
 
     var body: some View {
-        TabView(selection: $viewModel.selectedTab) {
-            // Home tab
-            NavigationStack {
+        NavigationStack {
+            TabView(selection: $viewModel.selectedTab) {
+                // Home tab
                 HomeView()
-                    .toolbar {
-                        QuickPizzaToolbar(isAuthenticated: viewModel.isAuthenticated) {
-                            viewModel.showAuthSheet()
-                        }
+                    .tabItem {
+                        Label("Home", systemImage: "house.fill")
                     }
-            }
-            .tabItem {
-                Label("Home", systemImage: "house.fill")
-            }
-            .tag(0)
+                    .tag(0)
 
-            // About tab
-            NavigationStack {
+                // About tab
                 AboutView()
-                    .toolbar {
-                        QuickPizzaToolbar(isAuthenticated: viewModel.isAuthenticated) {
-                            viewModel.showAuthSheet()
-                        }
+                    .tabItem {
+                        Label("About", systemImage: "info.circle")
                     }
+                    .tag(1)
             }
-            .tabItem {
-                Label("About", systemImage: "info.circle")
+            .tint(AppColors.primary)
+            .toolbar {
+                QuickPizzaToolbar(isAuthenticated: viewModel.isAuthenticated) {
+                    viewModel.showAuthSheet()
+                }
             }
-            .tag(1)
         }
-        .tint(AppColors.primary)
         .sheet(isPresented: $viewModel.showLogin) {
             LoginView()
         }

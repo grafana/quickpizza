@@ -34,10 +34,20 @@ final class RatingsRepository: RatingsRepositoryProtocol {
     }
 
     func clearRatings() async throws {
-        let (_, response) = try await apiClient.delete("/api/ratings")
+        let (data, response) = try await apiClient.delete("/api/ratings")
 
-        if response.statusCode == 200 {
+        if response.statusCode == 200 || response.statusCode == 204 {
             logger.info("All ratings cleared")
+        } else if response.statusCode == 401 {
+            logger.warning("Clear ratings requires authentication")
+            throw RatingsError.unauthorized
+        } else if response.statusCode == 403 {
+            let serverMessage = Self.parseErrorMessage(from: data)
+            let message = serverMessage ?? "You don't have permission to do this operation"
+            logger.warning("Clear ratings forbidden", attributes: [
+                "error": message,
+            ])
+            throw RatingsError.forbidden(message)
         } else {
             logger.warning("Failed to clear ratings", attributes: [
                 "status_code": "\(response.statusCode)",
@@ -45,14 +55,26 @@ final class RatingsRepository: RatingsRepositoryProtocol {
             throw RatingsError.clearFailed
         }
     }
+
+    private static func parseErrorMessage(from data: Data) -> String? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let error = json["error"] as? String else {
+            return nil
+        }
+        return error
+    }
 }
 
 enum RatingsError: LocalizedError {
     case clearFailed
+    case unauthorized
+    case forbidden(String)
 
     var errorDescription: String? {
         switch self {
         case .clearFailed: return "Failed to clear ratings"
+        case .unauthorized: return "You may need to be logged in"
+        case .forbidden(let message): return message
         }
     }
 }

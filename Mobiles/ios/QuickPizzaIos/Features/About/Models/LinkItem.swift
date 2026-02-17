@@ -14,11 +14,5 @@ struct LinkItem: Identifiable {
             icon: "chevron.left.forwardslash.chevron.right",
             url: URL(string: "https://github.com/open-telemetry/opentelemetry-swift")!
         ),
-        LinkItem(
-            title: "Grafana Faro",
-            subtitle: "Frontend observability for web and mobile",
-            icon: "chart.bar.xaxis",
-            url: URL(string: "https://grafana.com/oss/faro/")!
-        ),
     ]
 }
