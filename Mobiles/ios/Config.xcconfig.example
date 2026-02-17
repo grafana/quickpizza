@@ -1,0 +1,30 @@
+// QuickPizza iOS Configuration Template
+// 
+// SETUP INSTRUCTIONS:
+// 1. Copy this file to Config.xcconfig (in the same directory)
+// 2. Fill in your values in Config.xcconfig
+// 3. Config.xcconfig is gitignored and will not be committed
+//
+// These values are injected into Info.plist at build time
+// and read by ConfigService from Bundle.main.infoDictionary
+
+// Base URL for the QuickPizza API
+// For simulator: http://localhost:3333
+// For physical device: http://YOUR_MACHINE_IP:3333 (e.g., http://192.168.1.100:3333)
+// Note: Use /$()/ to escape the :// in URLs for xcconfig
+BASE_URL = http:/$()/localhost:3333
+
+// Port for the QuickPizza API (usually 3333)
+PORT = 3333
+
+// OpenTelemetry OTLP endpoint (optional)
+// Example: http://localhost:4318
+// Example: https://otlp-gateway-prod-us-central-0.grafana.net/otlp
+// Leave empty to disable OTLP export (stdout only)
+OTLP_ENDPOINT = 
+
+// OTLP Authorization header (optional, required for Grafana Cloud)
+// Format: Basic <base64_encoded_instance_id:api_token>
+// To generate: echo -n "instance_id:api_token" | base64
+// Leave empty if not using authentication
+OTLP_AUTH_HEADER = 

@@ -1,0 +1,29 @@
+# Xcode user-specific data
+xcuserdata/
+
+# Build products
+build/
+DerivedData/
+
+# Miscellaneous
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# macOS
+.DS_Store
+
+# Swift Package Manager (keep Package.resolved, ignore build artifacts)
+.build/
+
+# Configuration files with secrets (keep .example template)
+Config.xcconfig
+
+# Auto-generated build configuration
+**/BuildConfig.generated.swift

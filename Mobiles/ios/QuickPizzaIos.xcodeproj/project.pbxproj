@@ -1,0 +1,475 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		62ECE0322F43D3D300611CB0 /* SwiftiePod in Frameworks */ = {isa = PBXBuildFile; productRef = 62ECE0312F43D3D300611CB0 /* SwiftiePod */; };
+		62ECE0352F43D6AE00611CB0 /* SwiftiePod in Frameworks */ = {isa = PBXBuildFile; productRef = 62ECE0342F43D6AE00611CB0 /* SwiftiePod */; };
+		62ECE0392F4459C400611CB0 /* Config.xcconfig.example in Resources */ = {isa = PBXBuildFile; fileRef = 62ECE0382F4459C400611CB0 /* Config.xcconfig.example */; };
+		62ECE03B2F4459D300611CB0 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 62ECE03A2F4459D300611CB0 /* Config.xcconfig */; };
+		62EFEF442F36082D00E72D9F /* OpenTelemetryProtocolExporterHTTP in Frameworks */ = {isa = PBXBuildFile; productRef = 62EFEF432F36082D00E72D9F /* OpenTelemetryProtocolExporterHTTP */; };
+		62EFEF462F36082D00E72D9F /* ResourceExtension in Frameworks */ = {isa = PBXBuildFile; productRef = 62EFEF452F36082D00E72D9F /* ResourceExtension */; };
+		62EFEF482F36082D00E72D9F /* URLSessionInstrumentation in Frameworks */ = {isa = PBXBuildFile; productRef = 62EFEF472F36082D00E72D9F /* URLSessionInstrumentation */; };
+		62EFEF4E2F360BAE00E72D9F /* OpenTelemetryApi in Frameworks */ = {isa = PBXBuildFile; productRef = 62EFEF4D2F360BAE00E72D9F /* OpenTelemetryApi */; };
+		62EFEF502F360BAE00E72D9F /* OpenTelemetrySdk in Frameworks */ = {isa = PBXBuildFile; productRef = 62EFEF4F2F360BAE00E72D9F /* OpenTelemetrySdk */; };
+		62EFEF522F360BAE00E72D9F /* StdoutExporter in Frameworks */ = {isa = PBXBuildFile; productRef = 62EFEF512F360BAE00E72D9F /* StdoutExporter */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		627B87382F35EF1400818037 /* QuickPizzaIos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickPizzaIos.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		62ECE0382F4459C400611CB0 /* Config.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.xcconfig.example; sourceTree = "<group>"; };
+		62ECE03A2F4459D300611CB0 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		627B873A2F35EF1400818037 /* QuickPizzaIos */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = QuickPizzaIos;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		627B87352F35EF1400818037 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				62ECE0352F43D6AE00611CB0 /* SwiftiePod in Frameworks */,
+				62EFEF4E2F360BAE00E72D9F /* OpenTelemetryApi in Frameworks */,
+				62EFEF522F360BAE00E72D9F /* StdoutExporter in Frameworks */,
+				62EFEF462F36082D00E72D9F /* ResourceExtension in Frameworks */,
+				62EFEF502F360BAE00E72D9F /* OpenTelemetrySdk in Frameworks */,
+				62EFEF442F36082D00E72D9F /* OpenTelemetryProtocolExporterHTTP in Frameworks */,
+				62ECE0322F43D3D300611CB0 /* SwiftiePod in Frameworks */,
+				62EFEF482F36082D00E72D9F /* URLSessionInstrumentation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		627B872F2F35EF1400818037 = {
+			isa = PBXGroup;
+			children = (
+				627B873A2F35EF1400818037 /* QuickPizzaIos */,
+				627B87392F35EF1400818037 /* Products */,
+				62ECE0382F4459C400611CB0 /* Config.xcconfig.example */,
+				62ECE03A2F4459D300611CB0 /* Config.xcconfig */,
+			);
+			sourceTree = "<group>";
+		};
+		627B87392F35EF1400818037 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				627B87382F35EF1400818037 /* QuickPizzaIos.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		627B87372F35EF1400818037 /* QuickPizzaIos */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 627B87432F35EF1500818037 /* Build configuration list for PBXNativeTarget "QuickPizzaIos" */;
+			buildPhases = (
+				62ECE0FF2F44636A00611CB0 /* Generate Build Config */,
+				627B87342F35EF1400818037 /* Sources */,
+				627B87352F35EF1400818037 /* Frameworks */,
+				627B87362F35EF1400818037 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				627B873A2F35EF1400818037 /* QuickPizzaIos */,
+			);
+			name = QuickPizzaIos;
+			packageProductDependencies = (
+				62EFEF432F36082D00E72D9F /* OpenTelemetryProtocolExporterHTTP */,
+				62EFEF452F36082D00E72D9F /* ResourceExtension */,
+				62EFEF472F36082D00E72D9F /* URLSessionInstrumentation */,
+				62EFEF4D2F360BAE00E72D9F /* OpenTelemetryApi */,
+				62EFEF4F2F360BAE00E72D9F /* OpenTelemetrySdk */,
+				62EFEF512F360BAE00E72D9F /* StdoutExporter */,
+				62ECE0312F43D3D300611CB0 /* SwiftiePod */,
+				62ECE0342F43D6AE00611CB0 /* SwiftiePod */,
+			);
+			productName = QuickPizzaIos;
+			productReference = 627B87382F35EF1400818037 /* QuickPizzaIos.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		627B87302F35EF1400818037 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					627B87372F35EF1400818037 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = 627B87332F35EF1400818037 /* Build configuration list for PBXProject "QuickPizzaIos" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 627B872F2F35EF1400818037;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */,
+				62EFEF4C2F360BAE00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */,
+				62ECE0332F43D6AE00611CB0 /* XCRemoteSwiftPackageReference "SwiftiePod" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 627B87392F35EF1400818037 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				627B87372F35EF1400818037 /* QuickPizzaIos */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		627B87362F35EF1400818037 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				62ECE0392F4459C400611CB0 /* Config.xcconfig.example in Resources */,
+				62ECE03B2F4459D300611CB0 /* Config.xcconfig in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		62ECE0FF2F44636A00611CB0 /* Generate Build Config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/generate-config.sh",
+				"$(SRCROOT)/Config.xcconfig",
+			);
+			name = "Generate Build Config";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/QuickPizzaIos/Core/Config/BuildConfig.generated.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Scripts/generate-config.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		627B87342F35EF1400818037 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		627B87412F35EF1500818037 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = CF67NZZ27B;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		627B87422F35EF1500818037 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = CF67NZZ27B;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		627B87442F35EF1500818037 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62ECE03A2F4459D300611CB0 /* Config.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CF67NZZ27B;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.grafana.QuickPizzaIos;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		627B87452F35EF1500818037 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 62ECE03A2F4459D300611CB0 /* Config.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CF67NZZ27B;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.grafana.QuickPizzaIos;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		627B87332F35EF1400818037 /* Build configuration list for PBXProject "QuickPizzaIos" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				627B87412F35EF1500818037 /* Debug */,
+				627B87422F35EF1500818037 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		627B87432F35EF1500818037 /* Build configuration list for PBXNativeTarget "QuickPizzaIos" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				627B87442F35EF1500818037 /* Debug */,
+				627B87452F35EF1500818037 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		62ECE0332F43D6AE00611CB0 /* XCRemoteSwiftPackageReference "SwiftiePod" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/robert-northmind/SwiftiePod.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.2;
+			};
+		};
+		62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
+		62EFEF4C2F360BAE00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift-core.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		62ECE0312F43D3D300611CB0 /* SwiftiePod */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftiePod;
+		};
+		62ECE0342F43D6AE00611CB0 /* SwiftiePod */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62ECE0332F43D6AE00611CB0 /* XCRemoteSwiftPackageReference "SwiftiePod" */;
+			productName = SwiftiePod;
+		};
+		62EFEF432F36082D00E72D9F /* OpenTelemetryProtocolExporterHTTP */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			productName = OpenTelemetryProtocolExporterHTTP;
+		};
+		62EFEF452F36082D00E72D9F /* ResourceExtension */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			productName = ResourceExtension;
+		};
+		62EFEF472F36082D00E72D9F /* URLSessionInstrumentation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			productName = URLSessionInstrumentation;
+		};
+		62EFEF4D2F360BAE00E72D9F /* OpenTelemetryApi */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF4C2F360BAE00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */;
+			productName = OpenTelemetryApi;
+		};
+		62EFEF4F2F360BAE00E72D9F /* OpenTelemetrySdk */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF4C2F360BAE00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */;
+			productName = OpenTelemetrySdk;
+		};
+		62EFEF512F360BAE00E72D9F /* StdoutExporter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF4C2F360BAE00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */;
+			productName = StdoutExporter;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 627B87302F35EF1400818037 /* Project object */;
+}
