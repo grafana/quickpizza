@@ -6,28 +6,30 @@ struct QuickPizzaToolbar: ToolbarContent {
     let onProfileTap: () -> Void
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            HStack(spacing: 6) {
+        ToolbarItem(placement: .principal) {
+            HStack(spacing: 8) {
                 Text("🍕")
-                    .font(.title3)
+                    .font(.title2)
                 Text("QuickPizza")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.title3)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColors.primary)
             }
         }
 
         ToolbarItem(placement: .topBarTrailing) {
             Button(action: onProfileTap) {
-                Circle()
-                    .fill(AppColors.primary)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.white)
-                    )
+                ZStack {
+                    Circle()
+                        .fill(AppColors.primary)
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white)
+                }
             }
+            .buttonStyle(.plain)
         }
     }
 }

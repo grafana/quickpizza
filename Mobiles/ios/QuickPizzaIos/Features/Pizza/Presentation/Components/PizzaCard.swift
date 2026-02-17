@@ -22,7 +22,7 @@ struct PizzaCard: View {
             DetailRow(icon: "circle.fill", label: "Dough", value: recommendation.pizza.dough.name)
 
             // Ingredients
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "leaf.fill")
                         .font(.caption)
@@ -32,9 +32,20 @@ struct PizzaCard: View {
                         .fontWeight(.medium)
                         .foregroundStyle(AppColors.textSecondary)
                 }
-                Text(recommendation.pizza.ingredients.map(\.name).joined(separator: ", "))
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.textPrimary)
+                
+                FlowLayout(spacing: 8) {
+                    ForEach(recommendation.pizza.ingredients, id: \.id) { ingredient in
+                        Text(ingredient.name)
+                            .font(.subheadline)
+                            .foregroundStyle(AppColors.textPrimary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.gray.opacity(0.1))
+                            )
+                    }
+                }
             }
 
             // Tool
@@ -90,4 +101,34 @@ struct DetailRow: View {
                 .foregroundStyle(AppColors.textPrimary)
         }
     }
+}
+
+#Preview {
+    let sampleIngredients = [
+        Ingredient(id: 1, name: "Jalapeños"),
+        Ingredient(id: 2, name: "Extra cheese"),
+        Ingredient(id: 3, name: "Fresh basil"),
+        Ingredient(id: 4, name: "Olive oil"),
+        Ingredient(id: 5, name: "San Marzano tomatoes"),
+        Ingredient(id: 6, name: "Mozzarella")
+    ]
+    
+    let sampleDough = Dough(id: 1, name: "Thin")
+    
+    let samplePizza = Pizza(
+        id: 1,
+        name: "A Misty Quattro Stagioni",
+        dough: sampleDough,
+        ingredients: sampleIngredients,
+        tool: "Knife"
+    )
+    
+    let sampleRecommendation = PizzaRecommendation(
+        pizza: samplePizza,
+        calories: 425,
+        vegetarian: true
+    )
+    
+    PizzaCard(recommendation: sampleRecommendation)
+        .padding()
 }
