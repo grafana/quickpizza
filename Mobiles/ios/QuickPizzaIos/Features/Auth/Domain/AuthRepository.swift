@@ -17,6 +17,9 @@ final class AuthRepository: AuthServiceProtocol {
     private let logger: Logging
     private let tracer: Tracing
 
+    private let authStateContinuation: AsyncStream<Void>.Continuation
+    let authStateChanged: AsyncStream<Void>
+
     init(
         apiClient: APIClientProtocol,
         tokenStorage: TokenStoring,
@@ -27,6 +30,10 @@ final class AuthRepository: AuthServiceProtocol {
         self.tokenStorage = tokenStorage
         self.logger = logger
         self.tracer = tracer
+
+        var continuation: AsyncStream<Void>.Continuation!
+        self.authStateChanged = AsyncStream { continuation = $0 }
+        self.authStateContinuation = continuation
     }
 
     var isAuthenticated: Bool {
@@ -64,6 +71,7 @@ final class AuthRepository: AuthServiceProtocol {
                     tokenStorage.saveSession(token: loginResponse.token, username: username)
                     apiClient.refreshToken()
                     span.setAttribute(key: "auth.result", value: "success")
+                    authStateContinuation.yield(())
                     logger.info("Login successful", attributes: ["username": username])
                     return true
                 } else {
@@ -84,6 +92,7 @@ final class AuthRepository: AuthServiceProtocol {
     func logout() {
         tokenStorage.clearSession()
         apiClient.refreshToken()
+        authStateContinuation.yield(())
         logger.info("User logged out")
     }
 

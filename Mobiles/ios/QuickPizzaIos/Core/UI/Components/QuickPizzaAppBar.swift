@@ -3,6 +3,7 @@ import SwiftUI
 /// Shared toolbar content for the QuickPizza app bar.
 /// Provides the orange "QuickPizza" title and profile button.
 struct QuickPizzaToolbar: ToolbarContent {
+    let isAuthenticated: Bool
     let onProfileTap: () -> Void
 
     var body: some ToolbarContent {
@@ -21,12 +22,12 @@ struct QuickPizzaToolbar: ToolbarContent {
             Button(action: onProfileTap) {
                 ZStack {
                     Circle()
-                        .fill(AppColors.primary)
+                        .fill(isAuthenticated ? AppColors.primary : AppColors.primary.opacity(0.15))
                         .frame(width: 36, height: 36)
                     
                     Image(systemName: "person.fill")
                         .font(.system(size: 16))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isAuthenticated ? .white : AppColors.primary.opacity(0.6))
                 }
             }
             .buttonStyle(.plain)

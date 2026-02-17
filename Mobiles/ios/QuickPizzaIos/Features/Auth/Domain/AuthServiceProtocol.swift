@@ -17,4 +17,8 @@ protocol AuthServiceProtocol {
 
     /// Current username, if logged in.
     var currentUsername: String? { get }
+
+    /// An async stream that emits each time the auth state changes (login or logout).
+    /// Subscribe in `.task { }` to react to auth state changes.
+    var authStateChanged: AsyncStream<Void> { get }
 }

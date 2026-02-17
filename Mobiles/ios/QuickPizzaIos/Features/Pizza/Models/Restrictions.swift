@@ -11,12 +11,12 @@ struct Restrictions: Codable, Equatable {
     var customName: String
 
     static let `default` = Restrictions(
-        maxCaloriesPerSlice: 1000,
+        maxCaloriesPerSlice: 800,
         mustBeVegetarian: false,
         excludedIngredients: [],
         excludedTools: [],
-        maxNumberOfToppings: 5,
-        minNumberOfToppings: 2,
+        maxNumberOfToppings: 3,
+        minNumberOfToppings: 1,
         customName: ""
     )
 }

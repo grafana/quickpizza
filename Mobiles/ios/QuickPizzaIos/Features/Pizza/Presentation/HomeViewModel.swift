@@ -39,8 +39,21 @@ class HomeViewModel {
     }
 
     /// Called from .task { } when the view appears.
+    /// Loads initial data and listens for logout events.
+    /// Auto-cancelled when the view disappears (structured concurrency).
     func start() async {
-        await loadInitialData()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { @MainActor in
+                await self.loadInitialData()
+            }
+            group.addTask { @MainActor in
+                for await _ in self.authService.authStateChanged {
+                    if !self.authService.isAuthenticated {
+                        self.clearRecommendationState()
+                    }
+                }
+            }
+        }
     }
 
     func loadInitialData() async {
@@ -93,5 +106,13 @@ class HomeViewModel {
         } else {
             restrictions.excludedTools.append(tool)
         }
+    }
+    
+    /// Clears the pizza recommendation and any errors.
+    /// Called when the user logs out.
+    func clearRecommendationState() {
+        recommendation = nil
+        errorMessage = nil
+        ratingSubmitted = false
     }
 }

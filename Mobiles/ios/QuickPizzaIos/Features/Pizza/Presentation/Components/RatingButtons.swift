@@ -6,29 +6,8 @@ struct RatingButtons: View {
     let isSubmitted: Bool
 
     var body: some View {
-        if isSubmitted {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppColors.success)
-                Text("Thanks for rating!")
-                    .font(.subheadline)
-                    .foregroundStyle(AppColors.success)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .transition(.opacity)
-        } else {
+        VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Button {
-                    onRate(5)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "heart.fill")
-                        Text("Love it!")
-                    }
-                }
-                .buttonStyle(PrimaryButtonStyle())
-
                 Button {
                     onRate(1)
                 } label: {
@@ -38,6 +17,27 @@ struct RatingButtons: View {
                     }
                 }
                 .buttonStyle(SecondaryButtonStyle())
+
+                Button {
+                    onRate(5)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "heart.fill")
+                        Text("Love it!")
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+            }
+            
+            if isSubmitted {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColors.success)
+                    Text("Rated!")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.success)
+                }
+                .transition(.opacity)
             }
         }
     }

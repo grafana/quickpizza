@@ -11,7 +11,7 @@ struct CustomizeSection: View {
         VStack(spacing: 0) {
             // Header button
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -28,7 +28,7 @@ struct CustomizeSection: View {
                 }
                 .padding(16)
                 .background(AppColors.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: isExpanded ? 16 : 16, style: .continuous))
                 .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
             }
             .buttonStyle(.plain)
@@ -38,7 +38,7 @@ struct CustomizeSection: View {
                     // Max calories
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Max calories per slice")
+                            Text("Max calories per slice (target)")
                                 .font(.subheadline)
                                 .foregroundStyle(AppColors.textPrimary)
                             Spacer()
@@ -47,12 +47,15 @@ struct CustomizeSection: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColors.primary)
                         }
+                        Text("Backend will try to honor this, but may exceed if impossible")
+                            .font(.caption2)
+                            .foregroundStyle(AppColors.textSecondary)
                         Slider(
                             value: Binding(
                                 get: { Double(restrictions.maxCaloriesPerSlice) },
                                 set: { restrictions.maxCaloriesPerSlice = Int($0) }
                             ),
-                            in: 100...2000,
+                            in: 300...1500,
                             step: 50
                         )
                         .tint(AppColors.primary)
@@ -61,29 +64,64 @@ struct CustomizeSection: View {
                     Divider()
 
                     // Toppings range
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Min toppings")
-                                .font(.caption)
-                                .foregroundStyle(AppColors.textSecondary)
-                            Stepper(
-                                "\(restrictions.minNumberOfToppings)",
-                                value: $restrictions.minNumberOfToppings,
-                                in: 1...10
-                            )
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Extra toppings")
                             .font(.subheadline)
-                        }
-                        Spacer()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Max toppings")
-                                .font(.caption)
-                                .foregroundStyle(AppColors.textSecondary)
-                            Stepper(
-                                "\(restrictions.maxNumberOfToppings)",
-                                value: $restrictions.maxNumberOfToppings,
-                                in: 1...10
-                            )
-                            .font(.subheadline)
+                            .foregroundStyle(AppColors.textPrimary)
+                        Text("Added to base ingredients (olive oil, tomato, mozzarella)")
+                            .font(.caption2)
+                            .foregroundStyle(AppColors.textSecondary)
+                        
+                        HStack {
+                            VStack(spacing: 4) {
+                                Text("Min")
+                                    .font(.caption)
+                                    .foregroundStyle(AppColors.textSecondary)
+                                    .frame(maxWidth: .infinity)
+                                Stepper(
+                                    "\(restrictions.minNumberOfToppings)",
+                                    value: Binding(
+                                        get: { restrictions.minNumberOfToppings },
+                                        set: { newValue in
+                                            restrictions.minNumberOfToppings = newValue
+                                            // Ensure min doesn't exceed max
+                                            if restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings {
+                                                restrictions.maxNumberOfToppings = restrictions.minNumberOfToppings
+                                            }
+                                        }
+                                    ),
+                                    in: 1...7
+                                )
+                                .font(.subheadline)
+                                .fixedSize()
+                            }
+                            .padding(.leading, 8)
+                            
+                            Spacer()
+                            
+                            VStack(spacing: 4) {
+                                Text("Max")
+                                    .font(.caption)
+                                    .foregroundStyle(AppColors.textSecondary)
+                                    .frame(maxWidth: .infinity)
+                                Stepper(
+                                    "\(restrictions.maxNumberOfToppings)",
+                                    value: Binding(
+                                        get: { restrictions.maxNumberOfToppings },
+                                        set: { newValue in
+                                            restrictions.maxNumberOfToppings = newValue
+                                            // Ensure max doesn't go below min
+                                            if restrictions.maxNumberOfToppings < restrictions.minNumberOfToppings {
+                                                restrictions.minNumberOfToppings = restrictions.maxNumberOfToppings
+                                            }
+                                        }
+                                    ),
+                                    in: 1...7
+                                )
+                                .font(.subheadline)
+                                .fixedSize()
+                            }
+                            .padding(.trailing, 8)
                         }
                     }
 
@@ -143,10 +181,13 @@ struct CustomizeSection: View {
                 }
                 .padding(16)
                 .background(AppColors.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 2)
-                .padding(.top, 4)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .padding(.top, 8)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.95, anchor: .top).combined(with: .opacity),
+                    removal: .scale(scale: 0.95, anchor: .top).combined(with: .opacity)
+                ))
             }
         }
     }

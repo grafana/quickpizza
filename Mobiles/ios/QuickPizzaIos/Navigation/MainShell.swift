@@ -1,29 +1,18 @@
 import SwiftUI
+import SwiftiePod
 
 /// Main app shell with bottom tab navigation and shared app bar.
 struct MainShell: View {
-    @State private var showLogin = false
-    @State private var showProfile = false
-    @State private var selectedTab = 0
-
-    // Check auth state to decide login vs profile
-    private var isAuthenticated: Bool {
-        let session = UserDefaultsTokenStorage().loadSession()
-        return session.isAuthenticated
-    }
+    @State private var viewModel = pod.resolve(mainShellViewModelProvider)
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: $viewModel.selectedTab) {
             // Home tab
             NavigationStack {
                 HomeView()
                     .toolbar {
-                        QuickPizzaToolbar {
-                            if isAuthenticated {
-                                showProfile = true
-                            } else {
-                                showLogin = true
-                            }
+                        QuickPizzaToolbar(isAuthenticated: viewModel.isAuthenticated) {
+                            viewModel.showAuthSheet()
                         }
                     }
             }
@@ -36,12 +25,8 @@ struct MainShell: View {
             NavigationStack {
                 AboutView()
                     .toolbar {
-                        QuickPizzaToolbar {
-                            if isAuthenticated {
-                                showProfile = true
-                            } else {
-                                showLogin = true
-                            }
+                        QuickPizzaToolbar(isAuthenticated: viewModel.isAuthenticated) {
+                            viewModel.showAuthSheet()
                         }
                     }
             }
@@ -51,10 +36,10 @@ struct MainShell: View {
             .tag(1)
         }
         .tint(AppColors.primary)
-        .sheet(isPresented: $showLogin) {
+        .sheet(isPresented: $viewModel.showLogin) {
             LoginView()
         }
-        .sheet(isPresented: $showProfile) {
+        .sheet(isPresented: $viewModel.showProfile) {
             ProfileView()
         }
     }
