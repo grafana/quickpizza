@@ -129,7 +129,7 @@ class RatingsRepository {
         endpointName: 'deleteRatings',
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         _o11yLogger.debug('Ratings deleted successfully');
         return true;
       } else if (response.statusCode == 401) {
