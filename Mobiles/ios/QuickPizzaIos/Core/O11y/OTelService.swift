@@ -1,7 +1,7 @@
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import StdoutExporter
+
 import OpenTelemetryProtocolExporterHttp
 import URLSessionInstrumentation
 import ResourceExtension
@@ -54,9 +54,8 @@ final class OTelService {
             spanProcessors.append(BatchSpanProcessor(spanExporter: otlpTraceExporter))
         }
 
-        // Always add stdout for development visibility
         #if DEBUG
-        spanProcessors.append(SimpleSpanProcessor(spanExporter: StdoutSpanExporter()))
+        spanProcessors.append(SimpleSpanProcessor(spanExporter: OSLogSpanExporter()))
         #endif
 
         let tracerProviderBuilder = TracerProviderBuilder()
