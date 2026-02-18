@@ -27,3 +27,6 @@ Config.xcconfig
 
 # Auto-generated build configuration
 **/BuildConfig.generated.swift
+
+# xcode-build-server (SourceKit-LSP bridge, contains machine-specific paths)
+buildServer.json
