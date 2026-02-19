@@ -7,6 +7,22 @@ final configServiceProvider = Provider((ref) {
 });
 
 class ConfigService {
+  static bool get ciDemoVersioning {
+    const raw = String.fromEnvironment(
+      'CI_DEMO_VERSIONING',
+      defaultValue: 'false',
+    );
+    switch (raw.toLowerCase()) {
+      case '1':
+      case 'true':
+      case 'yes':
+      case 'on':
+        return true;
+      default:
+        return false;
+    }
+  }
+
   String get baseUrl {
     // Check if BASE_URL is set via build-time config
     const baseUrl = String.fromEnvironment('BASE_URL');
