@@ -19,33 +19,40 @@ scenarios:
   - id: "request_pizza"
     goal: |
       You should see a pizza recommendation on the screen.
+      As soon as you see the pizza recommendation, the goal is achieved.
 
       INSTRUCTIONS:
-      1. Tap the "Pizza, Please!" button.
+      1. Tap the "Pizza, Please!" button once.
+      2. After tapping, wait and observe before taking another action.
 
       A Pizza Recommendation has the following elements:
       - a pizza name
       - some ingredients
-      - "No thanks" and "Love it!" buttons
+      - "Pass" and "Love it!" buttons
 
       HINTS:
-      - The rating buttons might not be visible, you need to scroll down to see them.
+      - The rating buttons might not be visible; scroll all the way down to see them.
       - If you need to login, consider using the "default" / "12345678" credentials.
-    maxRetry: 0
+    maxRetry: 1
     maxStep: 15 # Allow many steps here, since we might need to go though login flow first.
 
   - id: "rate_pizza"
     dependency: "request_pizza"
     goal: |
-      You should rate the pizza by tapping "Love it!" and see confirmation.
+      You should rate the pizza and see "Rated!" text.
+      As soon as you see the "Rated!" text, the goal is achieved.
+
+      A Pizza Recommendation is rated when you see:
+      - "Rated!" text below the ratings buttons.
 
       INSTRUCTIONS:
-      1. Tap the "Love it!" button to rate the pizza.
+      1. Tap one of the rating buttons to rate the pizza. You choose which one to tap. Both are equally good. We want to test both good and bad ratings.
 
-      SUCCESS CRITERIA:
-      - You see "Rated!" text appear.
-    maxRetry: 0
-    maxStep: 5
+      HINTS:
+      - If you cannot see the Rated text, scroll all the way down to see it.
+      - A rating button is either "Love it!" or "Pass".
+    maxRetry: 1
+    maxStep: 7
 
   - id: "put_app_to_background"
     goal: |
