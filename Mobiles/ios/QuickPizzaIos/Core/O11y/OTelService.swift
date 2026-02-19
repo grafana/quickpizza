@@ -5,6 +5,7 @@ import OpenTelemetrySdk
 import OpenTelemetryProtocolExporterHttp
 import URLSessionInstrumentation
 import ResourceExtension
+import Sessions
 import SwiftiePod
 
 let otelServiceProvider = Provider { pod in
@@ -29,15 +30,24 @@ final class OTelService {
         isInitialized = true
         self.otelConfig = config
 
+        setupSessions()
         setupTraces(config: config)
         setupLogs(config: config)
         setupURLSessionInstrumentation(config: config)
     }
 
+    // MARK: - Sessions
+
+    private func setupSessions() {
+        let sessionConfig = SessionConfig(sessionTimeout: 15 * 60) // 15 min, matching Faro inactivity rule
+        SessionManagerProvider.register(sessionManager: SessionManager(configuration: sessionConfig))
+        SessionEventInstrumentation.install()
+    }
+
     // MARK: - Traces
 
     private func setupTraces(config: OTelConfig) {
-        var spanProcessors: [SpanProcessor] = []
+        var spanProcessors: [SpanProcessor] = [SessionSpanProcessor()]
 
         if let endpointUrl = config.endpointUrl {
             // Set auth header as environment variable for OTLP exporter
@@ -79,12 +89,13 @@ final class OTelService {
                 envVarHeaders = [("Authorization", authHeader)]
             }
             
-            // OTLP HTTP exporter for logs
+            // OTLP HTTP exporter for logs, wrapped with session processor to stamp session.id on every record
             let otlpLogExporter = OtlpHttpLogExporter(
                 endpoint: URL(string: "\(endpointUrl)/v1/logs")!,
                 envVarHeaders: envVarHeaders
             )
-            logProcessors.append(BatchLogRecordProcessor(logRecordExporter: otlpLogExporter))
+            let batchLogProcessor = BatchLogRecordProcessor(logRecordExporter: otlpLogExporter)
+            logProcessors.append(SessionLogRecordProcessor(nextProcessor: batchLogProcessor))
         }
 
         let loggerProvider = LoggerProviderBuilder()

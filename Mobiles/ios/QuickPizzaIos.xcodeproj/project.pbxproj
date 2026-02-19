@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		621CCCCB2F4617FF001A3F53 /* Sessions in Frameworks */ = {isa = PBXBuildFile; productRef = 621CCCCA2F4617FF001A3F53 /* Sessions */; };
 		62ECE0322F43D3D300611CB0 /* SwiftiePod in Frameworks */ = {isa = PBXBuildFile; productRef = 62ECE0312F43D3D300611CB0 /* SwiftiePod */; };
 		62ECE0352F43D6AE00611CB0 /* SwiftiePod in Frameworks */ = {isa = PBXBuildFile; productRef = 62ECE0342F43D6AE00611CB0 /* SwiftiePod */; };
 		62ECE0392F4459C400611CB0 /* Config.xcconfig.example in Resources */ = {isa = PBXBuildFile; fileRef = 62ECE0382F4459C400611CB0 /* Config.xcconfig.example */; };
@@ -38,6 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				621CCCCB2F4617FF001A3F53 /* Sessions in Frameworks */,
 				62ECE0352F43D6AE00611CB0 /* SwiftiePod in Frameworks */,
 				62EFEF4E2F360BAE00E72D9F /* OpenTelemetryApi in Frameworks */,
 				62EFEF522F360BAE00E72D9F /* StdoutExporter in Frameworks */,
@@ -52,6 +54,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		621CCCC92F4617FF001A3F53 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		627B872F2F35EF1400818037 = {
 			isa = PBXGroup;
 			children = (
@@ -59,6 +68,7 @@
 				627B87392F35EF1400818037 /* Products */,
 				62ECE0382F4459C400611CB0 /* Config.xcconfig.example */,
 				62ECE03A2F4459D300611CB0 /* Config.xcconfig */,
+				621CCCC92F4617FF001A3F53 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -99,6 +109,7 @@
 				62EFEF512F360BAE00E72D9F /* StdoutExporter */,
 				62ECE0312F43D3D300611CB0 /* SwiftiePod */,
 				62ECE0342F43D6AE00611CB0 /* SwiftiePod */,
+				621CCCCA2F4617FF001A3F53 /* Sessions */,
 			);
 			productName = QuickPizzaIos;
 			productReference = 627B87382F35EF1400818037 /* QuickPizzaIos.app */;
@@ -332,7 +343,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.grafana.QuickPizzaIos;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -366,7 +377,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.grafana.QuickPizzaIos;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -430,6 +441,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		621CCCCA2F4617FF001A3F53 /* Sessions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			productName = Sessions;
+		};
 		62ECE0312F43D3D300611CB0 /* SwiftiePod */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftiePod;
