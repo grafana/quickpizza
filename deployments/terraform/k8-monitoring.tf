@@ -3,7 +3,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
   name             = "grafana-k8s-monitoring"
   repository       = "https://grafana.github.io/helm-charts"
   chart            = "k8s-monitoring"
-  version          = "1.6.48"
+  version          = "1.6.50"
   namespace        = "quickpizza-monitoring"
   create_namespace = true
   atomic           = true
