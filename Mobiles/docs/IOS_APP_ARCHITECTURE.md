@@ -2,6 +2,8 @@
 
 This document captures architectural decisions and best practices for building the QuickPizza iOS app. It serves as context for AI agents and developers working on the iOS codebase.
 
+For telemetry-specific implementation details, see `IOS_OBSERVABILITY_OTEL_GUIDE.md`.
+
 ## Table of Contents
 
 - [Project Setup](#project-setup)

@@ -21,6 +21,13 @@ struct MainShell: View {
                         Label("About", systemImage: "info.circle")
                     }
                     .tag(1)
+
+                // Debug tab
+                DebugView()
+                    .tabItem {
+                        Label("Debug", systemImage: "ladybug.fill")
+                    }
+                    .tag(2)
             }
             .tint(AppColors.primary)
             .toolbar {
