@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		621CCCCB2F4617FF001A3F53 /* Sessions in Frameworks */ = {isa = PBXBuildFile; productRef = 621CCCCA2F4617FF001A3F53 /* Sessions */; };
+		62A1F0012F47200100ABCD01 /* MetricKitInstrumentation in Frameworks */ = {isa = PBXBuildFile; productRef = 62A1F0022F47200100ABCD01 /* MetricKitInstrumentation */; };
 		62ECE0322F43D3D300611CB0 /* SwiftiePod in Frameworks */ = {isa = PBXBuildFile; productRef = 62ECE0312F43D3D300611CB0 /* SwiftiePod */; };
 		62ECE0352F43D6AE00611CB0 /* SwiftiePod in Frameworks */ = {isa = PBXBuildFile; productRef = 62ECE0342F43D6AE00611CB0 /* SwiftiePod */; };
 		62ECE0392F4459C400611CB0 /* Config.xcconfig.example in Resources */ = {isa = PBXBuildFile; fileRef = 62ECE0382F4459C400611CB0 /* Config.xcconfig.example */; };
@@ -41,6 +42,7 @@
 			files = (
 				621CCCCB2F4617FF001A3F53 /* Sessions in Frameworks */,
 				62ECE0352F43D6AE00611CB0 /* SwiftiePod in Frameworks */,
+				62A1F0012F47200100ABCD01 /* MetricKitInstrumentation in Frameworks */,
 				62EFEF4E2F360BAE00E72D9F /* OpenTelemetryApi in Frameworks */,
 				62EFEF522F360BAE00E72D9F /* StdoutExporter in Frameworks */,
 				62EFEF462F36082D00E72D9F /* ResourceExtension in Frameworks */,
@@ -103,6 +105,7 @@
 			packageProductDependencies = (
 				62EFEF432F36082D00E72D9F /* OpenTelemetryProtocolExporterHTTP */,
 				62EFEF452F36082D00E72D9F /* ResourceExtension */,
+				62A1F0022F47200100ABCD01 /* MetricKitInstrumentation */,
 				62EFEF472F36082D00E72D9F /* URLSessionInstrumentation */,
 				62EFEF4D2F360BAE00E72D9F /* OpenTelemetryApi */,
 				62EFEF4F2F360BAE00E72D9F /* OpenTelemetrySdk */,
@@ -445,6 +448,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
 			productName = Sessions;
+		};
+		62A1F0022F47200100ABCD01 /* MetricKitInstrumentation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 62EFEF422F36082D00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			productName = MetricKitInstrumentation;
 		};
 		62ECE0312F43D3D300611CB0 /* SwiftiePod */ = {
 			isa = XCSwiftPackageProductDependency;

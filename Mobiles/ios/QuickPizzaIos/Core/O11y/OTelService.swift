@@ -7,6 +7,8 @@ import URLSessionInstrumentation
 import ResourceExtension
 import Sessions
 import SwiftiePod
+import MetricKit
+import MetricKitInstrumentation
 
 let otelServiceProvider = Provider { pod in
     let config = pod.resolve(otelConfigProvider)
@@ -22,6 +24,8 @@ final class OTelService {
 
     private var isInitialized = false
     private var otelConfig: OTelConfig?
+    /// MXMetricManager keeps a weak reference to subscribers, so we retain it here.
+    private var metricKitInstrumentation: MetricKitInstrumentation?
 
     private init() {}
 
@@ -33,6 +37,7 @@ final class OTelService {
         setupSessions()
         setupTraces(config: config)
         setupLogs(config: config)
+        setupMetricKitInstrumentation()
         setupURLSessionInstrumentation(config: config)
     }
 
@@ -106,6 +111,14 @@ final class OTelService {
     }
 
     // MARK: - URLSession Instrumentation
+
+    private func setupMetricKitInstrumentation() {
+        guard metricKitInstrumentation == nil else { return }
+
+        let instrumentation = MetricKitInstrumentation()
+        MXMetricManager.shared.add(instrumentation)
+        metricKitInstrumentation = instrumentation
+    }
 
     private func setupURLSessionInstrumentation(config: OTelConfig) {
         let excludedHosts: Set<String> = {

@@ -19,6 +19,7 @@ protocol Logging {
     func info(_ message: String, attributes: [String: String])
     func warning(_ message: String, attributes: [String: String])
     func error(_ message: String, error: Error?, attributes: [String: String])
+    func exception(_ message: String, error: Error, attributes: [String: String])
 }
 
 extension Logging {
@@ -33,6 +34,9 @@ extension Logging {
     }
     func error(_ message: String, error: Error? = nil, attributes: [String: String] = [:]) {
         self.error(message, error: error, attributes: attributes)
+    }
+    func exception(_ message: String, error: Error, attributes: [String: String] = [:]) {
+        self.exception(message, error: error, attributes: attributes)
     }
 }
 
@@ -60,6 +64,10 @@ final class CompositeLogger: Logging {
 
     func error(_ message: String, error: Error?, attributes: [String: String]) {
         loggers.forEach { $0.error(message, error: error, attributes: attributes) }
+    }
+
+    func exception(_ message: String, error: Error, attributes: [String: String]) {
+        loggers.forEach { $0.exception(message, error: error, attributes: attributes) }
     }
 }
 
@@ -89,6 +97,10 @@ final class ConsoleLogger: Logging {
         let fullMessage = error != nil ? "\(message): \(error!.localizedDescription)" : message
         osLogger.error("\(fullMessage)")
     }
+
+    func exception(_ message: String, error: Error, attributes: [String: String]) {
+        osLogger.error("\(message): \(error.localizedDescription)")
+    }
 }
 
 // MARK: - OtelLogger
@@ -116,14 +128,34 @@ final class OtelLogger: Logging {
     func error(_ message: String, error: Error?, attributes: [String: String]) {
         var attrs = attributes
         if let error {
-            attrs["error.type"] = String(describing: type(of: error))
-            attrs["error.message"] = error.localizedDescription
+            attrs[SemanticConventions.Error.type.rawValue] = String(describing: type(of: error))
+            attrs[SemanticConventions.Error.message.rawValue] = error.localizedDescription
         }
         let fullMessage = error != nil ? "\(message): \(error!.localizedDescription)" : message
         emitLog(fullMessage, severity: .error, attributes: attrs)
     }
 
-    private func emitLog(_ message: String, severity: Severity, attributes: [String: String]) {
+    func exception(_ message: String, error: Error, attributes: [String: String]) {
+        var attrs = attributes
+        attrs[SemanticConventions.Exception.type.rawValue] = String(describing: type(of: error))
+        attrs[SemanticConventions.Exception.message.rawValue] = error.localizedDescription
+        attrs[SemanticConventions.Exception.stacktrace.rawValue] = Thread.callStackSymbols.joined(separator: "\n")
+        attrs[SemanticConventions.Error.type.rawValue] = String(describing: type(of: error))
+
+        emitLog(
+            message,
+            severity: .error,
+            attributes: attrs,
+            eventName: SemanticConventions.Exception.exception.rawValue
+        )
+    }
+
+    private func emitLog(
+        _ message: String,
+        severity: Severity,
+        attributes: [String: String],
+        eventName: String? = nil
+    ) {
         var otelAttributes = attributes.reduce(
             into: [String: OpenTelemetryApi.AttributeValue]()
         ) { result, pair in
@@ -131,12 +163,15 @@ final class OtelLogger: Logging {
         }
         otelAttributes["level"] = .string("\(severity)")
 
-        otelLogger
+        let builder = otelLogger
             .logRecordBuilder()
             .setBody(.string(message))
             .setTimestamp(Date())
             .setAttributes(otelAttributes)
             .setSeverity(severity)
-            .emit()
+        if let eventName {
+            _ = builder.setEventName(eventName)
+        }
+        builder.emit()
     }
 }
