@@ -51,7 +51,7 @@ jobs:
         uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
 
       - name: Install jq
-        uses: dcarbone/install-jq-action@e397bd87438d72198f81efd21f876461183d383a # v3.0.1
+        uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45 # v3.2.0
 
       - name: Run k6 foundations tests
         run: ./k6/run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
