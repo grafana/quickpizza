@@ -12,7 +12,7 @@
     "biome-format": "biome format --fix"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.4",
+    "@biomejs/biome": "2.4.4",
     "@grafana/faro-instrumentation-replay": "2.1.0",
     "@grafana/faro-web-sdk": "2.1.0",
     "@grafana/faro-web-tracing": "2.1.0",
