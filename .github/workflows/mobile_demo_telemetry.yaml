@@ -93,7 +93,8 @@ jobs:
           {
             "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
             "BASE_URL": "",
-            "PORT": "3333"
+            "PORT": "3333",
+            "CI_DEMO_VERSIONING": "true"
           }
           EOF
           echo "Created config.json:"

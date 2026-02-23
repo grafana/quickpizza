@@ -4,6 +4,7 @@ import 'package:faro/faro.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/config/app_version_resolver.dart';
 import 'core/config/app_version_provider.dart';
 import 'core/config/config_service.dart';
 import 'core/localization/app_localizations.dart';
@@ -56,9 +57,20 @@ Future<void> bootstrap(BootstrapConfig config) async {
 
   // Get app version from package info provider (warms up the provider for later use)
   final packageInfo = await container.read(packageInfoProvider.future);
-  final appVersion = packageInfo.version;
-
-  logger.debug('App version: $appVersion');
+  final baseAppVersion = packageInfo.version;
+  final versionResolver = container.read(appVersionResolverProvider);
+  final appVersion = versionResolver.resolveTelemetryAppVersion(
+    baseVersion: baseAppVersion,
+    enableCiDemoVersioning: ConfigService.ciDemoVersioning,
+  );
+  logger.debug(
+    'App version resolved',
+    context: {
+      'baseVersion': baseAppVersion,
+      'telemetryVersion': appVersion,
+      'ciDemoVersioning': ConfigService.ciDemoVersioning.toString(),
+    },
+  );
 
   // Get collector URL from build-time config
   final collectorUrl = ConfigService.faroCollectorUrl;
