@@ -95,6 +95,7 @@ prometheus.remote_write "local" {
     // TODO: Replace this with your prometheus-compatible metrics store
     url = env("METRICS_ENDPOINT")
     send_native_histograms = true
+    send_exemplars = true
   }
 }
 prometheus.scrape "app_containers" {
