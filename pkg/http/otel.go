@@ -42,9 +42,23 @@ func LogTraceID(next http.Handler) http.Handler {
 	})
 }
 
+// exemplarData holds trace context that inner middleware populates for outer middleware to read.
+// HTTPMetricsMiddleware stores a pointer in the context before calling next.ServeHTTP().
+// OTelRouteLabeler (running inside route groups, after otelhttp) writes the trace IDs into it.
+type exemplarData struct {
+	TraceID string
+}
+
+type exemplarKeyType int
+
+const exemplarKey exemplarKeyType = 0
+
 // OTelRouteLabeler is a middleware that adds the chi route pattern to OTel metrics.
 // This must be used AFTER otelhttp.NewHandler and will add an "http.route" label
 // to the http_server_request_duration_seconds metric.
+//
+// It also populates exemplarData (if present in the context) with the current
+// trace and span IDs, so that HTTPMetricsMiddleware can attach exemplars.
 //
 // Note: otelhttp.WithMetricAttributesFn cannot be used for this because the chi
 // route pattern is only resolved after routing, but WithMetricAttributesFn runs
@@ -58,6 +72,15 @@ func OTelRouteLabeler(next http.Handler) http.Handler {
 				}
 			}
 		}
+
+		// Populate exemplar data for HTTPMetricsMiddleware
+		if ed, ok := r.Context().Value(exemplarKey).(*exemplarData); ok {
+			spanCtx := trace.SpanFromContext(r.Context()).SpanContext()
+			if spanCtx.HasTraceID() {
+				ed.TraceID = spanCtx.TraceID().String()
+			}
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

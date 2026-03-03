@@ -1642,12 +1642,22 @@ func excludeWebSocketFromOTel() otelhttp.Option {
 
 // HTTPMetricsMiddleware records Prometheus metrics for HTTP requests.
 // It captures request count, duration (histogram), and duration (gauge) with labels
-// for method, path (route pattern), and status code.
+// for method, path (route pattern), and status code. It also attaches exemplars
+// containing trace context to histogram metrics for observability linking.
+//
+// Exemplars rely on OTelRouteLabeler populating an exemplarData pointer stored
+// in the request context. This avoids installing otelhttp at the root level.
 func HTTPMetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-		next.ServeHTTP(ww, r)
+
+		// Store a mutable pointer in the context for OTelRouteLabeler to populate
+		// with trace IDs after otelhttp creates the span.
+		ed := &exemplarData{}
+		ctx := context.WithValue(r.Context(), exemplarKey, ed)
+
+		next.ServeHTTP(ww, r.WithContext(ctx))
 		duration := time.Since(start)
 
 		pattern := chi.RouteContext(r.Context()).RoutePattern()
@@ -1657,9 +1667,31 @@ func HTTPMetricsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		httpRequests.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Inc()
-		httpRequestDuration.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
-		httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
-		httpRequestDurationGauge.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Set(duration.Seconds())
+		statusStr := strconv.Itoa(ww.Status())
+		durationSeconds := duration.Seconds()
+
+		httpRequests.WithLabelValues(r.Method, pattern, statusStr).Inc()
+
+		// Record histogram observations with exemplars if trace context was populated
+		if ed.TraceID != "" {
+			labels := prometheus.Labels{
+				"trace_id": ed.TraceID,
+			}
+			if observer, ok := httpRequestDuration.WithLabelValues(r.Method, pattern, statusStr).(prometheus.ExemplarObserver); ok {
+				observer.ObserveWithExemplar(durationSeconds, labels)
+			} else {
+				httpRequestDuration.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+			}
+			if observer, ok := httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, statusStr).(prometheus.ExemplarObserver); ok {
+				observer.ObserveWithExemplar(durationSeconds, labels)
+			} else {
+				httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+			}
+		} else {
+			httpRequestDuration.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+			httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+		}
+
+		httpRequestDurationGauge.WithLabelValues(r.Method, pattern, statusStr).Set(durationSeconds)
 	})
 }
