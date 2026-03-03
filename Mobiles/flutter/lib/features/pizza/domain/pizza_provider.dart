@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/o11y/actions/o11y_actions.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import '../../../core/o11y/metrics/o11y_metrics.dart';
@@ -51,6 +52,7 @@ class PizzaState {
 
 class PizzaStateNotifier extends Notifier<PizzaState> {
   late PizzaRepository _pizzaRepository;
+  late O11yActions _o11yActions;
   late O11yEvents _o11yEvents;
   late O11yLogger _o11yLogger;
   late O11yMetrics _o11yMetrics;
@@ -58,6 +60,7 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
   @override
   PizzaState build() {
     _pizzaRepository = ref.watch(pizzaRepositoryProvider);
+    _o11yActions = ref.watch(o11yActionsProvider);
     _o11yEvents = ref.watch(o11yEventsProvider);
     _o11yLogger = ref.watch(o11yLoggerProvider);
     _o11yMetrics = ref.watch(o11yMetricsProvider);
@@ -77,6 +80,11 @@ class PizzaStateNotifier extends Notifier<PizzaState> {
   }
 
   Future<void> getPizza(Restrictions restrictions) async {
+    _o11yActions.startUserAction(
+      'get-pizza-recommendation',
+      attributes: {'vegetarian': restrictions.mustBeVegetarian.toString()},
+    );
+
     _o11yEvents.trackEvent(
       'pizza_requested',
       context: {'vegetarian': restrictions.mustBeVegetarian.toString()},

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/o11y/actions/o11y_actions.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
 import 'auth_repository.dart';
@@ -47,10 +48,13 @@ class AuthStateNotifier extends Notifier<AuthState> {
   AuthState build() => const AuthState();
 
   AuthRepository get _authRepository => ref.read(authRepositoryProvider);
+  O11yActions get _o11yActions => ref.read(o11yActionsProvider);
   O11yEvents get _o11yEvents => ref.read(o11yEventsProvider);
   O11yLogger get _o11yLogger => ref.read(o11yLoggerProvider);
 
   Future<bool> login(String username, String password) async {
+    _o11yActions.startUserAction('user-login', isCritical: true);
+
     _o11yEvents.trackStartEvent('login_attempt', 'user_login');
 
     state = state.copyWith(isLoading: true, errorMessage: null);
