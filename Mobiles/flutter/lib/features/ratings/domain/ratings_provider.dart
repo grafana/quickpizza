@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/o11y/actions/o11y_actions.dart';
 import '../../../core/o11y/events/o11y_events.dart';
 import '../../../core/o11y/metrics/o11y_metrics.dart';
 import '../models/rating.dart';
@@ -18,6 +19,7 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
 
   RatingsRepository get _ratingsRepository =>
       ref.read(ratingsRepositoryProvider);
+  O11yActions get _o11yActions => ref.read(o11yActionsProvider);
   O11yEvents get _o11yEvents => ref.read(o11yEventsProvider);
   O11yMetrics get _o11yMetrics => ref.read(o11yMetricsProvider);
 
@@ -32,6 +34,11 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
   }
 
   Future<bool> ratePizza({required int pizzaId, required int stars}) async {
+    _o11yActions.startUserAction(
+      'rate-pizza',
+      attributes: {'pizza_id': pizzaId.toString(), 'stars': stars.toString()},
+    );
+
     _o11yEvents.trackEvent(
       'pizza_rated',
       context: {'pizza_id': pizzaId.toString(), 'stars': stars.toString()},
@@ -58,6 +65,11 @@ class RatingsNotifier extends AsyncNotifier<List<Rating>> {
 
   Future<bool> deleteRatings() async {
     final currentRatings = state.value ?? [];
+
+    _o11yActions.startUserAction(
+      'delete-ratings',
+      attributes: {'count': currentRatings.length.toString()},
+    );
 
     _o11yEvents.trackEvent(
       'ratings_deleted',
