@@ -54,20 +54,14 @@ jobs:
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
 
-      - name: Get App Version
-        id: app-version
-        working-directory: Mobiles/flutter
-        run: |
-          VERSION=$(grep 'version:' pubspec.yaml | cut -d' ' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-
       - name: Cache APK
         id: cache-apk
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          key: apk-cache-v${{ steps.app-version.outputs.version }}
+          # Hash only Flutter Android APK inputs so Flutter changes rebuild,
+          # while unrelated repo changes (iOS/backend/frontend) keep cache hits.
+          key: apk-cache-${{ runner.os }}-${{ env.FLUTTER_CHANNEL }}-${{ hashFiles('Mobiles/flutter/pubspec.yaml', 'Mobiles/flutter/pubspec.lock', 'Mobiles/flutter/lib/**', 'Mobiles/flutter/android/**', 'Mobiles/flutter/assets/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
 
       - name: Log cache status
         run: |
