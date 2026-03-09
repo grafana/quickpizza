@@ -102,8 +102,7 @@ Future<void> bootstrap(BootstrapConfig config) async {
         // Used by Riverpod to provide providers to the app
         UncontrolledProviderScope(
           container: container,
-          child: DefaultAssetBundle(
-            bundle: FaroAssetBundle(),
+          child: FaroAssetTracking(
             child: const FaroUserInteractionWidget(child: QuickPizzaApp()),
           ),
         ),
