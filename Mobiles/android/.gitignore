@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Config file with secrets — copy config.json.example to config.json and fill in values
+app/src/main/res/raw/config.json

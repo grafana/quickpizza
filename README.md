@@ -10,6 +10,7 @@
 - [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
 - [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud)
   - [Monitor QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability)
+- [Mobile Apps](#mobile-apps)
 
 ## What is QuickPizza? 🍕🍕🍕
 
@@ -335,3 +336,15 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
     ```
 
 ![Frontend Observability](./docs/images/grafana-cloud-frontend-observability-quickpizza.png)
+
+## Mobile Apps
+
+This repository includes native mobile implementations of QuickPizza for observability demonstrations. Each app connects to the same QuickPizza backend and is instrumented with OpenTelemetry.
+
+| Platform | Location | SDK | Setup Guide |
+| --- | --- | --- | --- |
+| Flutter (Android & iOS) | `Mobiles/flutter/` | Grafana Faro | [Flutter setup](./Mobiles/docs/XCODE_SETUP.md) |
+| iOS (native Swift/SwiftUI) | `Mobiles/ios/` | opentelemetry-swift | [iOS setup](./Mobiles/docs/XCODE_SETUP.md) |
+| Android (native Kotlin/Compose) | `Mobiles/android/` | opentelemetry-android | [Android native setup](./Mobiles/docs/ANDROID_NATIVE_SETUP.md) |
+
+All mobile apps produce traces, logs, and session telemetry compatible with Grafana Cloud. See the per-platform setup guides in `Mobiles/docs/` for configuration details.
