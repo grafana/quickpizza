@@ -111,14 +111,21 @@ you need an OTLP endpoint and an API token.
 
 ### Find your OTLP endpoint and credentials
 
-1. Go to your Grafana Cloud stack at `https://mobileo11y.grafana-dev.net`
-2. Navigate to **Connections > Add new connection > OpenTelemetry (OTLP)**
-3. Note the **OTLP endpoint URL** — it looks like:
-   ```
-   https://otlp-gateway-<region>.grafana.net/otlp
-   ```
-4. Generate an API token with `MetricsPublisher` + `TracesPublisher` + `LogsPublisher` scopes
-5. Note your **Instance ID** (numeric) shown on the same page
+The OTLP endpoint for this project's dev stacks follows this pattern (derived from
+`alloy/cloud-dev.alloy`):
+
+```
+https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp
+```
+
+To find your `clusterSlug`:
+
+1. Go to [grafana-dev.com](https://grafana-dev.com) and open your stack
+2. The cluster slug is visible in the stack URL or in **Administration > Stack details**
+   — e.g. if your stack is at `mobileo11y.grafana-dev.net` the slug is typically
+   something like `mobileo11y` or a region-based name like `prod-eu-west-0`
+3. Generate an API token with scopes: `metrics:write`, `logs:write`, `traces:write`
+4. Note your **numeric Instance ID** shown on the stack details page
 
 ### Generate the auth header
 
@@ -139,7 +146,7 @@ echo -n "123456:glc_abc123..." | base64
 BASE_URL = http:/$()/localhost:3333
 PORT = 3333
 
-OTLP_ENDPOINT = https://otlp-gateway-<region>.grafana.net/otlp
+OTLP_ENDPOINT = https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp
 OTLP_AUTH_HEADER = Basic MTIzNDU2OmdsY19hYmMxMjMu...
 ```
 
