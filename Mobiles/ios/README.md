@@ -118,14 +118,11 @@ The OTLP endpoint for this project's dev stacks follows this pattern (derived fr
 https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp
 ```
 
-To find your `clusterSlug`:
+To find your `clusterSlug`, Instance ID, and API token:
 
-1. Go to [grafana-dev.com](https://grafana-dev.com) and open your stack
-2. The cluster slug is visible in the stack URL or in **Administration > Stack details**
-   — e.g. if your stack is at `mobileo11y.grafana-dev.net` the slug is typically
-   something like `mobileo11y` or a region-based name like `prod-eu-west-0`
+1. Go to https://grafana-dev.com/orgs/mobileo11y
+2. Find the stack and click through to its details — the **cluster slug** and **numeric Instance ID** are listed there
 3. Generate an API token with scopes: `metrics:write`, `logs:write`, `traces:write`
-4. Note your **numeric Instance ID** shown on the stack details page
 
 ### Generate the auth header
 
