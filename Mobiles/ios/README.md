@@ -173,29 +173,33 @@ The `Config.xcconfig` is automatically picked up by the build system — no extr
 
 If you want to test on a real iOS device via BrowserStack instead of the simulator:
 
-### 1 — Build an IPA
+### 1 — Build an unsigned IPA
+
+BrowserStack re-signs uploaded apps with their own certificate, so no Apple
+Developer account or provisioning profile is needed. Build with code signing
+disabled:
 
 ```bash
 cd Mobiles/ios
 
+# Archive without code signing
 xcodebuild \
   -project QuickPizzaIos.xcodeproj \
   -scheme QuickPizzaIos \
   -configuration Release \
   -destination "generic/platform=iOS" \
   -archivePath build/QuickPizzaIos.xcarchive \
+  CODE_SIGN_IDENTITY="" \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGNING_ALLOWED=NO \
   archive
 
-xcodebuild \
-  -exportArchive \
-  -archivePath build/QuickPizzaIos.xcarchive \
-  -exportPath build/ipa \
-  -exportOptionsPlist ExportOptions.plist
+# Package the .app into an IPA manually
+mkdir -p build/ipa/Payload
+cp -R "build/QuickPizzaIos.xcarchive/Products/Applications/QuickPizzaIos.app" \
+  build/ipa/Payload/
+cd build/ipa && zip -r ../QuickPizzaIos.ipa Payload && cd ../..
 ```
-
-> You'll need an `ExportOptions.plist` and an Apple Developer account with a valid
-> provisioning profile for ad-hoc or enterprise distribution. Without one, use the
-> simulator path instead.
 
 ### 2 — Upload to BrowserStack App Live
 
