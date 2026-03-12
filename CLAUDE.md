@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 QuickPizza is a demonstration web application that generates pizza recommendations. It's built with a Go backend and SvelteKit frontend, designed for k6 load testing workshops and observability demonstrations.
 
+The repository also contains a **native iOS demo app** (`Mobiles/ios/`) that demonstrates mobile observability with OpenTelemetry. It connects to the QuickPizza backend and exports traces/logs over OTLP to a Grafana Cloud stack.
+
+### iOS App Quick Reference
+- **Location:** `Mobiles/ios/`
+- **README:** `Mobiles/ios/README.md` — full setup instructions for running on a local simulator or BrowserStack
+- **Start backend:** `docker run --rm -d -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest`
+- **Configure:** `cp Mobiles/ios/Config.xcconfig.example Mobiles/ios/Config.xcconfig` then fill in `OTLP_ENDPOINT` and `OTLP_AUTH_HEADER`
+- **Run on simulator:** `bash Mobiles/ios/Scripts/sim-run.sh`
+- **OTLP target stack:** `mobileo11y.grafana-dev.net`
+
 ## Key Commands
 
 ### Building & Running
