@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocalPizza
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -25,8 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.grafana.quickpizza.features.pizza.models.PizzaRecommendation
 import com.grafana.quickpizza.ui.theme.OrangeAccent
@@ -38,21 +42,16 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // "Our Recommendation" subtitle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header: icon + "Our Recommendation" + pizza name (left-aligned, like Flutter)
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.LocalPizza,
                     contentDescription = null,
                     tint = OrangeAccent,
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(18.dp),
                 )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Our Recommendation",
                     style = MaterialTheme.typography.labelSmall,
@@ -60,16 +59,15 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = pizza.name,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
             )
 
             if (recommendation.vegetarian == true) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "🌿 Vegetarian",
                     style = MaterialTheme.typography.labelMedium,
@@ -85,18 +83,28 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
             HorizontalDivider(color = Color(0xFFF0F0F0))
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
+            // Details: each on its own row with icon, like Flutter
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 pizza.dough?.let { dough ->
-                    PizzaDetail(label = "Dough", value = dough.name, modifier = Modifier.weight(1f))
+                    DetailRow(
+                        icon = Icons.Filled.Layers,
+                        label = "Dough",
+                        value = dough.name,
+                    )
                 }
                 if (pizza.tool.isNotEmpty()) {
-                    PizzaDetail(label = "Tool", value = pizza.tool, modifier = Modifier.weight(1f))
+                    DetailRow(
+                        icon = Icons.Filled.Restaurant,
+                        label = "Tool",
+                        value = pizza.tool,
+                    )
                 }
                 recommendation.calories?.let { cal ->
-                    PizzaDetail(label = "Calories/slice", value = "$cal kcal", modifier = Modifier.weight(1f))
+                    DetailRow(
+                        icon = Icons.Filled.LocalFireDepartment,
+                        label = "Calories",
+                        value = "$cal per slice",
+                    )
                 }
             }
 
@@ -105,7 +113,7 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
                 Text(
                     text = "Ingredients",
                     style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.align(Alignment.Start),
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -129,18 +137,24 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun PizzaDetail(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+private fun DetailRow(icon: ImageVector, label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
+            text = "$label: ",
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
