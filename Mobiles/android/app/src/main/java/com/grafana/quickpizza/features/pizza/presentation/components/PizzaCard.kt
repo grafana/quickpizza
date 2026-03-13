@@ -30,7 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grafana.quickpizza.features.pizza.models.PizzaRecommendation
 import com.grafana.quickpizza.ui.theme.OrangeAccent
@@ -116,21 +118,66 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    pizza.ingredients.chunked(3).forEach { rowItems ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            rowItems.forEach { ingredient ->
-                                SuggestionChip(
-                                    onClick = {},
-                                    label = { Text(ingredient.name, style = MaterialTheme.typography.labelSmall) },
-                                    colors = SuggestionChipDefaults.suggestionChipColors(
-                                        containerColor = Color(0xFFF5F5F5),
-                                    ),
-                                )
-                            }
-                        }
+                ChipFlow(horizontalSpacing = 6.dp, verticalSpacing = 6.dp) {
+                    pizza.ingredients.forEach { ingredient ->
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text(ingredient.name, style = MaterialTheme.typography.labelSmall) },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = Color(0xFFF5F5F5),
+                            ),
+                        )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Simple wrapping chip layout using Compose's Layout — no experimental APIs required. */
+@Composable
+private fun ChipFlow(
+    horizontalSpacing: Dp = 6.dp,
+    verticalSpacing: Dp = 6.dp,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Layout(content = content, modifier = modifier.fillMaxWidth()) { measurables, constraints ->
+        val hGap = horizontalSpacing.roundToPx()
+        val vGap = verticalSpacing.roundToPx()
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0)) }
+
+        // Build rows by fitting placeables left-to-right
+        data class RowData(val items: List<androidx.compose.ui.layout.Placeable>)
+        val rows = mutableListOf<RowData>()
+        var rowItems = mutableListOf<androidx.compose.ui.layout.Placeable>()
+        var rowWidth = 0
+
+        for (p in placeables) {
+            val needed = if (rowItems.isEmpty()) p.width else rowWidth + hGap + p.width
+            if (rowItems.isNotEmpty() && needed > constraints.maxWidth) {
+                rows += RowData(rowItems)
+                rowItems = mutableListOf()
+                rowWidth = 0
+            }
+            rowItems += p
+            rowWidth = if (rowItems.size == 1) p.width else rowWidth + hGap + p.width
+        }
+        if (rowItems.isNotEmpty()) rows += RowData(rowItems)
+
+        val totalHeight = rows.sumOf { row -> row.items.maxOf { it.height } }
+            .plus((rows.size - 1).coerceAtLeast(0) * vGap)
+
+        layout(constraints.maxWidth, totalHeight) {
+            var y = 0
+            rows.forEach { row ->
+                var x = 0
+                val rowHeight = row.items.maxOf { it.height }
+                row.items.forEach { p ->
+                    p.placeRelative(x, y + (rowHeight - p.height) / 2)
+                    x += p.width + hGap
+                }
+                y += rowHeight + vGap
             }
         }
     }
