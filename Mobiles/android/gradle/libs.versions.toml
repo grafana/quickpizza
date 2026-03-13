@@ -1,5 +1,8 @@
 [versions]
 agp = "9.0.1"
+androidxTestRunner = "1.6.2"
+androidxTestEspresso = "3.6.1"
+androidxTestJunit = "1.2.1"
 kotlin = "2.3.10"
 ksp = "2.3.6"
 composeBom = "2024.12.01"
@@ -50,6 +53,13 @@ opentelemetry-okhttp3 = { module = "io.opentelemetry.instrumentation:opentelemet
 
 # Desugaring
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }
+
+# Testing
+test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidxTestEspresso" }
+test-junit-ext = { module = "androidx.test.ext:junit", version.ref = "androidxTestJunit" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

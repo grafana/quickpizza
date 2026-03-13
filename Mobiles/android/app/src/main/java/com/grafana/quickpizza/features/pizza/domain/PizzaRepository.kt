@@ -21,7 +21,7 @@ class PizzaRepository @Inject constructor(
         val response = apiClient.get("/api/quotes")
         if (!response.isSuccessful) return@withContext ""
         val body = response.body?.string() ?: return@withContext ""
-        gson.fromJson(body, QuoteResponse::class.java)?.quote ?: ""
+        gson.fromJson(body, QuoteResponse::class.java)?.quotes?.randomOrNull() ?: ""
     }
 
     suspend fun getTools(): List<String> = withContext(Dispatchers.IO) {
@@ -46,10 +46,10 @@ class PizzaRepository @Inject constructor(
         if (!response.isSuccessful) error("Failed to submit rating: HTTP ${response.code}")
     }
 
-    private data class QuoteResponse(@SerializedName("quote") val quote: String)
+    private data class QuoteResponse(@SerializedName("quotes") val quotes: List<String>?)
     private data class ToolsResponse(@SerializedName("tools") val tools: List<String>)
     private data class RatingRequest(
-        @SerializedName("pizzaID") val pizzaId: Int,
+        @SerializedName("pizza_id") val pizzaId: Int,
         @SerializedName("stars") val stars: Int,
     )
 }

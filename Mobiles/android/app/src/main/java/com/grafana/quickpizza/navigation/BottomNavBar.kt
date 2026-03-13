@@ -1,14 +1,13 @@
 package com.grafana.quickpizza.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
+import com.grafana.quickpizza.ui.theme.WarmCream
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
@@ -22,20 +21,20 @@ private data class BottomNavItem(
 
 private val bottomNavItems = listOf(
     BottomNavItem(Screen.Home, "Home") { Icon(Icons.Default.Home, contentDescription = "Home") },
-    BottomNavItem(Screen.Profile, "Profile") { Icon(Icons.Default.Person, contentDescription = "Profile") },
     BottomNavItem(Screen.About, "About") { Icon(Icons.Default.Info, contentDescription = "About") },
-    BottomNavItem(Screen.Debug, "Debug") { Icon(Icons.Default.BugReport, contentDescription = "Debug") },
 )
+
+// Routes where the bottom bar should be hidden
+private val hiddenRoutes = setOf(Screen.Login.route, Screen.Profile.route)
 
 @Composable
 fun BottomNavBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Only show the bottom bar on main app screens (not login)
-    if (currentRoute == Screen.Login.route) return
+    if (currentRoute in hiddenRoutes) return
 
-    NavigationBar {
+    NavigationBar(containerColor = WarmCream) {
         bottomNavItems.forEach { item ->
             NavigationBarItem(
                 icon = item.icon,

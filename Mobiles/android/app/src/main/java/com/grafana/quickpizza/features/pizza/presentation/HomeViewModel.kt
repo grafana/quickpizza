@@ -16,7 +16,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
+
+private const val MIN_CALORIES = 500
+private const val MIN_TOPPINGS = 1
 
 data class HomeUiState(
     val quote: String = "",
@@ -25,6 +30,7 @@ data class HomeUiState(
     val recommendation: PizzaRecommendation? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val snackbarMessage: String? = null,
     val ratingSubmitted: Boolean = false,
     val isAuthenticated: Boolean = false,
 )
@@ -41,7 +47,10 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
     init {
-        _state.update { it.copy(isAuthenticated = authRepository.isAuthenticated) }
+        viewModelScope.launch {
+            val isAuth = withContext(Dispatchers.IO) { authRepository.isAuthenticated }
+            _state.update { it.copy(isAuthenticated = isAuth) }
+        }
         loadInitialData()
     }
 
@@ -62,7 +71,7 @@ class HomeViewModel @Inject constructor(
                     span.setAttribute("max_calories", _state.value.restrictions.maxCaloriesPerSlice.toLong())
                     pizzaRepository.getRecommendation(_state.value.restrictions)
                 }
-                if (recommendation == null && !authRepository.isAuthenticated) {
+                if (recommendation == null && !withContext(Dispatchers.IO) { authRepository.isAuthenticated }) {
                     _state.update { it.copy(errorMessage = "Please sign in to get pizza recommendations") }
                 } else {
                     _state.update { it.copy(recommendation = recommendation) }
@@ -97,6 +106,19 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun refreshAuthState() {
+        viewModelScope.launch {
+            val isAuth = withContext(Dispatchers.IO) { authRepository.isAuthenticated }
+            _state.update { state ->
+                state.copy(
+                    isAuthenticated = isAuth,
+                    errorMessage = if (isAuth && state.errorMessage?.contains("sign in", ignoreCase = true) == true) null
+                                   else state.errorMessage,
+                )
+            }
+        }
+    }
+
     fun logout(onLoggedOut: () -> Unit) {
         authRepository.logout()
         _state.update {
@@ -118,14 +140,35 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun updateMaxCalories(value: Int) =
-        _state.update { it.copy(restrictions = it.restrictions.copy(maxCaloriesPerSlice = value)) }
+    fun clearSnackbar() = _state.update { it.copy(snackbarMessage = null) }
 
-    fun updateMinToppings(value: Int) =
-        _state.update { it.copy(restrictions = it.restrictions.copy(minNumberOfToppings = value)) }
+    fun updateMaxCalories(value: Int) {
+        val adjusted = maxOf(value, MIN_CALORIES)
+        val msg = if (adjusted != value) "Minimum calories is $MIN_CALORIES" else null
+        _state.update { it.copy(restrictions = it.restrictions.copy(maxCaloriesPerSlice = adjusted), snackbarMessage = msg) }
+    }
 
-    fun updateMaxToppings(value: Int) =
-        _state.update { it.copy(restrictions = it.restrictions.copy(maxNumberOfToppings = value)) }
+    fun updateMinToppings(value: Int) {
+        val min = maxOf(value, MIN_TOPPINGS)
+        var max = _state.value.restrictions.maxNumberOfToppings
+        val msg = when {
+            min > max -> { max = min; "Max toppings adjusted to $max to match minimum" }
+            min != value -> "Minimum toppings is $MIN_TOPPINGS"
+            else -> null
+        }
+        _state.update { it.copy(restrictions = it.restrictions.copy(minNumberOfToppings = min, maxNumberOfToppings = max), snackbarMessage = msg) }
+    }
+
+    fun updateMaxToppings(value: Int) {
+        val max = maxOf(value, MIN_TOPPINGS)
+        var min = _state.value.restrictions.minNumberOfToppings
+        val msg = when {
+            max < min -> { min = max; "Min toppings adjusted to $min to match maximum" }
+            max != value -> "Minimum toppings is $MIN_TOPPINGS"
+            else -> null
+        }
+        _state.update { it.copy(restrictions = it.restrictions.copy(minNumberOfToppings = min, maxNumberOfToppings = max), snackbarMessage = msg) }
+    }
 
     fun updateVegetarian(value: Boolean) =
         _state.update { it.copy(restrictions = it.restrictions.copy(mustBeVegetarian = value)) }

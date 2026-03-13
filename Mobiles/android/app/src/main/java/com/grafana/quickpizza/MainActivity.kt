@@ -9,19 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.grafana.quickpizza.core.storage.TokenStorage
 import com.grafana.quickpizza.navigation.AppNavGraph
 import com.grafana.quickpizza.navigation.BottomNavBar
-import com.grafana.quickpizza.navigation.Screen
 import com.grafana.quickpizza.ui.theme.QuickPizzaTheme
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var tokenStorage: TokenStorage
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,11 +23,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             QuickPizzaTheme {
                 val navController = rememberNavController()
-                val startDestination = if (tokenStorage.token != null) {
-                    Screen.Home.route
-                } else {
-                    Screen.Login.route
-                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -41,8 +30,7 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     AppNavGraph(
                         navController = navController,
-                        startDestination = startDestination,
-                        modifier = Modifier.padding(innerPadding),
+                        modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
                     )
                 }
             }

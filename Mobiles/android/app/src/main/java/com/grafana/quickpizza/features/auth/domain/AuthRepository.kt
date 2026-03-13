@@ -17,6 +17,9 @@ class AuthRepository @Inject constructor(
     val isAuthenticated: Boolean
         get() = tokenStorage.token != null
 
+    val username: String?
+        get() = tokenStorage.username
+
     suspend fun login(username: String, password: String) = withContext(Dispatchers.IO) {
         val response = apiClient.post(
             "/api/users/token/login",
@@ -29,6 +32,7 @@ class AuthRepository @Inject constructor(
         val body = response.body?.string() ?: error("Empty response body")
         val loginResponse = Gson().fromJson(body, LoginResponse::class.java)
         tokenStorage.token = loginResponse.token
+        tokenStorage.username = username
     }
 
     fun logout() {

@@ -87,4 +87,12 @@ dependencies {
     implementation(platform(libs.opentelemetry.android.bom))
     implementation(libs.opentelemetry.android.agent)
     implementation(libs.opentelemetry.okhttp3)
+
+    // Testing
+    androidTestImplementation(libs.test.runner)
+    androidTestImplementation(libs.test.espresso.core)
+    androidTestImplementation(libs.test.junit.ext)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

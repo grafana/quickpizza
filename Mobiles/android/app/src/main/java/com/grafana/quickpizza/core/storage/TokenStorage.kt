@@ -2,8 +2,6 @@ package com.grafana.quickpizza.core.storage
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +10,8 @@ import javax.inject.Singleton
 class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val prefs: SharedPreferences by lazy { createEncryptedPrefs() }
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
 
     var token: String?
         get() = prefs.getString(KEY_TOKEN, null)
@@ -24,25 +23,24 @@ class TokenStorage @Inject constructor(
             }
         }
 
+    var username: String?
+        get() = prefs.getString(KEY_USERNAME, null)
+        set(value) {
+            if (value == null) {
+                prefs.edit().remove(KEY_USERNAME).apply()
+            } else {
+                prefs.edit().putString(KEY_USERNAME, value).apply()
+            }
+        }
+
     fun clear() {
         token = null
-    }
-
-    private fun createEncryptedPrefs(): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        return EncryptedSharedPreferences.create(
-            context,
-            PREFS_FILE,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+        username = null
     }
 
     companion object {
-        private const val PREFS_FILE = "quickpizza_secure_prefs"
+        private const val PREFS_FILE = "quickpizza_prefs"
         private const val KEY_TOKEN = "auth_token"
+        private const val KEY_USERNAME = "auth_username"
     }
 }

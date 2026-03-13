@@ -80,6 +80,37 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_PYROSCOPE_ENDPOINT` - Pyroscope server for profiling
 - `QUICKPIZZA_DB` - Database connection string
 
+## Mobile Apps (`Mobiles/`)
+
+Three native/cross-platform clients that demonstrate mobile observability against the QuickPizza backend.
+
+### Android (`Mobiles/android/`)
+
+- **Stack:** Kotlin, Jetpack Compose, Hilt, OkHttp, OpenTelemetry Android 1.2.0-alpha
+- **Observability:** Manual spans (`auth.login`, `pizza.get_recommendation`, `pizza.rate`), auto OkHttp HTTP spans, structured logs via AppLogger, unhandled exception capture, 15-min session tracking
+- **Config:** `app/src/main/res/raw/config.json` — `BASE_URL` (default `http://10.0.2.2:3333`), `OTLP_ENDPOINT`, `OTLP_AUTH_HEADER`
+- **Build:** `JAVA_HOME=/home/domas/apps/android-studio/jbr ./gradlew assembleDebug` (system JDK too old; use Android Studio's bundled JDK)
+- **Resource attrs:** `service.name=quickpizza-android`, `service.namespace=quickpizza`
+
+### Flutter (`Mobiles/flutter/`)
+
+- **Stack:** Flutter/Dart, Riverpod, GoRouter, Grafana Faro SDK 0.8.0
+- **Observability:** Faro SDK for frontend telemetry (traces, logs, errors); cross-platform (Android, iOS, web)
+- **Config:** `config.json` at project root — `BASE_URL`, `FARO_COLLECTOR_URL`
+- **Build:** `flutter run --dart-define-from-file=config.json` or `./scripts/run-android.sh` / `./scripts/run-ios.sh`
+
+### iOS (`Mobiles/ios/`)
+
+- **Stack:** Swift, SwiftUI (iOS 17+), Swift Package Manager, OpenTelemetry Swift
+- **Observability:** Manual spans + auto URLSession instrumentation, structured logs (OSLog + OTel), MetricKit crash/hang diagnostics, 15-min session tracking; in-app Debug tab for triggering test crashes
+- **Config:** `Config.xcconfig` → auto-generates `BuildConfig.generated.swift` — `OTLP_ENDPOINT`, `OTLP_AUTH_HEADER`
+- **Build:** Xcode (see `Mobiles/docs/XCODE_SETUP.md`)
+- **Resource attrs:** `service.name=quickpizza-ios`, `service.namespace=quickpizza`
+
+### Shared Observability Model
+
+All apps emit traces (manual business spans + auto HTTP), structured logs, exception/crash records, and session IDs. Android/iOS export via OTLP HTTP; Flutter uses Faro collector. Docs in `Mobiles/docs/`.
+
 ## Development Notes
 
 ### Error Injection

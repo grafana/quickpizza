@@ -13,7 +13,6 @@ class QuickPizzaApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Initialize OpenTelemetry before any other work so all telemetry is captured
         otelService.initialize()
     }
 }
