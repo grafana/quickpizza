@@ -3,8 +3,6 @@ package com.grafana.quickpizza.features.pizza.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import com.grafana.quickpizza.features.pizza.models.PizzaRecommendation
 import com.grafana.quickpizza.ui.theme.OrangeAccent
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier) {
     val pizza = recommendation.pizza
@@ -111,19 +108,19 @@ fun PizzaCard(recommendation: PizzaRecommendation, modifier: Modifier = Modifier
                     modifier = Modifier.align(Alignment.Start),
                 )
                 Spacer(modifier = Modifier.height(6.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    pizza.ingredients.forEach { ingredient ->
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(ingredient.name, style = MaterialTheme.typography.labelSmall) },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = Color(0xFFF5F5F5),
-                            ),
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    pizza.ingredients.chunked(3).forEach { rowItems ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            rowItems.forEach { ingredient ->
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text(ingredient.name, style = MaterialTheme.typography.labelSmall) },
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = Color(0xFFF5F5F5),
+                                    ),
+                                )
+                            }
+                        }
                     }
                 }
             }

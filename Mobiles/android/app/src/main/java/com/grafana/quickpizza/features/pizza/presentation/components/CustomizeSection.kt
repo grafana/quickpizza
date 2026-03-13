@@ -7,8 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import com.grafana.quickpizza.features.pizza.models.Restrictions
 import com.grafana.quickpizza.ui.theme.OrangeAccent
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CustomizeSection(
     restrictions: Restrictions,
@@ -181,9 +178,7 @@ fun CustomizeSection(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Exclude tools:", style = MaterialTheme.typography.bodySmall)
                         Spacer(modifier = Modifier.height(4.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             availableTools.forEach { tool ->
                                 FilterChip(
                                     selected = restrictions.excludedTools.contains(tool),
