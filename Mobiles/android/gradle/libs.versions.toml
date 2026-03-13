@@ -50,6 +50,7 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 opentelemetry-android-bom = { module = "io.opentelemetry.android:opentelemetry-android-bom", version.ref = "opentelemetryAndroid" }
 opentelemetry-android-agent = { module = "io.opentelemetry.android:android-agent" }
 opentelemetry-okhttp3 = { module = "io.opentelemetry.instrumentation:opentelemetry-okhttp-3.0", version.ref = "opentelemetryOkhttp" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk" }
 
 # Desugaring
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }

@@ -86,6 +86,7 @@ dependencies {
     // OpenTelemetry Android
     implementation(platform(libs.opentelemetry.android.bom))
     implementation(libs.opentelemetry.android.agent)
+    implementation(libs.opentelemetry.sdk)
     implementation(libs.opentelemetry.okhttp3)
 
     // Testing

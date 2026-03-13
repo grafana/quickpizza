@@ -1,6 +1,5 @@
 package com.grafana.quickpizza.di
 
-import android.util.Log
 import com.grafana.quickpizza.core.api.ApiClient
 import com.grafana.quickpizza.core.api.buildBaseOkHttpClient
 import com.grafana.quickpizza.core.config.AppConfig
@@ -28,10 +27,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideOkHttpCallFactory(otelService: OTelService): Call.Factory {
-        // Log available methods for debugging API compatibility
-        Log.d("AppModule", "OkHttpTelemetry methods: ${OkHttpTelemetry::class.java.methods.map { it.name }}")
         val baseClient = buildBaseOkHttpClient()
-        return baseClient
+        return OkHttpTelemetry.builder(otelService.openTelemetry).build().createCallFactory(baseClient)
     }
 
     @Provides
