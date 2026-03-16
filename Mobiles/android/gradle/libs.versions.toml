@@ -17,7 +17,8 @@ lifecycle = "2.8.7"
 securityCrypto = "1.1.0-alpha06"
 desugar = "2.1.4"
 opentelemetryAndroid = "1.2.0-alpha"
-opentelemetryOkhttp = "2.25.0-alpha"
+opentelemetryAndroidInstrumentation = "0.11.0-alpha"
+byteBuddy = "1.18.5"
 
 [libraries]
 # AndroidX Core
@@ -49,7 +50,8 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 # OpenTelemetry Android
 opentelemetry-android-bom = { module = "io.opentelemetry.android:opentelemetry-android-bom", version.ref = "opentelemetryAndroid" }
 opentelemetry-android-agent = { module = "io.opentelemetry.android:android-agent" }
-opentelemetry-okhttp3 = { module = "io.opentelemetry.instrumentation:opentelemetry-okhttp-3.0", version.ref = "opentelemetryOkhttp" }
+opentelemetry-android-okhttp3-library = { module = "io.opentelemetry.android.instrumentation:okhttp3-library", version.ref = "opentelemetryAndroidInstrumentation" }
+opentelemetry-android-okhttp3-agent = { module = "io.opentelemetry.android.instrumentation:okhttp3-agent", version.ref = "opentelemetryAndroidInstrumentation" }
 opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk" }
 
 # Desugaring
@@ -67,3 +69,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+bytebuddy = { id = "net.bytebuddy.byte-buddy-gradle-plugin", version.ref = "byteBuddy" }

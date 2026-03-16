@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.bytebuddy)
 }
 
 // Remove config.json.example from res/raw before the resource merger runs.
@@ -87,7 +88,8 @@ dependencies {
     implementation(platform(libs.opentelemetry.android.bom))
     implementation(libs.opentelemetry.android.agent)
     implementation(libs.opentelemetry.sdk)
-    implementation(libs.opentelemetry.okhttp3)
+    implementation(libs.opentelemetry.android.okhttp3.library)
+    byteBuddy(libs.opentelemetry.android.okhttp3.agent)
 
     // Testing
     androidTestImplementation(libs.test.runner)
