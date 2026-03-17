@@ -9,7 +9,6 @@ import com.grafana.quickpizza.features.pizza.domain.PizzaRepository
 import com.grafana.quickpizza.features.pizza.models.PizzaRecommendation
 import com.grafana.quickpizza.features.pizza.models.Restrictions
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.opentelemetry.api.trace.SpanKind
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,7 +65,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null, ratingSubmitted = false, recommendation = null) }
             try {
-                val recommendation = tracer.withSpan("pizza.get_recommendation", SpanKind.CLIENT) { span ->
+                val recommendation = tracer.withSpan("pizza.get_recommendation") { span ->
                     span.setAttribute("vegetarian", _state.value.restrictions.mustBeVegetarian)
                     span.setAttribute("max_calories", _state.value.restrictions.maxCaloriesPerSlice.toLong())
                     pizzaRepository.getRecommendation(_state.value.restrictions)
@@ -89,7 +88,7 @@ class HomeViewModel @Inject constructor(
         val pizza = _state.value.recommendation?.pizza ?: return
         viewModelScope.launch {
             try {
-                tracer.withSpan("pizza.rate", SpanKind.CLIENT) { span ->
+                tracer.withSpan("pizza.rate") { span ->
                     span.setAttribute("pizza_id", pizza.id.toLong())
                     span.setAttribute("stars", stars.toLong())
                     pizzaRepository.ratePizza(pizza.id, stars)

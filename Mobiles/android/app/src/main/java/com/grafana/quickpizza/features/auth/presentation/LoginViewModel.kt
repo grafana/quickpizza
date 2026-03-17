@@ -6,7 +6,6 @@ import com.grafana.quickpizza.core.o11y.AppLogger
 import com.grafana.quickpizza.core.o11y.AppTracer
 import com.grafana.quickpizza.features.auth.domain.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.opentelemetry.api.trace.SpanKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,7 +44,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                tracer.withSpan("auth.login", SpanKind.CLIENT) { span ->
+                tracer.withSpan("auth.login") { span ->
                     span.setAttribute("user.name", username)
                     authRepository.login(username, password)
                 }

@@ -64,7 +64,6 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.navigation.compose)
-    implementation(libs.security.crypto)
 
     // Compose
     implementation(platform(libs.compose.bom))
@@ -88,6 +87,7 @@ dependencies {
     implementation(platform(libs.opentelemetry.android.bom))
     implementation(libs.opentelemetry.android.agent)
     implementation(libs.opentelemetry.sdk)
+    implementation(libs.opentelemetry.extension.kotlin)
     implementation(libs.opentelemetry.android.okhttp3.library)
     byteBuddy(libs.opentelemetry.android.okhttp3.agent)
 

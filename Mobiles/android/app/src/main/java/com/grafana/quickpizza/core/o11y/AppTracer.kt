@@ -4,9 +4,8 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.api.trace.Tracer
-import io.opentelemetry.context.Context
+import io.opentelemetry.extension.kotlin.asContextElement
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.CoroutineContext
 
 // ---------------------------------------------------------------------------
 // Protocol
@@ -56,20 +55,18 @@ class OtelTracer(otelTracer: Tracer) : AppTracer {
             .startSpan()
         val wrappedSpan = OtelSpan(span)
 
-        // Make the span active in OTel context so nested HTTP calls are child spans
-        val scope = span.makeCurrent()
-        return try {
-            withContext(OtelContextElement(Context.current())) {
-                try {
-                    block(wrappedSpan)
-                } catch (e: Exception) {
-                    wrappedSpan.recordException(e)
-                    throw e
-                }
+        // asContextElement() implements ThreadContextElement, which restores the OTel
+        // ThreadLocal on every thread the coroutine dispatches to, ensuring nested HTTP
+        // spans (auto-instrumented by the OkHttp agent) are correctly parented.
+        return withContext(span.asContextElement()) {
+            try {
+                block(wrappedSpan)
+            } catch (e: Exception) {
+                wrappedSpan.recordException(e)
+                throw e
+            } finally {
+                wrappedSpan.end()
             }
-        } finally {
-            scope.close()
-            wrappedSpan.end()
         }
     }
 }
@@ -107,14 +104,4 @@ class OtelSpan(private val span: Span) : AppSpan {
     override fun end() {
         span.end()
     }
-}
-
-// ---------------------------------------------------------------------------
-// Coroutine context element for OTel context propagation
-// ---------------------------------------------------------------------------
-
-class OtelContextElement(private val otelContext: Context) : CoroutineContext.Element {
-    override val key: CoroutineContext.Key<*> = Key
-
-    companion object Key : CoroutineContext.Key<OtelContextElement>
 }
