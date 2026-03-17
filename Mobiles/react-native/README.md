@@ -101,6 +101,51 @@ src/
 └── bootstrap.ts    # Faro initialization
 ```
 
+## E2E tests
+
+End-to-end tests use [Arbigent](https://github.com/takahirom/arbigent) (AI-powered UI automation) and run on an Android emulator.
+
+### Prerequisites
+
+- Android emulator running with the app installed
+- QuickPizza backend running (e.g. `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest`)
+- `OPENAI_API_KEY` environment variable set (Arbigent uses OpenAI for AI-driven test execution)
+- `adb`, `unzip`, and either `wget` or `curl` installed
+
+### Running E2E tests locally
+
+1. **Start the QuickPizza backend** (in one terminal):
+
+   ```bash
+   docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
+   ```
+
+2. **Build and run the app on an Android emulator** (in another terminal):
+
+   ```bash
+   yarn start
+   # In another terminal:
+   yarn android
+   ```
+
+3. **Export your OpenAI API key** and run the E2E tests:
+
+   ```bash
+   export OPENAI_API_KEY='your-api-key'
+   ./scripts/e2e/run_e2e_tests.sh
+   ```
+
+Results are written to `arbigent-result/` (including an HTML report when Node.js is available).
+
+### Optional: custom backend URL
+
+If your backend runs elsewhere, set `QUICKPIZZA_BACKEND_URL` before running:
+
+```bash
+export QUICKPIZZA_BACKEND_URL='http://192.168.1.100:3333'
+./scripts/e2e/run_e2e_tests.sh
+```
+
 ## API endpoints
 
 - `GET /api/quotes` - Random quote
