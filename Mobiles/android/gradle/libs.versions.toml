@@ -50,6 +50,7 @@ opentelemetry-android-bom = { module = "io.opentelemetry.android:opentelemetry-a
 opentelemetry-android-agent = { module = "io.opentelemetry.android:android-agent" }
 opentelemetry-android-okhttp3-library = { module = "io.opentelemetry.android.instrumentation:okhttp3-library", version.ref = "opentelemetryAndroidInstrumentation" }
 opentelemetry-android-okhttp3-agent = { module = "io.opentelemetry.android.instrumentation:okhttp3-agent", version.ref = "opentelemetryAndroidInstrumentation" }
+opentelemetry-okhttp3 = { module = "io.opentelemetry.instrumentation:opentelemetry-okhttp-3.0" }
 opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk" }
 opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin" }
 

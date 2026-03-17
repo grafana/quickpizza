@@ -76,11 +76,13 @@ func createTraceProvider(ctx context.Context, endpoint *url.URL, otlpProtocol st
 		if insecure {
 			trace_client = otlptracehttp.NewClient(
 				otlptracehttp.WithEndpoint(endpoint.Host),
+				otlptracehttp.WithURLPath(endpoint.Path+"/v1/traces"),
 				otlptracehttp.WithInsecure(),
 			)
 		} else {
 			trace_client = otlptracehttp.NewClient(
 				otlptracehttp.WithEndpoint(endpoint.Host),
+				otlptracehttp.WithURLPath(endpoint.Path+"/v1/traces"),
 			)
 		}
 	default:
@@ -125,9 +127,9 @@ func createMetricProvider(ctx context.Context, endpoint *url.URL, otlpProtocol s
 		}
 	case "http/protobuf":
 		if insecure {
-			exporter, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint.Host), otlpmetrichttp.WithInsecure())
+			exporter, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint.Host), otlpmetrichttp.WithURLPath(endpoint.Path+"/v1/metrics"), otlpmetrichttp.WithInsecure())
 		} else {
-			exporter, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint.Host))
+			exporter, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint.Host), otlpmetrichttp.WithURLPath(endpoint.Path+"/v1/metrics"))
 		}
 	default:
 		return nil, fmt.Errorf("unsupported protocol %q", otlpProtocol)
