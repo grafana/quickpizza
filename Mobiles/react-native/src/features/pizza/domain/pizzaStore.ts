@@ -61,11 +61,14 @@ export const usePizzaStore = create<PizzaStore>((set, get) => ({
   clearPizza: () => set({ pizza: null, errorMessage: null }),
 }));
 
-// Reset pizza when user logs out
+// Reset pizza when user logs out; clear error when user logs in
 let wasLoggedIn = useAuthStore.getState().isLoggedIn;
 useAuthStore.subscribe((state) => {
   if (wasLoggedIn && !state.isLoggedIn) {
     usePizzaStore.getState().clearPizza();
+  } else if (!wasLoggedIn && state.isLoggedIn) {
+    // User just logged in: clear the "login required" error so they can retry
+    usePizzaStore.setState({ errorMessage: null });
   }
   wasLoggedIn = state.isLoggedIn;
 });

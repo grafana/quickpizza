@@ -69,6 +69,10 @@ yarn-error.log
 # testing
 /coverage
 
+# Arbigent E2E
+arbigent-result/
+arbigent-cache/
+
 # Yarn
 .yarn/*
 !.yarn/patches
