@@ -16,36 +16,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.LocalPizza
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.grafana.quickpizza.ui.theme.OrangeAccent
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.grafana.quickpizza.ui.components.QuickPizzaTopBar
 
 private data class LinkItem(val label: String, val subtitle: String, val url: String, val icon: ImageVector, val iconColor: Color)
 
@@ -63,9 +58,13 @@ private val features = listOf(
     "Auto-instrumented HTTP spans",
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen() {
+fun AboutScreen(
+    onNavigateToLogin: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    viewModel: AboutViewModel = hiltViewModel(),
+) {
+    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
     val context = LocalContext.current
     val appVersion = remember {
         runCatching {
@@ -74,42 +73,9 @@ fun AboutScreen() {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.LocalPizza,
-                        contentDescription = null,
-                        tint = Color(0xFFCC2200),
-                        modifier = Modifier.size(28.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "QuickPizza",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFCC2200),
-                    )
-                }
-            },
-            actions = {
-                Box(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFBDBDBD)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = "Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+        QuickPizzaTopBar(
+            isAuthenticated = isAuthenticated,
+            onAvatarClick = { if (isAuthenticated) onNavigateToProfile() else onNavigateToLogin() },
         )
 
         Column(

@@ -44,7 +44,10 @@ fun AppNavGraph(
             )
         }
         composable(Screen.About.route) {
-            AboutScreen()
+            AboutScreen(
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+            )
         }
     }
 }
