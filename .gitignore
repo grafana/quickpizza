@@ -34,6 +34,7 @@ build
 
 # secrets
 .env
+.env.*
 
 bin
 fly.toml
