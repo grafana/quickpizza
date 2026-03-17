@@ -18,6 +18,7 @@ import { FaroErrorBoundary } from '@grafana/faro-react-native';
 
 import { initFaro } from './src/bootstrap';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { useAdminStore } from './src/features/admin/domain/adminStore';
 import { useAuthStore } from './src/features/auth/domain/authStore';
 
 function App() {
@@ -27,7 +28,10 @@ function App() {
   useEffect(() => {
     const setup = async () => {
       initFaro();
-      await useAuthStore.getState().restoreSession();
+      await Promise.all([
+        useAuthStore.getState().restoreSession(),
+        useAdminStore.getState().restoreSession(),
+      ]);
       setReady(true);
     };
     setup();

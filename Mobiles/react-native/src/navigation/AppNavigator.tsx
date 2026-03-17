@@ -11,6 +11,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useFaroNavigation } from '@grafana/faro-react-native';
 
 import { AboutScreen } from '../features/about/presentation/AboutScreen';
+import { AdminScreen } from '../features/admin/presentation/AdminScreen';
 import { HomeScreen } from '../features/pizza/presentation/HomeScreen';
 import { LoginScreen } from '../features/auth/presentation/LoginScreen';
 import { ProfileScreen } from '../features/profile/presentation/ProfileScreen';
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   Main: undefined;
   Login: undefined;
   Profile: undefined;
+  Admin: undefined;
 };
 
 export type TabParamList = {
@@ -45,12 +47,20 @@ function MainTabs({
     }
   };
 
+  const handleAdminPress = () => {
+    rootNavigation.navigate('Admin');
+  };
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#F15B2A',
         tabBarInactiveTintColor: '#757575',
+        tabBarLabelStyle: {
+          fontSize: 16,
+          fontWeight: '600',
+        },
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#EEE',
@@ -67,7 +77,12 @@ function MainTabs({
         name="About"
         options={{ tabBarLabel: 'About', tabBarIcon: () => null }}
       >
-        {() => <AboutScreen onProfilePress={handleProfilePress} />}
+        {() => (
+          <AboutScreen
+            onProfilePress={handleProfilePress}
+            onAdminPress={handleAdminPress}
+          />
+        )}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -107,6 +122,29 @@ function ProfileScreenWrapper() {
   return <ProfileScreen onBack={handleBack} />;
 }
 
+function AdminScreenWrapper() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Main');
+    }
+  };
+  return (
+    <AdminScreen
+      onBack={handleBack}
+      onProfilePress={() => {
+        if (useAuthStore.getState().isLoggedIn) {
+          navigation.navigate('Profile');
+        } else {
+          navigation.navigate('Login');
+        }
+      }}
+    />
+  );
+}
+
 export function AppNavigator() {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
   useFaroNavigation(navigationRef);
@@ -128,6 +166,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="Profile"
           component={ProfileScreenWrapper}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="Admin"
+          component={AdminScreenWrapper}
           options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>

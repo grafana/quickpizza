@@ -108,6 +108,14 @@ export function LoginScreen({ onBack, onSuccess }: LoginScreenProps) {
             Default credentials: username "default", password "12345678"
           </Text>
         </View>
+
+        <View style={styles.clearRatingsHint}>
+          <Text style={styles.clearRatingsIcon}>⭐</Text>
+          <Text style={styles.clearRatingsText}>
+            To clear ratings, use studio-user / k6studiorocks (the default user
+            cannot delete ratings).
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -242,5 +250,24 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: '#1565C0',
+  },
+  clearRatingsHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  clearRatingsIcon: {
+    marginRight: 8,
+    fontSize: 18,
+  },
+  clearRatingsText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#F57F17',
   },
 });

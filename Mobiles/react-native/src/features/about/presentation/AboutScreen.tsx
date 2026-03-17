@@ -3,7 +3,6 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { QuickPizzaAppBar } from '../../../core/components/QuickPizzaAppBar';
-import { getBaseUrlConfig } from '../../../core/config/configService';
 import { AppColors } from '../../../core/theme/appColors';
 
 const FEATURES = [
@@ -29,9 +28,10 @@ const LINKS = [
 
 interface AboutScreenProps {
   onProfilePress: () => void;
+  onAdminPress: () => void;
 }
 
-export function AboutScreen({ onProfilePress }: AboutScreenProps) {
+export function AboutScreen({ onProfilePress, onAdminPress }: AboutScreenProps) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <QuickPizzaAppBar onProfilePress={onProfilePress} />
@@ -63,6 +63,13 @@ export function AboutScreen({ onProfilePress }: AboutScreenProps) {
               <Text style={styles.linkArrow}>→</Text>
             </Pressable>
           ))}
+          <Pressable style={styles.linkCard} onPress={onAdminPress}>
+            <View style={styles.linkContent}>
+              <Text style={styles.linkTitle}>Admin Dashboard</Text>
+              <Text style={styles.linkSubtitle}>Manage pizzas and ingredients</Text>
+            </View>
+            <Text style={styles.linkArrow}>→</Text>
+          </Pressable>
         </View>
 
         <View style={styles.section}>
@@ -86,14 +93,7 @@ export function AboutScreen({ onProfilePress }: AboutScreenProps) {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Made with ❤️</Text>
           <Text style={styles.footerFaro}>Powered by Grafana Faro</Text>
-          <Pressable
-            onPress={() => Linking.openURL(`${getBaseUrlConfig()}/admin`)}
-            style={styles.adminLink}
-          >
-            <Text style={styles.adminLinkText}>
-              Looking for the admin page? <Text style={styles.adminLinkHighlight}>Tap here</Text>
-            </Text>
-          </Pressable>
+          <Text style={styles.footerHint}>Admin available in Links above</Text>
           <Text style={styles.version}>Version 1.0.0</Text>
         </View>
       </ScrollView>
@@ -213,17 +213,11 @@ const styles = StyleSheet.create({
     color: '#9E9E9E',
     marginTop: 8,
   },
-  adminLink: {
-    marginTop: 12,
-  },
-  adminLinkText: {
+  footerHint: {
     fontSize: 12,
-    color: '#757575',
+    color: '#9E9E9E',
+    marginTop: 8,
     textAlign: 'center',
-  },
-  adminLinkHighlight: {
-    color: AppColors.primary,
-    fontWeight: '600',
   },
   version: {
     fontSize: 12,

@@ -24,11 +24,18 @@ interface HomeScreenProps {
 
 export function HomeScreen({ onProfilePress }: HomeScreenProps) {
   const [restrictions, setRestrictions] = useState<Restrictions>(defaultRestrictions);
+  const [advancedEnabled, setAdvancedEnabled] = useState(false);
   const { pizza, isLoading, errorMessage, getPizza } = usePizzaStore();
+
+  const effectiveRestrictions = advancedEnabled ? restrictions : defaultRestrictions;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <QuickPizzaAppBar onProfilePress={onProfilePress} />
+      <QuickPizzaAppBar
+        onProfilePress={onProfilePress}
+        advancedEnabled={advancedEnabled}
+        onAdvancedChange={setAdvancedEnabled}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -38,13 +45,17 @@ export function HomeScreen({ onProfilePress }: HomeScreenProps) {
         <View style={styles.spacer} />
         <HeroText />
         <View style={styles.spacer} />
-        <CustomizeSection
-          restrictions={restrictions}
-          onRestrictionsChange={setRestrictions}
-        />
-        <View style={styles.spacer} />
+        {advancedEnabled && (
+          <>
+            <CustomizeSection
+              restrictions={restrictions}
+              onRestrictionsChange={setRestrictions}
+            />
+            <View style={styles.spacer} />
+          </>
+        )}
         <PizzaButton
-          onPress={() => getPizza(restrictions)}
+          onPress={() => getPizza(effectiveRestrictions)}
           isLoading={isLoading}
         />
         {errorMessage != null && (

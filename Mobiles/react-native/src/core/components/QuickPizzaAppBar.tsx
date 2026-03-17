@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -11,9 +12,16 @@ import { AppColors } from '../theme/appColors';
 
 interface QuickPizzaAppBarProps {
   onProfilePress: () => void;
+  /** When provided, shows an Advanced switch to enable/disable pizza customization */
+  advancedEnabled?: boolean;
+  onAdvancedChange?: (value: boolean) => void;
 }
 
-export function QuickPizzaAppBar({ onProfilePress }: QuickPizzaAppBarProps) {
+export function QuickPizzaAppBar({
+  onProfilePress,
+  advancedEnabled,
+  onAdvancedChange,
+}: QuickPizzaAppBarProps) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
   return (
@@ -22,13 +30,26 @@ export function QuickPizzaAppBar({ onProfilePress }: QuickPizzaAppBarProps) {
         <Text style={styles.icon}>🍕</Text>
         <Text style={styles.title}>QuickPizza</Text>
       </View>
-      <Pressable
+      <View style={styles.rightRow}>
+        {onAdvancedChange != null && advancedEnabled !== undefined && (
+          <View style={styles.advancedSwitch}>
+            <Text style={styles.advancedLabel}>Advanced</Text>
+            <Switch
+              value={advancedEnabled}
+              onValueChange={onAdvancedChange}
+              trackColor={{ false: '#E0E0E0', true: AppColors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        )}
+        <Pressable
         onPress={onProfilePress}
         style={[styles.avatar, isLoggedIn ? styles.avatarLoggedIn : styles.avatarLoggedOut]}
         accessibilityLabel={isLoggedIn ? 'Go to profile' : 'Log in'}
       >
         <Text style={styles.avatarIcon}>{isLoggedIn ? '👤' : '🔓'}</Text>
       </Pressable>
+      </View>
     </View>
   );
 }
@@ -48,6 +69,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  rightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  advancedSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  advancedLabel: {
+    fontSize: 12,
+    color: '#616161',
   },
   icon: {
     fontSize: 28,
