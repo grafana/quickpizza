@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy this file to app/src/main/res/raw/config.json and fill in your values.",
+  "OTLP_ENDPOINT": "",
+  "_OTLP_ENDPOINT_comment": "e.g. https://otlp-gateway-prod-eu-west-0.grafana.net/otlp",
+  "OTLP_AUTH_HEADER": "",
+  "_OTLP_AUTH_HEADER_comment": "e.g. Basic <base64(instanceId:apiKey)>",
+  "BASE_URL": "",
+  "_BASE_URL_comment": "Leave empty for emulator (uses http://10.0.2.2:3333 automatically). For physical devices, set to your machine's IP e.g. http://192.168.1.100:3333"
+}

@@ -50,3 +50,5 @@ logs.txt
 
 # macOS
 .DS_Store
+/.claude/CLAUDE.md
+/tmp_dev/
