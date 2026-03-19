@@ -1,6 +1,7 @@
 package com.grafana.quickpizza.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
@@ -22,6 +23,7 @@ private data class BottomNavItem(
 private val bottomNavItems = listOf(
     BottomNavItem(Screen.Home, "Home") { Icon(Icons.Default.Home, contentDescription = "Home") },
     BottomNavItem(Screen.About, "About") { Icon(Icons.Default.Info, contentDescription = "About") },
+    BottomNavItem(Screen.Debug, "Debug") { Icon(Icons.Default.BugReport, contentDescription = "Debug") },
 )
 
 // Routes where the bottom bar should be hidden
