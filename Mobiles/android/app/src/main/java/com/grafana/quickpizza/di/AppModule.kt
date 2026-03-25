@@ -15,6 +15,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import io.opentelemetry.instrumentation.okhttp.v3_0.OkHttpTelemetry
 import okhttp3.Call
 import javax.inject.Singleton
 
@@ -24,7 +25,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpCallFactory(): Call.Factory = buildBaseOkHttpClient()
+    fun provideOkHttpCallFactory(otelService: OTelService): Call.Factory =
+        OkHttpTelemetry.create(otelService.openTelemetry).createCallFactory(buildBaseOkHttpClient())
 
     @Provides
     @Singleton

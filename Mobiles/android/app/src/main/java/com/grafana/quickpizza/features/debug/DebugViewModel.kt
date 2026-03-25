@@ -19,4 +19,9 @@ class DebugViewModel @Inject constructor(
         // This will be caught by the OTel crash reporter and generate a crash log
         throw RuntimeException("Deliberate crash triggered from Debug tab")
     }
+
+    fun triggerAnr() {
+        // Block the main thread long enough to exceed Android's 5s ANR threshold
+        Thread.sleep(6000)
+    }
 }

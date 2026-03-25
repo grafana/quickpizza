@@ -59,6 +59,37 @@ fun DebugScreen(viewModel: DebugViewModel = hiltViewModel()) {
                 }
             }
 
+            // Trigger ANR
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "ANR",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Blocks the main thread for 6 seconds, exceeding Android's 5s ANR threshold. " +
+                            "The system will show an ANR dialog and report it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = viewModel::triggerAnr,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Trigger ANR")
+                    }
+                }
+            }
+
             // Trigger crash
             Card(
                 modifier = Modifier.fillMaxWidth(),
