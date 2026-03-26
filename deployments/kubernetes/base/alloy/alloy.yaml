@@ -39,7 +39,7 @@ spec:
       serviceAccountName: grafana-alloy
       containers:
         - name: grafana-alloy
-          image: grafana/alloy:v1.9.2
+          image: grafana/alloy:v1.14.2
           imagePullPolicy: IfNotPresent
           args:
             - run
