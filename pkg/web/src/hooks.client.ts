@@ -14,6 +14,10 @@ function setupFaro() {
 			const faroAppEnvironment = config.faro_app_environment || 'production';
 			const faroInstrumentationEnableReplay =
 				config.faro_instrumentation_enable_replay === 'true';
+			const faroSessionSamplingRate =
+				parseFloat(config.faro_session_sampling_rate) || 1;
+			const faroReplaySamplingRate =
+				parseFloat(config.faro_replay_sampling_rate) || 1;
 
 			if (!url) {
 				console.warn('Grafana Faro is not configured.');
@@ -35,6 +39,7 @@ function setupFaro() {
 						collectFonts: true,
 						inlineImages: true,
 						inlineStylesheet: true,
+						samplingRate: faroReplaySamplingRate,
 					}),
 				);
 			}
@@ -47,6 +52,9 @@ function setupFaro() {
 					namespace: faroAppNamespace,
 					version: faroAppVersion,
 					environment: faroAppEnvironment,
+				},
+				sessionTracking: {
+					samplingRate: faroSessionSamplingRate,
 				},
 				instrumentations,
 			});
