@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { withFaroUserAction } from '@grafana/faro-react-native';
+import { withUserAction } from '../../../core/o11y/o11yReactNative';
 
 import { AppColors } from '../../../core/theme/appColors';
 import { useAdminStore } from '../domain/adminStore';
 
-const AdminLoginButton = withFaroUserAction(Pressable, 'adminLogin');
+const AdminLoginButton = withUserAction(Pressable, 'adminLogin');
 
 interface AdminScreenProps {
   onBack: () => void;

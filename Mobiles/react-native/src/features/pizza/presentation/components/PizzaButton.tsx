@@ -1,14 +1,14 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
-import { withFaroUserAction } from '@grafana/faro-react-native';
+import { withUserAction } from '../../../../core/o11y/o11yReactNative';
 
 interface PizzaButtonProps {
   onPress: () => void;
   isLoading: boolean;
 }
 
-const TrackedPressable = withFaroUserAction(Pressable, 'get-pizza-recommendation');
+const TrackedPressable = withUserAction(Pressable, 'get-pizza-recommendation');
 
 export function PizzaButton({ onPress, isLoading }: PizzaButtonProps) {
   return (

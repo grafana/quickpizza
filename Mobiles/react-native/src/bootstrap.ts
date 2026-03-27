@@ -1,10 +1,9 @@
-import { InternalLoggerLevel } from '@grafana/faro-core';
-
 import {
+  InternalLoggerLevel,
   SamplingFunction,
   initializeFaro,
   type ReactNativeConfig,
-} from '@grafana/faro-react-native';
+} from './core/o11y/faroSdk';
 
 import { extractTokenFromCollectorUrl } from './core/utils/faroUtils';
 import { getFaroCollectorUrl } from './core/config/configService';

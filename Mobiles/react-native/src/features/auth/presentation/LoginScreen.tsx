@@ -10,13 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { withFaroUserAction } from '@grafana/faro-react-native';
+import { withUserAction } from '../../../core/o11y/o11yReactNative';
 
 import { trackEvent } from '../../../core/o11y/o11yEvents';
 import { AppColors } from '../../../core/theme/appColors';
 import { useAuthStore } from '../domain/authStore';
 
-const LoginButton = withFaroUserAction(Pressable, 'user-login');
+const LoginButton = withUserAction(Pressable, 'user-login');
 
 interface LoginScreenProps {
   onBack: () => void;

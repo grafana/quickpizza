@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 
-import { withFaroUserAction } from '@grafana/faro-react-native';
+import { withUserAction } from '../../../../core/o11y/o11yReactNative';
 
 import { trackEvent } from '../../../../core/o11y/o11yEvents';
 import {
@@ -17,7 +17,7 @@ import {
 import type { PizzaRecommendation } from '../../models/pizza';
 import * as ratingsRepository from '../../../ratings/domain/ratingsRepository';
 
-const TrackedRatingButton = withFaroUserAction(Pressable, 'rate-pizza');
+const TrackedRatingButton = withUserAction(Pressable, 'rate-pizza');
 
 interface RatingButtonsProps {
   recommendation: PizzaRecommendation;

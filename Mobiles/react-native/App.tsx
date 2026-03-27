@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { FaroErrorBoundary } from '@grafana/faro-react-native';
+import { O11yErrorBoundary } from './src/core/o11y/o11yReactNative';
 
 import { initFaro } from './src/bootstrap';
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -47,7 +47,7 @@ function App() {
   }
 
   return (
-    <FaroErrorBoundary
+    <O11yErrorBoundary
       fallback={
         <View style={styles.error}>
           <Text style={styles.errorText}>Something went wrong</Text>
@@ -58,7 +58,7 @@ function App() {
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <AppNavigator />
       </SafeAreaProvider>
-    </FaroErrorBoundary>
+    </O11yErrorBoundary>
   );
 }
 

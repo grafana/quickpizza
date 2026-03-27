@@ -8,7 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import { useFaroNavigation } from '@grafana/faro-react-native';
+import { useO11yNavigation } from '../core/o11y/o11yReactNative';
 
 import { AboutScreen } from '../features/about/presentation/AboutScreen';
 import { AdminScreen } from '../features/admin/presentation/AdminScreen';
@@ -147,7 +147,7 @@ function AdminScreenWrapper() {
 
 export function AppNavigator() {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
-  useFaroNavigation(navigationRef);
+  useO11yNavigation(navigationRef);
 
   return (
     <NavigationContainer ref={navigationRef}>
