@@ -36,6 +36,9 @@ build
 .env
 .env.*
 
+# local dev scripts
+run-backend.sh
+
 bin
 fly.toml
 
@@ -51,4 +54,9 @@ logs.txt
 
 # macOS
 .DS_Store
-.idea
+/.claude/CLAUDE.md
+/tmp_dev/
+/Mobiles/android/.gradle
+/Mobiles/android/.idea
+/Mobiles/android/app/src/main/res/raw/config.json
+/Mobiles/android/local.properties

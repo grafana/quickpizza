@@ -1,0 +1,72 @@
+[versions]
+agp = "9.0.1"
+androidxTestRunner = "1.6.2"
+androidxTestEspresso = "3.6.1"
+androidxTestJunit = "1.2.1"
+kotlin = "2.3.10"
+ksp = "2.3.6"
+composeBom = "2024.12.01"
+hilt = "2.59.2"
+hiltNavigation = "1.2.0"
+okhttp = "4.12.0"
+gson = "2.11.0"
+navigationCompose = "2.8.5"
+activityCompose = "1.9.3"
+coreKtx = "1.15.0"
+lifecycle = "2.8.7"
+desugar = "2.1.4"
+opentelemetryAndroid = "1.2.0-alpha"
+opentelemetryAndroidInstrumentation = "0.11.0-alpha"
+byteBuddy = "1.18.5"
+
+[libraries]
+# AndroidX Core
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+
+# Compose
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-icons = { module = "androidx.compose.material:material-icons-extended" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+
+# Hilt DI
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigation" }
+
+# Networking
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+
+# OpenTelemetry Android
+opentelemetry-android-bom = { module = "io.opentelemetry.android:opentelemetry-android-bom", version.ref = "opentelemetryAndroid" }
+opentelemetry-android-agent = { module = "io.opentelemetry.android:android-agent" }
+opentelemetry-android-okhttp3-library = { module = "io.opentelemetry.android.instrumentation:okhttp3-library", version.ref = "opentelemetryAndroidInstrumentation" }
+opentelemetry-android-okhttp3-agent = { module = "io.opentelemetry.android.instrumentation:okhttp3-agent", version.ref = "opentelemetryAndroidInstrumentation" }
+opentelemetry-okhttp3 = { module = "io.opentelemetry.instrumentation:opentelemetry-okhttp-3.0" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk" }
+opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin" }
+
+# Desugaring
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }
+
+# Testing
+test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidxTestEspresso" }
+test-junit-ext = { module = "androidx.test.ext:junit", version.ref = "androidxTestJunit" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+bytebuddy = { id = "net.bytebuddy.byte-buddy-gradle-plugin", version.ref = "byteBuddy" }
