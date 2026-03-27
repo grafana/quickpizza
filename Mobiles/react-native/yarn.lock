@@ -1046,11 +1046,11 @@
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/otlp-transformer" "^0.213.0"
 
-"@grafana/faro-react-native-tracing@file:../../../faro-react-native-sdk/packages/react-native-tracing":
-  version "1.0.0"
+"@grafana/faro-react-native-tracing@1.0.0-alpha.1":
+  version "1.0.0-alpha.1"
   dependencies:
     "@grafana/faro-core" "^2.2.3"
-    "@grafana/faro-react-native" "^1.0.0"
+    "@grafana/faro-react-native" "1.0.0-alpha.1"
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/core" "^2.0.0"
     "@opentelemetry/instrumentation" "^0.208.0"
@@ -1061,8 +1061,8 @@
     "@opentelemetry/sdk-trace-base" "^2.0.0"
     "@opentelemetry/semantic-conventions" "^1.32.0"
 
-"@grafana/faro-react-native@^1.0.0", "@grafana/faro-react-native@file:../../../faro-react-native-sdk/packages/react-native":
-  version "1.0.0"
+"@grafana/faro-react-native@1.0.0-alpha.1":
+  version "1.0.0-alpha.1"
   dependencies:
     "@grafana/faro-core" "^2.2.3"
     "@react-native-async-storage/async-storage" "^1.21.0"

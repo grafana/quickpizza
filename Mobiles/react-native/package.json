@@ -10,8 +10,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@grafana/faro-react-native": "file:../../../faro-react-native-sdk/packages/react-native",
-    "@grafana/faro-react-native-tracing": "file:../../../faro-react-native-sdk/packages/react-native-tracing",
+    "@grafana/faro-react-native": "1.0.0-alpha.1",
+    "@grafana/faro-react-native-tracing": "1.0.0-alpha.1",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.18",
@@ -48,6 +48,7 @@
     "node": ">= 22.11.0"
   },
   "resolutions": {
-    "@grafana/faro-react-native": "file:../../../faro-react-native-sdk/packages/react-native"
+    "@grafana/faro-react-native": "1.0.0-alpha.1",
+    "@grafana/faro-react-native-tracing": "1.0.0-alpha.1"
   }
 }

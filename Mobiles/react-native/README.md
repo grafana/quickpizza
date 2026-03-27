@@ -89,7 +89,7 @@ yarn android
 
 ## Faro SDK
 
-This app uses `@grafana/faro-react-native` and `@grafana/faro-react-native-tracing` from the sibling `faro-react-native-sdk` repository (via `file:` dependency). When the SDK is published, update `package.json` to use the npm version.
+This app depends on `@grafana/faro-react-native` and `@grafana/faro-react-native-tracing` at **1.0.0-alpha.1** from npm (`package.json`; the git tag may be `v1.0.0-alpha.1`). After those versions are published, run `yarn install` here and commit the updated `yarn.lock` (with resolved URLs and integrity hashes). Until then, `yarn install` will 404 against the public registry.
 
 ## Project structure
 
