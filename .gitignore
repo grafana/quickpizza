@@ -52,11 +52,13 @@ k6/extensions/k6
 quickpizza.db
 logs.txt
 
+# IDEs (JetBrains — monorepo opened at repo root)
+.idea/
+
 # macOS
 .DS_Store
 /.claude/CLAUDE.md
 /tmp_dev/
 /Mobiles/android/.gradle
-/Mobiles/android/.idea
 /Mobiles/android/app/src/main/res/raw/config.json
 /Mobiles/android/local.properties
