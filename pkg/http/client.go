@@ -278,3 +278,50 @@ func (c CopyClient) Names() ([]string, error) {
 
 	return names.Names, nil
 }
+
+// ChatClient is a client that calls an external AI/chat service.
+type ChatClient struct {
+	endpoint string
+	ctx      context.Context
+	client   httpClient
+}
+
+// NewChatClient creates a new client for the external chat service.
+func NewChatClient(endpoint string) ChatClient {
+	return ChatClient{
+		endpoint: endpoint,
+		ctx:      context.Background(),
+		client:   httpClient{client: http.DefaultClient},
+	}
+}
+
+// WithClient returns a ChatClient that uses the specified http.Client.
+func (c ChatClient) WithClient(client *http.Client) ChatClient {
+	c.client = httpClient{client: client}
+	return c
+}
+
+// WithRequestContext returns a copy of the ChatClient that will use the supplied context.
+func (c ChatClient) WithRequestContext(ctx context.Context) ChatClient {
+	c.ctx = ctx
+	return c
+}
+
+// Endpoint returns the configured endpoint URL.
+func (c ChatClient) Endpoint() string {
+	return c.endpoint
+}
+
+// SendMessage sends a message to the external chat service and returns the response.
+func (c ChatClient) SendMessage(message string) (string, error) {
+	var response struct {
+		Response string `json:"response"`
+	}
+
+	err := c.client.postJSON(c.ctx, c.endpoint, map[string]string{"message": message}, &response)
+	if err != nil {
+		return "", fmt.Errorf("calling external chat service: %w", err)
+	}
+
+	return response.Response, nil
+}
