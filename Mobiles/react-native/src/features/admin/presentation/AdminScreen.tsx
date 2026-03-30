@@ -166,7 +166,7 @@ export function AdminScreen({ onBack, onProfilePress }: AdminScreenProps) {
       >
         <View style={styles.loginHeader}>
           <Text style={styles.loginTitle}>QuickPizza Administration</Text>
-          <Text style={styles.loginHint}>Sign in to manage pizzas and ingredients</Text>
+          <Text style={styles.loginHint}>Sign in to see latest pizza recommendations and ingredients</Text>
         </View>
 
         <View style={styles.form}>

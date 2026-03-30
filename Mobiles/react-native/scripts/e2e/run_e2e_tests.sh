@@ -280,7 +280,7 @@ run_tests() {
 }
 
 show_help() {
-    echo "QuickPizza React Native E2E Test Runner"
+    echo "QuickPizza RN E2E Test Runner"
     echo ""
     echo "Usage: $0 [options]"
     echo ""
@@ -316,7 +316,7 @@ main() {
 
     echo ""
     echo "╔═══════════════════════════════════════════════════════════════╗"
-    echo "║        QuickPizza React Native E2E Test Runner              ║"
+    echo "║        QuickPizza RN E2E Test Runner                        ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo ""
 

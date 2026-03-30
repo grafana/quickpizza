@@ -22,7 +22,7 @@ const LINKS = [
   {
     title: 'QuickPizza',
     subtitle: 'Demo application',
-    url: 'https://github.com/grafana/quickpizza',
+    url: 'https://github.com/grafana/mobile-o11y-demo',
   },
 ];
 
@@ -42,9 +42,9 @@ export function AboutScreen({ onProfilePress, onAdminPress }: AboutScreenProps) 
       >
         <View style={styles.header}>
           <Text style={styles.headerIcon}>🍕</Text>
-          <Text style={styles.title}>About QuickPizza</Text>
+          <Text style={styles.title}>About QuickPizza RN</Text>
           <Text style={styles.subtitle}>
-            A demo app for mobile observability with Grafana Faro
+            A React Native demo app for mobile observability with Grafana Faro
           </Text>
         </View>
 
@@ -66,7 +66,7 @@ export function AboutScreen({ onProfilePress, onAdminPress }: AboutScreenProps) 
           <Pressable style={styles.linkCard} onPress={onAdminPress}>
             <View style={styles.linkContent}>
               <Text style={styles.linkTitle}>Admin Dashboard</Text>
-              <Text style={styles.linkSubtitle}>Manage pizzas and ingredients</Text>
+              <Text style={styles.linkSubtitle}>See latest pizza recommendations and ingredients</Text>
             </View>
             <Text style={styles.linkArrow}>→</Text>
           </Pressable>
