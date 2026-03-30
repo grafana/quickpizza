@@ -50,14 +50,14 @@ import (
 // Variables storing prometheus metrics.
 var (
 	pizzaRecommendations = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "pizza_recommendations_total",
 		Help:      "The total number of pizza recommendations",
 	}, []string{"vegetarian", "tool"})
 
 	numberOfIngredientsPerPizza = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "number_of_ingredients_per_pizza",
 		Help:      "The number of ingredients per pizza",
@@ -65,9 +65,9 @@ var (
 	})
 
 	numberOfIngredientsPerPizzaNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace:                       "k6quickpizza",
+		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
-		Name:                            "number_of_ingredients_per_pizza_alternate",
+		Name:                            "number_of_ingredients_per_pizza_native",
 		Help:                            "The number of ingredients per pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
@@ -75,7 +75,7 @@ var (
 	})
 
 	pizzaCaloriesPerSlice = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "pizza_calories_per_slice",
 		Help:      "The number of calories per slice of pizza",
@@ -83,9 +83,9 @@ var (
 	})
 
 	pizzaCaloriesPerSliceNativeHistogram = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace:                       "k6quickpizza",
+		Namespace:                       "quickpizza",
 		Subsystem:                       "server",
-		Name:                            "pizza_calories_per_slice_alternate",
+		Name:                            "pizza_calories_per_slice_native",
 		Help:                            "The number of calories per slice of pizza (Native Histogram)",
 		NativeHistogramBucketFactor:     1.1,
 		NativeHistogramMaxBucketNumber:  100,
@@ -93,18 +93,70 @@ var (
 	})
 
 	httpRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "http_requests_total",
 		Help:      "The total number of HTTP requests",
 	}, []string{"method", "path", "status"})
 
 	httpRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "k6quickpizza",
+		Namespace: "quickpizza",
 		Subsystem: "server",
 		Name:      "http_request_duration_seconds",
 		Help:      "The duration of HTTP requests",
 	}, []string{"method", "path", "status"})
+
+	httpRequestDurationNativeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:                       "quickpizza",
+		Subsystem:                       "server",
+		Name:                            "http_request_duration_seconds_native",
+		Help:                            "The duration of HTTP requests (Native Histogram)",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
+	}, []string{"method", "path", "status"})
+
+	httpRequestDurationGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "quickpizza",
+		Subsystem: "server",
+		Name:      "http_request_duration_seconds_gauge",
+		Help:      "The duration of HTTP requests (Gauge)",
+	}, []string{"method", "path", "status"})
+
+	// WebSocket metrics
+	wsConnectionsActive = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "quickpizza",
+		Subsystem: "server",
+		Name:      "ws_connections_active",
+		Help:      "Number of active WebSocket connections",
+	})
+
+	wsConnectionDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "quickpizza",
+		Subsystem:                       "server",
+		Name:                            "ws_connection_duration_seconds",
+		Help:                            "Duration of WebSocket connections",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
+	})
+
+	wsMessagesReceived = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "quickpizza",
+		Subsystem: "server",
+		Name:      "ws_messages_received_total",
+		Help:      "Total number of messages received via WebSocket",
+	})
+
+	wsMessageProcessingDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace:                       "quickpizza",
+		Subsystem:                       "server",
+		Name:                            "ws_message_processing_duration_seconds",
+		Help:                            "Time to process and broadcast incoming WebSocket messages",
+		NativeHistogramBucketFactor:     1.1,
+		NativeHistogramMaxBucketNumber:  100,
+		NativeHistogramMinResetDuration: 1 * time.Hour,
+	})
 )
 
 // PizzaRecommendation is the object returned by the /api/pizza endpoint.
@@ -247,7 +299,7 @@ func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
 
 	router := chi.NewRouter()
 	router.Use(
-		PrometheusMiddleware,
+		HTTPMetricsMiddleware,
 		httplog.RequestLogger(reqLogger),
 		middleware.Recoverer,
 		cors.New(cors.Options{
@@ -346,7 +398,7 @@ func (s *Server) AddPrometheusHandler() {
 }
 
 // AddFrontend enables serving the embedded Svelte frontend.
-func (s *Server) AddFrontend() {
+func (s *Server) AddFrontend(devMode bool) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "frontend",
 			// The frontend serves a lot of static files on different paths. To save on cardinality, we override the
@@ -357,7 +409,14 @@ func (s *Server) AddFrontend() {
 		)
 
 		r.Handle("/favicon.ico", FaviconHandler())
-		r.Handle("/*", SvelteKitHandler())
+
+		if devMode {
+			// In dev mode, proxy to Vite dev server
+			r.Handle("/*", ViteProxyHandler())
+		} else {
+			// Production: serve embedded files
+			r.Handle("/*", SvelteKitHandler())
+		}
 	})
 }
 
@@ -377,7 +436,7 @@ func (s *Server) AddConfigHandler(config map[string]string) {
 // TODO: So far the gateway only handles a few endpoints.
 func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "gateway")
+		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
 		// Generate client traces for requests proxied by the gateway.
 		otelTransport := otelhttp.NewTransport(
@@ -433,7 +492,7 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 // AddWebSocket enables serving and handle websockets.
 func (s *Server) AddWebSocket() {
 	s.router.Group(func(r chi.Router) {
-		s.traceInstaller.Install(r, "ws")
+		s.traceInstaller.Install(r, "ws", excludeWebSocketFromOTel())
 
 		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
 			err := s.melody.HandleRequest(w, r)
@@ -446,8 +505,26 @@ func (s *Server) AddWebSocket() {
 		})
 	})
 
-	s.melody.HandleMessage(func(_ *melody.Session, msg []byte) {
+	// Track connection lifecycle
+	s.melody.HandleConnect(func(session *melody.Session) {
+		session.Set("connected_at", time.Now())
+		wsConnectionsActive.Inc()
+	})
+
+	s.melody.HandleDisconnect(func(session *melody.Session) {
+		wsConnectionsActive.Dec()
+		if connectedAt, ok := session.Get("connected_at"); ok {
+			duration := time.Since(connectedAt.(time.Time))
+			wsConnectionDuration.Observe(duration.Seconds())
+		}
+	})
+
+	// Track message metrics
+	s.melody.HandleMessage(func(session *melody.Session, msg []byte) {
+		start := time.Now()
+		wsMessagesReceived.Inc()
 		s.melody.Broadcast(msg)
+		wsMessageProcessingDuration.Observe(time.Since(start).Seconds())
 	})
 }
 
@@ -1047,12 +1124,6 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		// Given a user token, return 200 or 401 (depending on whether token is valid).
 		r.Post("/api/users/token/authenticate", func(w http.ResponseWriter, r *http.Request) {
-			// This endpoint is only to be used by other QP services.
-			if r.Header.Get("X-Is-Internal") == "" {
-				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
-				return
-			}
-
 			token := getRequestToken(r)
 			if token == "" {
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
@@ -1533,16 +1604,94 @@ func SvelteKitHandler() http.Handler {
 	})
 }
 
-func PrometheusMiddleware(next http.Handler) http.Handler {
+// ViteProxyHandler returns an http.Handler that proxies requests to the Vite dev server.
+func ViteProxyHandler() http.Handler {
+	target, _ := url.Parse("http://localhost:5173")
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.Director = func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.Host = target.Host
+		slog.Debug("Proxying request to Vite", "path", req.URL.Path)
+	}
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		slog.Error("Vite proxy error", "err", err, "path", r.URL.Path)
+		http.Error(w, "Vite dev server unavailable. Make sure it's running on http://localhost:5173", http.StatusBadGateway)
+	}
+	return proxy
+}
+
+// isInternalRoute returns true for infrastructure/instrumentations endpoints that should be excluded from
+// Prometheus metrics. These routes are also excluded from OTel instrumentation by design
+// (they are defined outside router.Group() blocks with traceInstaller.Install()).
+func isInternalRoute(pattern string) bool {
+	switch pattern {
+	case "/metrics", "/ready", "/healthz", "/ws":
+		return true
+	}
+	return strings.HasPrefix(pattern, "/debug/pprof/")
+}
+
+// excludeWebSocketFromOTel returns an otelhttp.Option that excludes /ws from tracing and metrics.
+// WebSocket connections are long-lived and would skew HTTP latency data.
+func excludeWebSocketFromOTel() otelhttp.Option {
+	return otelhttp.WithFilter(func(r *http.Request) bool {
+		return r.URL.Path != "/ws"
+	})
+}
+
+// HTTPMetricsMiddleware records Prometheus metrics for HTTP requests.
+// It captures request count, duration (histogram), and duration (gauge) with labels
+// for method, path (route pattern), and status code. It also attaches exemplars
+// containing trace context to histogram metrics for observability linking.
+//
+// Exemplars rely on OTelRouteLabeler populating an exemplarData pointer stored
+// in the request context. This avoids installing otelhttp at the root level.
+func HTTPMetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-		next.ServeHTTP(ww, r)
+
+		// Store a mutable pointer in the context for OTelRouteLabeler to populate
+		// with trace IDs after otelhttp creates the span.
+		ed := &exemplarData{}
+		ctx := context.WithValue(r.Context(), exemplarKey, ed)
+
+		next.ServeHTTP(ww, r.WithContext(ctx))
 		duration := time.Since(start)
 
 		pattern := chi.RouteContext(r.Context()).RoutePattern()
 
-		httpRequests.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Inc()
-		httpRequestDuration.WithLabelValues(r.Method, pattern, strconv.Itoa(ww.Status())).Observe(duration.Seconds())
+		// Skip metrics for internal/infrastructure routes
+		if isInternalRoute(pattern) {
+			return
+		}
+
+		statusStr := strconv.Itoa(ww.Status())
+		durationSeconds := duration.Seconds()
+
+		httpRequests.WithLabelValues(r.Method, pattern, statusStr).Inc()
+
+		// Record histogram observations with exemplars if trace context was populated
+		if ed.TraceID != "" {
+			labels := prometheus.Labels{
+				"trace_id": ed.TraceID,
+			}
+			if observer, ok := httpRequestDuration.WithLabelValues(r.Method, pattern, statusStr).(prometheus.ExemplarObserver); ok {
+				observer.ObserveWithExemplar(durationSeconds, labels)
+			} else {
+				httpRequestDuration.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+			}
+			if observer, ok := httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, statusStr).(prometheus.ExemplarObserver); ok {
+				observer.ObserveWithExemplar(durationSeconds, labels)
+			} else {
+				httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+			}
+		} else {
+			httpRequestDuration.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+			httpRequestDurationNativeHistogram.WithLabelValues(r.Method, pattern, statusStr).Observe(durationSeconds)
+		}
+
+		httpRequestDurationGauge.WithLabelValues(r.Method, pattern, statusStr).Set(durationSeconds)
 	})
 }

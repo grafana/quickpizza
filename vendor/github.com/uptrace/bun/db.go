@@ -42,7 +42,7 @@ func WithDiscardUnknownColumns() DBOption {
 
 // ConnResolver enables routing queries to multiple databases.
 type ConnResolver interface {
-	ResolveConn(query Query) IConn
+	ResolveConn(ctx context.Context, query Query) IConn
 	Close() error
 }
 
@@ -56,10 +56,8 @@ type DB struct {
 	// Must be a pointer so we copy the whole state, not individual fields.
 	*noCopyState
 
+	gen        schema.QueryGen
 	queryHooks []QueryHook
-
-	fmter schema.Formatter
-	stats DBStats
 }
 
 // noCopyState contains DB fields that must not be copied on clone(),
@@ -71,6 +69,8 @@ type noCopyState struct {
 
 	flags  internal.Flag
 	closed atomic.Bool
+
+	stats DBStats
 }
 
 func NewDB(sqldb *sql.DB, dialect schema.Dialect, opts ...DBOption) *DB {
@@ -81,7 +81,7 @@ func NewDB(sqldb *sql.DB, dialect schema.Dialect, opts ...DBOption) *DB {
 			DB:      sqldb,
 			dialect: dialect,
 		},
-		fmter: schema.NewFormatter(dialect),
+		gen: schema.NewQueryGen(dialect),
 	}
 
 	for _, opt := range opts {
@@ -122,7 +122,7 @@ func (db *DB) DBStats() DBStats {
 	}
 }
 
-func (db *DB) NewValues(model interface{}) *ValuesQuery {
+func (db *DB) NewValues(model any) *ValuesQuery {
 	return NewValuesQuery(db, model)
 }
 
@@ -146,7 +146,7 @@ func (db *DB) NewDelete() *DeleteQuery {
 	return NewDeleteQuery(db)
 }
 
-func (db *DB) NewRaw(query string, args ...interface{}) *RawQuery {
+func (db *DB) NewRaw(query string, args ...any) *RawQuery {
 	return NewRawQuery(db, query, args...)
 }
 
@@ -178,7 +178,7 @@ func (db *DB) NewDropColumn() *DropColumnQuery {
 	return NewDropColumnQuery(db)
 }
 
-func (db *DB) ResetModel(ctx context.Context, models ...interface{}) error {
+func (db *DB) ResetModel(ctx context.Context, models ...any) error {
 	for _, model := range models {
 		if _, err := db.NewDropTable().Model(model).IfExists().Cascade().Exec(ctx); err != nil {
 			return err
@@ -194,7 +194,7 @@ func (db *DB) Dialect() schema.Dialect {
 	return db.dialect
 }
 
-func (db *DB) ScanRows(ctx context.Context, rows *sql.Rows, dest ...interface{}) error {
+func (db *DB) ScanRows(ctx context.Context, rows *sql.Rows, dest ...any) error {
 	defer rows.Close()
 
 	model, err := newModel(db, dest)
@@ -210,7 +210,7 @@ func (db *DB) ScanRows(ctx context.Context, rows *sql.Rows, dest ...interface{})
 	return rows.Err()
 }
 
-func (db *DB) ScanRow(ctx context.Context, rows *sql.Rows, dest ...interface{}) error {
+func (db *DB) ScanRow(ctx context.Context, rows *sql.Rows, dest ...any) error {
 	model, err := newModel(db, dest)
 	if err != nil {
 		return err
@@ -224,31 +224,13 @@ func (db *DB) ScanRow(ctx context.Context, rows *sql.Rows, dest ...interface{}) 
 	return rs.ScanRow(ctx, rows)
 }
 
-type queryHookIniter interface {
-	Init(db *DB)
-}
-
-func (db *DB) AddQueryHook(hook QueryHook) {
-	if initer, ok := hook.(queryHookIniter); ok {
-		initer.Init(db)
-	}
-	db.queryHooks = append(db.queryHooks, hook)
-}
-
-func (db *DB) ResetQueryHooks() {
-	for i := range db.queryHooks {
-		db.queryHooks[i] = nil
-	}
-	db.queryHooks = nil
-}
-
 func (db *DB) Table(typ reflect.Type) *schema.Table {
 	return db.dialect.Tables().Get(typ)
 }
 
 // RegisterModel registers models by name so they can be referenced in table relations
 // and fixtures.
-func (db *DB) RegisterModel(models ...interface{}) {
+func (db *DB) RegisterModel(models ...any) {
 	db.dialect.Tables().Register(models...)
 }
 
@@ -261,14 +243,54 @@ func (db *DB) clone() *DB {
 	return &clone
 }
 
-func (db *DB) WithNamedArg(name string, value interface{}) *DB {
+// WithNamedArg returns a copy of the DB with an additional named argument
+// bound into its query generator. Named arguments can later be referenced
+// in SQL queries using placeholders (e.g. ?name). This method does not
+// mutate the original DB instance but instead creates a cloned copy.
+func (db *DB) WithNamedArg(name string, value any) *DB {
 	clone := db.clone()
-	clone.fmter = clone.fmter.WithNamedArg(name, value)
+	clone.gen = clone.gen.WithNamedArg(name, value)
 	return clone
 }
 
-func (db *DB) Formatter() schema.Formatter {
-	return db.fmter
+func (db *DB) QueryGen() schema.QueryGen {
+	return db.gen
+}
+
+type queryHookIniter interface {
+	Init(db *DB)
+}
+
+// WithQueryHook returns a copy of the DB with the provided query hook
+// attached. A query hook allows inspection or modification of queries
+// before/after execution (e.g. for logging, tracing, metrics).
+// If the hook implements queryHookIniter, its Init method is invoked
+// with the current DB before cloning. Like other modifiers, this
+// method leaves the original DB unmodified.
+func (db *DB) WithQueryHook(hook QueryHook) *DB {
+	if initer, ok := hook.(queryHookIniter); ok {
+		initer.Init(db)
+	}
+
+	clone := db.clone()
+	clone.queryHooks = append(clone.queryHooks, hook)
+	return clone
+}
+
+// DEPRECATED: use WithQueryHook instead
+func (db *DB) AddQueryHook(hook QueryHook) {
+	if initer, ok := hook.(queryHookIniter); ok {
+		initer.Init(db)
+	}
+	db.queryHooks = append(db.queryHooks, hook)
+}
+
+// DEPRECATED: use WithQueryHook instead
+func (db *DB) ResetQueryHooks() {
+	for i := range db.queryHooks {
+		db.queryHooks[i] = nil
+	}
+	db.queryHooks = nil
 }
 
 // UpdateFQN returns a fully qualified column name. For MySQL, it returns the column name with
@@ -287,12 +309,12 @@ func (db *DB) HasFeature(feat feature.Feature) bool {
 
 //------------------------------------------------------------------------------
 
-func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (db *DB) Exec(query string, args ...any) (sql.Result, error) {
 	return db.ExecContext(context.Background(), query, args...)
 }
 
 func (db *DB) ExecContext(
-	ctx context.Context, query string, args ...interface{},
+	ctx context.Context, query string, args ...any,
 ) (sql.Result, error) {
 	formattedQuery := db.format(query, args)
 	ctx, event := db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
@@ -301,12 +323,12 @@ func (db *DB) ExecContext(
 	return res, err
 }
 
-func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) Query(query string, args ...any) (*sql.Rows, error) {
 	return db.QueryContext(context.Background(), query, args...)
 }
 
 func (db *DB) QueryContext(
-	ctx context.Context, query string, args ...interface{},
+	ctx context.Context, query string, args ...any,
 ) (*sql.Rows, error) {
 	formattedQuery := db.format(query, args)
 	ctx, event := db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
@@ -315,11 +337,11 @@ func (db *DB) QueryContext(
 	return rows, err
 }
 
-func (db *DB) QueryRow(query string, args ...interface{}) *sql.Row {
+func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 	return db.QueryRowContext(context.Background(), query, args...)
 }
 
-func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	formattedQuery := db.format(query, args)
 	ctx, event := db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
 	row := db.DB.QueryRowContext(ctx, formattedQuery)
@@ -327,8 +349,8 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interfa
 	return row
 }
 
-func (db *DB) format(query string, args []interface{}) string {
-	return db.fmter.FormatQuery(query, args...)
+func (db *DB) format(query string, args []any) string {
+	return db.gen.FormatQuery(query, args...)
 }
 
 //------------------------------------------------------------------------------
@@ -350,7 +372,7 @@ func (db *DB) Conn(ctx context.Context) (Conn, error) {
 }
 
 func (c Conn) ExecContext(
-	ctx context.Context, query string, args ...interface{},
+	ctx context.Context, query string, args ...any,
 ) (sql.Result, error) {
 	formattedQuery := c.db.format(query, args)
 	ctx, event := c.db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
@@ -360,7 +382,7 @@ func (c Conn) ExecContext(
 }
 
 func (c Conn) QueryContext(
-	ctx context.Context, query string, args ...interface{},
+	ctx context.Context, query string, args ...any,
 ) (*sql.Rows, error) {
 	formattedQuery := c.db.format(query, args)
 	ctx, event := c.db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
@@ -369,7 +391,7 @@ func (c Conn) QueryContext(
 	return rows, err
 }
 
-func (c Conn) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (c Conn) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	formattedQuery := c.db.format(query, args)
 	ctx, event := c.db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
 	row := c.Conn.QueryRowContext(ctx, formattedQuery)
@@ -381,7 +403,7 @@ func (c Conn) Dialect() schema.Dialect {
 	return c.db.Dialect()
 }
 
-func (c Conn) NewValues(model interface{}) *ValuesQuery {
+func (c Conn) NewValues(model any) *ValuesQuery {
 	return NewValuesQuery(c.db, model).Conn(c)
 }
 
@@ -405,7 +427,7 @@ func (c Conn) NewDelete() *DeleteQuery {
 	return NewDeleteQuery(c.db).Conn(c)
 }
 
-func (c Conn) NewRaw(query string, args ...interface{}) *RawQuery {
+func (c Conn) NewRaw(query string, args ...any) *RawQuery {
 	return NewRawQuery(c.db, query, args...).Conn(c)
 }
 
@@ -595,12 +617,12 @@ func (tx Tx) rollbackSP() error {
 	return err
 }
 
-func (tx Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (tx Tx) Exec(query string, args ...any) (sql.Result, error) {
 	return tx.ExecContext(context.TODO(), query, args...)
 }
 
 func (tx Tx) ExecContext(
-	ctx context.Context, query string, args ...interface{},
+	ctx context.Context, query string, args ...any,
 ) (sql.Result, error) {
 	formattedQuery := tx.db.format(query, args)
 	ctx, event := tx.db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
@@ -609,12 +631,12 @@ func (tx Tx) ExecContext(
 	return res, err
 }
 
-func (tx Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (tx Tx) Query(query string, args ...any) (*sql.Rows, error) {
 	return tx.QueryContext(context.TODO(), query, args...)
 }
 
 func (tx Tx) QueryContext(
-	ctx context.Context, query string, args ...interface{},
+	ctx context.Context, query string, args ...any,
 ) (*sql.Rows, error) {
 	formattedQuery := tx.db.format(query, args)
 	ctx, event := tx.db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
@@ -623,11 +645,11 @@ func (tx Tx) QueryContext(
 	return rows, err
 }
 
-func (tx Tx) QueryRow(query string, args ...interface{}) *sql.Row {
+func (tx Tx) QueryRow(query string, args ...any) *sql.Row {
 	return tx.QueryRowContext(context.TODO(), query, args...)
 }
 
-func (tx Tx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (tx Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
 	formattedQuery := tx.db.format(query, args)
 	ctx, event := tx.db.beforeQuery(ctx, nil, query, args, formattedQuery, nil)
 	row := tx.Tx.QueryRowContext(ctx, formattedQuery)
@@ -695,7 +717,7 @@ func (tx Tx) Dialect() schema.Dialect {
 	return tx.db.Dialect()
 }
 
-func (tx Tx) NewValues(model interface{}) *ValuesQuery {
+func (tx Tx) NewValues(model any) *ValuesQuery {
 	return NewValuesQuery(tx.db, model).Conn(tx)
 }
 
@@ -719,7 +741,7 @@ func (tx Tx) NewDelete() *DeleteQuery {
 	return NewDeleteQuery(tx.db).Conn(tx)
 }
 
-func (tx Tx) NewRaw(query string, args ...interface{}) *RawQuery {
+func (tx Tx) NewRaw(query string, args ...any) *RawQuery {
 	return NewRawQuery(tx.db, query, args...).Conn(tx)
 }
 

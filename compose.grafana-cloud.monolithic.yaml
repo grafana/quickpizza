@@ -1,11 +1,11 @@
 services:
   alloy:
-    image: grafana/alloy:v1.11.3@sha256:8c7256f412feb9f5f48f9f6f9394dc97ca887f63dea9304f347970ecc1787669
+    image: grafana/alloy:v1.14.2@sha256:eadfe35ea52b26cbec4d4d780fbcc31edb31108c1c9e537ca59557a5a102c712
     container_name: alloy
     labels:
       - "service.type=instrumentation"
     volumes:
-      - "./alloy/${ALLOY_FILE_NAME:-cloud.alloy}:/config.alloy:Z"
+      - "./deployments/docker-compose/grafana-cloud/${ALLOY_FILE_NAME:-config.alloy}:/config.alloy:Z"
       - "${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock"
     command:
       - run
@@ -22,12 +22,16 @@ services:
       GRAFANA_CLOUD_TOKEN: "${GRAFANA_CLOUD_TOKEN}"
       GRAFANA_CLOUD_STACK: "${GRAFANA_CLOUD_STACK}"
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      # Use empty string to disable.
+      DB_O11Y_CONNECTION: "${DB_O11Y_CONNECTION-postgres://db-o11y:db-o11y-password@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
+      SERVICE_NAMESPACE: "${SERVICE_NAMESPACE:-quickpizza}"
+      DB_SERVICE_NAME: "quickpizza-db"
     depends_on:
       - quickpizza
   quickpizza:
     # The QUICKPIZZA_IMAGE env. variable enables the use of a locally built image,
     # created with `make docker-build`.
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.11}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
     # Alloy reads `container_name` to relabel service name in telemetry.
     container_name: quickpizza
     labels:
@@ -35,6 +39,7 @@ services:
       - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
     ports:
       - "3333:3333"
+      - "3334:3334" # gRPC
     environment:
       QUICKPIZZA_OTLP_ENDPOINT: http://alloy:4318
       QUICKPIZZA_TRUST_CLIENT_TRACEID: 1
@@ -43,5 +48,49 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
-      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-}"
+      QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-QuickPizza}"
+      QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY: "${QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY:-false}"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      # OTEL `db.name` span attribute. Used by servicegraph to create service nodes with this name
+      # Set to the logical database service name
+      QUICKPIZZA_OTEL_DB_NAME: "quickpizza-db"
+      # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
+      QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
+    depends_on:
+      quickpizza-db:
+        condition: service_healthy
+
+  quickpizza-db:
+    image: postgres:18.1@sha256:5773fe724c49c42a7a9ca70202e11e1dff21fb7235b335a73f39297d200b73a2
+    container_name: quickpizza-db
+    labels:
+      - "service.type=database"
+      - "service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quickpizza_db
+      DB_O11Y_USER: db-o11y
+      DB_O11Y_PASSWORD: db-o11y-password
+      DB_O11Y_DATABASES: quickpizza_db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./deployments/init-db-observability.sh:/docker-entrypoint-initdb.d/init-db-observability.sh:Z
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "track_activity_query_size=4096"
+      - "-c"
+      - "pg_stat_statements.track=all"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

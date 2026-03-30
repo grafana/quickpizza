@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	http "net/http"
 	"os"
 	"runtime"
@@ -21,7 +22,10 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 )
 
+var devMode = flag.Bool("dev", false, "Run in development mode with Vite dev server")
+
 func main() {
+	flag.Parse()
 	// write logs as JSON
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 		Level: logging.GetLogLevel(),
@@ -96,7 +100,7 @@ func main() {
 
 	if envServe("QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE") {
 		// Serve frontend static assets
-		server.AddFrontend()
+		server.AddFrontend(*devMode)
 
 		// If running as a microservice (not all services in one instance),
 		// also act as a gateway to proxy public-facing endpoints
@@ -371,7 +375,7 @@ func envConfig(prefix string) map[string]string {
 // envDBConnString returns the specified db connection string from QUICKPIZZA_DB. It defaults to an in-memory sqlite instance
 func envDBConnString() string {
 	v, found := os.LookupEnv("QUICKPIZZA_DB")
-	if !found {
+	if !found || v == "" {
 		return "file::memory:?cache=shared"
 	}
 	return v

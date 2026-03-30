@@ -9,8 +9,9 @@ import (
 
 type (
 	Safe  = schema.Safe
-	Ident = schema.Ident
 	Name  = schema.Name
+	Ident = schema.Ident
+	Order = schema.Order
 
 	NullTime  = schema.NullTime
 	BaseModel = schema.BaseModel
@@ -22,7 +23,16 @@ type (
 	AfterScanRowHook  = schema.AfterScanRowHook
 )
 
-func SafeQuery(query string, args ...interface{}) schema.QueryWithArgs {
+const (
+	OrderAsc            = schema.OrderAsc
+	OrderAscNullsFirst  = schema.OrderDesc
+	OrderAscNullsLast   = schema.OrderAscNullsLast
+	OrderDesc           = schema.OrderDesc
+	OrderDescNullsFirst = schema.OrderDescNullsFirst
+	OrderDescNullsLast  = schema.OrderDescNullsLast
+)
+
+func SafeQuery(query string, args ...any) schema.QueryWithArgs {
 	return schema.SafeQuery(query, args)
 }
 
@@ -79,10 +89,10 @@ func SetLogger(logger internal.Logging) {
 	internal.SetLogger(logger)
 }
 
-func In(slice interface{}) schema.QueryAppender {
+func In(slice any) schema.QueryAppender {
 	return schema.In(slice)
 }
 
-func NullZero(value interface{}) schema.QueryAppender {
+func NullZero(value any) schema.QueryAppender {
 	return schema.NullZero(value)
 }

@@ -57,6 +57,7 @@ func New(opts ...DialectOption) *Dialect {
 		feature.CompositeIn |
 		feature.FKDefaultOnAction |
 		feature.DeleteReturning |
+		feature.MergeReturning |
 		feature.AlterColumnExists
 
 	for _, opt := range opts {
@@ -120,8 +121,7 @@ func (d *Dialect) onField(field *schema.Field) {
 		return
 	}
 
-	if field.Tag.HasOption("multirange") {
-		field.Append = d.arrayAppender(field.StructField.Type)
+	if field.Tag.HasOption("multirange") || strings.HasSuffix(field.UserSQLType, "multirange") {
 		field.Scan = arrayScanner(field.StructField.Type)
 		return
 	}

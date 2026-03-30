@@ -1,0 +1,1 @@
+See the main [README.md](../../README.md) for instructions on running QuickPizza with Docker Compose using either an OSS Grafana Stack or Grafana Cloud.

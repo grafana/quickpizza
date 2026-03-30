@@ -1,0 +1,88 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: quickpizza-db-credentials
+type: Opaque
+stringData:
+  DATABASE_PASSWORD: quickpizza
+  CONNECTION_STRING: postgres://quickpizza:quickpizza@quickpizza-db/quickpizza?sslmode=disable
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: quickpizza-db
+  labels:
+    environment: production
+    app.k8s.io/name: quickpizza-app
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: quickpizza-db
+spec:
+  replicas: 1
+  serviceName: quickpizza-db
+  selector:
+    matchLabels:
+      environment: production
+      app.k8s.io/name: quickpizza-app
+      app.kubernetes.io/component: database
+      app.kubernetes.io/instance: quickpizza-db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+  template:
+    metadata:
+      labels:
+        environment: production
+        app.k8s.io/name: quickpizza-app
+        app.kubernetes.io/component: database
+        app.kubernetes.io/instance: quickpizza-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18
+          ports:
+            - containerPort: 5432
+              name: psql
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quickpizza-db-credentials
+                  key: DATABASE_PASSWORD
+            - name: POSTGRES_DB
+              value: quickpizza
+            - name: POSTGRES_USER
+              value: quickpizza
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickpizza-db
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: psql
+  selector:
+    environment: production
+    app.k8s.io/name: quickpizza-app
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: quickpizza-db

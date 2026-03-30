@@ -26,7 +26,7 @@ function checkAdminLoggedIn() {
 }
 
 async function handleSubmit() {
-	faro.api.startUserAction(
+	window.faro?.api?.startUserAction(
 		'adminLogin', // name of the user action
 		{ username: username }, // custom attributes attached to the user action
 		{ triggerName: 'adminLoginButtonClick', importance: 'critical' }, // custom config
@@ -40,22 +40,26 @@ async function handleSubmit() {
 	);
 	if (!res.ok) {
 		loginError = 'Login failed: ' + res.statusText;
-		faro.api.pushEvent('Unsuccessful Admin Login', { username: username });
-		faro.api.pushError(new Error('Admin Login Error: ' + res.statusText));
+		window.faro?.api?.pushEvent('Unsuccessful Admin Login', {
+			username: username,
+		});
+		window.faro?.api?.pushError(
+			new Error('Admin Login Error: ' + res.statusText),
+		);
 		return;
 	}
 
-	faro.api.pushEvent('Successful Admin Login', { username: username });
+	window.faro?.api?.pushEvent('Successful Admin Login', { username: username });
 	adminLoggedIn = checkAdminLoggedIn();
 }
 
 async function handleLogout() {
-	faro.api.startUserAction(
+	window.faro?.api?.startUserAction(
 		'adminLogout', // name of the user action
 		{ username: username }, // custom attributes attached to the user action
 		{ triggerName: 'adminLogoutButtonClick', importance: 'critical' }, // custom config
 	);
-	faro.api.pushEvent('Admin Logout');
+	window.faro?.api?.pushEvent('Admin Logout');
 	// Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
 	document.cookie = 'admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 	adminLoggedIn = false;
@@ -72,14 +76,14 @@ function updateRecommendations() {
 	})
 		.then((res) => res.json())
 		.then((json) => {
-			faro.api.pushEvent('Update Recent Pizza Recommendations');
+			window.faro?.api?.pushEvent('Update Recent Pizza Recommendations');
 			var newRec: string[] = [];
 			json.pizzas.forEach((pizza: string) => {
 				newRec.push(`
                 ${pizza.name} (tool=${pizza.tool}, ingredients_number=${pizza.ingredients.length})`);
 			});
 			if (newRec.length >= 15) {
-				faro.api.pushError(new Error('Too Many Recommendations'));
+				window.faro?.api?.pushError(new Error('Too Many Recommendations'));
 			}
 			newRec = newRec.slice(0, 15);
 			if (newRec.length >= 0) {
