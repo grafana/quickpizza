@@ -149,11 +149,31 @@ jobs:
           cache: "yarn"
           cache-dependency-path: Mobiles/react-native/yarn.lock
 
+      - name: Cache React Native APK
+        id: cache-rn-apk
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
+          # Hash only React Native Android APK inputs so RN changes rebuild,
+          # while unrelated repo changes (Flutter/iOS/backend) keep cache hits.
+          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
+
+      - name: Log React Native APK cache status
+        run: |
+          if [ "${{ steps.cache-rn-apk.outputs.cache-hit }}" = "true" ]; then
+            echo "✅ React Native APK found in cache, skipping build"
+            ls -la Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
+          else
+            echo "❌ React Native APK not in cache, will build"
+          fi
+
       - name: Install dependencies
+        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native
         run: yarn install --frozen-lockfile
 
       - name: Create config.json for CI
+        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native
         env:
           FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL_RN }}
@@ -168,6 +188,7 @@ jobs:
           echo "Created config.json (FARO_COLLECTOR_URL redacted)"
 
       - name: Build APK (debug)
+        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native/android
         run: |
           echo "Building React Native APK..."
