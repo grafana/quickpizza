@@ -330,6 +330,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # v2.35.0
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          RN_ENABLED: ${{ env.RN_ENABLED }}
         with:
           api-level: 34
           arch: x86_64
@@ -349,18 +350,8 @@ jobs:
             echo "==> Flutter APK: install and E2E"
             adb install -r apk/flutter/app-debug.apk
             cd Mobiles/flutter && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh
-            cd ../..
-
-            if [ "${{ env.RN_ENABLED }}" = "true" ]; then
-              echo "==> React Native APK: install and E2E"
-              adb install -r apk/react-native/app-debug.apk
-              cd Mobiles/react-native && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh
-              cd ../..
-              echo "E2E tests completed (Flutter then React Native on same emulator)."
-            else
-              echo "Skipping React Native E2E (set repo variable ENABLE_REACT_NATIVE_CI=true or workflow_dispatch enable_react_native)."
-              echo "E2E tests completed (Flutter only)."
-            fi
+            # android-emulator-runner runs each non-empty line as its own `sh -c` (script-parser.ts); keep if/fi on one line.
+            if [ "${RN_ENABLED}" = "true" ]; then echo "==> React Native APK: install and E2E"; adb install -r apk/react-native/app-debug.apk; (cd Mobiles/react-native && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh); echo "E2E tests completed (Flutter then React Native on same emulator)."; else echo "Skipping React Native E2E (set repo variable ENABLE_REACT_NATIVE_CI=true or workflow_dispatch enable_react_native)."; echo "E2E tests completed (Flutter only)."; fi
 
       - name: Upload e2e test results
         if: always()

@@ -16,8 +16,11 @@ LOGS=logs.txt
 
 export K6_BROWSER_HEADLESS=true
 export K6_BROWSER_ARGS='no-sandbox'
-if [ "$ACT" = "true" ]; then
-	export K6_BROWSER_EXECUTABLE_PATH=/usr/bin/google-chrome
+# Bundled Chromium can fail mid-run when many IterStart launches happen in parallel
+# (e.g. hybrid browser + HTTP scenarios). Prefer system Chrome on Linux CI; see
+# https://github.com/grafana/xk6-browser/blob/main/.github/workflows/e2e.yml
+if [ "$ACT" = "true" ] || { [ -n "${CI:-}" ] && [ "$(uname -s)" = "Linux" ]; }; then
+	export K6_BROWSER_EXECUTABLE_PATH="${K6_BROWSER_EXECUTABLE_PATH:-/usr/bin/google-chrome}"
 fi
 
 for test in $TESTS; do
