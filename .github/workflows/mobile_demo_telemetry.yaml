@@ -1,5 +1,3 @@
-# React Native APK + E2E are gated until @grafana/faro-react-native is on npm:
-# enable via repository variable ENABLE_REACT_NATIVE_CI=true, or workflow_dispatch "enable_react_native".
 name: Mobile Demo Telemetry
 
 on:
@@ -9,14 +7,9 @@ on:
       - ".github/workflows/mobile_demo_telemetry.yaml"
       - "Mobiles/flutter/**"
       - "Mobiles/react-native/**"
-      - "compose.grafana-cloud.monolithic.yaml"
+      - "compose.grafana-cloud.microservices.yaml"
   # Manual trigger for testing
-  workflow_dispatch:
-    inputs:
-      enable_react_native:
-        description: "Build and E2E the React Native app (requires published @grafana/faro-react-native on npm)"
-        type: boolean
-        default: false
+  workflow_dispatch: {}
   # Scheduled run every hour for continuous telemetry
   schedule:
     - cron: "0 * * * *"
@@ -120,9 +113,6 @@ jobs:
 
   build-react-native-apk:
     name: Build React Native APK
-    # RN is off unless: repo variable ENABLE_REACT_NATIVE_CI=true, or manual run with enable_react_native.
-    # Job-level expressions cannot use workflow env; use Actions variables (Settings → Variables).
-    if: ${{ vars.ENABLE_REACT_NATIVE_CI == 'true' || (github.event_name == 'workflow_dispatch' && inputs.enable_react_native) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -218,15 +208,12 @@ jobs:
     needs:
       - build-flutter-apk
       - build-react-native-apk
-    # When RN build is skipped, that job is "skipped"; still run Flutter E2E if Flutter build succeeded.
-    if: ${{ always() && needs.build-flutter-apk.result == 'success' && (needs.build-react-native-apk.result == 'success' || needs.build-react-native-apk.result == 'skipped') }}
+    if: ${{ needs.build-flutter-apk.result == 'success' && needs.build-react-native-apk.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       id-token: write
       contents: read
-    env:
-      RN_ENABLED: ${{ vars.ENABLE_REACT_NATIVE_CI == 'true' || (github.event_name == 'workflow_dispatch' && inputs.enable_react_native) }}
 
     steps:
       - name: Get Vault secrets
@@ -248,7 +235,6 @@ jobs:
           path: apk/flutter/
 
       - name: Download React Native APK artifact
-        if: env.RN_ENABLED == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: react-native-apk
@@ -260,13 +246,9 @@ jobs:
           ls -la apk/flutter/
           file apk/flutter/app-debug.apk
           echo "Flutter APK size: $(du -h apk/flutter/app-debug.apk | cut -f1)"
-          if [ "${RN_ENABLED}" = "true" ]; then
-            ls -la apk/react-native/
-            file apk/react-native/app-debug.apk
-            echo "React Native APK size: $(du -h apk/react-native/app-debug.apk | cut -f1)"
-          else
-            echo "React Native APK skipped (RN_ENABLED=false)"
-          fi
+          ls -la apk/react-native/
+          file apk/react-native/app-debug.apk
+          echo "React Native APK size: $(du -h apk/react-native/app-debug.apk | cut -f1)"
           echo "APKs verified"
 
       - name: Start QuickPizza backend (Docker Compose)
@@ -277,10 +259,9 @@ jobs:
           # Use dev Alloy config for grafana-dev.net stack
           ALLOY_FILE_NAME: cloud-dev.alloy
         run: |
-          echo "Starting QuickPizza backend with dev config..."
-          # Use dev override for grafana-dev.net stack (adds required module mount)
-          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml up -d
-          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml ps
+          echo "Starting QuickPizza backend (Grafana Cloud microservices + dev Alloy override)..."
+          docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up -d
+          docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml ps
           
           echo "Waiting for backend to be ready..."
           for i in {1..60}; do
@@ -293,7 +274,7 @@ jobs:
           done
           
           echo "Backend did not become ready in time"
-          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color
+          docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color
           exit 1
 
       - name: Enable KVM group permissions
@@ -321,7 +302,6 @@ jobs:
         uses: dart-lang/setup-dart@e51d8e571e22473a2ddebf0ef8a2123f0ab2c02c # v1.7.1
 
       - name: Set up Node.js (React Native e2e HTML reports)
-        if: env.RN_ENABLED == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
@@ -330,7 +310,6 @@ jobs:
         uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # v2.35.0
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
-          RN_ENABLED: ${{ env.RN_ENABLED }}
         with:
           api-level: 34
           arch: x86_64
@@ -350,8 +329,10 @@ jobs:
             echo "==> Flutter APK: install and E2E"
             adb install -r apk/flutter/app-debug.apk
             cd Mobiles/flutter && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh
-            # android-emulator-runner runs each non-empty line as its own `sh -c` (script-parser.ts); keep if/fi on one line.
-            if [ "${RN_ENABLED}" = "true" ]; then echo "==> React Native APK: install and E2E"; adb install -r apk/react-native/app-debug.apk; (cd Mobiles/react-native && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh); echo "E2E tests completed (Flutter then React Native on same emulator)."; else echo "Skipping React Native E2E (set repo variable ENABLE_REACT_NATIVE_CI=true or workflow_dispatch enable_react_native)."; echo "E2E tests completed (Flutter only)."; fi
+            echo "==> React Native APK: install and E2E"
+            adb install -r apk/react-native/app-debug.apk
+            cd Mobiles/react-native && chmod +x scripts/e2e/run_e2e_tests.sh && ./scripts/e2e/run_e2e_tests.sh
+            echo "E2E tests completed (Flutter then React Native on same emulator)."
 
       - name: Upload e2e test results
         if: always()
@@ -367,12 +348,12 @@ jobs:
       - name: Collect backend logs
         if: always()
         run: |
-          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color > backend.log 2>&1 || true
+          docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color > backend.log 2>&1 || true
 
       - name: Stop backend
         if: always()
         run: |
-          docker compose -f compose.grafana-cloud.monolithic.yaml -f compose.grafana-cloud.dev-override.yaml down -v || true
+          docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml down -v || true
 
       - name: Upload backend logs
         if: always()
