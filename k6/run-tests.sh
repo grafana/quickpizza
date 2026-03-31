@@ -15,7 +15,11 @@ TESTS="${TESTS:=**/k6/foundations/*.js}"
 LOGS=logs.txt
 
 export K6_BROWSER_HEADLESS=true
-export K6_BROWSER_ARGS='no-sandbox'
+# Chrome 146+: crashpad reads cpufreq sysfs that GitHub runners omit; disable the
+# triggering feature. Comma-separated K6_BROWSER_ARGS must not include commas
+# inside values, so we pass only this feature (replaces k6's default disable-features).
+# https://github.com/puppeteer/puppeteer/issues/14742
+export K6_BROWSER_ARGS='no-sandbox,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge'
 # Bundled Chromium can fail mid-run when many IterStart launches happen in parallel
 # (e.g. hybrid browser + HTTP scenarios). Prefer system Chrome on Linux CI; see
 # https://github.com/grafana/xk6-browser/blob/main/.github/workflows/e2e.yml

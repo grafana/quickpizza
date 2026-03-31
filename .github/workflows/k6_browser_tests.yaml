@@ -5,6 +5,10 @@ jobs:
   k6_browser_tests:
     name: k6 test run - running all browser tests
     runs-on: ubuntu-latest
+    env:
+      # Chrome 146+ on GHA: avoid crashpad open on missing cpufreq sysfs (puppeteer#14742).
+      # k6 splits K6_BROWSER_ARGS on commas; value must be a single disable-features=… token.
+      K6_BROWSER_ARGS: "no-sandbox,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge"
 
     services:
       quickpizza:

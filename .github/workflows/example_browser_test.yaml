@@ -5,6 +5,8 @@ jobs:
   basic_k6_test:
     name: k6 test run - browser test example
     runs-on: ubuntu-latest
+    env:
+      K6_BROWSER_ARGS: "no-sandbox,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge"
 
     services:
       quickpizza:
