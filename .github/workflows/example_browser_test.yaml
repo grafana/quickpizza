@@ -5,6 +5,10 @@ jobs:
   basic_k6_test:
     name: k6 test run - browser test example
     runs-on: ubuntu-latest
+    env:
+      K6_BROWSER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
+      K6_BROWSER_ARGS: "no-sandbox,disable-dev-shm-usage,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge"
+      DBUS_SESSION_BUS_ADDRESS: /dev/null
 
     services:
       quickpizza:
@@ -15,6 +19,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Google Chrome
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor --yes -o /usr/share/keyrings/google-chrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
       - name: Setup k6
         uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
         with:
