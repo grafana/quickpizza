@@ -6,9 +6,13 @@ jobs:
     name: k6 test run - running all browser tests
     runs-on: ubuntu-latest
     env:
-      # Chrome 146+ on GHA: avoid crashpad open on missing cpufreq sysfs (puppeteer#14742).
+      # Use system Chrome — bundled Chromium often SIGTRAP / D-Bus failures on GHA (xk6-browser e2e).
+      K6_BROWSER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
+      # Chrome 146+ on GHA: avoid crashpad on missing cpufreq sysfs (puppeteer#14742).
       # k6 splits K6_BROWSER_ARGS on commas; value must be a single disable-features=… token.
-      K6_BROWSER_ARGS: "no-sandbox,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge"
+      K6_BROWSER_ARGS: "no-sandbox,disable-dev-shm-usage,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge"
+      # Avoid "Failed to connect to the bus" from Chromium on headless runners.
+      DBUS_SESSION_BUS_ADDRESS: /dev/null
 
     services:
       quickpizza:
@@ -19,6 +23,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install Google Chrome
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor --yes -o /usr/share/keyrings/google-chrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Setup k6
         uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1

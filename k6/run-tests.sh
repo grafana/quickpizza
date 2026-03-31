@@ -19,12 +19,14 @@ export K6_BROWSER_HEADLESS=true
 # triggering feature. Comma-separated K6_BROWSER_ARGS must not include commas
 # inside values, so we pass only this feature (replaces k6's default disable-features).
 # https://github.com/puppeteer/puppeteer/issues/14742
-export K6_BROWSER_ARGS='no-sandbox,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge'
+export K6_BROWSER_ARGS='no-sandbox,disable-dev-shm-usage,disable-features=PartitionAllocSchedulerLoopQuarantineTaskControlledPurge'
 # Bundled Chromium can fail mid-run when many IterStart launches happen in parallel
 # (e.g. hybrid browser + HTTP scenarios). Prefer system Chrome on Linux CI; see
 # https://github.com/grafana/xk6-browser/blob/main/.github/workflows/e2e.yml
 if [ "$ACT" = "true" ] || { [ -n "${CI:-}" ] && [ "$(uname -s)" = "Linux" ]; }; then
-	export K6_BROWSER_EXECUTABLE_PATH="${K6_BROWSER_EXECUTABLE_PATH:-/usr/bin/google-chrome}"
+	export K6_BROWSER_EXECUTABLE_PATH="${K6_BROWSER_EXECUTABLE_PATH:-/usr/bin/google-chrome-stable}"
+	# Headless Linux runners: avoid Chromium D-Bus launch failures.
+	export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-/dev/null}"
 fi
 
 for test in $TESTS; do
