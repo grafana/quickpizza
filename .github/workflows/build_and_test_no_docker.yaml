@@ -49,6 +49,8 @@ jobs:
 
       - name: Setup k6
         uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
+        with:
+          browser: true
 
       - name: Install jq
         uses: dcarbone/install-jq-action@e397bd87438d72198f81efd21f876461183d383a # v3.0.1
@@ -61,6 +63,16 @@ jobs:
 
       - name: Run k6 internal tests
         run: ./k6/run-tests.sh -t **/k6/internal/*.js -u http://localhost:3333
+
+      - name: Install Google Chrome (browser tests)
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor --yes -o /usr/share/keyrings/google-chrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Run k6 browser tests
         run: ./k6/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
