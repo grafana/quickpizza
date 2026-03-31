@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"embed"
+	"fmt"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dbfixture"
@@ -22,8 +23,21 @@ func init() {
 		// Reset PostgreSQL sequence after loading fixtures with explicit IDs
 		// SQLite handles autoincrement correctly without this
 		if _, ok := db.Dialect().(*pgdialect.Dialect); ok {
-			_, err := db.ExecContext(ctx, "SELECT setval('pizzas_id_seq', (SELECT MAX(id) FROM pizzas))")
-			return err
+			for _, reset := range []struct {
+				seq, table string
+			}{
+				{"pizzas_id_seq", "pizzas"},
+				{"users_id_seq", "users"},
+				{"ratings_id_seq", "ratings"},
+			} {
+				q := fmt.Sprintf(
+					"SELECT setval('%s', COALESCE((SELECT MAX(id) FROM %s), 1))",
+					reset.seq, reset.table,
+				)
+				if _, err := db.ExecContext(ctx, q); err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
