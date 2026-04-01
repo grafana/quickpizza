@@ -216,12 +216,25 @@ run_tests() {
         # Clean up any leftover results
         rm -rf arbigent-result
 
-        # Temporarily disable exit on error
-        set +e
-        "$ARBIGENT_DIR/bin/arbigent" run $ARBIGENT_ARGS --project-file="$tmp_project"
-        local arbigent_exit_code=$?
-        # Re-enable exit on error
-        set -e
+        # OpenAI vision calls sometimes hit ~80s socket timeouts in CI; retry whole run a few times.
+        local arbigent_exit_code=1
+        local attempt=1
+        local max_attempts=3
+        while [ $attempt -le $max_attempts ]; do
+            if [ $attempt -gt 1 ]; then
+                print_step "Arbigent exited $arbigent_exit_code; retry $attempt/$max_attempts after pause..."
+                rm -rf arbigent-result
+                sleep 45
+            fi
+            set +e
+            "$ARBIGENT_DIR/bin/arbigent" run $ARBIGENT_ARGS --project-file="$tmp_project"
+            arbigent_exit_code=$?
+            set -e
+            if [ $arbigent_exit_code -eq 0 ]; then
+                break
+            fi
+            attempt=$((attempt + 1))
+        done
 
         rm -f "$tmp_project"
 

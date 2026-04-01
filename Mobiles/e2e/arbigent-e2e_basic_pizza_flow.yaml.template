@@ -15,7 +15,8 @@ scenarios:
         packageName: "__ANDROID_PACKAGE__"
       - type: "LaunchApp"
         packageName: "__ANDROID_PACKAGE__"
-    maxRetry: 0
+    # CI: first screen + OpenAI vision calls often flake (socket timeout, model hesitation).
+    maxRetry: 2
     maxStep: 5
 
   - id: "request_pizza"
@@ -68,7 +69,7 @@ scenarios:
 
       1. Use "Press key: HOME" to go to the Android home screen. Do NOT tap any in-app element (Home/About tabs keep you in the app).
       2. If you see app icons (Play Store, Gmail, QuickPizza, etc.), OUTPUT "Goal achieved" immediately. Do NOT swipe or scroll—you are already on home.
-    maxRetry: 0
+    maxRetry: 1
     maxStep: 4
 
   - id: "bring_app_to_foreground"
@@ -83,5 +84,6 @@ scenarios:
 
       SUCCESS CRITERIA:
       - You see the QuickPizza app screen with "Pizza, Please!" button, not the Android launcher.
-    maxRetry: 0
+    # Launcher icon taps are easy for the model to miss; allow replays after dependency chain.
+    maxRetry: 2
     maxStep: 5
