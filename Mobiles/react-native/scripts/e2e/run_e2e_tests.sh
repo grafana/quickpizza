@@ -160,16 +160,49 @@ check_emulator() {
     adb devices -l
 }
 
+# Report needs Node + generate_report.js + npm package `yaml` from Mobiles/react-native/package.json devDependencies.
+html_report_possible() {
+    command -v node &> /dev/null && [ -f "$SCRIPT_DIR/generate_report.js" ]
+}
+
+yaml_report_module_ready() {
+    (cd "$RN_ROOT" && node -e "require.resolve('yaml')" 2>/dev/null)
+}
+
 check_report_generator() {
-    if ! command -v node &> /dev/null; then
-        print_skip "Node.js not found; HTML report generation will be skipped (raw results will still be saved)"
-        return 1
-    fi
-    if [ ! -f "$SCRIPT_DIR/generate_report.js" ]; then
-        print_skip "Report generator not found at $SCRIPT_DIR/generate_report.js; HTML report generation will be skipped"
+    if ! html_report_possible; then
+        if ! command -v node &> /dev/null; then
+            print_skip "Node.js not found; HTML report generation will be skipped (raw results will still be saved)"
+        else
+            print_skip "Report generator not found at $SCRIPT_DIR/generate_report.js; HTML report generation will be skipped"
+        fi
         return 1
     fi
     return 0
+}
+
+# Install RN workspace deps before E2E so HTML report never depends on a prior manual yarn install (e.g. CI).
+# Exits the script on failure instead of skipping report generation.
+install_rn_deps_for_e2e_report() {
+    if yaml_report_module_ready; then
+        return 0
+    fi
+    if [ ! -f "$RN_ROOT/package.json" ]; then
+        print_error "Missing $RN_ROOT/package.json; cannot install report dependencies"
+    fi
+    print_step "Installing Mobiles/react-native dependencies (required for E2E HTML report: yaml)..."
+    cd "$RN_ROOT"
+    if command -v yarn &> /dev/null; then
+        yarn install --frozen-lockfile || yarn install
+    elif command -v npm &> /dev/null; then
+        # RN ships yarn.lock only; npm install from package.json is enough for report deps (e.g. yaml).
+        npm install
+    else
+        print_error "Neither yarn nor npm found. Install Node.js (includes npm) or Yarn, then re-run E2E."
+    fi
+    if ! yaml_report_module_ready; then
+        print_error "After install, Node still cannot resolve 'yaml'. Check devDependencies in $RN_ROOT/package.json"
+    fi
 }
 
 cleanup_processes() {
@@ -216,6 +249,10 @@ run_tests() {
 
     if [ ! -f "$ARBIGENT_PROJECT_TEMPLATE" ]; then
         print_error "Missing Arbigent template: $ARBIGENT_PROJECT_TEMPLATE"
+    fi
+
+    if html_report_possible; then
+        install_rn_deps_for_e2e_report
     fi
 
     # Use same model as Flutter E2E (gpt-5.2) for consistency

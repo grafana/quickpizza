@@ -1,5 +1,10 @@
 # Shared Arbigent project for QuickPizza Android (Flutter + React Native).
-# run_e2e_tests.sh replaces __ANDROID_PACKAGE__ with the app under test.
+# run_e2e_tests.sh replaces __ANDROID_PACKAGE__ with the app under test:
+#   - Flutter default: com.example.flutter_mobile_o11y_demo
+#   - React Native default: com.quickpizza
+# Both use launcher label "QuickPizza", so icon-tap / app-drawer instructions match.
+# LaunchApp uses the package id (not the icon position), so CI passes even when the icon
+# is not on the first home page; the AI fallback below covers real launcher layouts when needed.
 scenarios:
   - id: "start_app"
     goal: |
@@ -81,16 +86,31 @@ scenarios:
 
   - id: "bring_app_to_foreground"
     dependency: "put_app_to_background"
+    # Bootstrap: start the correct task by package (substituted per app). Same YAML works for Flutter and RN.
+    # If the UI tree still shows the launcher, the AI follows the ORDERED FALLBACK (icon → pages → drawer).
+    initializationMethods:
+      - type: "LaunchApp"
+        packageName: "__ANDROID_PACKAGE__"
     goal: |
-      You should see the QuickPizza home screen with the "Pizza, Please!" button.
+      QuickPizza must return to the foreground after HOME (same for Flutter and React Native builds).
 
-      DIRECT ACTION (do this first):
-      Tap the QuickPizza app icon (pizza icon) on the Android home screen. It is visible in the app grid or dock. This opens the app directly—no need to open the recents list first.
+      STEP 0 — After automation: wait 1–2 seconds. If you already see the in-app screen with the "Pizza, Please!" button, OUTPUT "Goal achieved" and STOP. Do not tap launcher icons in that case.
 
-      Do NOT use Scroll or swipe gestures to open recents—they often fail. Just tap the QuickPizza icon directly.
+      ORDERED FALLBACK — Only if you still see the Android launcher (not the QuickPizza UI):
+
+      CASE A — Icon on THIS home page:
+      - If you see a QuickPizza app icon (pizza-themed icon, label "QuickPizza"), tap it once. Do not guess unrelated icons.
+
+      CASE B — Icon not visible on this page (another home screen or drawer):
+      - Try a horizontal swipe from RIGHT to LEFT on the empty WALLPAPER area between the dock and the icon rows (do not start the swipe on Phone, Messages, WebView Browser Tester, Camera, or Gmail). This may move to the next launcher page. Look for QuickPizza again. Repeat at most 3 page changes.
+
+      CASE C — Still no QuickPizza icon:
+      - Open the "all apps" / app drawer: swipe UP from the bottom edge of the screen (above the nav bar). Scroll the alphabet list if needed and tap "QuickPizza".
+
+      AVOID: Do not tap WebView Browser Tester, Phone, Messages, or Camera to "find" QuickPizza unless you must press Home first to recover from a mistake.
 
       SUCCESS CRITERIA:
-      - You see the QuickPizza app screen with "Pizza, Please!" button, not the Android launcher.
-    # Launcher icon taps are easy for the model to miss; allow replays after dependency chain.
+      - You see the QuickPizza app UI with the "Pizza, Please!" button (not the launcher).
+
     maxRetry: 2
-    maxStep: 5
+    maxStep: 10
