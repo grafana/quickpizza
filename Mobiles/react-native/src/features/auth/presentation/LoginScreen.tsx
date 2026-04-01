@@ -97,7 +97,7 @@ export function LoginScreen({ onBack, onSuccess }: LoginScreenProps) {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginButtonText}>Sign in</Text>
+              <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </LoginButton>
         </View>

@@ -75,13 +75,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ingredients => 'Ingredients';
 
   @override
-  String get pass => 'Pass';
+  String get pass => 'No thanks';
 
   @override
   String get loveIt => 'Love it!';
 
   @override
-  String get rated => 'Rated!';
+  String get thanksFeedback => 'Thanks for your feedback!';
 
   @override
   String get gotItNextTime => 'Got it, next time!';
@@ -215,10 +215,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get lovedIt => 'Loved it!';
+  String get lovedIt => 'Love it!';
 
   @override
-  String get passed => 'Passed';
+  String get passed => 'No thanks';
 
   @override
   String get clearRatings => 'Clear Ratings';

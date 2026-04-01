@@ -55,7 +55,7 @@ class RatingButtonsViewModel extends Notifier<RatingButtonsUiState>
         pizzaId: pizzaId,
         stars: stars,
       );
-      final resultMessage = success ? _l10n.rated : _l10n.pleaseLoginFirst;
+      final resultMessage = success ? _l10n.thanksFeedback : _l10n.pleaseLoginFirst;
 
       state = RatingButtonsUiState(rateResult: resultMessage);
     } catch (error, stackTrace) {

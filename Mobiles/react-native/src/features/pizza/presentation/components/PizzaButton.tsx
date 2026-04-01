@@ -20,7 +20,7 @@ export function PizzaButton({ onPress, isLoading }: PizzaButtonProps) {
       {isLoading ? (
         <ActivityIndicator color="#FFFFFF" />
       ) : (
-        <Text style={styles.text}>Pizza, please!</Text>
+        <Text style={styles.text}>Pizza, Please!</Text>
       )}
     </TrackedPressable>
   );

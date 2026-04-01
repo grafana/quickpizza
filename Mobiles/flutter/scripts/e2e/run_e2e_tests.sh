@@ -40,18 +40,20 @@ ARBIGENT_VERSION="0.67.0"
 ARBIGENT_DOWNLOAD_URL="https://github.com/takahirom/arbigent/releases/download/${ARBIGENT_VERSION}/arbigent-${ARBIGENT_VERSION}.zip"
 ARBIGENT_DIR="/tmp/arbigent-${ARBIGENT_VERSION}"
 
-# Test configuration - paths relative to Flutter project root
-TEST_FILES=(
-    "e2e-tests/arbigent-e2e_basic_pizza_flow.yaml"
-    # Add more test files here as needed
-)
-
 ### Actual script starts below here ############################################
 ### Probably don't change anything below here ##################################
 
 # Get script location and project root (Flutter app root)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 FLUTTER_ROOT="$(cd "$SCRIPT_DIR/../.." &> /dev/null && pwd)"
+
+# Shared Arbigent template under Mobiles/e2e/ (ANDROID_PACKAGE substituted per app)
+MOBILES_ROOT="$(cd "$SCRIPT_DIR/../../.." &> /dev/null && pwd)"
+ARBIGENT_PROJECT_TEMPLATE="$MOBILES_ROOT/e2e/arbigent-e2e_basic_pizza_flow.yaml.template"
+ANDROID_PACKAGE="${ANDROID_PACKAGE:-com.example.flutter_mobile_o11y_demo}"
+ARBIGENT_PROJECTS=(
+    "Mobiles/e2e/arbigent-e2e_basic_pizza_flow.yaml"
+)
 
 # Environment detection
 is_github_actions() {
@@ -195,25 +197,34 @@ run_tests() {
     # Change to Flutter root directory for test execution
     cd "$FLUTTER_ROOT"
 
+    if [ ! -f "$ARBIGENT_PROJECT_TEMPLATE" ]; then
+        print_error "Missing Arbigent template: $ARBIGENT_PROJECT_TEMPLATE"
+    fi
+
     local ARBIGENT_ARGS="--os=android --ai-type=openai --openai-model-name=gpt-5.2 --log-level=debug"
     local test_failed=false
     local failed_tests=()
-    
-    # Loop through all test files
-    for test_file in "${TEST_FILES[@]}"; do
-        local full_path="$FLUTTER_ROOT/$test_file"
-        print_step "Running test: ${test_file}..."
-        
+
+    # Loop through all shared templates (rendered with this app's ANDROID_PACKAGE)
+    for test_file in "${ARBIGENT_PROJECTS[@]}"; do
+        print_step "Running test: ${test_file} (package ${ANDROID_PACKAGE})..."
+
+        local tmp_project
+        tmp_project="$(mktemp "${TMPDIR:-/tmp}/arbigent-flutter.XXXXXX")"
+        sed "s/__ANDROID_PACKAGE__/${ANDROID_PACKAGE}/g" "$ARBIGENT_PROJECT_TEMPLATE" > "$tmp_project"
+
         # Clean up any leftover results
         rm -rf arbigent-result
-        
+
         # Temporarily disable exit on error
         set +e
-        "$ARBIGENT_DIR/bin/arbigent" run $ARBIGENT_ARGS --project-file="$full_path"
+        "$ARBIGENT_DIR/bin/arbigent" run $ARBIGENT_ARGS --project-file="$tmp_project"
         local arbigent_exit_code=$?
         # Re-enable exit on error
         set -e
-        
+
+        rm -f "$tmp_project"
+
         # Process results if they exist
         if [ -d "arbigent-result" ]; then
             print_step "Generating HTML report for ${test_file}..."

@@ -223,7 +223,7 @@ abstract class AppLocalizations {
   /// No description provided for @pass.
   ///
   /// In en, this message translates to:
-  /// **'Pass'**
+  /// **'No thanks'**
   String get pass;
 
   /// No description provided for @loveIt.
@@ -232,11 +232,11 @@ abstract class AppLocalizations {
   /// **'Love it!'**
   String get loveIt;
 
-  /// No description provided for @rated.
+  /// No description provided for @thanksFeedback.
   ///
   /// In en, this message translates to:
-  /// **'Rated!'**
-  String get rated;
+  /// **'Thanks for your feedback!'**
+  String get thanksFeedback;
 
   /// No description provided for @gotItNextTime.
   ///
@@ -475,13 +475,13 @@ abstract class AppLocalizations {
   /// No description provided for @lovedIt.
   ///
   /// In en, this message translates to:
-  /// **'Loved it!'**
+  /// **'Love it!'**
   String get lovedIt;
 
   /// No description provided for @passed.
   ///
   /// In en, this message translates to:
-  /// **'Passed'**
+  /// **'No thanks'**
   String get passed;
 
   /// No description provided for @clearRatings.

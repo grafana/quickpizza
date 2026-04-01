@@ -34,9 +34,9 @@
   },
   "vegetarian": "Vegetarian",
   "ingredients": "Ingredients",
-  "pass": "Pass",
+  "pass": "No thanks",
   "loveIt": "Love it!",
-  "rated": "Rated!",
+  "thanksFeedback": "Thanks for your feedback!",
   "gotItNextTime": "Got it, next time!",
   "pleaseLoginFirst": "Please log in first.",
   "notAvailable": "N/A",
@@ -93,8 +93,8 @@
       }
     }
   },
-  "lovedIt": "Loved it!",
-  "passed": "Passed",
+  "lovedIt": "Love it!",
+  "passed": "No thanks",
   "clearRatings": "Clear Ratings",
   "signOut": "Sign Out",
   "ratingsClearedSuccessfully": "Ratings cleared successfully!"

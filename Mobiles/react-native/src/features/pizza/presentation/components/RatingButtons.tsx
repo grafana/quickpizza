@@ -83,7 +83,7 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
           ) : (
             <>
               <Text style={styles.buttonIcon}>❤️</Text>
-              <Text style={styles.buttonLabelPrimary}>Love it</Text>
+              <Text style={styles.buttonLabelPrimary}>Love it!</Text>
             </>
           )}
         </TrackedRatingButton>

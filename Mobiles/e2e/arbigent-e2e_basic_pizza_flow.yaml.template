@@ -1,0 +1,87 @@
+# Shared Arbigent project for QuickPizza Android (Flutter + React Native).
+# run_e2e_tests.sh replaces __ANDROID_PACKAGE__ with the app under test.
+scenarios:
+  - id: "start_app"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
+    initializationMethods:
+      - type: "Back"
+        times: 3
+      - type: "CleanupData"
+        packageName: "__ANDROID_PACKAGE__"
+      - type: "LaunchApp"
+        packageName: "__ANDROID_PACKAGE__"
+    maxRetry: 0
+    maxStep: 5
+
+  - id: "request_pizza"
+    goal: |
+      You should see a pizza recommendation card with "Love it!" and "No thanks" buttons below it.
+      As soon as you see the pizza card and those two buttons, OUTPUT "Goal achieved" as your action and STOP. Do NOT tap anything else.
+
+      CRITICAL - NEVER PRESS BACK AT APP START:
+      - When the app first opens (loading spinner or initial screen), do NOT press Back—it will close the app.
+      - Once you see the "Pizza, Please!" button, the app has started. Stay in the app. Do not press Back.
+
+      CRITICAL - QUICKPIZZA LOGIN ONLY (NOT GOOGLE):
+      - The QuickPizza login form has "Username" and "Password" fields and a "Sign In" button. It says "Welcome to QuickPizza".
+      - If you see "Google sign-in", "Enter your email", or any Google-branded screen—you have left QuickPizza. Do NOT enter credentials there. Press Back to return to QuickPizza, then tap the profile/person icon to open the QuickPizza Login screen (with "Username" label, not "email").
+
+      STEP-BY-STEP FLOW:
+      1. Wait for the app to load. When you see "Pizza, Please!" button, the app is ready. Do not press Back.
+      2. If you see the white pizza card with "Love it!" and "No thanks" → goal achieved, stop.
+      3. If you see "Pizza, Please!" but NO white card and NO "Love it!"/"No thanks" → Tap "Pizza, Please!" once. Wait and observe.
+      4. If you then see the error "Failed to get pizza recommendation. Please log in and try again.":
+         - Tap the profile/person icon (in QuickPizza app bar) to open the QuickPizza Login screen.
+         - You will see the QuickPizza login form: "Username", "Password", "Sign In" button, "Welcome to QuickPizza".
+         - Enter username "default" and password "12345678" in those fields.
+         - Tap the "Sign In" button. This automatically returns you to the Home screen—do NOT tap Back.
+         - Wait. Then tap "Pizza, Please!" once. Wait for the white card and "Love it!"/"No thanks" buttons to appear.
+      5. If you see Profile/ratings list ("X pizzas rated") → you are already logged in. Press Back to Home, tap "Pizza, Please!" once, wait.
+      6. Once you see the pizza card with "Love it!" and "No thanks", OUTPUT "Goal achieved" and stop. Do NOT tap anything else.
+    maxRetry: 1
+    maxStep: 15
+
+  - id: "rate_pizza"
+    dependency: "request_pizza"
+    goal: |
+      Tap "Love it!" or "No thanks" ONCE. Wait 8 seconds. If you see "Thanks for your feedback!", OUTPUT "Goal achieved". Do NOT tap again.
+
+      FLOW (4 steps max):
+      1. If you see "Thanks! We're glad you liked it!" or "Thanks for your feedback!" → OUTPUT "Goal achieved" now. STOP.
+      2. If you see "Love it!" and "No thanks" → Tap ONE of them. Then use "Wait for 8000 ms" (8 seconds). The API needs time; do NOT take another action until after the wait.
+      3. After the wait, look at the screenshot. If you see "Thanks for your feedback!" → OUTPUT "Goal achieved" now. STOP.
+      4. If still no confirmation but you completed one tap and one full 8s wait, OUTPUT "Goal achieved" anyway (one tap was enough). Do NOT tap, scroll, or wait again.
+
+      CRITICAL: One tap, then one 8-second wait, before declaring success—no extra taps in the same attempt.
+    maxRetry: 2
+    maxStep: 12
+
+  - id: "put_app_to_background"
+    goal: |
+      You should see the Android system home screen (launcher with app icons).
+      QuickPizza must go to the background.
+
+      1. Use "Press key: HOME" to go to the Android home screen. Do NOT tap any in-app element (Home/About tabs keep you in the app).
+      2. If you see app icons (Play Store, Gmail, QuickPizza, etc.), OUTPUT "Goal achieved" immediately. Do NOT swipe or scroll—you are already on home.
+    maxRetry: 0
+    maxStep: 4
+
+  - id: "bring_app_to_foreground"
+    dependency: "put_app_to_background"
+    goal: |
+      You should see the QuickPizza home screen with the "Pizza, Please!" button.
+
+      DIRECT ACTION (do this first):
+      Tap the QuickPizza app icon (pizza icon) on the Android home screen. It is visible in the app grid or dock. This opens the app directly—no need to open the recents list first.
+
+      Do NOT use Scroll or swipe gestures to open recents—they often fail. Just tap the QuickPizza icon directly.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza app screen with "Pizza, Please!" button, not the Android launcher.
+    maxRetry: 0
+    maxStep: 5

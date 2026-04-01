@@ -201,7 +201,7 @@ export function AdminScreen({ onBack, onProfilePress }: AdminScreenProps) {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginButtonText}>Sign in</Text>
+              <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </AdminLoginButton>
         </View>
