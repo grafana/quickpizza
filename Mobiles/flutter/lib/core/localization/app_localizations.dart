@@ -238,6 +238,12 @@ abstract class AppLocalizations {
   /// **'Thanks for your feedback!'**
   String get thanksFeedback;
 
+  /// No description provided for @thanksGladYouLikedIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks! We\'re glad you liked it!'**
+  String get thanksGladYouLikedIt;
+
   /// No description provided for @gotItNextTime.
   ///
   /// In en, this message translates to:

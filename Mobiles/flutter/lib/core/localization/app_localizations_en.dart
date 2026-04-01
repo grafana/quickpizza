@@ -84,6 +84,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thanksFeedback => 'Thanks for your feedback!';
 
   @override
+  String get thanksGladYouLikedIt => 'Thanks! We\'re glad you liked it!';
+
+  @override
   String get gotItNextTime => 'Got it, next time!';
 
   @override

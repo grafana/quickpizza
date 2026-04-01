@@ -34,33 +34,40 @@ scenarios:
 
       STEP-BY-STEP FLOW:
       1. Wait for the app to load. When you see "Pizza, Please!" button, the app is ready. Do not press Back.
-      2. If you see the white pizza card with "Love it!" and "No thanks" → goal achieved, stop.
-      3. If you see "Pizza, Please!" but NO white card and NO "Love it!"/"No thanks" → Tap "Pizza, Please!" once. Wait and observe.
-      4. If you then see the error "Failed to get pizza recommendation. Please log in and try again.":
-         - Tap the profile/person icon (in QuickPizza app bar) to open the QuickPizza Login screen.
-         - You will see the QuickPizza login form: "Username", "Password", "Sign In" button, "Welcome to QuickPizza".
-         - Enter username "default" and password "12345678" in those fields.
-         - Tap the "Sign In" button. This automatically returns you to the Home screen—do NOT tap Back.
-         - Wait. Then tap "Pizza, Please!" once. Wait for the white card and "Love it!"/"No thanks" buttons to appear.
-      5. If you see Profile/ratings list ("X pizzas rated") → you are already logged in. Press Back to Home, tap "Pizza, Please!" once, wait.
+      2. If you already see the recommendation card (pizza name, ingredients) WITH "Love it!" and "No thanks" → goal achieved, stop. You do not need to tap anything else.
+      3. If you see "Pizza, Please!" but NO recommendation card yet → Tap "Pizza, Please!" once. Wait and observe.
+      4. If you see the error "Failed to get pizza recommendation. Please log in and try again." you are not logged in for the API:
+         - Tap the profile/person icon (QuickPizza app bar) → QuickPizza login ("Username", "Password", "Sign In", "Welcome to QuickPizza"). NOT Google sign-in.
+         - Enter username "default" and password "12345678". Tap "Sign In". Do NOT tap Back after sign-in.
+         - On Home again, tap "Pizza, Please!" once and wait until the card and "Love it!"/"No thanks" appear.
+      5. If you see Profile/ratings list ("X pizzas rated") → you are logged in. Press Back to Home, tap "Pizza, Please!" once, wait for the card.
       6. Once you see the pizza card with "Love it!" and "No thanks", OUTPUT "Goal achieved" and stop. Do NOT tap anything else.
+
+      NOTE: "Failed to rate pizza. Please try again." is shown after tapping a rating button when the rating API fails (often you are not logged in, or the request failed). It is NOT the goal of this scenario—if you see it before you have a card, log in per step 4 and request a new recommendation. Do not declare goal achieved on that error.
     maxRetry: 1
     maxStep: 15
 
   - id: "rate_pizza"
     dependency: "request_pizza"
     goal: |
-      Tap "Love it!" or "No thanks" ONCE. Wait 8 seconds. If you see "Thanks for your feedback!", OUTPUT "Goal achieved". Do NOT tap again.
+      You must submit one rating and then see the success thank-you text for that tap.
 
-      FLOW (4 steps max):
-      1. If you see "Thanks! We're glad you liked it!" or "Thanks for your feedback!" → OUTPUT "Goal achieved" now. STOP.
-      2. If you see "Love it!" and "No thanks" → Tap ONE of them. Then use "Wait for 8000 ms" (8 seconds). The API needs time; do NOT take another action until after the wait.
-      3. After the wait, look at the screenshot. If you see "Thanks for your feedback!" → OUTPUT "Goal achieved" now. STOP.
-      4. If still no confirmation but you completed one tap and one full 8s wait, OUTPUT "Goal achieved" anyway (one tap was enough). Do NOT tap, scroll, or wait again.
+      SUCCESS TEXT (exact strings from the app—either is a pass):
+      - After tapping "Love it!" → look for: Thanks! We're glad you liked it!
+      - After tapping "No thanks" → look for: Thanks for your feedback!
 
-      CRITICAL: One tap, then one 8-second wait, before declaring success—no extra taps in the same attempt.
+      If you see "Failed to rate pizza. Please try again." the rating API failed (you may be logged out or the server rejected the request). Do NOT declare goal achieved.
+      Recovery: tap profile → QuickPizza login (Username/Password, default / 12345678) → Sign In → Home → tap "Pizza, Please!" once → wait for the card → tap "Love it!" OR "No thanks" once → wait again 8 seconds until you see one of the success texts above.
+
+      FLOW:
+      1. If you already see either success text (glad you liked it OR thanks for your feedback) below the buttons from a previous tap → OUTPUT "Goal achieved" and STOP.
+      2. If you still see "Love it!" and "No thanks" only → Tap exactly ONE of them. Then "Wait for 8000 ms" (8 seconds). Do nothing else during the wait.
+      3. After the wait: if you see the matching success text for the button you chose → OUTPUT "Goal achieved" and STOP.
+      4. If you see "Failed to rate pizza. Please try again." run the Recovery block once, then repeat steps 2–3 at most once more within your step limit.
+
+      CRITICAL: Prefer one rating tap + one 8s wait before scrolling or extra taps; avoid rapid double-taps.
     maxRetry: 2
-    maxStep: 12
+    maxStep: 18
 
   - id: "put_app_to_background"
     goal: |

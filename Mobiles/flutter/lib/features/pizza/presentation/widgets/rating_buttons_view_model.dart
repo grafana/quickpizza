@@ -55,7 +55,10 @@ class RatingButtonsViewModel extends Notifier<RatingButtonsUiState>
         pizzaId: pizzaId,
         stars: stars,
       );
-      final resultMessage = success ? _l10n.thanksFeedback : _l10n.pleaseLoginFirst;
+      // Match React Native: Love it! (5 stars) vs No thanks (1 star).
+      final resultMessage = success
+          ? (stars >= 4 ? _l10n.thanksGladYouLikedIt : _l10n.thanksFeedback)
+          : _l10n.pleaseLoginFirst;
 
       state = RatingButtonsUiState(rateResult: resultMessage);
     } catch (error, stackTrace) {
