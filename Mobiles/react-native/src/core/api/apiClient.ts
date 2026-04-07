@@ -38,10 +38,14 @@ async function getHeaders(
 export async function apiGet(
   endpoint: string,
   _endpointName?: string,
+  options?: ApiRequestOptions,
 ): Promise<Response> {
   const baseUrl = getApiBaseUrl();
 
-  const headers = await getHeaders(true, undefined);
+  const headers = await getHeaders(
+    options?.includeAuth ?? true,
+    options?.extraHeaders,
+  );
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 

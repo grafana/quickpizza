@@ -5,11 +5,31 @@ interface AppConfig {
   BASE_URL?: string;
   PORT?: string;
   /**
-   * When non-empty, POST /api/pizza sends x-error-record-recommendation with this value
-   * so QuickPizza fails in catalog.RecordRecommendation (demo / trace correlation).
+   * When true: 
+   *    (1) a background GET /api/ingredients/topping sends x-error-get-ingredients (catalog injects failure); 
+   *    (2) "No thanks" throws after a successful rating.
    */
-  DEMO_RECORD_RECOMMENDATION_ERROR?: string;
+  SIMULATE_DEMO_ERROR?: boolean | string;
 }
+
+function isTruthyConfigFlag(value: boolean | string | undefined): boolean {
+  if (value === true) {
+    return true;
+  }
+  if (typeof value === 'string') {
+    const s = value.trim().toLowerCase();
+    return s === 'true' || s === '1' || s === 'yes';
+  }
+  return false;
+}
+
+/** Single switch for FEO/backend demo errors (API injection + No thanks client error). */
+export function isSimulateDemoErrorEnabled(): boolean {
+  return isTruthyConfigFlag(config.SIMULATE_DEMO_ERROR);
+}
+
+const GET_INGREDIENTS_DEMO_MESSAGE =
+  'FEO demo: get ingredients for topping failure for demo purpose';
 
 function loadConfig(): AppConfig {
   try {
@@ -70,13 +90,15 @@ export function getApiBaseUrl(): string {
   return getBaseUrl();
 }
 
-/** Headers to trigger backend error injection on pizza recommendation (empty = disabled). */
-export function getRecordRecommendationDemoErrorHeaders():
+/**
+ * Headers for QuickPizza catalog GET /api/ingredients/{type} error injection
+ * (`pkg/database/catalog.go` → InjectErrors "get-ingredients").
+ */
+export function getIngredientsDemoErrorHeaders():
   | Record<string, string>
   | undefined {
-  const msg = config.DEMO_RECORD_RECOMMENDATION_ERROR?.trim();
-  if (!msg) {
+  if (!isSimulateDemoErrorEnabled()) {
     return undefined;
   }
-  return { 'x-error-record-recommendation': msg };
+  return { 'x-error-get-ingredients': GET_INGREDIENTS_DEMO_MESSAGE };
 }

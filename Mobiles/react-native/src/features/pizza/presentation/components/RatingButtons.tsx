@@ -16,6 +16,7 @@ import {
 } from '../../../auth/domain/authStore';
 import type { PizzaRecommendation } from '../../models/pizza';
 import * as ratingsRepository from '../../../ratings/domain/ratingsRepository';
+import { isSimulateDemoErrorEnabled } from '../../../../core/config/configService';
 
 const TrackedRatingButton = withUserAction(Pressable, 'rate-pizza');
 
@@ -45,7 +46,7 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
     try {
       await ratingsRepository.ratePizza(pizzaId, stars);
       setRateResult(stars >= 4 ? 'Thanks! We\'re glad you liked it!' : 'Thanks for your feedback!');
-      if (__DEV__ && stars === 1) {
+      if (isSimulateDemoErrorEnabled() && stars === 1) {
         setTimeout(() => {
           throw new Error(
             'FEO demo: intentional uncaught async error (No thanks)',
