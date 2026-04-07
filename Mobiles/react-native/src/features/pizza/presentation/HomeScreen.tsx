@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -37,28 +38,30 @@ export function HomeScreen({ onProfilePress }: HomeScreenProps) {
 
   const effectiveRestrictions = advancedEnabled ? restrictions : defaultRestrictions;
 
-  useEffect(() => {
-    if (!isSimulateDemoErrorEnabled() || !isLoggedIn) {
-      setDemoCatalogError(null);
-      return;
-    }
-
-    let cancelled = false;
-    void runSimulateDemoCatalogErrorRequest().then((result) => {
-      if (cancelled) {
+  useFocusEffect(
+    useCallback(() => {
+      if (!isSimulateDemoErrorEnabled() || !isLoggedIn) {
+        setDemoCatalogError(null);
         return;
       }
-      if (result.ran && !result.ok) {
-        setDemoCatalogError(result.userMessage);
-      } else {
-        setDemoCatalogError(null);
-      }
-    });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn]);
+      let cancelled = false;
+      void runSimulateDemoCatalogErrorRequest().then((result) => {
+        if (cancelled) {
+          return;
+        }
+        if (result.ran && !result.ok) {
+          setDemoCatalogError(result.userMessage);
+        } else {
+          setDemoCatalogError(null);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [isLoggedIn]),
+  );
 
   useEffect(() => {
     if (demoCatalogError == null) {

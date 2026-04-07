@@ -1,6 +1,6 @@
 import {
   InternalLoggerLevel,
-  SamplingFunction,
+  SamplingRate,
   initializeFaro,
   type ReactNativeConfig,
 } from './core/o11y/faroSdk';
@@ -32,11 +32,17 @@ export function initFaro(): void {
       url: collectorUrl,
       apiKey: apiKey || undefined,
 
+      /**
+       * Session sampling must mark the session as sampled or SessionInstrumentation's beforeSend
+       * hook drops every outbound item (`packages/react-native/src/instrumentations/session/index.ts`).
+       * For this demo, always sample so `faro.tracing.fetch` (and other signals) reach Grafana.
+       */
       sessionTracking: {
-        sampling: new SamplingFunction((context) =>
-          context.meta.app?.environment === 'production' ? 0.1 : 1,
-        ),
+        sampling: new SamplingRate(1),
       },
+
+      /** Repeated identical `faro.tracing.fetch` payloads are otherwise merged by faro-core dedupe. */
+      dedupe: false,
 
       cpuUsageVitals: true,
       memoryUsageVitals: true,
@@ -57,7 +63,7 @@ export function initFaro(): void {
         console: __DEV__,
       },
 
-      enableTracing: true,
+      enableTracing: false,
     };
 
     const faro = initializeFaro(config);
