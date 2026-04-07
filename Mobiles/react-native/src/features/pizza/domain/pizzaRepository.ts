@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from '../../../core/api/apiClient';
+import { getRecordRecommendationDemoErrorHeaders } from '../../../core/config/configService';
 import type { PizzaRecommendation } from '../models/pizza';
 import { parsePizzaRecommendation } from '../models/pizza';
 import type { Restrictions } from '../models/restrictions';
@@ -35,7 +36,10 @@ export async function getPizzaRecommendation(
   restrictions: Restrictions,
 ): Promise<PizzaRecommendation | null> {
   try {
-    const response = await apiPost('/api/pizza', restrictionsToJson(restrictions));
+    const demoHeaders = getRecordRecommendationDemoErrorHeaders();
+    const response = await apiPost('/api/pizza', restrictionsToJson(restrictions), {
+      extraHeaders: demoHeaders,
+    });
 
     if (response.ok) {
       const json = (await response.json()) as Record<string, unknown>;

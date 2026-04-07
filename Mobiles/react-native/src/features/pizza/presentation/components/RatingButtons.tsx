@@ -45,7 +45,7 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
     try {
       await ratingsRepository.ratePizza(pizzaId, stars);
       setRateResult(stars >= 4 ? 'Thanks! We\'re glad you liked it!' : 'Thanks for your feedback!');
-      if (stars === 1) {
+      if (__DEV__ && stars === 1) {
         setTimeout(() => {
           throw new Error(
             'FEO demo: intentional uncaught async error (No thanks)',

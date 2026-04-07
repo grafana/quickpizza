@@ -4,6 +4,11 @@ interface AppConfig {
   FARO_COLLECTOR_URL?: string;
   BASE_URL?: string;
   PORT?: string;
+  /**
+   * When non-empty, POST /api/pizza sends x-error-record-recommendation with this value
+   * so QuickPizza fails in catalog.RecordRecommendation (demo / trace correlation).
+   */
+  DEMO_RECORD_RECOMMENDATION_ERROR?: string;
 }
 
 function loadConfig(): AppConfig {
@@ -63,4 +68,15 @@ export function getConfig() {
 
 export function getApiBaseUrl(): string {
   return getBaseUrl();
+}
+
+/** Headers to trigger backend error injection on pizza recommendation (empty = disabled). */
+export function getRecordRecommendationDemoErrorHeaders():
+  | Record<string, string>
+  | undefined {
+  const msg = config.DEMO_RECORD_RECOMMENDATION_ERROR?.trim();
+  if (!msg) {
+    return undefined;
+  }
+  return { 'x-error-record-recommendation': msg };
 }

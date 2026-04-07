@@ -10,9 +10,19 @@ export function setApiClientTokenGetter(fn: GetTokenFn): void {
   getTokenFn = fn;
 }
 
-async function getHeaders(includeAuth: boolean): Promise<Record<string, string>> {
+export type ApiRequestOptions = {
+  includeAuth?: boolean;
+  /** Merged after Content-Type; does not replace Authorization. */
+  extraHeaders?: Record<string, string>;
+};
+
+async function getHeaders(
+  includeAuth: boolean,
+  extraHeaders?: Record<string, string>,
+): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(extraHeaders ?? {}),
   };
 
   if (includeAuth) {
@@ -31,7 +41,7 @@ export async function apiGet(
 ): Promise<Response> {
   const baseUrl = getApiBaseUrl();
 
-  const headers = await getHeaders(true);
+  const headers = await getHeaders(true, undefined);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -48,12 +58,12 @@ export async function apiGet(
 export async function apiPost(
   endpoint: string,
   body?: unknown,
-  options?: { includeAuth?: boolean },
+  options?: ApiRequestOptions,
 ): Promise<Response> {
   const baseUrl = getApiBaseUrl();
   const includeAuth = options?.includeAuth ?? true;
 
-  const headers = await getHeaders(includeAuth);
+  const headers = await getHeaders(includeAuth, options?.extraHeaders);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -71,7 +81,7 @@ export async function apiPost(
 export async function apiDelete(endpoint: string): Promise<Response> {
   const baseUrl = getApiBaseUrl();
 
-  const headers = await getHeaders(true);
+  const headers = await getHeaders(true, undefined);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
