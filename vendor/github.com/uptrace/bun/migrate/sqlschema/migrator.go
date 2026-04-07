@@ -13,7 +13,7 @@ type MigratorDialect interface {
 }
 
 type Migrator interface {
-	AppendSQL(b []byte, operation interface{}) ([]byte, error)
+	AppendSQL(b []byte, operation any) ([]byte, error)
 }
 
 // migrator is a dialect-agnostic wrapper for sqlschema.MigratorDialect.
@@ -40,10 +40,10 @@ func NewBaseMigrator(db *bun.DB) *BaseMigrator {
 	return &BaseMigrator{db: db}
 }
 
-func (m *BaseMigrator) AppendCreateTable(b []byte, model interface{}) ([]byte, error) {
-	return m.db.NewCreateTable().Model(model).AppendQuery(m.db.Formatter(), b)
+func (m *BaseMigrator) AppendCreateTable(b []byte, model any) ([]byte, error) {
+	return m.db.NewCreateTable().Model(model).AppendQuery(m.db.QueryGen(), b)
 }
 
 func (m *BaseMigrator) AppendDropTable(b []byte, schemaName, tableName string) ([]byte, error) {
-	return m.db.NewDropTable().TableExpr("?.?", bun.Ident(schemaName), bun.Ident(tableName)).AppendQuery(m.db.Formatter(), b)
+	return m.db.NewDropTable().TableExpr("?.?", bun.Ident(schemaName), bun.Ident(tableName)).AppendQuery(m.db.QueryGen(), b)
 }

@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfplan
+
+# Build output
+build/
+.svelte-kit/
+dist/
+
+# Logs
+*.log
+logs.txt
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+
+# K6 internal/extensions (generated or vendored)
+k6/k6
+k6/extensions/internal/k6
+k6/extensions/k6
+
+# Misc
+bin/
+quickpizza.db
+screenshots/
+screenshot.png
+summary.json

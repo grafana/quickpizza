@@ -42,6 +42,49 @@ func LogTraceID(next http.Handler) http.Handler {
 	})
 }
 
+// exemplarData holds trace context that inner middleware populates for outer middleware to read.
+// HTTPMetricsMiddleware stores a pointer in the context before calling next.ServeHTTP().
+// OTelRouteLabeler (running inside route groups, after otelhttp) writes the trace IDs into it.
+type exemplarData struct {
+	TraceID string
+}
+
+type exemplarKeyType int
+
+const exemplarKey exemplarKeyType = 0
+
+// OTelRouteLabeler is a middleware that adds the chi route pattern to OTel metrics.
+// This must be used AFTER otelhttp.NewHandler and will add an "http.route" label
+// to the http_server_request_duration_seconds metric.
+//
+// It also populates exemplarData (if present in the context) with the current
+// trace and span IDs, so that HTTPMetricsMiddleware can attach exemplars.
+//
+// Note: otelhttp.WithMetricAttributesFn cannot be used for this because the chi
+// route pattern is only resolved after routing, but WithMetricAttributesFn runs
+// before the handler. The Labeler is the recommended approach for dynamic attributes.
+func OTelRouteLabeler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if labeler, ok := otelhttp.LabelerFromContext(r.Context()); ok {
+			if rctx := chi.RouteContext(r.Context()); rctx != nil {
+				if routePattern := rctx.RoutePattern(); routePattern != "" {
+					labeler.Add(attribute.String("http.route", routePattern))
+				}
+			}
+		}
+
+		// Populate exemplar data for HTTPMetricsMiddleware
+		if ed, ok := r.Context().Value(exemplarKey).(*exemplarData); ok {
+			spanCtx := trace.SpanFromContext(r.Context()).SpanContext()
+			if spanCtx.HasTraceID() {
+				ed.TraceID = spanCtx.TraceID().String()
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // OTelInstaller installs tracing middleware into a chi router.
 // An uninitialized OTelInstaller behaves like a noop, where calls to Install have no effect.
 type OTelInstaller struct {
@@ -261,6 +304,7 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 			append(defaultOpts, extraOpts...)...,
 		)
 	})
+	r.Use(OTelRouteLabeler)
 	r.Use(LogTraceID)
 
 	// Mark as installed after successful installation

@@ -24,14 +24,14 @@ func init() {
 }
 
 type logging interface {
-	Printf(ctx context.Context, format string, v ...interface{})
+	Printf(ctx context.Context, format string, v ...any)
 }
 
 type logger struct {
 	log *log.Logger
 }
 
-func (l *logger) Printf(ctx context.Context, format string, v ...interface{}) {
+func (l *logger) Printf(ctx context.Context, format string, v ...any) {
 	_ = l.log.Output(2, fmt.Sprintf(format, v...))
 }
 
@@ -137,14 +137,20 @@ func newConn(ctx context.Context, conf *Config) (*Conn, error) {
 	}
 
 	for k, v := range conf.ConnParams {
-		if v != nil {
-			_, err = cn.ExecContext(ctx, fmt.Sprintf("SET %s TO $1", k), []driver.NamedValue{
-				{Value: v},
-			})
-		} else {
-			_, err = cn.ExecContext(ctx, fmt.Sprintf("SET %s TO DEFAULT", k), nil)
+		if v == nil {
+			continue
 		}
-		if err != nil {
+
+		switch {
+		case !conf.UnsafeStrings && k == "standard_conforming_strings" && v != "on":
+			return nil, errRequiresParameter
+		case !conf.UnsafeStrings && k == "client_encoding" && v != "UTF8":
+			return nil, errRequiresParameter
+		}
+
+		if _, err = cn.ExecContext(ctx, fmt.Sprintf("SET %s TO $1", k), []driver.NamedValue{
+			{Value: v},
+		}); err != nil {
 			return nil, err
 		}
 	}

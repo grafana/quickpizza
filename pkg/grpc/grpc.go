@@ -12,6 +12,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 type serverImplementation struct {
@@ -44,6 +45,7 @@ func (s *serverImplementation) RatePizza(_ context.Context, in *pb.PizzaRatingRe
 func NewServer(listen string, healthzListen string) *Server {
 	s := grpc.NewServer()
 	pb.RegisterGRPCServer(s, &serverImplementation{})
+	reflection.Register(s)
 
 	return &Server{grpcServer: s, listen: listen, healthzListen: healthzListen}
 }

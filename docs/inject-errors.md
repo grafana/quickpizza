@@ -1,8 +1,8 @@
-# Injecting delays and errors 
+# Injecting Delays and Errors 
 
 QuickPizza supports two methods for injecting delays and errors to simulate various failure scenarios and performance issues during testing and demos.
 
-## Using Environment variables
+## Using Environment Variables
 
 You can inject delays to endpoints and assets using environment variables. 
 
@@ -27,7 +27,7 @@ The following environment variables are supported:
 - **QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS**: Adds delay when serving CSS assets
 - **QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS**: Adds delay when serving PNG image assets
 
-- **QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST**: Set to a number to fail `<number>%` of Pizza POST requests randomly.
+- **QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST**: Set to a number to fail `<number>%` of pizza POST requests randomly.
 
 ## Using HTTP Headers
 
@@ -52,3 +52,14 @@ curl -X POST http://localhost:3333/api/pizza \
      -H "x-error-record-recommendation-percentage: 20" \
      -d '{}'
 ```
+
+## Inject Errors Running k6 Disruptor Tests (Kubernetes) 
+
+When deploying QuickPizza on Kubernetes, you can run k6 tests using [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/) to inject HTTP errors.
+
+To run a basic xk6-disruptor test, follow the installation instructions and run the tests in the `k6/disruptor` folder:
+
+```bash
+./k6 run k6/disruptor/02.error.js
+```
+

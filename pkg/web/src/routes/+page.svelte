@@ -7,7 +7,8 @@ import {
 } from '$env/static/public';
 import { onMount } from 'svelte';
 import { Confetti } from 'svelte-confetti';
-import { wsVisitorIDStore, userTokenStore } from '../lib/stores';
+import { wsVisitorIDStore, isLoggedInStore } from '../lib/stores';
+import { verifyUserLoggedIn } from '../lib/auth';
 import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 
 const defaultRestrictions = {
@@ -26,15 +27,10 @@ var ratingStars = 5;
 // Completely unrelated to users, user tokens, authentication, etc.
 var wsVisitorID = 0;
 
-// A randomly-generated user token that can be used to authenticate against the QP API.
-// Since this token is not actually stored in the database, the returned user will always
-// be user with ID 1 (default). This is implemented like so in order to not break the
-// way QP was set up originally (i.e. one can open the website and start creating pizzas
-// immediately, without logging in anywhere). So technically, the user is already logged
-// in the moment they open the page.
-// Additionally, if the qp_user_token Cookie has been set via the /login page, the value
-// of the Cookie will take priority over this token sent over the Authorization header.
-var userToken = '';
+// A randomly-generated token used for anonymous API access.
+// This authenticates as the default user (ID 1) when not logged in.
+// When logged in, the qp_user_token cookie is used instead.
+var anonymousToken = '';
 
 var render = false;
 var quote = '';
@@ -45,6 +41,7 @@ let restrictions = defaultRestrictions;
 var advanced = false;
 var rateResult = null;
 var errorResult = null;
+var isLoggedIn = false;
 
 $: if (advanced) {
 	pizza = '';
@@ -74,11 +71,14 @@ onMount(async () => {
 	if (wsVisitorID === 0) {
 		wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
 	}
-	// biome-ignore lint/suspicious/noAssignInExpressions: -
-	userTokenStore.subscribe((value) => (userToken = value));
-	if (userToken === '') {
-		userTokenStore.set(randomToken(16));
-	}
+
+	// Generate a random token for anonymous API access
+	anonymousToken = randomToken(16);
+
+	// Check if user is logged in via cookie
+	isLoggedIn = await verifyUserLoggedIn();
+	isLoggedInStore.set(isLoggedIn);
+
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
 	const json = await res.json();
 	quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
@@ -104,15 +104,15 @@ onMount(async () => {
 	});
 	getTools();
 	render = true;
-	faro.api.pushEvent('Navigation', { url: window.location.href });
+	window.faro?.api?.pushEvent('Navigation', { url: window.location.href });
 });
 
 async function ratePizza(stars) {
-	faro.api.pushEvent('Submit Pizza Rating', {
+	window.faro?.api?.pushEvent('Submit Pizza Rating', {
 		pizza_id: pizza['pizza']['id'],
 		stars: stars,
 	});
-	faro.api.startUserAction(
+	window.faro?.api?.startUserAction(
 		'ratePizza', // name of the user action
 		{ pizza_id: pizza['pizza']['id'], stars: stars }, // custom attributes attached to the user action
 		{ triggerName: 'ratePizzaButtonClick' }, // custom config
@@ -131,29 +131,38 @@ async function ratePizza(stars) {
 		rateResult = 'Rated!';
 	} else {
 		rateResult = 'Please log in first.';
-		faro.api.pushError(new Error('Unauthenticated Ratings Submission'));
+		window.faro?.api?.pushError(
+			new Error('Unauthenticated Ratings Submission'),
+		);
 	}
 }
 
 async function getPizza() {
-	faro.api.pushEvent('Get Pizza Recommendation', {
+	window.faro?.api?.pushEvent('Get Pizza Recommendation', {
 		restrictions: restrictions,
 	});
-	faro.api.startUserAction(
+	window.faro?.api?.startUserAction(
 		'getPizza', // name of the user action
 		{ restrictions: restrictions }, // custom attributes attached to the user action
 		{ triggerName: 'getPizzaButtonClick' }, // custom config
 	);
 	if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
-		faro.api.pushError(new Error('Invalid Restrictions, Min > Max'));
+		window.faro?.api?.pushError(new Error('Invalid Restrictions, Min > Max'));
 	}
+
+	// Build headers: use cookie auth if logged in, otherwise use anonymous token
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+	};
+	if (!isLoggedIn) {
+		headers['Authorization'] = 'Token ' + anonymousToken;
+	}
+
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
 		method: 'POST',
 		body: JSON.stringify(restrictions),
-		headers: {
-			Authorization: 'Token ' + userToken,
-			'Content-Type': 'application/json',
-		},
+		headers,
+		credentials: 'same-origin',
 	});
 	const json = await res.json();
 
@@ -163,7 +172,7 @@ async function getPizza() {
 		pizza = '';
 		errorResult =
 			json.error || 'Failed to get pizza recommendation. Please try again.';
-		faro.api.pushError(new Error(errorResult));
+		window.faro?.api?.pushError(new Error(errorResult));
 		return;
 	}
 
@@ -185,11 +194,13 @@ async function getPizza() {
 		};
 		socket.addEventListener('open', handleOpen);
 	} else {
-		faro.api.pushError(new Error('socket state error: ' + socket.readyState));
+		window.faro?.api?.pushError(
+			new Error('socket state error: ' + socket.readyState),
+		);
 	}
 
 	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
-		faro.api.pushError(
+		window.faro?.api?.pushError(
 			new Error(
 				'Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!',
 			),
@@ -198,11 +209,17 @@ async function getPizza() {
 }
 
 async function getTools() {
-	faro.api.pushEvent('Get Pizza Tools', { tools: tools });
+	window.faro?.api?.pushEvent('Get Pizza Tools', { tools: tools });
+
+	// Build headers: use cookie auth if logged in, otherwise use anonymous token
+	const headers: Record<string, string> = {};
+	if (!isLoggedIn) {
+		headers['Authorization'] = 'Token ' + anonymousToken;
+	}
+
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
-		headers: {
-			Authorization: 'Token ' + userToken,
-		},
+		headers,
+		credentials: 'same-origin',
 	});
 	const json = await res.json();
 	tools = json.tools;
@@ -224,7 +241,11 @@ async function getTools() {
 		<div class="flex float-right">
 			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
 				<span class="ml-3 text-xs text-red-600 font-bold"
-					><a data-sveltekit-reload href="/login">Login/Profile</a></span
+					>{#if isLoggedIn}
+						<a data-sveltekit-reload href="/login">Profile</a>
+					{:else}
+						<a data-sveltekit-reload href="/login">Login</a>
+					{/if}</span
 				>
 			</span>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">

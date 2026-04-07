@@ -8,10 +8,10 @@
 - [Run locally with Docker](#run-locally-with-docker)
 - [Run and observe locally with Grafana OSS 🐳📊](#run-and-observe-locally-with-grafana-oss-)
 - [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
-- [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud)
-  - [Monitor QuickPizza with Grafana Cloud Application and Frontend Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability)
+- [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud-)
+  - [Enable Grafana Cloud Observability solutions](#enable-grafana-cloud-observability-solutions)
 - [Mobile Apps](#mobile-apps)
-
+- 
 ## What is QuickPizza? 🍕🍕🍕
 
 **QuickPizza** is a simple web application, used for demonstrations and workshops, that generates new and exciting pizza combinations!
@@ -19,9 +19,8 @@
 It helps you learn app instrumentation and observability with the Grafana stack, and k6 testing from basics to advanced.
 
 You can run QuickPizza locally or deploy it to your own infrastructure. For demo purposes, QuickPizza is also publicly available at:
-1. [quickpizza.grafana.fun](https://quickpizza.grafana.fun/) — Experience this demo instrumented in Grafana Play. Explore [Application Observability](https://play.grafana.org/a/grafana-app-observability-app/services?instrumentedFilter=all&sortFilterId=serviceName&var-prometheus=grafanacloud-prom&from=now-30m&to=now&timezone=utc&var-environmentValue=production&var-filterBy=serviceNamespace%7C%3D%7Cquickpizza), [Frontend Observability](https://play.grafana.org/a/grafana-kowalski-app/apps/2410), and more insights in Grafana Play.
-2. [quickpizza-demo.grafana.fun](https://quickpizza-demo.grafana.fun/) — Install the [SRE Demo environment](https://grafana.com/docs/grafana-cloud/get-started/#install-demo-data-sources-and-dashboards) to observe this deployment in this [dashboard](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/).
-3. [quickpizza.grafana.com](https://quickpizza.grafana.com/) — Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
+1. [quickpizza.grafana.fun](https://quickpizza.grafana.fun/) — Experience this demo instrumented in Grafana Play. Explore [Application Observability](https://play.grafana.org/a/grafana-app-observability-app/services?instrumentedFilter=all&sortFilterId=serviceName&var-prometheus=grafanacloud-prom&from=now-30m&to=now&timezone=utc&var-environmentValue=production&var-filterBy=serviceNamespace%7C%3D%7Cquickpizza), [Database Observability](https://play.grafana.org/a/grafana-dbo11y-app/overview?waitEvents=durationOfEvents&var-filters=namespace%7C%3D%7Cquickpizza), [Frontend Observability](https://play.grafana.org/a/grafana-kowalski-app/apps/2410), [Kubernetes Monitoring](https://play.grafana.org/a/grafana-k8s-app/home?from=now-1h&to=now&refresh=1m&var-cluster=%24__all&var-namespace=quickpizza), [SRE Demo Dashboard](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/overview), and more insights in Grafana Play.
+2. [quickpizza.grafana.com](https://quickpizza.grafana.com/) — Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
 
 
 ## Requirements
@@ -299,20 +298,25 @@ If you want to send the data to a `dev` environment, You need to use a different
     ```
     docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up
    ```
-   
-### Monitor QuickPizza with Grafana Cloud Application and Frontend Observability
+
+### Enable Grafana Cloud Observability solutions
 
 The Docker Compose setup is fully instrumented out of the box, so you can jump right into Grafana Cloud Observability apps and start observing the inner workings of the QuickPizza service components.
 
-To enable [Grafana Cloud Application Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/) for QuickPizza:
+To enable [Application Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/) and [Database Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/database-observability/) for QuickPizza:
 
 1. In your Grafana Cloud instance, navigate to **Observability > Application**.
 2. Click on **Enable metrics generation** to enable the usage of Application Observability. 
 3. Interact with the QuickPizza app to generate traffic. After a few minutes, the QuickPizza components will be automatically discovered and displayed in the UI.
 
-![Application Observability](./docs/images/grafana-cloud-application-observability.png)
+  ![Application Observability](./docs/images/grafana-cloud-application-observability.png)
 
-![Application Observability - Public API Service](./docs/images/grafana-cloud-application-observability-public-api-svc.png)
+  ![Application Observability - Public API Service](./docs/images/grafana-cloud-application-observability-public-api-svc.png)
+
+4. Navigate to **Observability > Database** to understand the performance of the Postgres database:
+
+  ![Database Observability](./docs/images/grafana-cloud-database-observability.png)
+
 
 To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/):
 
@@ -326,6 +330,9 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
 
     # FRONTEND OBSERVABILITY APPLICATION NAME
     QUICKPIZZA_CONF_FARO_APP_NAME=
+
+    # ENABLE FARO SESSION REPLAY INSTRUMENTATION (default: false)
+    QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY=true
     ```
 
 4. Restart the `compose.grafana-cloud.microservices.yaml` environment:

@@ -1,5 +1,5 @@
 import { sleep } from 'k6';
-import { WebSocket } from 'k6/experimental/websockets';
+import { WebSocket } from 'k6/websockets';
 import { setInterval } from 'k6/timers';
 import { Counter } from "k6/metrics";
 

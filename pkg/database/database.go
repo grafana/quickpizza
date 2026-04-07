@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 
@@ -40,9 +41,14 @@ func initializeDB(connString string) (*bun.DB, error) {
 			return nil, err
 		}
 	}
+	dbName, ok := os.LookupEnv("QUICKPIZZA_OTEL_DB_NAME")
+	if !ok {
+		dbName = "quickpizza-database"
+	}
 	db.AddQueryHook(logging.NewBunSlogHook(slog.Default()))
 	db.AddQueryHook(bunotel.NewQueryHook(
 		bunotel.WithFormattedQueries(true),
+		bunotel.WithDBName(dbName),
 	))
 	return db, nil
 }
