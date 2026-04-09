@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/uptrace/bun/dialect/feature"
 	"github.com/uptrace/bun/internal"
 	"github.com/uptrace/bun/schema"
 )
 
+// CreateIndexQuery builds CREATE INDEX statements.
 type CreateIndexQuery struct {
 	whereBaseQuery
 
@@ -25,6 +27,7 @@ type CreateIndexQuery struct {
 
 var _ Query = (*CreateIndexQuery)(nil)
 
+// NewCreateIndexQuery returns a CreateIndexQuery tied to the provided DB.
 func NewCreateIndexQuery(db *DB) *CreateIndexQuery {
 	q := &CreateIndexQuery{
 		whereBaseQuery: whereBaseQuery{
@@ -185,7 +188,7 @@ func (q *CreateIndexQuery) AppendQuery(gen schema.QueryGen, b []byte) (_ []byte,
 	if q.concurrently {
 		b = append(b, "CONCURRENTLY "...)
 	}
-	if q.ifNotExists {
+	if q.ifNotExists && gen.HasFeature(feature.CreateIndexIfNotExists) {
 		b = append(b, "IF NOT EXISTS "...)
 	}
 
