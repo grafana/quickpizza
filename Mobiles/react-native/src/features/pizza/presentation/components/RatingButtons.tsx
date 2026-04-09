@@ -46,19 +46,20 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
     try {
       await ratingsRepository.ratePizza(pizzaId, stars);
       setRateResult(stars >= 4 ? 'Thanks! We\'re glad you liked it!' : 'Thanks for your feedback!');
-      if (isSimulateDemoErrorEnabled() && stars === 1) {
-        setTimeout(() => {
-          throw new Error(
-            'FEO demo: intentional uncaught async error (No thanks)',
-          );
-        }, 0);
-      }
     } catch (error) {
       setRateResult(
         error instanceof Error ? error.message : 'Failed to submit rating',
       );
     } finally {
       setIsLoading(false);
+    }
+
+    // Throw intentional demo error AFTER try-catch completes
+    // This ensures it's uncaught and captured by Faro's ErrorsInstrumentation
+    if (isSimulateDemoErrorEnabled() && stars === 1) {
+      throw new Error(
+        'FEO demo: intentional uncaught error (No thanks)',
+      );
     }
   };
 

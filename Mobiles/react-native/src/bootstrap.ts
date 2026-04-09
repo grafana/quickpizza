@@ -35,7 +35,7 @@ export function initFaro(): void {
       /**
        * Session sampling must mark the session as sampled or SessionInstrumentation's beforeSend
        * hook drops every outbound item (`packages/react-native/src/instrumentations/session/index.ts`).
-       * For this demo, always sample so `faro.tracing.fetch` (and other signals) reach Grafana.
+       * For this demo, sample 100% so `faro.tracing.fetch` (and other signals) always reach Grafana.
        */
       sessionTracking: {
         sampling: new SamplingRate(1),
