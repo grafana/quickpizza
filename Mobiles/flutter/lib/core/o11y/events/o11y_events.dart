@@ -9,8 +9,6 @@ final o11yEventsProvider = Provider<O11yEvents>((ref) {
 
 abstract class O11yEvents {
   void trackEvent(String name, {Map<String, String>? context});
-  void trackStartEvent(String key, String name);
-  void trackEndEvent(String key, String name, {Map<String, String>? context});
 
   void setUser({
     String? id,
@@ -28,16 +26,6 @@ class FaroO11yEvents implements O11yEvents {
   @override
   void trackEvent(String name, {Map<String, String>? context}) {
     _faro.pushEvent(name, attributes: context);
-  }
-
-  @override
-  void trackStartEvent(String key, String name) {
-    _faro.markEventStart(key, name);
-  }
-
-  @override
-  void trackEndEvent(String key, String name, {Map<String, String>? context}) {
-    _faro.markEventEnd(key, name, attributes: context ?? {});
   }
 
   @override

@@ -55,18 +55,11 @@ class AuthStateNotifier extends Notifier<AuthState> {
   Future<bool> login(String username, String password) async {
     _o11yActions.startUserAction('user-login', isCritical: true);
 
-    _o11yEvents.trackStartEvent('login_attempt', 'user_login');
-
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     final success = await _authRepository.login(username, password);
 
     if (success) {
-      _o11yEvents.trackEndEvent(
-        'login_attempt',
-        'user_login',
-        context: {'success': 'true', 'username': username},
-      );
       _o11yEvents.setUser(id: username, name: username);
       state = state.copyWith(
         isLoggedIn: true,
@@ -75,11 +68,6 @@ class AuthStateNotifier extends Notifier<AuthState> {
       );
       return true;
     } else {
-      _o11yEvents.trackEndEvent(
-        'login_attempt',
-        'user_login',
-        context: {'success': 'false', 'username': username},
-      );
       _o11yLogger.warning('Login failed', context: {'username': username});
       state = state.copyWith(
         isLoading: false,
