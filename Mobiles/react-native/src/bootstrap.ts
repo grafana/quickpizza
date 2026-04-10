@@ -81,9 +81,6 @@ export async function initFaro(): Promise<void> {
     enableTracing: true,
   };
   const faro = await initializeFaroAsync(config);
-  
-  // Wait a bit for session to initialize
-  await new Promise(resolve => setTimeout(resolve, 100));
 
   // When Faro is already registered, initializeFaro logs an error and returns undefined
   // (it does not throw). Mark as initialized to avoid retry loops on app resume.
