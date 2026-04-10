@@ -1,7 +1,8 @@
 #!/bin/bash
+set -e
 
 # Android Emulator Storage Fix Script
-# Multiple solutions for resolving storage issues
+# Fixes installation issues and clears storage
 
 echo "=== Android Emulator Storage Fix ==="
 echo ""
@@ -21,47 +22,59 @@ fi
 echo "✓ Found device: $DEVICE"
 echo ""
 
-# Solution 1: Clear app data cache
-echo "1️⃣  Clearing app caches..."
-adb -s $DEVICE shell "pm list packages" | cut -f 2 -d ":" | while read pkg; do
-    adb -s $DEVICE shell "pm clear $pkg" 2>/dev/null
-done
-echo "✓ App caches cleared"
+# Solution 1: Uninstall the QuickPizza app (fixes installation location conflicts)
+echo "1️⃣  Uninstalling QuickPizza app..."
+adb -s $DEVICE uninstall com.quickpizza 2>/dev/null && echo "✓ App uninstalled" || echo "ℹ️  App not installed"
 echo ""
 
-# Solution 2: Clear system cache partitions
-echo "2️⃣  Clearing system cache partitions..."
-adb -s $DEVICE shell "rm -rf /data/dalvik-cache/*" 2>/dev/null
-adb -s $DEVICE shell "rm -rf /cache/*" 2>/dev/null
-adb -s $DEVICE shell "rm -rf /data/local/tmp/*" 2>/dev/null
+# Solution 2: Clean local Gradle build (fixes corrupted APK issues)
+echo "2️⃣  Cleaning Gradle build cache..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RN_DIR="$SCRIPT_DIR/../react-native"
+
+if [ -d "$RN_DIR/android" ]; then
+    cd "$RN_DIR/android"
+    ./gradlew clean > /dev/null 2>&1 && echo "✓ Gradle cache cleaned" || echo "⚠️  Gradle clean failed"
+    cd - > /dev/null
+fi
+echo ""
+
+# Solution 3: Clear system cache partitions (with timeout to prevent hanging)
+echo "3️⃣  Clearing system cache partitions..."
+timeout 10 adb -s $DEVICE shell "rm -rf /data/dalvik-cache/*" 2>/dev/null || true
+timeout 10 adb -s $DEVICE shell "rm -rf /cache/*" 2>/dev/null || true
+timeout 10 adb -s $DEVICE shell "rm -rf /data/local/tmp/*" 2>/dev/null || true
 echo "✓ System caches cleared"
 echo ""
 
-# Solution 3: Clear logs
-echo "3️⃣  Clearing logs..."
-adb -s $DEVICE logcat -c
-adb -s $DEVICE shell "rm -rf /data/anr/*" 2>/dev/null
-adb -s $DEVICE shell "rm -rf /data/tombstones/*" 2>/dev/null
+# Solution 4: Clear logs (with timeout)
+echo "4️⃣  Clearing logs..."
+timeout 5 adb -s $DEVICE logcat -c 2>/dev/null || true
+timeout 5 adb -s $DEVICE shell "rm -rf /data/anr/*" 2>/dev/null || true
+timeout 5 adb -s $DEVICE shell "rm -rf /data/tombstones/*" 2>/dev/null || true
 echo "✓ Logs cleared"
 echo ""
 
-# Solution 4: Uninstall unused apps
-echo "4️⃣  Finding large packages..."
-adb -s $DEVICE shell "pm list packages -f" | while read line; do
-    pkg=$(echo $line | awk -F'=' '{print $2}')
-    size=$(adb -s $DEVICE shell "du -sh /data/data/$pkg 2>/dev/null" | awk '{print $1}')
-    [ ! -z "$size" ] && echo "  $pkg: $size"
-done | sort -rh | head -10
-echo ""
-
-# Show storage status
+# Solution 5: Show storage status (with timeout)
 echo "5️⃣  Current storage status:"
-adb -s $DEVICE shell "df -h /data" | grep -v "Filesystem"
+STORAGE_INFO=$(timeout 5 adb -s $DEVICE shell "df -h /data" 2>/dev/null | grep -v "Filesystem" || echo "Unable to check storage")
+echo "$STORAGE_INFO"
+
+if echo "$STORAGE_INFO" | grep -q "%"; then
+    USAGE=$(echo "$STORAGE_INFO" | awk '{print $5}' | sed 's/%//' | head -1)
+    if [ ! -z "$USAGE" ] && [ "$USAGE" -gt 90 ] 2>/dev/null; then
+        echo ""
+        echo "⚠️  WARNING: Storage is ${USAGE}% full!"
+        echo "   You may need to wipe emulator data or create a new AVD with more storage."
+    fi
+fi
 echo ""
 
 echo "=== Done! ==="
 echo ""
-echo "If you still have issues, try:"
-echo "  • Increase emulator storage: Android Studio → AVD Manager → Edit AVD → Advanced Settings → Internal Storage"
-echo "  • Cold boot: emulator -avd <name> -no-snapshot-load -wipe-data"
-echo "  • Create a new AVD with more storage"
+echo "You can now run: yarn android"
+echo ""
+echo "If you still have storage issues, try:"
+echo "  • Wipe emulator: emulator -avd <name> -wipe-data"
+echo "  • Increase storage: Android Studio → Device Manager → Edit AVD → Advanced → Internal Storage (4096 MB)"
+echo "  • Create new AVD with more storage"

@@ -1,0 +1,6 @@
+{
+  "FARO_COLLECTOR_URL": "https://faro-collector-prod-us-central-0.grafana.net/collect/13eefe6fb1fc9bb70e0e914de272e4cc",
+  "BASE_URL": "",
+  "PORT": "3333",
+  "SIMULATE_DEMO_ERROR": true
+}

@@ -6,6 +6,6 @@ export {
   InternalLoggerLevel,
   SamplingFunction,
   SamplingRate,
-  initializeFaro,
+  initializeFaroAsync,
   type ReactNativeConfig,
 } from '@grafana/faro-react-native';
