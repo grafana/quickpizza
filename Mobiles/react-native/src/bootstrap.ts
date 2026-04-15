@@ -65,11 +65,11 @@ export async function initFaro(): Promise<void> {
     enableConsoleCapture: true,
 
     internalLoggerLevel: __DEV__
-      ? InternalLoggerLevel.ERROR // Reduce log noise - only errors
+      ? InternalLoggerLevel.VERBOSE
       : InternalLoggerLevel.ERROR,
 
     enableTransports: {
-      offline: false, // Disable offline storage to avoid AsyncStorage delays
+      offline: false, // Disable offline storage to avoid storage delays
       console: false, // Disable console transport - it logs every item which is slow
     },
 
