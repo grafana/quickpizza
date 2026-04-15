@@ -1,9 +1,4 @@
-import {
-  InternalLoggerLevel,
-  SamplingRate,
-  initializeFaroAsync,
-  type ReactNativeConfig,
-} from './core/o11y/faroSdk';
+import { InternalLoggerLevel, SamplingRate, initializeFaro, type ReactNativeConfig } from './core/o11y/faroSdk';
 
 import { extractTokenFromCollectorUrl } from './core/utils/faroUtils';
 import { getFaroCollectorUrl } from './core/config/configService';
@@ -48,11 +43,11 @@ export async function initFaro(): Promise<void> {
 
     /**
      * Session tracking with 100% sampling.
-     * Using volatile (in-memory) sessions to avoid AsyncStorage delays.
+     * Volatile (in-memory) sessions. `initializeFaro` loads device/session attributes first, then inits core Faro.
      */
     sessionTracking: {
       enabled: true,
-      persistent: false, // Use in-memory sessions (faster, no AsyncStorage)
+      persistent: false, // Use in-memory sessions (faster, no storage)
       sampling: new SamplingRate(1), // 100% sampling
     },
 
@@ -80,7 +75,7 @@ export async function initFaro(): Promise<void> {
 
     enableTracing: true,
   };
-  const faro = await initializeFaroAsync(config);
+  const faro = await initializeFaro(config);
 
   // When Faro is already registered, initializeFaro logs an error and returns undefined
   // (it does not throw). Mark as initialized to avoid retry loops on app resume.
