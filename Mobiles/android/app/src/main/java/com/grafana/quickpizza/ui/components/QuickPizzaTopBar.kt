@@ -67,7 +67,7 @@ fun QuickPizzaTopBar(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "QuickPizza",
+                    text = "QuickPizza Android",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFCC2200),

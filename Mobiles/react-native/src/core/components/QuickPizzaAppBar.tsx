@@ -28,7 +28,7 @@ export function QuickPizzaAppBar({
     <View style={styles.container}>
       <View style={styles.titleRow}>
         <Text style={styles.icon}>🍕</Text>
-        <Text style={styles.title}>QuickPizza</Text>
+        <Text style={styles.title}>QuickPizza RN</Text>
       </View>
       <View style={styles.rightRow}>
         {onAdvancedChange != null && advancedEnabled !== undefined && (

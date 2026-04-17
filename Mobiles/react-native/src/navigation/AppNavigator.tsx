@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import {
   NavigationContainer,
   useNavigation,
@@ -69,13 +70,23 @@ function MainTabs({
     >
       <Tab.Screen
         name="Home"
-        options={{ tabBarLabel: 'Home', tabBarIcon: () => null }}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({color, size}) => (
+            <Text style={{fontSize: size - 2, color}}>⌂</Text>
+          ),
+        }}
       >
         {() => <HomeScreen onProfilePress={handleProfilePress} />}
       </Tab.Screen>
       <Tab.Screen
         name="About"
-        options={{ tabBarLabel: 'About', tabBarIcon: () => null }}
+        options={{
+          tabBarLabel: 'About',
+          tabBarIcon: ({color, size}) => (
+            <Text style={{fontSize: size - 2, color}}>ⓘ</Text>
+          ),
+        }}
       >
         {() => (
           <AboutScreen
