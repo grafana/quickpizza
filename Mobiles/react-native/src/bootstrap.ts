@@ -1,7 +1,7 @@
 import { InternalLoggerLevel, SamplingRate, initializeFaro, type ReactNativeConfig } from './core/o11y/faroSdk';
 
 import { extractTokenFromCollectorUrl } from './core/utils/faroUtils';
-import { getFaroCollectorUrl } from './core/config/configService';
+import { getFaroCollectorUrl, getQuickPizzaTracePropagationUrlPatterns } from './core/config/configService';
 
 const APP_VERSION = '1.0.0';
 const APP_ENV = __DEV__ ? 'development' : 'production';
@@ -74,6 +74,13 @@ export async function initFaro(): Promise<void> {
     },
 
     enableTracing: true,
+    // Propagate trace context to QuickPizza. For one trace in Tempo, run the backend with
+    // QUICKPIZZA_TRUST_CLIENT_TRACEID=true (already set in compose.grafana-*.yaml quickpizza service).
+    tracingOptions: {
+      instrumentationOptions: {
+        propagateTraceHeaderCorsUrls: getQuickPizzaTracePropagationUrlPatterns(),
+      },
+    },
   };
   const faro = await initializeFaro(config);
 
