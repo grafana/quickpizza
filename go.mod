@@ -13,11 +13,11 @@ require (
 	github.com/olahol/melody v1.1.3
 	github.com/prometheus/client_golang v1.14.1-0.20221122130035-8b6e68085b10
 	github.com/rs/xid v1.4.0
-	github.com/uptrace/bun v1.2.16
+	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dbfixture v1.2.16
 	github.com/uptrace/bun/dialect/pgdialect v1.2.16
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.16
-	github.com/uptrace/bun/driver/pgdriver v1.2.16
+	github.com/uptrace/bun/driver/pgdriver v1.2.18
 	github.com/uptrace/bun/driver/sqliteshim v1.2.16
 	github.com/uptrace/bun/extra/bunotel v1.2.16
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0
