@@ -11,7 +11,7 @@ struct QuickPizzaToolbar: ToolbarContent {
             HStack(spacing: 8) {
                 Text("🍕")
                     .font(.title2)
-                Text("QuickPizza")
+                Text("QuickPizza iOS")
                     .font(.title3)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColors.primary)

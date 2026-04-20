@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/app_version_resolver.dart';
 import 'core/config/app_version_provider.dart';
 import 'core/config/config_service.dart';
+import 'core/config/debug_settings.dart';
+import 'core/config/runtime_config.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/o11y/faro/faro.dart';
 import 'core/o11y/loggers/o11y_logger.dart';
@@ -41,9 +43,16 @@ Future<void> bootstrap(BootstrapConfig config) async {
   // Faro won't intercept those HTTP requests.
   HttpOverrides.global = FaroHttpOverrides(HttpOverrides.current);
 
-  // Create ProviderContainer first - this is Riverpod's root
-  // and allows us to access providers before runApp()
   final container = ProviderContainer();
+
+  // Resolve the RuntimeConfig BEFORE Riverpod / Faro init, so any
+  // debug override the user saved in a previous session is honored for
+  // this entire session. Awaiting here guarantees that downstream
+  // consumers can safely use requireValue on runtimeConfigProvider.
+  final runtimeConfig = await container.read(runtimeConfigProvider.future);
+
+  // Force-load debug settings so the UI sees saved values on first frame.
+  await container.read(debugSettingsProvider.notifier).reload();
 
   // Access the logger via Riverpod
   final logger = container.read(o11yLoggerProvider);
@@ -72,9 +81,7 @@ Future<void> bootstrap(BootstrapConfig config) async {
     },
   );
 
-  // Get collector URL from build-time config
-  final collectorUrl = ConfigService.faroCollectorUrl;
-  final apiKey = extractTokenFromCollectorUrl(collectorUrl);
+  final apiKey = extractTokenFromCollectorUrl(runtimeConfig.faroCollectorUrl);
 
   // Access Faro instance from the container
   final faro = container.read(faroProvider);
@@ -89,7 +96,7 @@ Future<void> bootstrap(BootstrapConfig config) async {
       appVersion: appVersion,
       appEnv: config.appEnv,
       apiKey: apiKey,
-      collectorUrl: collectorUrl,
+      collectorUrl: runtimeConfig.faroCollectorUrl,
       cpuUsageVitals: true,
       memoryUsageVitals: true,
       anrTracking: true,
@@ -120,7 +127,7 @@ class QuickPizzaApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'QuickPizza',
+      title: 'QuickPizza Flutter',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

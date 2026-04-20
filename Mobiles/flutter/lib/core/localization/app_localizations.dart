@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'QuickPizza'**
+  /// **'QuickPizza Flutter'**
   String get appName;
 
   /// No description provided for @navHome.
@@ -423,6 +423,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hint: Use \"default\" / \"12345678\" to login'**
   String get loginHint;
+
+  /// No description provided for @loginClearRatingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To clear ratings, use \"studio-user\" / \"k6studiorocks\" (the default user cannot delete ratings).'**
+  String get loginClearRatingsHint;
 
   /// No description provided for @loginTip.
   ///

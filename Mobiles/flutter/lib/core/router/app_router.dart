@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/about/presentation/about_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/debug/presentation/config_screen.dart';
+import '../../features/debug/presentation/debug_screen.dart';
 import '../../features/pizza/presentation/home_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/shell/presentation/main_shell.dart';
@@ -13,6 +15,8 @@ import '../../features/shell/presentation/main_shell.dart';
 abstract class AppRoutes {
   static const home = '/';
   static const about = '/about';
+  static const debug = '/debug';
+  static const debugConfig = '/debug/config';
   static const login = '/login';
   static const profile = '/profile';
 }
@@ -45,7 +49,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.about,
             pageBuilder: (_, _) => const NoTransitionPage(child: AboutScreen()),
           ),
+          GoRoute(
+            path: AppRoutes.debug,
+            pageBuilder: (_, _) => const NoTransitionPage(child: DebugScreen()),
+          ),
         ],
+      ),
+      // /debug/config is pushed on top of the shell (hides bottom nav)
+      GoRoute(
+        path: AppRoutes.debugConfig,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (_, _) => const ConfigScreen(),
       ),
       // Routes outside the shell (full-screen, no bottom nav)
       GoRoute(

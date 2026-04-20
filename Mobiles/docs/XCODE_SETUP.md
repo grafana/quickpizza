@@ -16,22 +16,17 @@ sudo xcodebuild -license accept
 sudo xcodebuild -runFirstLaunch
 ```
 
-### 3. Install CocoaPods
-```bash
-brew install cocoapods
-```
-
-### 4. Download iOS Simulator Runtime
+### 3. Download iOS Simulator Runtime
 - Open Xcode
 - Go to **Xcode > Settings > Platforms**
 - Download an iOS version (e.g., iOS 17.0 or latest)
 
-### 5. Verify Setup
+### 4. Verify Setup
 ```bash
 cd Mobiles/flutter
 flutter doctor
 ```
-You should see ✓ for Xcode and CocoaPods.
+You should see ✓ for Xcode.
 
 ---
 
@@ -98,11 +93,6 @@ flutter run -d ios --dart-define-from-file=config.json
 **Simulator not showing in `flutter devices`:**
 - Make sure Simulator app is open and showing a booted device
 - Wait a few seconds and try `flutter devices` again
-
-**CocoaPods not installed:**
-```bash
-brew install cocoapods
-```
 
 **Need more help?**
 - Run diagnostics: `flutter doctor -v`

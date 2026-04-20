@@ -34,6 +34,11 @@ class MainShell extends ConsumerWidget {
             selectedIcon: const Icon(Icons.info, color: Colors.orange),
             label: l10n.navAbout,
           ),
+          const NavigationDestination(
+            icon: Icon(Icons.bug_report_outlined),
+            selectedIcon: Icon(Icons.bug_report, color: Colors.orange),
+            label: 'Debug',
+          ),
         ],
       ),
     );
@@ -41,6 +46,9 @@ class MainShell extends ConsumerWidget {
 
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
+    if (location.startsWith(AppRoutes.debug)) {
+      return 2;
+    }
     if (location.startsWith(AppRoutes.about)) {
       return 1;
     }
@@ -54,6 +62,9 @@ class MainShell extends ConsumerWidget {
         break;
       case 1:
         context.go(AppRoutes.about);
+        break;
+      case 2:
+        context.go(AppRoutes.debug);
         break;
     }
   }

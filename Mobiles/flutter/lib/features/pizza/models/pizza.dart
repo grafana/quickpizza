@@ -27,6 +27,20 @@ class Pizza extends Equatable {
     );
   }
 
+  /// Parses the upcoming v2 schema. v2 renamed `name` -> `displayName`
+  /// and `tool` -> `tooling`. The rest of the shape is unchanged.
+  factory Pizza.fromJsonV2(Map<String, dynamic> json) {
+    return Pizza(
+      id: json['id'] as int,
+      name: json['displayName'] as String,
+      dough: Dough.fromJson(json['dough'] as Map<String, dynamic>),
+      ingredients: (json['ingredients'] as List)
+          .map((i) => Ingredient.fromJson(i as Map<String, dynamic>))
+          .toList(),
+      tool: json['tooling'] as String,
+    );
+  }
+
   @override
   List<Object?> get props => [id, name, dough, ingredients, tool];
 }
@@ -94,6 +108,16 @@ class PizzaRecommendation extends Equatable {
   factory PizzaRecommendation.fromJson(Map<String, dynamic> json) {
     return PizzaRecommendation(
       pizza: Pizza.fromJson(json['pizza'] as Map<String, dynamic>),
+      calories: json['calories'] as int?,
+      vegetarian: json['vegetarian'] as bool?,
+    );
+  }
+
+  /// Parses the upcoming v2 response schema. The wrapper keeps its
+  /// `pizza` field; the inner [Pizza] is parsed with [Pizza.fromJsonV2].
+  factory PizzaRecommendation.fromJsonV2(Map<String, dynamic> json) {
+    return PizzaRecommendation(
+      pizza: Pizza.fromJsonV2(json['pizza'] as Map<String, dynamic>),
       calories: json['calories'] as int?,
       vegetarian: json['vegetarian'] as bool?,
     );

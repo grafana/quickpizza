@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'QuickPizza';
+  String get appName => 'QuickPizza Flutter';
 
   @override
   String get navHome => 'Home';
@@ -178,6 +178,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginHint => 'Hint: Use \"default\" / \"12345678\" to login';
+
+  @override
+  String get loginClearRatingsHint =>
+      'To clear ratings, use \"studio-user\" / \"k6studiorocks\" (the default user cannot delete ratings).';
 
   @override
   String get loginTip =>

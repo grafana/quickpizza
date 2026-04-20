@@ -1144,6 +1144,12 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 	s.router.Group(func(r chi.Router) {
 		// These endpoints do not have user token validation.
 		s.traceInstaller.Install(r, "admin")
+		// Propagate x-error-*/x-delay-* headers from the request into the
+		// context so errorinjector.InjectErrors can pick them up inside
+		// handlers like RecordRecommendation. Without this, error/delay
+		// injection for `record-recommendation` is silently dropped in
+		// monolith mode.
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			if r.Header.Get("X-Is-Internal") == "" {

@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
 
-  "appName": "QuickPizza",
+  "appName": "QuickPizza Flutter",
 
   "navHome": "Home",
   "navAbout": "About",
@@ -70,6 +70,7 @@
   "password": "Password",
   "signIn": "Sign In",
   "loginHint": "Hint: Use \"default\" / \"12345678\" to login",
+  "loginClearRatingsHint": "To clear ratings, use \"studio-user\" / \"k6studiorocks\" (the default user cannot delete ratings).",
   "loginTip": "Tip: You can create a new user via the POST http://quickpizza.grafana.com/api/users endpoint. Attach a JSON payload with username and password keys.",
 
   "profile": "Profile",
