@@ -7,9 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/feature"
 )
 
 const (
@@ -17,6 +19,7 @@ const (
 	defaultLocksTable = "bun_migration_locks"
 )
 
+// MigratorOption configures a Migrator.
 type MigratorOption func(m *Migrator)
 
 // WithTableName overrides default migrations table name.
@@ -41,47 +44,59 @@ func WithMarkAppliedOnSuccess(enabled bool) MigratorOption {
 	}
 }
 
+// WithUpsert enables upsert (ON CONFLICT / ON DUPLICATE KEY / MERGE) in MarkApplied.
+// This is required when re-running already-applied migrations via RunMigration.
+// Init automatically creates a unique index on the name column.
+func WithUpsert(enabled bool) MigratorOption {
+	return func(m *Migrator) {
+		m.useUpsert = enabled
+	}
+}
+
+// WithTemplateData sets data passed to SQL migration templates during rendering.
 func WithTemplateData(data any) MigratorOption {
 	return func(m *Migrator) {
 		m.templateData = data
 	}
 }
 
+// MigrationHook is a callback invoked before or after each migration runs.
 type MigrationHook func(ctx context.Context, db bun.IConn, migration *Migration) error
 
+// BeforeMigration registers a hook that runs before each migration.
 func BeforeMigration(hook MigrationHook) MigratorOption {
 	return func(m *Migrator) {
 		m.beforeMigrationHook = hook
 	}
 }
 
+// AfterMigration registers a hook that runs after each migration.
 func AfterMigration(hook MigrationHook) MigratorOption {
 	return func(m *Migrator) {
 		m.afterMigrationHook = hook
 	}
 }
 
+// Migrator manages the lifecycle of database migrations.
 type Migrator struct {
 	db         *bun.DB
 	migrations *Migrations
 
-	ms MigrationSlice
-
 	table                string
 	locksTable           string
 	markAppliedOnSuccess bool
+	useUpsert            bool
 	templateData         any
 
 	beforeMigrationHook MigrationHook
 	afterMigrationHook  MigrationHook
 }
 
+// NewMigrator creates a new Migrator for the given database and migrations.
 func NewMigrator(db *bun.DB, migrations *Migrations, opts ...MigratorOption) *Migrator {
 	m := &Migrator{
 		db:         db,
 		migrations: migrations,
-
-		ms: migrations.ms,
 
 		table:      defaultTable,
 		locksTable: defaultLocksTable,
@@ -92,6 +107,7 @@ func NewMigrator(db *bun.DB, migrations *Migrations, opts ...MigratorOption) *Mi
 	return m
 }
 
+// DB returns the underlying bun.DB.
 func (m *Migrator) DB() *bun.DB {
 	return m.db
 }
@@ -123,6 +139,7 @@ func (m *Migrator) migrationsWithStatus(ctx context.Context) (MigrationSlice, in
 	return sorted, applied.LastGroupID(), nil
 }
 
+// Init creates the migration tables if they do not already exist.
 func (m *Migrator) Init(ctx context.Context) error {
 	if _, err := m.db.NewCreateTable().
 		Model((*Migration)(nil)).
@@ -130,6 +147,17 @@ func (m *Migrator) Init(ctx context.Context) error {
 		IfNotExists().
 		Exec(ctx); err != nil {
 		return err
+	}
+	if m.useUpsert {
+		if _, err := m.db.NewCreateIndex().
+			Unique().
+			TableExpr(m.table).
+			Index(m.table + "_name_unique").
+			Column("name").
+			IfNotExists().
+			Exec(ctx); err != nil && !isIndexAlreadyExistsError(err) {
+			return err
+		}
 	}
 	if _, err := m.db.NewCreateTable().
 		Model((*migrationLock)(nil)).
@@ -141,6 +169,7 @@ func (m *Migrator) Init(ctx context.Context) error {
 	return nil
 }
 
+// Reset drops and re-creates the migration tables.
 func (m *Migrator) Reset(ctx context.Context) error {
 	if _, err := m.db.NewDropTable().
 		Model((*Migration)(nil)).
@@ -163,17 +192,17 @@ func (m *Migrator) Reset(ctx context.Context) error {
 func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*MigrationGroup, error) {
 	cfg := newMigrationConfig(opts)
 
+	group := new(MigrationGroup)
+
 	if err := m.validate(); err != nil {
-		return nil, err
+		return group, err
 	}
 
 	migrations, lastGroupID, err := m.migrationsWithStatus(ctx)
 	if err != nil {
-		return nil, err
+		return group, err
 	}
 	migrations = migrations.Unapplied()
-
-	group := new(MigrationGroup)
 	if len(migrations) == 0 {
 		return group, nil
 	}
@@ -193,7 +222,7 @@ func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*Migra
 
 		if !cfg.nop && migration.Up != nil {
 			if err := migration.Up(ctx, m, migration); err != nil {
-				return group, err
+				return group, fmt.Errorf("%s: up: %w", migration.Name, err)
 			}
 		}
 
@@ -207,19 +236,83 @@ func (m *Migrator) Migrate(ctx context.Context, opts ...MigrationOption) (*Migra
 	return group, nil
 }
 
-func (m *Migrator) Rollback(ctx context.Context, opts ...MigrationOption) (*MigrationGroup, error) {
+// RunMigration runs the up migration with the given name and marks it as applied.
+// It runs the migration even if it is already marked as applied.
+// The migration is added as a new applied record, creating a separate migration group.
+func (m *Migrator) RunMigration(
+	ctx context.Context, migrationName string, opts ...MigrationOption,
+) error {
 	cfg := newMigrationConfig(opts)
 
 	if err := m.validate(); err != nil {
-		return nil, err
+		return err
+	}
+	if migrationName == "" {
+		return errors.New("migrate: migration name cannot be empty")
+	}
+	if !m.useUpsert {
+		return errors.New("migrate: RunMigration requires WithUpsert(true)")
+	}
+
+	migrations, lastGroupID, err := m.migrationsWithStatus(ctx)
+	if err != nil {
+		return err
+	}
+
+	var migration *Migration
+	for i := range migrations {
+		if migrations[i].Name == migrationName {
+			migration = &migrations[i]
+			break
+		}
+	}
+	if migration == nil {
+		return fmt.Errorf("migrate: migration with name %q not found", migrationName)
+	}
+	if migration.Up == nil {
+		return fmt.Errorf("migrate: migration %s does not have up migration", migration.Name)
+	}
+	if cfg.nop {
+		return nil
+	}
+
+	migration.GroupID = lastGroupID + 1
+
+	if !m.markAppliedOnSuccess {
+		if err := m.MarkApplied(ctx, migration); err != nil {
+			return err
+		}
+	}
+
+	if err := migration.Up(ctx, m, migration); err != nil {
+		return fmt.Errorf("%s: up: %w", migration.Name, err)
+	}
+
+	if m.markAppliedOnSuccess {
+		if err := m.MarkApplied(ctx, migration); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Rollback rolls back the last migration group.
+func (m *Migrator) Rollback(ctx context.Context, opts ...MigrationOption) (*MigrationGroup, error) {
+	cfg := newMigrationConfig(opts)
+
+	lastGroup := new(MigrationGroup)
+
+	if err := m.validate(); err != nil {
+		return lastGroup, err
 	}
 
 	migrations, err := m.MigrationsWithStatus(ctx)
 	if err != nil {
-		return nil, err
+		return lastGroup, err
 	}
 
-	lastGroup := migrations.LastGroup()
+	lastGroup = migrations.LastGroup()
 
 	for i := len(lastGroup.Migrations) - 1; i >= 0; i-- {
 		migration := &lastGroup.Migrations[i]
@@ -232,7 +325,7 @@ func (m *Migrator) Rollback(ctx context.Context, opts ...MigrationOption) (*Migr
 
 		if !cfg.nop && migration.Down != nil {
 			if err := migration.Down(ctx, m, migration); err != nil {
-				return lastGroup, err
+				return lastGroup, fmt.Errorf("%s: down: %w", migration.Name, err)
 			}
 		}
 
@@ -251,14 +344,17 @@ type goMigrationConfig struct {
 	goTemplate  string
 }
 
+// GoMigrationOption configures Go migration file generation.
 type GoMigrationOption func(cfg *goMigrationConfig)
 
+// WithPackageName sets the Go package name used in generated migration files.
 func WithPackageName(name string) GoMigrationOption {
 	return func(cfg *goMigrationConfig) {
 		cfg.packageName = name
 	}
 }
 
+// WithGoTemplate sets the Go template string used for generated migration files.
 func WithGoTemplate(template string) GoMigrationOption {
 	return func(cfg *goMigrationConfig) {
 		cfg.goTemplate = template
@@ -376,9 +472,46 @@ func genMigrationName(name string) (string, error) {
 
 // MarkApplied marks the migration as applied (completed).
 func (m *Migrator) MarkApplied(ctx context.Context, migration *Migration) error {
-	_, err := m.db.NewInsert().Model(migration).
-		ModelTableExpr(m.table).
-		Exec(ctx)
+	q := m.db.NewInsert().Model(migration).
+		ModelTableExpr(m.table)
+
+	if m.useUpsert {
+		switch {
+		case m.db.HasFeature(feature.InsertOnConflict):
+			q = q.On("CONFLICT (name) DO UPDATE").
+				Set("group_id = EXCLUDED.group_id").
+				Set("migrated_at = EXCLUDED.migrated_at")
+		case m.db.HasFeature(feature.InsertOnDuplicateKey):
+			q = q.On("DUPLICATE KEY UPDATE").
+				Set("group_id = VALUES(group_id)").
+				Set("migrated_at = VALUES(migrated_at)")
+		case m.db.HasFeature(feature.Merge):
+			source := MigrationSlice{*migration}
+			_, err := m.db.NewMerge().
+				Model(migration).
+				ModelTableExpr("? AS migration", bun.Name(m.table)).
+				With("_data", m.db.NewValues(&source)).
+				Using("_data").
+				On("migration.name = _data.name").
+				WhenUpdate("MATCHED", func(q *bun.UpdateQuery) *bun.UpdateQuery {
+					return q.
+						Set("group_id = _data.group_id").
+						Set("migrated_at = _data.migrated_at")
+				}).
+				WhenInsert("NOT MATCHED", func(q *bun.InsertQuery) *bun.InsertQuery {
+					return q.
+						Value("name", "_data.name").
+						Value("group_id", "_data.group_id").
+						Value("migrated_at", "_data.migrated_at")
+				}).
+				Exec(ctx)
+			return err
+		default:
+			return errors.New("migrate: dialect does not support upsert or merge")
+		}
+	}
+
+	_, err := q.Exec(ctx)
 	return err
 }
 
@@ -392,6 +525,7 @@ func (m *Migrator) MarkUnapplied(ctx context.Context, migration *Migration) erro
 	return err
 }
 
+// TruncateTable removes all rows from the migrations table.
 func (m *Migrator) TruncateTable(ctx context.Context) error {
 	_, err := m.db.NewTruncateTable().
 		Model((*Migration)(nil)).
@@ -418,7 +552,7 @@ func (m *Migrator) MissingMigrations(ctx context.Context) (MigrationSlice, error
 	return applied, nil
 }
 
-// AppliedMigrations selects applied (applied) migrations in descending order.
+// AppliedMigrations returns applied (applied) migrations in descending order.
 func (m *Migrator) AppliedMigrations(ctx context.Context) (MigrationSlice, error) {
 	var ms MigrationSlice
 	if err := m.db.NewSelect().
@@ -436,7 +570,7 @@ func (m *Migrator) formattedTableName(db *bun.DB) string {
 }
 
 func (m *Migrator) validate() error {
-	if len(m.ms) == 0 {
+	if len(m.migrations.ms) == 0 {
 		return errors.New("migrate: there are no migrations")
 	}
 	return nil
@@ -452,6 +586,9 @@ func (m *Migrator) exec(
 	}
 
 	for _, query := range queries {
+		if strings.TrimSpace(query) == "" {
+			continue
+		}
 		if _, err := db.ExecContext(ctx, query); err != nil {
 			return err
 		}
@@ -473,6 +610,7 @@ type migrationLock struct {
 	TableName string `bun:",unique"`
 }
 
+// Lock acquires an advisory lock on the migration table to prevent concurrent migrations.
 func (m *Migrator) Lock(ctx context.Context) error {
 	lock := &migrationLock{
 		TableName: m.formattedTableName(m.db),
@@ -486,6 +624,7 @@ func (m *Migrator) Lock(ctx context.Context) error {
 	return nil
 }
 
+// Unlock releases the advisory lock on the migration table.
 func (m *Migrator) Unlock(ctx context.Context) error {
 	tableName := m.formattedTableName(m.db)
 	_, err := m.db.NewDelete().
@@ -494,6 +633,17 @@ func (m *Migrator) Unlock(ctx context.Context) error {
 		Where("? = ?", bun.Ident("table_name"), tableName).
 		Exec(ctx)
 	return err
+}
+
+// isIndexAlreadyExistsError checks whether err indicates the index already exists.
+// This is needed for dialects that do not support CREATE INDEX IF NOT EXISTS
+// (e.g. MySQL, MSSQL), where a duplicate-index error is expected on repeated Init calls.
+func isIndexAlreadyExistsError(err error) bool {
+	s := strings.ToLower(err.Error())
+	// MySQL:  Error 1061: Duplicate key name '...'
+	// MSSQL:  The index '...' already exists on table '...'
+	// Oracle: ORA-00955: name is already used by an existing object
+	return strings.Contains(s, "duplicate key name") || strings.Contains(s, "already exist")
 }
 
 func migrationMap(ms MigrationSlice) map[string]*Migration {
