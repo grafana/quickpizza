@@ -27,7 +27,7 @@ function App() {
 
   useEffect(() => {
     const setup = async () => {
-      initFaro();
+      await initFaro();
       await Promise.all([
         useAuthStore.getState().restoreSession(),
         useAdminStore.getState().restoreSession(),

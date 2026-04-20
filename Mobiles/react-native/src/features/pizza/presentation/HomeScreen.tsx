@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,16 +9,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { runSimulateDemoCatalogErrorRequest } from '../../../core/demo/simulateDemoBackendError';
+import { isSimulateDemoErrorEnabled } from '../../../core/config/configService';
 import { QuickPizzaAppBar } from '../../../core/components/QuickPizzaAppBar';
 import { AppColors } from '../../../core/theme/appColors';
 import { defaultRestrictions } from '../models/restrictions';
 import type { Restrictions } from '../models/restrictions';
+import { useAuthStore } from '../../auth/domain/authStore';
 import { usePizzaStore } from '../domain/pizzaStore';
 import { CustomizeSection } from './components/CustomizeSection';
 import { HeroText } from './components/HeroText';
 import { PizzaButton } from './components/PizzaButton';
 import { PizzaCard } from './components/PizzaCard';
 import { QuoteCard } from './components/QuoteCard';
+
+const DEMO_CATALOG_ERROR_AUTO_DISMISS_MS = 30_000;
 
 interface HomeScreenProps {
   onProfilePress: () => void;
@@ -26,8 +33,45 @@ export function HomeScreen({ onProfilePress }: HomeScreenProps) {
   const [restrictions, setRestrictions] = useState<Restrictions>(defaultRestrictions);
   const [advancedEnabled, setAdvancedEnabled] = useState(false);
   const { pizza, isLoading, errorMessage, getPizza } = usePizzaStore();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const [demoCatalogError, setDemoCatalogError] = useState<string | null>(null);
 
   const effectiveRestrictions = advancedEnabled ? restrictions : defaultRestrictions;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isSimulateDemoErrorEnabled() || !isLoggedIn) {
+        setDemoCatalogError(null);
+        return;
+      }
+
+      let cancelled = false;
+      void runSimulateDemoCatalogErrorRequest().then((result) => {
+        if (cancelled) {
+          return;
+        }
+        if (result.ran && !result.ok) {
+          setDemoCatalogError(result.userMessage);
+        } else {
+          setDemoCatalogError(null);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [isLoggedIn]),
+  );
+
+  useEffect(() => {
+    if (demoCatalogError == null) {
+      return;
+    }
+    const id = setTimeout(() => {
+      setDemoCatalogError(null);
+    }, DEMO_CATALOG_ERROR_AUTO_DISMISS_MS);
+    return () => clearTimeout(id);
+  }, [demoCatalogError]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -42,6 +86,27 @@ export function HomeScreen({ onProfilePress }: HomeScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <QuoteCard />
+        {demoCatalogError != null && (
+          <>
+            <View style={styles.spacer} />
+            <View style={styles.error}>
+              <Text style={styles.errorIcon}>⚠️</Text>
+              <Text style={styles.errorText}>{demoCatalogError}</Text>
+              <Pressable
+                onPress={() => setDemoCatalogError(null)}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss demo catalog error"
+                style={({ pressed }) => [
+                  styles.errorDismiss,
+                  pressed && styles.errorDismissPressed,
+                ]}
+              >
+                <Text style={styles.errorDismissText}>✕</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
         <View style={styles.spacer} />
         <HeroText />
         <View style={styles.spacer} />
@@ -106,5 +171,19 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: AppColors.error,
+    marginRight: 8,
+  },
+  errorDismiss: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    justifyContent: 'center',
+  },
+  errorDismissPressed: {
+    opacity: 0.6,
+  },
+  errorDismissText: {
+    fontSize: 18,
+    color: AppColors.error,
+    fontWeight: '600',
   },
 });
