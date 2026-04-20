@@ -8,8 +8,8 @@ import 'app_localizations.dart';
 /// Provider used to access the AppLocalizations object for the current locale
 final appLocalizationsProvider =
     NotifierProvider<AppLocalizationsNotifier, AppLocalizations>(
-  AppLocalizationsNotifier.new,
-);
+      AppLocalizationsNotifier.new,
+    );
 
 class AppLocalizationsNotifier extends Notifier<AppLocalizations> {
   _LocaleObserver? _observer;

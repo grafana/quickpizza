@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/config/debug_settings.dart';
 import '../../../core/exceptions/app_exception.dart';
 import '../../../core/o11y/errors/o11y_errors.dart';
 import '../../../core/o11y/loggers/o11y_logger.dart';
@@ -16,6 +17,7 @@ final pizzaRepositoryProvider = Provider((ref) {
     o11yLogger: ref.watch(o11yLoggerProvider),
     o11yMetrics: ref.watch(o11yMetricsProvider),
     o11yErrors: ref.watch(o11yErrorsProvider),
+    useV2Schema: () => ref.read(debugSettingsProvider).useV2PizzaSchema,
   );
 });
 
@@ -25,15 +27,20 @@ class PizzaRepository {
     required O11yLogger o11yLogger,
     required O11yMetrics o11yMetrics,
     required O11yErrors o11yErrors,
+    bool Function()? useV2Schema,
   }) : _apiClient = apiClient,
        _o11yLogger = o11yLogger,
        _o11yMetrics = o11yMetrics,
-       _o11yErrors = o11yErrors;
+       _o11yErrors = o11yErrors,
+       _useV2Schema = useV2Schema ?? _alwaysFalse;
 
   final ApiClient _apiClient;
   final O11yLogger _o11yLogger;
   final O11yMetrics _o11yMetrics;
   final O11yErrors _o11yErrors;
+  final bool Function() _useV2Schema;
+
+  static bool _alwaysFalse() => false;
 
   Future<String> getQuote() async {
     try {
@@ -116,7 +123,9 @@ class PizzaRepository {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final pizza = PizzaRecommendation.fromJson(json);
+        final pizza = _useV2Schema()
+            ? PizzaRecommendation.fromJsonV2(json)
+            : PizzaRecommendation.fromJson(json);
         _o11yLogger.debug(
           'Pizza recommendation fetched successfully',
           context: {
@@ -141,7 +150,10 @@ class PizzaRepository {
       } else if (response.statusCode >= 500) {
         _o11yLogger.warning(
           'Server error for pizza recommendation',
-          context: {'status_code': response.statusCode.toString()},
+          context: {
+            'status_code': response.statusCode.toString(),
+            'response_body': response.body,
+          },
         );
         throw AppException('Server error - please try again later');
       } else {

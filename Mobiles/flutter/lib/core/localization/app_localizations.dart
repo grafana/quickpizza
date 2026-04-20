@@ -424,6 +424,12 @@ abstract class AppLocalizations {
   /// **'Hint: Use \"default\" / \"12345678\" to login'**
   String get loginHint;
 
+  /// No description provided for @loginClearRatingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To clear ratings, use \"studio-user\" / \"k6studiorocks\" (the default user cannot delete ratings).'**
+  String get loginClearRatingsHint;
+
   /// No description provided for @loginTip.
   ///
   /// In en, this message translates to:

@@ -180,6 +180,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginHint => 'Hint: Use \"default\" / \"12345678\" to login';
 
   @override
+  String get loginClearRatingsHint =>
+      'To clear ratings, use \"studio-user\" / \"k6studiorocks\" (the default user cannot delete ratings).';
+
+  @override
   String get loginTip =>
       'Tip: You can create a new user via the POST http://quickpizza.grafana.com/api/users endpoint. Attach a JSON payload with username and password keys.';
 

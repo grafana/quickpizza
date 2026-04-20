@@ -174,9 +174,7 @@ class _AboutSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              ...uiState.features.map(
-                (feature) => FeatureItem(text: feature),
-              ),
+              ...uiState.features.map((feature) => FeatureItem(text: feature)),
             ],
           ),
         ),

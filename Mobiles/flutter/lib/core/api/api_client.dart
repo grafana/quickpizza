@@ -4,18 +4,28 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
-import '../config/config_service.dart';
+import '../config/debug_settings.dart';
+import '../config/runtime_config.dart';
 import '../o11y/errors/o11y_errors.dart';
 import '../o11y/metrics/o11y_metrics.dart';
 import '../storage/token_storage.dart';
 
 final apiClientProvider = Provider((ref) {
+  // baseUrl is fixed for the session — captured from RuntimeConfig at bootstrap.
+  // Bootstrap awaits runtimeConfigProvider.future before runApp, so
+  // requireValue is always safe here.
+  //
+  // Error-injection headers are read live via a lambda, so toggles take
+  // effect without needing to recreate the client.
+  final runtimeConfig = ref.watch(runtimeConfigProvider).requireValue;
   final apiClient = ApiClient(
-    configService: ref.watch(configServiceProvider),
+    baseUrl: runtimeConfig.backendBaseUrl,
     tokenStorage: ref.watch(tokenStorageProvider),
     o11yMetrics: ref.watch(o11yMetricsProvider),
     o11yErrors: ref.watch(o11yErrorsProvider),
     httpClient: http.Client(),
+    errorHeadersProvider: () =>
+        ref.read(debugSettingsProvider).errorInjectionHeaders,
   );
   ref.onDispose(apiClient.dispose);
   return apiClient;
@@ -24,16 +34,18 @@ final apiClientProvider = Provider((ref) {
 /// Base API client that handles HTTP requests with observability
 class ApiClient {
   ApiClient({
-    required ConfigService configService,
+    required String baseUrl,
     required TokenStorage tokenStorage,
     required O11yMetrics o11yMetrics,
     required O11yErrors o11yErrors,
     required http.Client httpClient,
-  }) : _configService = configService,
+    Map<String, String> Function()? errorHeadersProvider,
+  }) : _baseUrl = baseUrl,
        _tokenStorage = tokenStorage,
        _o11yMetrics = o11yMetrics,
        _o11yErrors = o11yErrors,
-       _httpClient = httpClient {
+       _httpClient = httpClient,
+       _errorHeadersProvider = errorHeadersProvider ?? _noHeaders {
     // Subscribe to session changes to keep cached token in sync
     _sessionSubscription = _tokenStorage.sessionChanges.listen((session) {
       _cachedToken = session.token;
@@ -42,18 +54,20 @@ class ApiClient {
   }
 
   static const _timeout = Duration(seconds: 10);
+  static Map<String, String> _noHeaders() => const {};
 
   final http.Client _httpClient;
-  final ConfigService _configService;
+  final String _baseUrl;
   final TokenStorage _tokenStorage;
   final O11yMetrics _o11yMetrics;
   final O11yErrors _o11yErrors;
+  final Map<String, String> Function() _errorHeadersProvider;
 
   StreamSubscription<StoredSession>? _sessionSubscription;
   String? _cachedToken;
   bool _hasLoadedInitialToken = false;
 
-  String get baseUrl => _configService.baseUrl;
+  String get baseUrl => _baseUrl;
 
   void dispose() {
     _sessionSubscription?.cancel();
@@ -76,6 +90,7 @@ class ApiClient {
     'Content-Type': 'application/json',
     if (_cachedToken != null && _cachedToken!.isNotEmpty)
       'Authorization': 'Token $_cachedToken',
+    ..._errorHeadersProvider(),
   };
 
   Future<http.Response> get(String endpoint, {String? endpointName}) async {
@@ -85,7 +100,7 @@ class ApiClient {
 
     try {
       final response = await _httpClient
-          .get(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .get(Uri.parse('$_baseUrl$endpoint'), headers: _headers)
           .timeout(_timeout);
       stopwatch.stop();
 
@@ -121,10 +136,10 @@ class ApiClient {
     try {
       final headers = includeAuth
           ? _headers
-          : {'Content-Type': 'application/json'};
+          : {'Content-Type': 'application/json', ..._errorHeadersProvider()};
       final response = await _httpClient
           .post(
-            Uri.parse('$baseUrl$endpoint'),
+            Uri.parse('$_baseUrl$endpoint'),
             headers: headers,
             body: body != null ? jsonEncode(body) : null,
           )
@@ -157,7 +172,7 @@ class ApiClient {
 
     try {
       final response = await _httpClient
-          .delete(Uri.parse('$baseUrl$endpoint'), headers: _headers)
+          .delete(Uri.parse('$_baseUrl$endpoint'), headers: _headers)
           .timeout(_timeout);
       stopwatch.stop();
 

@@ -110,86 +110,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              // Profile Header
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            child: Column(
+              children: [
+                // Profile Header
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          size: 48,
+                          color: Colors.orange.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        authState.username ?? l10n.pizzaLover,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ratingsAsync.when(
+                        data: (ratings) => Text(
+                          l10n.pizzasRated(ratings.length),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        loading: () => Text(
+                          l10n.loading,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        error: (_, _) => Text(
+                          l10n.pizzasRated(0),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        size: 48,
-                        color: Colors.orange.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      authState.username ?? l10n.pizzaLover,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    ratingsAsync.when(
-                      data: (ratings) => Text(
-                        l10n.pizzasRated(ratings.length),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      loading: () => Text(
-                        l10n.loading,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      error: (_, _) => Text(
-                        l10n.pizzasRated(0),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 24),
+
+                // Ratings Section
+                _buildRatingsSection(ratingsAsync, l10n),
+                const SizedBox(height: 24),
+
+                // Action Buttons
+                ratingsAsync.when(
+                  data: (ratings) => _buildActionButtons(ratings, l10n),
+                  loading: () => _buildActionButtons([], l10n),
+                  error: (_, _) => _buildActionButtons([], l10n),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              // Ratings Section
-              _buildRatingsSection(ratingsAsync, l10n),
-              const SizedBox(height: 24),
-
-              // Action Buttons
-              ratingsAsync.when(
-                data: (ratings) => _buildActionButtons(ratings, l10n),
-                loading: () => _buildActionButtons([], l10n),
-                error: (_, _) => _buildActionButtons([], l10n),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );

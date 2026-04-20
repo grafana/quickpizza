@@ -1,2 +1,9 @@
 quickpizza.db
 Makefile
+
+# The Mobiles/ tree is unrelated to the backend Docker image (the final
+# image only contains the Go binary). Excluding it from the build context
+# avoids transferring ~10GB of mobile build artifacts to the Docker daemon
+# on every build, which both slows builds down and can fill the builder
+# VM's disk. Has no effect on git or what's in the repo.
+Mobiles

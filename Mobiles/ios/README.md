@@ -112,7 +112,7 @@ you need an OTLP endpoint and an API token.
 ### Find your OTLP endpoint and credentials
 
 The OTLP endpoint for this project's dev stacks follows this pattern (derived from
-`alloy/cloud-dev.alloy`):
+`deployments/docker-compose/grafana-cloud/cloud-dev.alloy`):
 
 ```
 https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp

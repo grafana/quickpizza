@@ -21,5 +21,13 @@ class LinkItem extends Equatable {
   final String eventName;
 
   @override
-  List<Object?> get props => [id, icon, iconColor, title, subtitle, url, eventName];
+  List<Object?> get props => [
+    id,
+    icon,
+    iconColor,
+    title,
+    subtitle,
+    url,
+    eventName,
+  ];
 }
