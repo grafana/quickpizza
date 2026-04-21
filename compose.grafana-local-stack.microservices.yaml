@@ -215,7 +215,7 @@ services:
       - prometheus
 
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-12.2.0}
+    image: grafana/grafana:${GRAFANA_VERSION:-13.0.1}
     container_name: grafana
     labels:
       - "service.type=instrumentation"
