@@ -49,7 +49,7 @@ class ProfileViewModel @Inject constructor(
                 val ratings = ratingsRepository.getRatings()
                 _state.update { it.copy(ratings = ratings) }
             } catch (e: Exception) {
-                logger.error("Failed to load ratings", e)
+                logger.exception("Failed to load ratings", e)
                 _state.update { it.copy(errorMessage = e.message) }
             } finally {
                 _state.update { it.copy(isLoading = false) }
@@ -64,7 +64,7 @@ class ProfileViewModel @Inject constructor(
                 _state.update { it.copy(ratings = emptyList(), showRatingsClearedMessage = true) }
                 logger.info("Ratings cleared")
             } catch (e: Exception) {
-                logger.error("Failed to clear ratings", e)
+                logger.exception("Failed to clear ratings", e)
             }
         }
     }
@@ -74,8 +74,10 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun signOut(onSignedOut: () -> Unit) {
-        authRepository.logout()
-        logger.info("User signed out")
-        onSignedOut()
+        viewModelScope.launch {
+            authRepository.logout()
+            logger.info("User signed out")
+            onSignedOut()
+        }
     }
 }

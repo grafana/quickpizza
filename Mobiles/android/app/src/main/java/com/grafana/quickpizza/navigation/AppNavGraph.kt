@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.grafana.quickpizza.features.about.AboutScreen
 import com.grafana.quickpizza.features.auth.presentation.LoginScreen
+import com.grafana.quickpizza.features.debug.ConfigScreen
 import com.grafana.quickpizza.features.debug.DebugScreen
 import com.grafana.quickpizza.features.pizza.presentation.HomeScreen
 import com.grafana.quickpizza.features.profile.presentation.ProfileScreen
@@ -17,6 +18,7 @@ sealed class Screen(val route: String) {
     data object Profile : Screen("profile")
     data object About : Screen("about")
     data object Debug : Screen("debug")
+    data object DebugConfig : Screen("debug/config")
 }
 
 @Composable
@@ -52,7 +54,12 @@ fun AppNavGraph(
             )
         }
         composable(Screen.Debug.route) {
-            DebugScreen()
+            DebugScreen(
+                onNavigateToConfig = { navController.navigate(Screen.DebugConfig.route) },
+            )
+        }
+        composable(Screen.DebugConfig.route) {
+            ConfigScreen(onBack = { navController.popBackStack() })
         }
     }
 }

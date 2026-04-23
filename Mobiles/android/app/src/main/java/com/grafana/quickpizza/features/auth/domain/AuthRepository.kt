@@ -5,6 +5,8 @@ import com.google.gson.annotations.SerializedName
 import com.grafana.quickpizza.core.api.ApiClient
 import com.grafana.quickpizza.core.storage.TokenStorage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,6 +22,14 @@ class AuthRepository @Inject constructor(
     val username: String?
         get() = tokenStorage.username
 
+    /**
+     * Hot stream of authentication state. Emits the current value on subscription
+     * and a new value whenever the token is set or cleared. Consumers should prefer
+     * this over the synchronous [isAuthenticated] getter when they need to react to
+     * login / logout transitions.
+     */
+    val isAuthenticatedFlow: Flow<Boolean> = tokenStorage.tokenFlow.map { it != null }
+
     suspend fun login(username: String, password: String) = withContext(Dispatchers.IO) {
         val response = apiClient.post(
             "/api/users/token/login",
@@ -31,11 +41,11 @@ class AuthRepository @Inject constructor(
         }
         val body = response.body?.string() ?: error("Empty response body")
         val loginResponse = Gson().fromJson(body, LoginResponse::class.java)
-        tokenStorage.token = loginResponse.token
-        tokenStorage.username = username
+        tokenStorage.setToken(loginResponse.token)
+        tokenStorage.setUsername(username)
     }
 
-    fun logout() {
+    suspend fun logout() {
         tokenStorage.clear()
     }
 

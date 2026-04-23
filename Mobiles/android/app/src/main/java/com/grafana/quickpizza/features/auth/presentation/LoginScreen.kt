@@ -1,5 +1,6 @@
 package com.grafana.quickpizza.features.auth.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +19,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,7 +72,7 @@ fun LoginScreen(
                 title = { Text("Login") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = WarmCream),
@@ -206,32 +209,72 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Hint box
-            Card(
+            HintCard(
+                icon = Icons.Default.Info,
+                tint = Color(0xFF1976D2),
+                container = Color(0xFFE3F2FD),
+                text = "Hint: Use \"default\" / \"12345678\" to login",
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            HintCard(
+                icon = Icons.Default.Star,
+                tint = Color(0xFF8D6E00),
+                container = Color(0xFFFFF8E1),
+                border = BorderStroke(1.dp, Color(0xFFFFE082)),
+                text = "To clear ratings, use \"studio-user\" / \"k6studiorocks\" " +
+                    "(the default user cannot delete ratings).",
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Plain centered tip — no card, matches the Flutter loginTip styling.
+            Text(
+                text = "Tip: You can create a new user via the POST " +
+                    "http://quickpizza.grafana.com/api/users endpoint. " +
+                    "Attach a JSON payload with username and password keys.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF9E9E9E),
+                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Text(
-                        text = "Hint: Use \"default\" / \"12345678\" to login",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF1976D2),
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-            }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun HintCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    container: Color,
+    text: String,
+    border: BorderStroke? = null,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = container),
+        shape = RoundedCornerShape(12.dp),
+        border = border,
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = tint,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }

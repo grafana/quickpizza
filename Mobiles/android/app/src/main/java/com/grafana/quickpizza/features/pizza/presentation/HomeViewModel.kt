@@ -2,6 +2,7 @@ package com.grafana.quickpizza.features.pizza.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.grafana.quickpizza.core.config.DebugSettingsRepository
 import com.grafana.quickpizza.core.o11y.AppLogger
 import com.grafana.quickpizza.core.o11y.AppTracer
 import com.grafana.quickpizza.features.auth.domain.AuthRepository
@@ -9,14 +10,16 @@ import com.grafana.quickpizza.features.pizza.domain.PizzaRepository
 import com.grafana.quickpizza.features.pizza.models.PizzaRecommendation
 import com.grafana.quickpizza.features.pizza.models.Restrictions
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 private const val MIN_CALORIES = 500
@@ -38,6 +41,7 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val pizzaRepository: PizzaRepository,
     private val authRepository: AuthRepository,
+    private val debugSettings: DebugSettingsRepository,
     private val logger: AppLogger,
     private val tracer: AppTracer,
 ) : ViewModel() {
@@ -46,18 +50,61 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            val isAuth = withContext(Dispatchers.IO) { authRepository.isAuthenticated }
-            _state.update { it.copy(isAuthenticated = isAuth) }
-        }
-        loadInitialData()
+        observeAuthState()
+        observeAuthForToolsRefresh()
+        loadQuote()
     }
 
-    private fun loadInitialData() {
+    /**
+     * Mirrors `_state.isAuthenticated` to the live token state. Also clears any
+     * stale "please sign in" error on a logged-out → logged-in transition.
+     */
+    private fun observeAuthState() {
         viewModelScope.launch {
-            val quoteDeferred = async { runCatching { pizzaRepository.getQuote() }.getOrDefault("") }
-            val toolsDeferred = async { runCatching { pizzaRepository.getTools() }.getOrDefault(emptyList()) }
-            _state.update { it.copy(quote = quoteDeferred.await(), availableTools = toolsDeferred.await()) }
+            authRepository.isAuthenticatedFlow.collect { isAuthed ->
+                _state.update { state ->
+                    val clearError = isAuthed &&
+                        state.errorMessage?.contains("sign in", ignoreCase = true) == true
+                    state.copy(
+                        isAuthenticated = isAuthed,
+                        errorMessage = if (clearError) null else state.errorMessage,
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Refetches the available tools list whenever auth state changes — `/api/tools`
+     * requires a valid token, so a cold start while logged out leaves the list
+     * empty until we re-issue the request after login.
+     *
+     * The [DebugSettingsRepository.skipAuthDepInTools] toggle disables the auth
+     * dependency to reproduce the bug for demos.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeAuthForToolsRefresh() {
+        viewModelScope.launch {
+            debugSettings.state
+                .map { it.skipAuthDepInTools }
+                .distinctUntilChanged()
+                .flatMapLatest { skipAuth ->
+                    if (skipAuth) flowOf(Unit)
+                    else authRepository.isAuthenticatedFlow.map { }
+                }
+                .collect { refetchTools() }
+        }
+    }
+
+    private suspend fun refetchTools() {
+        val tools = runCatching { pizzaRepository.getTools() }.getOrDefault(emptyList())
+        _state.update { it.copy(availableTools = tools) }
+    }
+
+    private fun loadQuote() {
+        viewModelScope.launch {
+            val quote = runCatching { pizzaRepository.getQuote() }.getOrDefault("")
+            _state.update { it.copy(quote = quote) }
         }
     }
 
@@ -66,17 +113,31 @@ class HomeViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, errorMessage = null, ratingSubmitted = false, recommendation = null) }
             try {
                 val recommendation = tracer.withSpan("pizza.get_recommendation") { span ->
-                    span.setAttribute("vegetarian", _state.value.restrictions.mustBeVegetarian)
-                    span.setAttribute("max_calories", _state.value.restrictions.maxCaloriesPerSlice.toLong())
-                    pizzaRepository.getRecommendation(_state.value.restrictions)
+                    span.setAttribute("pizza.vegetarian", _state.value.restrictions.mustBeVegetarian)
+                    span.setAttribute("pizza.max_calories", _state.value.restrictions.maxCaloriesPerSlice.toLong())
+                    val result = pizzaRepository.getRecommendation(_state.value.restrictions)
+                    if (result != null) {
+                        span.setAttribute("pizza.id", result.pizza.id.toLong())
+                        span.setAttribute("pizza.name", result.pizza.name)
+                    }
+                    result
                 }
-                if (recommendation == null && !withContext(Dispatchers.IO) { authRepository.isAuthenticated }) {
+                if (recommendation == null && !_state.value.isAuthenticated) {
                     _state.update { it.copy(errorMessage = "Please sign in to get pizza recommendations") }
                 } else {
+                    if (recommendation != null) {
+                        logger.info(
+                            "Pizza recommendation fetched",
+                            mapOf(
+                                "pizza_id" to recommendation.pizza.id.toString(),
+                                "pizza_name" to recommendation.pizza.name,
+                            ),
+                        )
+                    }
                     _state.update { it.copy(recommendation = recommendation) }
                 }
             } catch (e: Exception) {
-                logger.error("Failed to get recommendation", e)
+                logger.exception("Failed to get recommendation", e)
                 _state.update { it.copy(errorMessage = e.message ?: "Failed to get recommendation") }
             } finally {
                 _state.update { it.copy(isLoading = false) }
@@ -89,8 +150,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 tracer.withSpan("pizza.rate") { span ->
-                    span.setAttribute("pizza_id", pizza.id.toLong())
-                    span.setAttribute("stars", stars.toLong())
+                    span.setAttribute("pizza.id", pizza.id.toLong())
+                    span.setAttribute("pizza.stars", stars.toLong())
                     pizzaRepository.ratePizza(pizza.id, stars)
                 }
                 _state.update { it.copy(ratingSubmitted = true) }
@@ -99,36 +160,25 @@ class HomeViewModel @Inject constructor(
                     mapOf("pizza_id" to pizza.id.toString(), "stars" to stars.toString()),
                 )
             } catch (e: Exception) {
-                logger.error("Rating failed", e)
+                logger.exception("Rating failed", e)
                 _state.update { it.copy(errorMessage = "Failed to submit rating") }
             }
         }
     }
 
-    fun refreshAuthState() {
+    fun logout(onLoggedOut: () -> Unit) {
         viewModelScope.launch {
-            val isAuth = withContext(Dispatchers.IO) { authRepository.isAuthenticated }
-            _state.update { state ->
-                state.copy(
-                    isAuthenticated = isAuth,
-                    errorMessage = if (isAuth && state.errorMessage?.contains("sign in", ignoreCase = true) == true) null
-                                   else state.errorMessage,
+            authRepository.logout()
+            // isAuthenticated is updated by observeAuthState() via the token flow.
+            _state.update {
+                it.copy(
+                    recommendation = null,
+                    errorMessage = null,
+                    ratingSubmitted = false,
                 )
             }
+            onLoggedOut()
         }
-    }
-
-    fun logout(onLoggedOut: () -> Unit) {
-        authRepository.logout()
-        _state.update {
-            it.copy(
-                isAuthenticated = false,
-                recommendation = null,
-                errorMessage = null,
-                ratingSubmitted = false,
-            )
-        }
-        onLoggedOut()
     }
 
     fun toggleExcludedTool(tool: String) {

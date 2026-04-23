@@ -51,7 +51,7 @@ class LoginViewModel @Inject constructor(
                 logger.info("User logged in", mapOf("username" to username))
                 onSuccess()
             } catch (e: Exception) {
-                logger.error("Login failed", e)
+                logger.exception("Login failed", e)
                 _state.update { it.copy(errorMessage = e.message ?: "Login failed") }
             } finally {
                 _state.update { it.copy(isLoading = false) }

@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.grafana.quickpizza"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -82,6 +82,9 @@ dependencies {
     // Networking
     implementation(libs.okhttp)
     implementation(libs.gson)
+
+    // Persistence
+    implementation(libs.datastore.preferences)
 
     // OpenTelemetry Android
     implementation(platform(libs.opentelemetry.android.bom))

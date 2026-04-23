@@ -19,6 +19,8 @@ class ApiClient @Inject constructor(
     private val callFactory: Call.Factory,
     private val baseUrlProvider: () -> String,
     private val tokenProvider: () -> String?,
+    // Read live so debug toggles take effect without recreating the client.
+    private val errorHeadersProvider: () -> Map<String, String> = { emptyMap() },
 ) {
     private val gson = Gson()
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -27,6 +29,7 @@ class ApiClient @Inject constructor(
         val request = Request.Builder()
             .url("${baseUrlProvider()}$endpoint")
             .applyAuthHeader()
+            .applyErrorHeaders()
             .get()
             .build()
         return callFactory.newCall(request).execute()
@@ -44,6 +47,7 @@ class ApiClient @Inject constructor(
         }
         val builder = Request.Builder()
             .url("${baseUrlProvider()}$endpoint")
+            .applyErrorHeaders()
             .post(requestBody)
         if (includeAuth) builder.applyAuthHeader()
         return callFactory.newCall(builder.build()).execute()
@@ -53,6 +57,7 @@ class ApiClient @Inject constructor(
         val request = Request.Builder()
             .url("${baseUrlProvider()}$endpoint")
             .applyAuthHeader()
+            .applyErrorHeaders()
             .delete()
             .build()
         return callFactory.newCall(request).execute()
@@ -63,6 +68,11 @@ class ApiClient @Inject constructor(
         if (!token.isNullOrEmpty()) {
             addHeader("Authorization", "Token $token")
         }
+        return this
+    }
+
+    private fun Request.Builder.applyErrorHeaders(): Request.Builder {
+        errorHeadersProvider().forEach { (name, value) -> addHeader(name, value) }
         return this
     }
 }

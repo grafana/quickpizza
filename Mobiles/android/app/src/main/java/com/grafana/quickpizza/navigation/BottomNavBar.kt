@@ -27,7 +27,7 @@ private val bottomNavItems = listOf(
 )
 
 // Routes where the bottom bar should be hidden
-private val hiddenRoutes = setOf(Screen.Login.route, Screen.Profile.route)
+private val hiddenRoutes = setOf(Screen.Login.route, Screen.Profile.route, Screen.DebugConfig.route)
 
 @Composable
 fun BottomNavBar(navController: NavHostController) {

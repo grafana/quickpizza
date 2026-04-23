@@ -9,7 +9,7 @@ Setup guide for the native Android QuickPizza app (`Mobiles/android/`).
 ## Prerequisites
 
 - [Android Studio](https://developer.android.com/studio) (Hedgehog 2023.1.1+ recommended)
-- Android SDK with at least API 21 (Android 5.0 Lollipop) — the app's `minSdk`
+- Android SDK with at least API 23 (Android 6.0 Marshmallow) — the app's `minSdk`
 - A running QuickPizza backend (see root README)
 
 ---
@@ -28,7 +28,8 @@ Edit `config.json`:
 ```json
 {
   "OTLP_ENDPOINT": "https://otlp-gateway-prod-eu-west-0.grafana.net/otlp",
-  "OTLP_AUTH_HEADER": "Basic <base64(instanceId:apiKey)>",
+  "OTLP_INSTANCE_ID": "1234567",
+  "OTLP_API_KEY": "glc_xxxxxxxxxxxx",
   "BASE_URL": ""
 }
 ```
@@ -36,8 +37,13 @@ Edit `config.json`:
 | Field | Description |
 |---|---|
 | `OTLP_ENDPOINT` | Your OTLP HTTP base URL (without `/v1/traces`). Leave empty to disable telemetry export. |
-| `OTLP_AUTH_HEADER` | Authorization header value, e.g. `Basic <base64>` or `Bearer <token>`. |
+| `OTLP_INSTANCE_ID` | Your Grafana Cloud OTLP Gateway instance ID (numeric). |
+| `OTLP_API_KEY` | Your Grafana Cloud access token (e.g. `glc_xxxxxxxx`). The app combines it with the instance ID to compute `Authorization: Basic base64(instanceId:apiKey)`. |
 | `BASE_URL` | QuickPizza backend URL. **Leave empty** to auto-detect (`http://10.0.2.2:3333` on emulator). Set to your machine's LAN IP for physical devices, e.g. `http://192.168.1.100:3333`. |
+
+> All four URL / credential fields can also be overridden at runtime from the in-app
+> **Debug → Config** screen without rebuilding. Overrides take effect after the next
+> app restart.
 
 > **Why `10.0.2.2` and not `localhost`?**
 > Android emulators route `localhost` to the emulator itself, not the host machine.
@@ -133,9 +139,7 @@ Ensure `gradle.properties` has `android.useFullClasspathForDexingTransform=true`
 - Physical device: Set `BASE_URL` to your machine's LAN IP
 
 **No telemetry in Grafana**
-- Check `OTLP_ENDPOINT` and `OTLP_AUTH_HEADER` in `config.json`
+- Check `OTLP_ENDPOINT`, `OTLP_INSTANCE_ID`, and `OTLP_API_KEY` in `config.json` (or the
+  overrides set via the in-app **Debug → Config** screen)
 - Verify the endpoint accepts OTLP HTTP (not gRPC)
 - Use the **Debug** tab to trigger a test exception and confirm it arrives
-
-**`EncryptedSharedPreferences` error on first install**
-Clear the app data: **Settings → Apps → QuickPizza → Clear Data**

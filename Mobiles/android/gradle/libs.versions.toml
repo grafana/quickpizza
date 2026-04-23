@@ -15,6 +15,7 @@ activityCompose = "1.9.3"
 coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 desugar = "2.1.4"
+datastore = "1.2.1"
 opentelemetryAndroid = "1.2.0-alpha"
 opentelemetryAndroidInstrumentation = "0.11.0-alpha"
 byteBuddy = "1.18.5"
@@ -53,6 +54,9 @@ opentelemetry-android-okhttp3-agent = { module = "io.opentelemetry.android.instr
 opentelemetry-okhttp3 = { module = "io.opentelemetry.instrumentation:opentelemetry-okhttp-3.0" }
 opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk" }
 opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin" }
+
+# Persistence
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
 # Desugaring
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }

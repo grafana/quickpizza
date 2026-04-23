@@ -3,6 +3,7 @@ package com.grafana.quickpizza.core.o11y
 import android.app.Application
 import android.util.Log
 import com.grafana.quickpizza.core.config.AppConfig
+import com.grafana.quickpizza.core.config.RuntimeConfigHolder
 import io.opentelemetry.android.OpenTelemetryRum
 import io.opentelemetry.android.agent.OpenTelemetryRumInitializer
 import io.opentelemetry.api.OpenTelemetry
@@ -14,6 +15,7 @@ import javax.inject.Singleton
 class OTelService @Inject constructor(
     private val application: Application,
     private val appConfig: AppConfig,
+    private val runtimeConfig: RuntimeConfigHolder,
 ) {
     private var rum: OpenTelemetryRum? = null
 
@@ -21,8 +23,10 @@ class OTelService @Inject constructor(
         get() = rum?.openTelemetry ?: OpenTelemetry.noop()
 
     fun initialize() {
-        val endpoint = appConfig.otlpEndpoint
-        val authHeader = appConfig.otlpAuthHeader
+        val snapshot = runtimeConfig.current
+        val endpoint = snapshot.otlpEndpoint
+        val authHeader = snapshot.otlpAuthHeader
+        val diskBufferingEnabled = snapshot.diskBufferingEnabled
 
         if (endpoint.isEmpty()) {
             Log.w(TAG, "OTLP endpoint not configured — running with noop telemetry")
@@ -33,9 +37,14 @@ class OTelService @Inject constructor(
             OpenTelemetryRumInitializer.initialize(application) {
                 httpExport {
                     baseUrl = endpoint
-                    if (authHeader.isNotEmpty()) {
+                    if (authHeader != null) {
                         baseHeaders = mapOf("Authorization" to authHeader)
                     }
+                }
+                // SDK default is `enabled = true`. Setting it explicitly keeps
+                // intent visible and lets the debug toggle flip it off for low-latency demos.
+                diskBuffering {
+                    enabled(diskBufferingEnabled)
                 }
                 resource {
                     put(AttributeKey.stringKey("service.name"), "quickpizza-android")
@@ -45,7 +54,13 @@ class OTelService @Inject constructor(
             }
         }.onFailure { Log.e(TAG, "OTelService initialization failed", it) }.getOrNull()
 
-        if (rum != null) Log.i(TAG, "OTelService initialized, exporting to $endpoint")
+        if (rum != null) {
+            Log.i(
+                TAG,
+                "OTelService initialized, exporting to $endpoint " +
+                    "(diskBuffering=$diskBufferingEnabled)",
+            )
+        }
     }
 
     fun getTracer(instrumentationScope: String = INSTRUMENTATION_SCOPE) =
