@@ -5,6 +5,7 @@ let homeViewModelProvider = Provider(scope: AlwaysCreateNewScope()) { pod in
     HomeViewModel(
         pizzaRepository: pod.resolve(pizzaRepositoryProvider),
         authService: pod.resolve(authRepositoryProvider),
+        debugSettings: pod.resolve(debugSettingsRepositoryProvider),
         logger: pod.resolve(loggerProvider)
     )
 }
@@ -13,6 +14,7 @@ let homeViewModelProvider = Provider(scope: AlwaysCreateNewScope()) { pod in
 class HomeViewModel {
     private let pizzaRepository: PizzaRepositoryProtocol
     private let authService: AuthServiceProtocol
+    private let debugSettings: DebugSettingsRepository
     private let logger: Logging
 
     // View state
@@ -27,10 +29,12 @@ class HomeViewModel {
     init(
         pizzaRepository: PizzaRepositoryProtocol,
         authService: AuthServiceProtocol,
+        debugSettings: DebugSettingsRepository,
         logger: Logging
     ) {
         self.pizzaRepository = pizzaRepository
         self.authService = authService
+        self.debugSettings = debugSettings
         self.logger = logger
     }
 
@@ -42,8 +46,6 @@ class HomeViewModel {
     /// Loads initial data and listens for logout events.
     /// Auto-cancelled when the view disappears (structured concurrency).
     func start() async {
-        // Catch any auth changes that happened while the view was off-screen
-        // (e.g. logout from another tab while the listener task was cancelled).
         if !isAuthenticated {
             clearRecommendationState()
         }
@@ -53,11 +55,7 @@ class HomeViewModel {
                 await self.loadInitialData()
             }
             group.addTask { @MainActor in
-                for await _ in self.authService.authStateChanged {
-                    if !self.authService.isAuthenticated {
-                        self.clearRecommendationState()
-                    }
-                }
+                await self.observeAuthState()
             }
         }
     }
@@ -69,6 +67,24 @@ class HomeViewModel {
         let (fetchedQuote, fetchedTools) = await (quoteTask, toolsTask)
         quote = fetchedQuote
         availableTools = fetchedTools
+    }
+
+    /// Observes auth state changes. When the user logs in/out:
+    ///  - Clears stale recommendation state on logout
+    ///  - Refetches `/api/tools` (requires a valid token)
+    ///
+    /// The `skipAuthDepInTools` debug toggle disables the tools refresh
+    /// to reproduce a real-world bug where the tools list goes stale.
+    private func observeAuthState() async {
+        for await _ in authService.authStateChanged {
+            if !authService.isAuthenticated {
+                clearRecommendationState()
+            }
+            if !debugSettings.current.skipAuthDepInTools {
+                let tools = await pizzaRepository.getTools()
+                availableTools = tools
+            }
+        }
     }
 
     func getRecommendation() async {
@@ -113,9 +129,7 @@ class HomeViewModel {
             restrictions.excludedTools.append(tool)
         }
     }
-    
-    /// Clears the pizza recommendation and any errors.
-    /// Called when the user logs out.
+
     func clearRecommendationState() {
         recommendation = nil
         errorMessage = nil

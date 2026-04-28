@@ -2,10 +2,11 @@ import Foundation
 import SwiftiePod
 
 let apiClientProvider = Provider<APIClientProtocol> { pod in
-    let config = pod.resolve(configServiceProvider)
+    let runtimeConfig = pod.resolve(runtimeConfigHolderProvider).current
     return APIClient(
-        baseURL: config.baseURL,
+        baseURL: runtimeConfig.backendBaseUrl,
         tokenStorage: pod.resolve(tokenStorageProvider),
+        debugSettings: pod.resolve(debugSettingsRepositoryProvider),
         logger: pod.resolve(loggerProvider)
     )
 }
@@ -14,6 +15,7 @@ let apiClientProvider = Provider<APIClientProtocol> { pod in
 final class APIClient: APIClientProtocol {
     private let baseURL: String
     private let tokenStorage: TokenStoring
+    private let debugSettings: DebugSettingsRepository
     private let logger: Logging
     private let session: URLSession
     private let timeout: TimeInterval = 10
@@ -23,14 +25,15 @@ final class APIClient: APIClientProtocol {
     init(
         baseURL: String,
         tokenStorage: TokenStoring,
+        debugSettings: DebugSettingsRepository,
         logger: Logging
     ) {
         self.baseURL = baseURL
         self.tokenStorage = tokenStorage
+        self.debugSettings = debugSettings
         self.logger = logger
         self.session = URLSession.shared
 
-        // Load initial token
         let stored = tokenStorage.loadSession()
         self.cachedToken = stored.token
     }
@@ -92,6 +95,9 @@ final class APIClient: APIClientProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if includeAuth, let token = cachedToken, !token.isEmpty {
             request.setValue("Token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        for (name, value) in debugSettings.current.errorInjectionHeaders {
+            request.setValue(value, forHTTPHeaderField: name)
         }
     }
 

@@ -101,6 +101,22 @@ struct LoginView: View {
                     .background(Color.blue.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
+                    HStack(spacing: 8) {
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(Color.orange)
+                        Text("To clear ratings, use \"studio-user\" / \"k6studiorocks\" (the default user cannot delete ratings).")
+                            .font(.caption)
+                            .foregroundStyle(Color(red: 0.45, green: 0.30, blue: 0.00))
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.orange.opacity(0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.orange.opacity(0.35), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
                     Text("Tip: You can create a new user via the POST http://quickpizza.grafana.com/api/users endpoint. Attach a JSON payload with username and password keys.")
                         .font(.caption2)
                         .foregroundStyle(AppColors.textSecondary)
@@ -110,6 +126,7 @@ struct LoginView: View {
                 .padding(24)
             }
             .background(AppColors.background)
+            .trackScreenView("login")
             .navigationTitle("Login")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

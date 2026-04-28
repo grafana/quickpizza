@@ -9,6 +9,10 @@ let appVersionProvider = Provider<String> { pod in
     pod.resolve(configServiceProvider).appVersion
 }
 
+/// Bootstrap configuration loaded from `Config.xcconfig` (via `BuildConfig.generated.swift`).
+///
+/// Holds the build-time defaults only — runtime overrides (set by the user
+/// through Debug → Config) are applied on top by `RuntimeConfigHolder`.
 struct ConfigService {
     /// Base URL for the QuickPizza API.
     /// Set `BASE_URL` in Config.xcconfig (auto-generated into BuildConfig at build time).
@@ -33,14 +37,18 @@ struct ConfigService {
         return endpoint
     }
 
-    /// OTLP authorization header (e.g. "Basic <base64>").
-    /// Required when using Grafana Cloud OTLP gateway.
-    /// Set `OTLP_AUTH_HEADER` in Config.xcconfig (auto-generated into BuildConfig at build time).
-    var otlpAuthHeader: String? {
-        guard let header = BuildConfig.otlpAuthHeader, !header.isEmpty else {
-            return nil
-        }
-        return header
+    /// Numeric OTLP instance ID from your Grafana Cloud OTLP Gateway integration.
+    /// Combined with `otlpApiKey` at runtime to build the Authorization header.
+    /// Set `OTLP_INSTANCE_ID` in Config.xcconfig.
+    var otlpInstanceId: String {
+        BuildConfig.otlpInstanceId ?? ""
+    }
+
+    /// OTLP API key (Grafana Cloud access policy token, typically `glc_...`).
+    /// Combined with `otlpInstanceId` at runtime to build the Authorization header.
+    /// Set `OTLP_API_KEY` in Config.xcconfig.
+    var otlpApiKey: String {
+        BuildConfig.otlpApiKey ?? ""
     }
 
     /// Service name for OTel resource attributes.
@@ -49,8 +57,24 @@ struct ConfigService {
     /// Deployment environment for OTel resource attributes.
     let deploymentEnvironment = "production"
 
+    /// OTLP Authorization header derived from the build-time instance ID and API key.
+    /// `nil` when either credential is missing.
+    var otlpAuthHeader: String? {
+        Self.buildAuthHeader(instanceId: otlpInstanceId, apiKey: otlpApiKey)
+    }
+
     /// App version, read from the bundle.
     var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
+
+    /// Builds `Basic base64("<instanceId>:<apiKey>")`. Returns `nil` when
+    /// either credential is missing.
+    static func buildAuthHeader(instanceId: String, apiKey: String) -> String? {
+        let trimmedId = instanceId.trimmingCharacters(in: .whitespaces)
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespaces)
+        guard !trimmedId.isEmpty, !trimmedKey.isEmpty else { return nil }
+        let token = Data("\(trimmedId):\(trimmedKey)".utf8).base64EncodedString()
+        return "Basic \(token)"
     }
 }

@@ -29,7 +29,8 @@ function get_xcconfig_value() {
 BASE_URL=$(get_xcconfig_value "BASE_URL")
 PORT=$(get_xcconfig_value "PORT")
 OTLP_ENDPOINT=$(get_xcconfig_value "OTLP_ENDPOINT")
-OTLP_AUTH_HEADER=$(get_xcconfig_value "OTLP_AUTH_HEADER")
+OTLP_INSTANCE_ID=$(get_xcconfig_value "OTLP_INSTANCE_ID")
+OTLP_API_KEY=$(get_xcconfig_value "OTLP_API_KEY")
 
 # Generate Swift file with proper optional handling
 cat > "$OUTPUT_FILE" << EOF
@@ -42,33 +43,21 @@ import Foundation
 enum BuildConfig {
 EOF
 
-# Add baseURL
-if [ -n "$BASE_URL" ]; then
-    echo "    static let baseURL: String? = \"$BASE_URL\"" >> "$OUTPUT_FILE"
-else
-    echo "    static let baseURL: String? = nil" >> "$OUTPUT_FILE"
-fi
+function emit_string_optional() {
+    local name=$1
+    local value=$2
+    if [ -n "$value" ]; then
+        echo "    static let ${name}: String? = \"${value}\"" >> "$OUTPUT_FILE"
+    else
+        echo "    static let ${name}: String? = nil" >> "$OUTPUT_FILE"
+    fi
+}
 
-# Add port
-if [ -n "$PORT" ]; then
-    echo "    static let port: String? = \"$PORT\"" >> "$OUTPUT_FILE"
-else
-    echo "    static let port: String? = nil" >> "$OUTPUT_FILE"
-fi
-
-# Add otlpEndpoint
-if [ -n "$OTLP_ENDPOINT" ]; then
-    echo "    static let otlpEndpoint: String? = \"$OTLP_ENDPOINT\"" >> "$OUTPUT_FILE"
-else
-    echo "    static let otlpEndpoint: String? = nil" >> "$OUTPUT_FILE"
-fi
-
-# Add otlpAuthHeader
-if [ -n "$OTLP_AUTH_HEADER" ]; then
-    echo "    static let otlpAuthHeader: String? = \"$OTLP_AUTH_HEADER\"" >> "$OUTPUT_FILE"
-else
-    echo "    static let otlpAuthHeader: String? = nil" >> "$OUTPUT_FILE"
-fi
+emit_string_optional "baseURL"        "$BASE_URL"
+emit_string_optional "port"           "$PORT"
+emit_string_optional "otlpEndpoint"   "$OTLP_ENDPOINT"
+emit_string_optional "otlpInstanceId" "$OTLP_INSTANCE_ID"
+emit_string_optional "otlpApiKey"     "$OTLP_API_KEY"
 
 echo "}" >> "$OUTPUT_FILE"
 

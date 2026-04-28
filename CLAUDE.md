@@ -12,7 +12,7 @@ The repository also contains a **native iOS demo app** (`Mobiles/ios/`) that dem
 - **Location:** `Mobiles/ios/`
 - **README:** `Mobiles/ios/README.md` — full setup instructions for running on a local simulator or BrowserStack
 - **Start backend:** `docker run --rm -d -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest`
-- **Configure:** `cp Mobiles/ios/Config.xcconfig.example Mobiles/ios/Config.xcconfig` then fill in `OTLP_ENDPOINT` and `OTLP_AUTH_HEADER`
+- **Configure:** `cp Mobiles/ios/Config.xcconfig.example Mobiles/ios/Config.xcconfig` then fill in `OTLP_ENDPOINT`, `OTLP_INSTANCE_ID`, and `OTLP_API_KEY`
 - **Run on simulator:** `bash Mobiles/ios/Scripts/sim-run.sh`
 - **OTLP target stack:** `mobileo11y.grafana-dev.net`
 
@@ -113,7 +113,7 @@ Three native/cross-platform clients that demonstrate mobile observability agains
 
 - **Stack:** Swift, SwiftUI (iOS 17+), Swift Package Manager, OpenTelemetry Swift
 - **Observability:** Manual spans + auto URLSession instrumentation, structured logs (OSLog + OTel), MetricKit crash/hang diagnostics, 15-min session tracking; in-app Debug tab for triggering test crashes
-- **Config:** `Config.xcconfig` → auto-generates `BuildConfig.generated.swift` — `OTLP_ENDPOINT`, `OTLP_AUTH_HEADER`
+- **Config:** `Config.xcconfig` → auto-generates `BuildConfig.generated.swift` — `OTLP_ENDPOINT`, `OTLP_INSTANCE_ID`, `OTLP_API_KEY`
 - **Build:** Xcode (see `Mobiles/docs/XCODE_SETUP.md`)
 - **Resource attrs:** `service.name=quickpizza-ios`, `service.namespace=quickpizza`
 

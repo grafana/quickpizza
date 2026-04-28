@@ -21,10 +21,10 @@ PORT = 3333
 // Example: http://localhost:4318
 // Example: https://otlp-gateway-prod-us-central-0.grafana.net/otlp
 // Leave empty to disable OTLP export (stdout only)
-OTLP_ENDPOINT = 
+OTLP_ENDPOINT =
 
-// OTLP Authorization header (optional, required for Grafana Cloud)
-// Format: Basic <base64_encoded_instance_id:api_token>
-// To generate: echo -n "instance_id:api_token" | base64
-// Leave empty if not using authentication
-OTLP_AUTH_HEADER = 
+// OTLP credentials for the Grafana Cloud OTLP Gateway (optional).
+// The app combines these into "Authorization: Basic base64(instanceId:apiKey)" at runtime.
+// Leave both empty if your OTLP receiver doesn't require auth.
+OTLP_INSTANCE_ID =
+OTLP_API_KEY =

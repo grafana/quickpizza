@@ -94,6 +94,7 @@ struct HomeView: View {
             .padding(.horizontal, 16)
         }
         .background(AppColors.background)
+        .trackScreenView("home")
         .task {
             await viewModel.start()
         }

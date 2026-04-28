@@ -8,25 +8,16 @@ struct MainShell: View {
     var body: some View {
         NavigationStack {
             TabView(selection: $viewModel.selectedTab) {
-                // Home tab
                 HomeView()
-                    .tabItem {
-                        Label("Home", systemImage: "house.fill")
-                    }
+                    .tabItem { Label("Home", systemImage: "house.fill") }
                     .tag(0)
 
-                // About tab
                 AboutView()
-                    .tabItem {
-                        Label("About", systemImage: "info.circle")
-                    }
+                    .tabItem { Label("About", systemImage: "info.circle") }
                     .tag(1)
 
-                // Debug tab
                 DebugView()
-                    .tabItem {
-                        Label("Debug", systemImage: "ladybug.fill")
-                    }
+                    .tabItem { Label("Debug", systemImage: "ladybug.fill") }
                     .tag(2)
             }
             .tint(AppColors.primary)

@@ -53,25 +53,15 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Emits a `screen.view` event on every [NavController] destination change.
+ * Emits an `app.screen.view` event on every [NavController] destination change.
  *
  * Jetpack Compose Navigation is not yet covered by opentelemetry-android's
  * auto-instrumentation (see open-telemetry/opentelemetry-android#361), so we
  * bridge it manually via [NavController.OnDestinationChangedListener].
  *
- * Attributes:
- *  - `nav.destination`          — current destination route
- *  - `nav.previous_destination` — route we came from (empty on first event)
- *  - `nav.kind`                 — `initial` | `push` | `pop` | `replace`
- *
- * We deliberately do NOT use the `screen.name` attribute key: the SDK's screen
- * attributes log processor unconditionally overwrites it with the visible
- * Activity/Fragment name (`MainActivity` for this single-Activity app), which
- * silently clobbers anything we set and bumps `dropped_attributes_count`.
- *
- * Consequence: auto-instrumented HTTP/ANR/crash records will still report
- * `screen.name=MainActivity`. Correlate to navigation destinations by
- * timestamp + `session.id`.
+ * Uses OTel semconv registered attribute `app.screen.name` for the screen
+ * identifier. We avoid `screen.name` because the SDK's ScreenAttributesLogProcessor
+ * unconditionally overwrites it with the Activity/Fragment name.
  */
 @Composable
 private fun TrackScreenViews(navController: NavHostController, appEvents: AppEvents) {
@@ -88,9 +78,9 @@ private fun TrackScreenViews(navController: NavHostController, appEvents: AppEve
                 else -> "replace"
             }
             appEvents.trackEvent(
-                "screen.view",
+                "app.screen.view",
                 mapOf(
-                    "nav.destination" to route,
+                    "app.screen.name" to route,
                     "nav.previous_destination" to (previousRoute ?: ""),
                     "nav.kind" to kind,
                 ),

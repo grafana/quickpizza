@@ -8,24 +8,27 @@ let pod = SwiftiePod()
 /// Called once at app launch from `QuickPizzaIosApp.init()`.
 enum Bootstrap {
     static func initialize() {
-        // 1. OpenTelemetry
-        let otelConfig = pod.resolve(otelConfigProvider)
+        // 1. Resolve the in-use URLs before anything else so OTelService and
+        //    APIClient see the same snapshot for the rest of the session.
+        let runtimeConfig = pod.resolve(runtimeConfigHolderProvider).current
+
+        // 2. OpenTelemetry (reads runtimeConfig via otelConfigProvider)
         _ = pod.resolve(otelServiceProvider)
 
-        // 2. Log startup
+        // 3. Log startup
         let config = pod.resolve(configServiceProvider)
         let logger = pod.resolve(loggerProvider)
-        if otelConfig.isOtlpEnabled {
+        if runtimeConfig.isOtlpEnabled {
             logger.info("OTel initialized with OTLP endpoint", attributes: [
-                "endpoint": otelConfig.endpointUrl ?? "",
-                "hasAuthHeader": otelConfig.authHeader != nil ? "yes" : "no",
+                "endpoint": runtimeConfig.otlpEndpoint,
+                "hasAuthHeader": runtimeConfig.otlpAuthHeader != nil ? "yes" : "no",
             ])
         } else {
             logger.info("OTel initialized in stdout-only mode (no OTLP endpoint configured)")
         }
         logger.info("QuickPizza iOS app started", attributes: [
             "version": config.appVersion,
-            "baseURL": config.baseURL,
+            "baseURL": runtimeConfig.backendBaseUrl,
         ])
     }
 }

@@ -122,6 +122,7 @@ struct AboutView: View {
             .padding(.horizontal, 16)
         }
         .background(AppColors.background)
+        .trackScreenView("about")
     }
 
     private var features: [String] {

@@ -8,12 +8,12 @@ It connects to the QuickPizza backend and sends traces/logs to an OTLP collector
 
 ## Prerequisites
 
-| Requirement | Notes |
-|---|---|
-| macOS (Apple Silicon or Intel) | Any recent macOS version |
-| [Xcode](https://apps.apple.com/app/xcode/id497799835) | Install from Mac App Store (~15 GB) |
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | For running the backend locally |
-| Git | To clone this repository |
+| Requirement                                                       | Notes                               |
+| ----------------------------------------------------------------- | ----------------------------------- |
+| macOS (Apple Silicon or Intel)                                    | Any recent macOS version            |
+| [Xcode](https://apps.apple.com/app/xcode/id497799835)             | Install from Mac App Store (~15 GB) |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | For running the backend locally     |
+| Git                                                               | To clone this repository            |
 
 > **Note for AI agents:** These are the only tools needed. No CocoaPods, no Homebrew, no Swift Package Manager setup — the Xcode project handles all dependencies automatically.
 
@@ -63,7 +63,8 @@ PORT = 3333
 
 # OTLP — leave empty to skip telemetry export for now
 OTLP_ENDPOINT =
-OTLP_AUTH_HEADER =
+OTLP_INSTANCE_ID =
+OTLP_API_KEY =
 ```
 
 > The `$()` in the URL is an Xcode xcconfig escape for `://` — leave it as-is.
@@ -78,6 +79,7 @@ bash Scripts/sim-run.sh
 ```
 
 The script will:
+
 1. Auto-detect an available iPhone simulator
 2. Build the app with `xcodebuild`
 3. Boot the simulator if needed
@@ -124,27 +126,18 @@ To find your `clusterSlug`, Instance ID, and API token:
 2. Find the stack and click through to its details — the **cluster slug** and **numeric Instance ID** are listed there
 3. Generate an API token with scopes: `metrics:write`, `logs:write`, `traces:write`
 
-### Generate the auth header
-
-```bash
-echo -n "<instance_id>:<api_token>" | base64
-```
-
-Example:
-
-```bash
-echo -n "123456:glc_abc123..." | base64
-# => MTIzNDU2OmdsY19hYmMxMjMu...
-```
-
 ### Update Config.xcconfig
+
+The app computes `Authorization: Basic base64(instanceId:apiKey)` at runtime,
+so you only need to provide the raw values:
 
 ```
 BASE_URL = http:/$()/localhost:3333
 PORT = 3333
 
 OTLP_ENDPOINT = https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp
-OTLP_AUTH_HEADER = Basic MTIzNDU2OmdsY19hYmMxMjMu...
+OTLP_INSTANCE_ID = 123456
+OTLP_API_KEY = glc_abc123...
 ```
 
 Then re-run the app:
@@ -166,6 +159,7 @@ open Mobiles/ios/QuickPizzaIos.xcodeproj
 ```
 
 Then:
+
 - Select a simulator from the device picker in the toolbar
 - Press **Cmd+R** to build and run
 
@@ -234,6 +228,7 @@ ngrok http 3333
 ```
 
 Then set:
+
 ```
 BASE_URL = https:/$()/abc123.ngrok.io
 ```
@@ -244,14 +239,19 @@ BASE_URL = https:/$()/abc123.ngrok.io
 
 The app uses the [OpenTelemetry Swift SDK](https://github.com/open-telemetry/opentelemetry-swift).
 
-| Signal | What is instrumented |
-|---|---|
-| **Traces** | Every API call (pizza recommendations, ratings, auth) |
-| **Logs** | App lifecycle events, errors |
+| Signal     | What is instrumented                                        |
+| ---------- | ----------------------------------------------------------- |
+| **Traces** | Every API call (pizza recommendations, ratings, auth)       |
+| **Logs**   | App lifecycle events, errors, custom events                 |
+| **Events** | `screen.view` on tab changes, custom events via `AppEvents` |
 
 Configuration is read from `Config.xcconfig` at build time and injected into
 `BuildConfig.generated.swift` (auto-generated, gitignored). The `OTelService`
-initialises the SDK on app launch using these values.
+initializes the SDK on app launch using these values.
+
+Runtime overrides for backend URL, OTLP endpoint, and credentials can be set
+from the **Debug → Config** screen without rebuilding. These are persisted in
+`UserDefaults` and applied on the next app launch via `RuntimeConfigHolder`.
 
 When `OTLP_ENDPOINT` is empty, telemetry is written to the Xcode console only
 (via `OSLog`). When set, it is exported over OTLP/HTTP to your collector.
@@ -282,5 +282,5 @@ xcrun simctl list devices available
 **Traces not appearing in Grafana**
 
 - Double-check `OTLP_ENDPOINT` has no trailing slash
-- Verify the base64 auth header: `echo -n "id:token" | base64`
+- Verify `OTLP_INSTANCE_ID` and `OTLP_API_KEY` are correct in `Config.xcconfig`
 - Check the Xcode console for `[OTel]` error messages

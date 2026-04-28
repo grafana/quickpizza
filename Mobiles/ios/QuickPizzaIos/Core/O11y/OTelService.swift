@@ -162,17 +162,15 @@ final class OTelService {
     // MARK: - Accessors
 
     func getTracer() -> Tracer {
-        let config = otelConfig ?? OTelConfig(configService: ConfigService())
         return OpenTelemetry.instance.tracerProvider.get(
-            instrumentationName: config.instrumentationScopeName,
-            instrumentationVersion: config.instrumentationScopeVersion
+            instrumentationName: otelConfig?.instrumentationScopeName ?? OTelConfig.defaultScopeName,
+            instrumentationVersion: otelConfig?.instrumentationScopeVersion ?? OTelConfig.defaultScopeVersion
         )
     }
 
     func getLogger() -> OpenTelemetryApi.Logger {
-        let config = otelConfig ?? OTelConfig(configService: ConfigService())
         return OpenTelemetry.instance.loggerProvider.loggerBuilder(
-            instrumentationScopeName: config.instrumentationScopeName
+            instrumentationScopeName: otelConfig?.instrumentationScopeName ?? OTelConfig.defaultScopeName
         ).build()
     }
 }

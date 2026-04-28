@@ -142,6 +142,7 @@ struct ProfileView: View {
                 .padding(16)
             }
             .background(AppColors.background)
+            .trackScreenView("profile")
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
