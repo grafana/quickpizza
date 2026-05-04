@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { useAuthStore } from '../../auth/domain/authStore';
+import { reportError } from '../../../core/o11y/o11yErrors';
 import { trackEvent } from '../../../core/o11y/o11yEvents';
 import { addMeasurement } from '../../../core/o11y/o11yMetrics';
 import type { PizzaRecommendation } from '../models/pizza';
@@ -18,7 +19,7 @@ interface PizzaStore extends PizzaState {
   clearPizza: () => void;
 }
 
-export const usePizzaStore = create<PizzaStore>((set, get) => ({
+export const usePizzaStore = create<PizzaStore>(set => ({
   pizza: null,
   isLoading: false,
   errorMessage: null,
@@ -51,9 +52,16 @@ export const usePizzaStore = create<PizzaStore>((set, get) => ({
         });
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      reportError({
+        type: 'PizzaRecommendationError',
+        error: `Failed to get pizza recommendation: ${message}`,
+        stacktrace: error instanceof Error ? error.stack : undefined,
+        context: { source: 'pizza_store' },
+      });
       set({
         isLoading: false,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: message,
       });
     }
   },
@@ -63,7 +71,7 @@ export const usePizzaStore = create<PizzaStore>((set, get) => ({
 
 // Reset pizza when user logs out; clear error when user logs in
 let wasLoggedIn = useAuthStore.getState().isLoggedIn;
-useAuthStore.subscribe((state) => {
+useAuthStore.subscribe(state => {
   if (wasLoggedIn && !state.isLoggedIn) {
     usePizzaStore.getState().clearPizza();
   } else if (!wasLoggedIn && state.isLoggedIn) {

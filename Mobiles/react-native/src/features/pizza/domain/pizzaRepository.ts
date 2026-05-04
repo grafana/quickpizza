@@ -1,6 +1,10 @@
 import { apiGet, apiPost } from '../../../core/api/apiClient';
+import { getDebugSettingsSnapshot } from '../../debug/domain/debugSettingsStore';
 import type { PizzaRecommendation } from '../models/pizza';
-import { parsePizzaRecommendation } from '../models/pizza';
+import {
+  parsePizzaRecommendation,
+  parsePizzaRecommendationV2,
+} from '../models/pizza';
 import type { Restrictions } from '../models/restrictions';
 import { restrictionsToJson } from '../models/restrictions';
 
@@ -39,6 +43,9 @@ export async function getPizzaRecommendation(
 
     if (response.ok) {
       const json = (await response.json()) as Record<string, unknown>;
+      if (getDebugSettingsSnapshot().clientFaultyPizzaJson) {
+        return parsePizzaRecommendationV2(json);
+      }
       return parsePizzaRecommendation(json);
     }
 

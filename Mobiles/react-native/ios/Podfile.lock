@@ -1473,6 +1473,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-vector-icons-material-icons (13.1.1)
   - React-NativeModulesApple (0.84.1):
     - hermes-engine
     - React-callinvoker
@@ -1973,6 +1974,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - "react-native-vector-icons-material-icons (from `../node_modules/@react-native-vector-icons/material-icons`)"
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -2098,6 +2100,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-vector-icons-material-icons:
+    :path: "../node_modules/@react-native-vector-icons/material-icons"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-networking:
@@ -2178,7 +2182,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FaroReactNative: cae60e655fcc5b43afbff967b345ccf3d0a0023f
   FBLazyVector: e97c19a5a442429d1988f182a1940fb08df514da
-  hermes-engine: 528bfb259b01020633a544e63e8be5e6b6953bb6
+  hermes-engine: af26a2fc195f459f1524c41bc6da855e0eafa8ae
   PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
   RCTRequired: bb77b070f75f53398ce43c0aaaa58337cebe2bf6
@@ -2188,7 +2192,7 @@ SPEC CHECKSUMS:
   React: 1ba7d364ade7d883a1ec055bfc3606f35fdee17b
   React-callinvoker: bc2a26f8d84fb01f003fc6de6c9337b64715f95b
   React-Core: 7840d3a80b43a95c5e80ef75146bd70925ebab0f
-  React-Core-prebuilt: 9771b8998ebe5dc3e0fb6e37b67c68273428d244
+  React-Core-prebuilt: 8d637a909b2f1ea893ccd5f60707c5db195e57e9
   React-CoreModules: 2eb010400b63b89e53a324ffb3c112e4c7c3ce42
   React-cxxreact: a558e92199d26f145afa9e62c4233cf8e7950efe
   React-debug: 755200a6e7f5e6e0a40ff8d215493d43cce285fc
@@ -2217,6 +2221,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: f4ee8c62e0ef8359d139124f35a471518a172cd3
   React-microtasksnativemodule: d1956f0eec54c619b63a379520fb4c618a55ccb9
   react-native-safe-area-context: ae7587b95fb580d1800c5b0b2a7bd48c2868e67a
+  react-native-vector-icons-material-icons: 1c5ff7b5da7188a9885b2f0b8f12ed8afa4a0ea2
   React-NativeModulesApple: 5ba0903927f6b8d335a091700e9fda143980f819
   React-networking: 3a4b7f9ed2b2d1c0441beacb79674323a24bcca6
   React-oscompat: ff26abf0ae3e3fdbe47b44224571e3fc7226a573
@@ -2250,7 +2255,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: e96e93b493d8d86eeaee3e590ba0be53f6abe46f
   ReactCodegen: 797de5178718324c6eba3327b07f9a423fbd5787
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
-  ReactNativeDependencies: a986374004d502715f3265942d16c3ebbdebb1eb
+  ReactNativeDependencies: c380a964bdefa6cb8a75c47f1d645646b947eb74
   RNCAsyncStorage: 7a5a6094f9f6b9158e72f1855cd86e769413d851
   RNDeviceInfo: 900bd20e1fd3bfd894e7384cc4a83880c0341bd3
   RNScreens: 6cb648bdad8fe9bee9259fe144df95b6d1d5b707

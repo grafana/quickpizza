@@ -4,6 +4,7 @@
  */
 export {
   InternalLoggerLevel,
+  LogLevel,
   SamplingFunction,
   SamplingRate,
   initializeFaro,

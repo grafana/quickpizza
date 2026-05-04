@@ -1,35 +1,18 @@
 import { Platform } from 'react-native';
 
+import { loadSavedDebugSettings } from '../../features/debug/domain/debugSettingsStore';
+
 interface AppConfig {
   FARO_COLLECTOR_URL?: string;
   BASE_URL?: string;
   PORT?: string;
-  /**
-   * When true: 
-   *    (1) a background GET /api/ingredients/topping sends x-error-get-ingredients (catalog injects failure); 
-   *    (2) "No thanks" throws after a successful rating.
-   */
-  SIMULATE_DEMO_ERROR?: boolean | string;
 }
 
-function isTruthyConfigFlag(value: boolean | string | undefined): boolean {
-  if (value === true) {
-    return true;
-  }
-  if (typeof value === 'string') {
-    const s = value.trim().toLowerCase();
-    return s === 'true' || s === '1' || s === 'yes';
-  }
-  return false;
+export interface RuntimeConfig {
+  baseUrl: string;
+  faroCollectorUrl: string;
+  port: string;
 }
-
-/** Single switch for FEO/backend demo errors (API injection + No thanks client error). */
-export function isSimulateDemoErrorEnabled(): boolean {
-  return isTruthyConfigFlag(config.SIMULATE_DEMO_ERROR);
-}
-
-const GET_INGREDIENTS_DEMO_MESSAGE =
-  'FEO demo: get ingredients for topping failure for demo purpose';
 
 function loadConfig(): AppConfig {
   try {
@@ -41,11 +24,16 @@ function loadConfig(): AppConfig {
 
 const config = loadConfig();
 const DEFAULT_PORT = '3333';
+let activeRuntimeConfig: RuntimeConfig = buildDefaultRuntimeConfig();
 
-function getBaseUrl(): string {
+function normalizeUrl(value: string): string {
+  return value.trim().replace(/\/$/, '');
+}
+
+function getDefaultBaseUrl(): string {
   const configured = config.BASE_URL ?? '';
   if (configured && configured.trim().length > 0) {
-    return configured.trim().replace(/\/$/, '');
+    return normalizeUrl(configured);
   }
 
   const port = config.PORT ?? DEFAULT_PORT;
@@ -55,11 +43,7 @@ function getBaseUrl(): string {
   return `http://localhost:${port}`;
 }
 
-export function getBaseUrlConfig(): string {
-  return getBaseUrl();
-}
-
-export function getFaroCollectorUrl(): string {
+function getConfiguredFaroCollectorUrl(): string {
   const collectorUrl = config.FARO_COLLECTOR_URL ?? '';
   if (!collectorUrl || collectorUrl.trim().length === 0) {
     throw new Error(
@@ -78,16 +62,51 @@ export function getFaroCollectorUrl(): string {
   return collectorUrl.trim();
 }
 
-export function getConfig() {
+function buildDefaultRuntimeConfig(): RuntimeConfig {
   return {
-    baseUrl: getBaseUrl(),
-    faroCollectorUrl: getFaroCollectorUrl(),
+    baseUrl: getDefaultBaseUrl(),
+    faroCollectorUrl: getConfiguredFaroCollectorUrl(),
     port: config.PORT ?? DEFAULT_PORT,
   };
 }
 
+export async function initializeRuntimeConfig(): Promise<RuntimeConfig> {
+  const saved = await loadSavedDebugSettings();
+  const defaults = buildDefaultRuntimeConfig();
+  activeRuntimeConfig = {
+    baseUrl: saved.backendUrlOverride
+      ? normalizeUrl(saved.backendUrlOverride)
+      : defaults.baseUrl,
+    faroCollectorUrl: saved.faroCollectorUrlOverride || defaults.faroCollectorUrl,
+    port: defaults.port,
+  };
+  return activeRuntimeConfig;
+}
+
+export function getRuntimeConfig(): RuntimeConfig {
+  return activeRuntimeConfig;
+}
+
+export function getBundledRuntimeConfig(): RuntimeConfig {
+  return buildDefaultRuntimeConfig();
+}
+
+export function getBaseUrlConfig(): string {
+  return activeRuntimeConfig.baseUrl;
+}
+
+export function getFaroCollectorUrl(): string {
+  return activeRuntimeConfig.faroCollectorUrl;
+}
+
+export function getConfig() {
+  return {
+    ...activeRuntimeConfig,
+  };
+}
+
 export function getApiBaseUrl(): string {
-  return getBaseUrl();
+  return activeRuntimeConfig.baseUrl;
 }
 
 /**
@@ -99,9 +118,9 @@ export function getApiBaseUrl(): string {
  * one host while `fetch` resolves another — otherwise the backend starts a new trace id.
  */
 export function getQuickPizzaTracePropagationUrlPatterns(): Array<string | RegExp> {
-  const base = getBaseUrl().replace(/\/$/, '');
+  const base = activeRuntimeConfig.baseUrl.replace(/\/$/, '');
   const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const port = String(config.PORT ?? DEFAULT_PORT).trim();
+  const port = String(activeRuntimeConfig.port).trim();
   return [
     new RegExp(`^${escaped}`),
     new RegExp(`^https?://localhost:${port}(?:/|$)`),
@@ -109,17 +128,4 @@ export function getQuickPizzaTracePropagationUrlPatterns(): Array<string | RegEx
     new RegExp(`^https?://\\[::1\\]:${port}(?:/|$)`),
     new RegExp(`^http://10\\.0\\.2\\.2:${port}(?:/|$)`),
   ];
-}
-
-/**
- * Headers for QuickPizza catalog GET /api/ingredients/{type} error injection
- * (`pkg/database/catalog.go` → InjectErrors "get-ingredients").
- */
-export function getIngredientsDemoErrorHeaders():
-  | Record<string, string>
-  | undefined {
-  if (!isSimulateDemoErrorEnabled()) {
-    return undefined;
-  }
-  return { 'x-error-get-ingredients': GET_INGREDIENTS_DEMO_MESSAGE };
 }

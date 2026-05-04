@@ -17,9 +17,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { O11yErrorBoundary } from './src/core/o11y/o11yReactNative';
 
 import { initFaro } from './src/bootstrap';
+import { initializeRuntimeConfig } from './src/core/config/configService';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAdminStore } from './src/features/admin/domain/adminStore';
 import { useAuthStore } from './src/features/auth/domain/authStore';
+import { useDebugSettingsStore } from './src/features/debug/domain/debugSettingsStore';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -27,6 +29,8 @@ function App() {
 
   useEffect(() => {
     const setup = async () => {
+      await initializeRuntimeConfig();
+      await useDebugSettingsStore.getState().load();
       await initFaro();
       await Promise.all([
         useAuthStore.getState().restoreSession(),

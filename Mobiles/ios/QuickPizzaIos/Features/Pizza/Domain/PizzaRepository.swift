@@ -96,9 +96,7 @@ final class PizzaRepository: PizzaRepositoryProtocol {
     }
 
     /// Parses the upcoming v2 response schema. v2 renames `pizza.name` → `pizza.displayName`
-    /// and `pizza.tool` → `pizza.tooling`. Throws if the expected v2 fields aren't present —
-    /// this is intentional, the toggle exists to simulate a client that was upgraded ahead
-    /// of the backend (or vice versa) so we can demo schema-drift telemetry.
+    /// and `pizza.tool` → `pizza.tooling`.
     private func parseRecommendationV2(_ data: Data) throws -> PizzaRecommendation {
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let pizzaObj = root["pizza"] as? [String: Any] else {

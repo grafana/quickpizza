@@ -1,4 +1,4 @@
-import { InternalLoggerLevel, SamplingRate, initializeFaro, type ReactNativeConfig } from './core/o11y/faroSdk';
+import { InternalLoggerLevel, LogLevel, SamplingRate, initializeFaro, type ReactNativeConfig } from './core/o11y/faroSdk';
 
 import { extractTokenFromCollectorUrl } from './core/utils/faroUtils';
 import { getFaroCollectorUrl, getQuickPizzaTracePropagationUrlPatterns } from './core/config/configService';
@@ -63,6 +63,9 @@ export async function initFaro(): Promise<void> {
     enableErrorReporting: true,
     enableCrashReporting: true,
     enableConsoleCapture: true,
+    consoleCaptureOptions: {
+      disabledLevels: [LogLevel.DEBUG, LogLevel.TRACE, LogLevel.LOG, LogLevel.ERROR],
+    },
 
     internalLoggerLevel: __DEV__
       ? InternalLoggerLevel.VERBOSE

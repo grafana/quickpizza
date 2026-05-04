@@ -16,7 +16,6 @@ import {
 } from '../../../auth/domain/authStore';
 import type { PizzaRecommendation } from '../../models/pizza';
 import * as ratingsRepository from '../../../ratings/domain/ratingsRepository';
-import { isSimulateDemoErrorEnabled } from '../../../../core/config/configService';
 
 const TrackedRatingButton = withUserAction(Pressable, 'rate-pizza');
 
@@ -52,14 +51,6 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
       );
     } finally {
       setIsLoading(false);
-    }
-
-    // Throw intentional demo error AFTER try-catch completes
-    // This ensures it's uncaught and captured by Faro's ErrorsInstrumentation
-    if (isSimulateDemoErrorEnabled() && stars === 1) {
-      throw new Error(
-        'FEO demo: intentional uncaught error (No thanks)',
-      );
     }
   };
 

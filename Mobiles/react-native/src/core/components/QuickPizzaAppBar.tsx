@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 
 import { useAuthStore } from '../../features/auth/domain/authStore';
 import { AppColors } from '../theme/appColors';
@@ -43,12 +44,21 @@ export function QuickPizzaAppBar({
           </View>
         )}
         <Pressable
-        onPress={onProfilePress}
-        style={[styles.avatar, isLoggedIn ? styles.avatarLoggedIn : styles.avatarLoggedOut]}
-        accessibilityLabel={isLoggedIn ? 'Go to profile' : 'Log in'}
-      >
-        <Text style={styles.avatarIcon}>{isLoggedIn ? '👤' : '🔓'}</Text>
-      </Pressable>
+          onPress={onProfilePress}
+          style={[
+            styles.avatar,
+            isLoggedIn ? styles.avatarLoggedIn : styles.avatarLoggedOut,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={isLoggedIn ? 'Go to profile' : 'Log in'}
+          hitSlop={8}
+        >
+          <MaterialIcons
+            name={isLoggedIn ? 'person' : 'person-outline'}
+            size={20}
+            color={isLoggedIn ? AppColors.white : AppColors.primary}
+          />
+        </Pressable>
       </View>
     </View>
   );
@@ -103,9 +113,6 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.primary,
   },
   avatarLoggedOut: {
-    backgroundColor: '#E0E0E0',
-  },
-  avatarIcon: {
-    fontSize: 18,
+    backgroundColor: '#FDE0D6',
   },
 });

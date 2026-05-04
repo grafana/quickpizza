@@ -11,6 +11,8 @@ import {
 import type { Restrictions } from '../../models/restrictions';
 import { defaultRestrictions } from '../../models/restrictions';
 import { getTools } from '../../domain/pizzaRepository';
+import { useAuthStore } from '../../../auth/domain/authStore';
+import { useDebugSettingsStore } from '../../../debug/domain/debugSettingsStore';
 
 interface CustomizeSectionProps {
   restrictions: Restrictions;
@@ -23,10 +25,15 @@ export function CustomizeSection({
 }: CustomizeSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const [tools, setTools] = useState<string[]>([]);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const skipAuthDependency = useDebugSettingsStore(
+    (s) => s.settings.clientSkipAuthDependency,
+  );
+  const toolRefreshKey = skipAuthDependency ? 'static' : String(isLoggedIn);
 
   React.useEffect(() => {
     getTools().then(setTools);
-  }, []);
+  }, [toolRefreshKey]);
 
   const toggleTool = (tool: string) => {
     const excluded = restrictions.excludedTools.includes(tool)

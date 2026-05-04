@@ -19,10 +19,9 @@ const AdminLoginButton = withUserAction(Pressable, 'adminLogin');
 
 interface AdminScreenProps {
   onBack: () => void;
-  onProfilePress: () => void;
 }
 
-export function AdminScreen({ onBack, onProfilePress }: AdminScreenProps) {
+export function AdminScreen({ onBack }: AdminScreenProps) {
   const {
     isLoggedIn,
     isLoading,

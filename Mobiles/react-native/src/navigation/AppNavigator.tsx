@@ -1,10 +1,10 @@
 import React from 'react';
-import { Text } from 'react-native';
 import {
   NavigationContainer,
   useNavigation,
   useNavigationContainerRef,
 } from '@react-navigation/native';
+import MaterialIcons from '@react-native-vector-icons/material-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,21 +17,37 @@ import { HomeScreen } from '../features/pizza/presentation/HomeScreen';
 import { LoginScreen } from '../features/auth/presentation/LoginScreen';
 import { ProfileScreen } from '../features/profile/presentation/ProfileScreen';
 import { useAuthStore } from '../features/auth/domain/authStore';
+import { ConfigScreen } from '../features/debug/presentation/ConfigScreen';
+import { DebugScreen } from '../features/debug/presentation/DebugScreen';
 
 export type RootStackParamList = {
   Main: undefined;
   Login: undefined;
   Profile: undefined;
   Admin: undefined;
+  DebugConfig: undefined;
 };
 
 export type TabParamList = {
   Home: undefined;
   About: undefined;
+  Debug: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
+
+function HomeTabIcon({color, size}: {color: string; size: number}) {
+  return <MaterialIcons name="home" size={size} color={color} />;
+}
+
+function AboutTabIcon({color, size}: {color: string; size: number}) {
+  return <MaterialIcons name="info" size={size} color={color} />;
+}
+
+function DebugTabIcon({color, size}: {color: string; size: number}) {
+  return <MaterialIcons name="bug-report" size={size} color={color} />;
+}
 
 function MainTabs({
   rootNavigation,
@@ -72,9 +88,7 @@ function MainTabs({
         name="Home"
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({color, size}) => (
-            <Text style={{fontSize: size - 2, color}}>⌂</Text>
-          ),
+          tabBarIcon: HomeTabIcon,
         }}
       >
         {() => <HomeScreen onProfilePress={handleProfilePress} />}
@@ -83,15 +97,26 @@ function MainTabs({
         name="About"
         options={{
           tabBarLabel: 'About',
-          tabBarIcon: ({color, size}) => (
-            <Text style={{fontSize: size - 2, color}}>ⓘ</Text>
-          ),
+          tabBarIcon: AboutTabIcon,
         }}
       >
         {() => (
           <AboutScreen
             onProfilePress={handleProfilePress}
             onAdminPress={handleAdminPress}
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen
+        name="Debug"
+        options={{
+          tabBarLabel: 'Debug',
+          tabBarIcon: DebugTabIcon,
+        }}
+      >
+        {() => (
+          <DebugScreen
+            onNavigateToConfig={() => rootNavigation.navigate('DebugConfig')}
           />
         )}
       </Tab.Screen>
@@ -145,15 +170,20 @@ function AdminScreenWrapper() {
   return (
     <AdminScreen
       onBack={handleBack}
-      onProfilePress={() => {
-        if (useAuthStore.getState().isLoggedIn) {
-          navigation.navigate('Profile');
-        } else {
-          navigation.navigate('Login');
-        }
-      }}
     />
   );
+}
+
+function DebugConfigScreenWrapper() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Main');
+    }
+  };
+  return <ConfigScreen onBack={handleBack} />;
 }
 
 export function AppNavigator() {
@@ -182,6 +212,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="Admin"
           component={AdminScreenWrapper}
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="DebugConfig"
+          component={DebugConfigScreenWrapper}
           options={{ presentation: 'modal' }}
         />
       </Stack.Navigator>
