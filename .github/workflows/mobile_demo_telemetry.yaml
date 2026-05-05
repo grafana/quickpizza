@@ -149,6 +149,24 @@ jobs:
           cache: "yarn"
           cache-dependency-path: Mobiles/react-native/yarn.lock
 
+      # RN bundles SIMULATE_DEMO_ERROR from config.json; alternate by UTC wall clock
+      # so hourly scheduled runs demo clean telemetry vs injected errors on the dev stack.
+      - name: Set SIMULATE_DEMO_ERROR from UTC hour (even=false, odd=true)
+        id: demo_errors
+        run: |
+          HOUR=$(date -u +%H)
+          HOUR_DEC=$((10#$HOUR))
+          PARITY=$((HOUR_DEC % 2))
+          if [ "$PARITY" -eq 0 ]; then
+            echo "SIMULATE_DEMO_ERROR=false" >> "$GITHUB_ENV"
+            echo "parity=even" >> "$GITHUB_OUTPUT"
+          else
+            echo "SIMULATE_DEMO_ERROR=true" >> "$GITHUB_ENV"
+            echo "parity=odd" >> "$GITHUB_OUTPUT"
+          fi
+          echo "demo_errors_key=de-$PARITY" >> "$GITHUB_OUTPUT"
+          echo "UTC hour=$HOUR_DEC (${PARITY}:0=even/false,1=odd/true) SIMULATE_DEMO_ERROR will be $([ "$PARITY" -eq 0 ] && echo false || echo true)"
+
       - name: Cache React Native APK
         id: cache-rn-apk
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -156,10 +174,11 @@ jobs:
           path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
           # Hash only React Native Android APK inputs so RN changes rebuild,
           # while unrelated repo changes (Flutter/iOS/backend) keep cache hits.
-          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
+          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}-${{ steps.demo_errors.outputs.demo_errors_key }}
 
       - name: Log React Native APK cache status
         run: |
+          echo "SIMULATE_DEMO_ERROR for this run (bundled in APK if rebuilt): ${SIMULATE_DEMO_ERROR}"
           if [ "${{ steps.cache-rn-apk.outputs.cache-hit }}" = "true" ]; then
             echo "✅ React Native APK found in cache, skipping build"
             ls -la Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
@@ -182,10 +201,11 @@ jobs:
           {
             "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
             "BASE_URL": "",
-            "PORT": "3333"
+            "PORT": "3333",
+            "SIMULATE_DEMO_ERROR": ${SIMULATE_DEMO_ERROR}
           }
           EOF
-          echo "Created config.json (FARO_COLLECTOR_URL redacted)"
+          echo "Created config.json with SIMULATE_DEMO_ERROR=${SIMULATE_DEMO_ERROR} (FARO_COLLECTOR_URL redacted from logs)"
 
       - name: Bundle JS for offline debug APK
         if: steps.cache-rn-apk.outputs.cache-hit != 'true'
