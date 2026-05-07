@@ -92,7 +92,7 @@ Future<void> bootstrap(BootstrapConfig config) async {
 
   faro.runApp(
     optionsConfiguration: FaroConfig(
-      appName: 'quickpizza-flutter',
+      appName: 'QuickPizza_Flutter',
       appVersion: appVersion,
       appEnv: config.appEnv,
       apiKey: apiKey,

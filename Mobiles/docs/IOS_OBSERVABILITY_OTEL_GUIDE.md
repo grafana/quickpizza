@@ -6,6 +6,8 @@ Audience:
 - Demo teams who need to explain the telemetry model to customers
 - iOS engineers who want to copy this setup
 
+> For a cross-platform comparison covering the Flutter, React Native, and Android demo apps as well, see [`MOBILE_OBSERVABILITY_OVERVIEW.md`](./MOBILE_OBSERVABILITY_OVERVIEW.md).
+
 ## 1. High-level architecture
 
 Telemetry is initialized once at app startup:
@@ -139,17 +141,21 @@ Related files:
 
 ## 5. Demo workflow (customer-facing)
 
-For quick demos, use the in-app Debug tab:
-- `Send logger.exception`
-- `Trigger test crash`
+The Debug tab is feature-aligned with the other QuickPizza mobile apps and exposes:
+
+- **Config** — runtime overrides for backend URL, OTLP endpoint, OTLP instance ID, OTLP API key. Persisted in `UserDefaults` and applied on next launch via `RuntimeConfigHolder`.
+- **Error simulation** — backend header toggles (`x-error-record-recommendation`, `x-delay-record-recommendation`, `x-error-get-ingredients`, `x-delay-get-ingredients`) and client-side faults (`useV2PizzaSchema`, `skipAuthDepInTools`).
+- **Quick Signals** — `Send Debug Log`, `Send Error Log`, `Send Custom Event` (emits `event_name=debug.test_event`).
+- **Handled Exception** — calls `logger.exception(...)`, which emits a log record with `event_name=exception` and OTel `exception.{type, message, stacktrace}` semantic attributes.
+- **Crash Reporting** — `Crash (fatalError)` and `Crash (force-unwrap nil)` variants. Both terminate the app to exercise MetricKit. The card explicitly notes that crash diagnostics from MetricKit are delivered by Apple later and may not appear immediately.
 
 Files:
 - `Mobiles/ios/QuickPizzaIos/Features/Debug/Presentation/DebugView.swift`
 - `Mobiles/ios/QuickPizzaIos/Features/Debug/Presentation/DebugViewModel.swift`
 
-Expected outcome:
-1. `logger.exception` appears quickly as an error/exception log in backend.
-2. Crash diagnostics via MetricKit arrive later (delayed, batched).
+Expected outcome on the demo stack:
+1. Debug log / error log / custom event / handled exception appear in Loki within seconds (filter by `service_name="quickpizza-ios"`).
+2. Manual crashes are captured by MetricKit but Apple's delivery is delayed and batched (often tied to the OS's 24-hour reporting window) — they will not show up in Grafana Cloud immediately.
 
 ## 6. How to apply this in your own iOS app
 

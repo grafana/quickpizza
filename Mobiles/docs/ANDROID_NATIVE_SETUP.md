@@ -2,7 +2,10 @@
 
 Setup guide for the native Android QuickPizza app (`Mobiles/android/`).
 
-> For the **Flutter** Android emulator setup, see [ANDROID_SETUP.md](./ANDROID_SETUP.md).
+> Companion docs:
+> - For the cross-platform observability overview (what each mobile app emits, where it lands), see [`MOBILE_OBSERVABILITY_OVERVIEW.md`](./MOBILE_OBSERVABILITY_OVERVIEW.md).
+> - For a higher-level Android README (features + quickstart), see [`../android/README.md`](../android/README.md).
+> - For the **Flutter** Android emulator setup, see [`ANDROID_SETUP.md`](./ANDROID_SETUP.md).
 
 ---
 
@@ -100,10 +103,13 @@ The app uses [opentelemetry-android](https://github.com/open-telemetry/opentelem
 
 | Signal | Examples |
 |---|---|
-| **Traces** | `auth.login`, `pizza.get_recommendation`, `pizza.rate`, auto-instrumented HTTP spans from OkHttp |
-| **Logs** | Structured app logs, exception records with `exception.stacktrace` |
-| **Crashes** | Unhandled exceptions captured by the crash instrumentation |
-| **Sessions** | 15-minute inactivity timeout, `session.id` stamped on all telemetry |
+| **Spans** | Manual: `auth.login`, `pizza.get_recommendation`, `pizza.rate`. Auto: `GET` (OkHttp HTTP), `AppStart` / `Paused` / `Stopped` (lifecycle). |
+| **Logs (`event_name=…`)** | Auto: `screen.view`, `app.jank` (slow-rendering), `session.start`, `rum.sdk.init.*` self-telemetry, `device.crash` (next launch), `device.anr` (runtime). Manual: `exception` (`logger.exception(...)`), `debug.test_event` (Debug screen). |
+| **Crashes** | Unhandled exceptions persisted by the OTel-Android `CrashReporter` and exported as `device.crash` log events on the next app launch. |
+| **ANRs** | Detected at runtime by the agent; emitted as `device.anr` log events. |
+| **Sessions** | 15-minute inactivity timeout, `session.id` stamped on every signal. |
+
+For the full cross-platform telemetry comparison (including how this differs from the iOS, Flutter, and React Native apps), see [`MOBILE_OBSERVABILITY_OVERVIEW.md`](./MOBILE_OBSERVABILITY_OVERVIEW.md).
 
 ### Resource attributes
 
@@ -142,4 +148,24 @@ Ensure `gradle.properties` has `android.useFullClasspathForDexingTransform=true`
 - Check `OTLP_ENDPOINT`, `OTLP_INSTANCE_ID`, and `OTLP_API_KEY` in `config.json` (or the
   overrides set via the in-app **Debug → Config** screen)
 - Verify the endpoint accepts OTLP HTTP (not gRPC)
-- Use the **Debug** tab to trigger a test exception and confirm it arrives
+- Use the **Debug** tab to trigger a test debug log, custom event, or
+  handled exception and confirm they arrive
+
+**Telemetry arrives slowly (~30–45 s lag)**
+- This is the OTel-Android SDK's disk-buffering window — by design, so signals survive offline periods.
+- For live demos, flip **Debug → OpenTelemetry SDK → Disable disk buffering** ON. Latency drops to ~1–6 s, but signals are dropped if the app is offline. Restart the app for the toggle to take effect.
+
+## In-app Debug screen
+
+The **Debug** tab is the same shape as the other QuickPizza mobile apps and exposes:
+
+- Runtime config overrides (backend URL, OTLP endpoint, instance ID, API key) — restart-required.
+- Backend error/latency injection toggles (`x-error-record-recommendation`, `x-delay-record-recommendation`, `x-error-get-ingredients`, `x-delay-get-ingredients`).
+- Client-side faults (`useV2PizzaSchema` to simulate schema drift, `skipAuthDepInTools`).
+- An **OTel SDK** section with the disk buffering toggle described above.
+- **Quick Signals** — debug log, error log, custom `debug.test_event`.
+- **Handled exception** — calls `logger.exception(...)` so the OTel logger emits an `exception` event.
+- **ANR** — blocks the main thread for 6 s; the OTel agent reports `event_name=device.anr`.
+- **Crash** — `RuntimeException` and simulated `NullPointerException` variants. The agent persists the crash to disk and the exporter delivers it as `event_name=device.crash` on next launch.
+
+Code: `app/src/main/java/com/grafana/quickpizza/features/debug/DebugScreen.kt`.

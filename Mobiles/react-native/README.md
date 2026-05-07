@@ -2,6 +2,8 @@
 
 A React Native mobile application that replicates the QuickPizza web and Flutter app functionality. This app demonstrates Grafana Faro SDK integration for mobile observability.
 
+> For a cross-platform comparison of all four QuickPizza mobile demos (Flutter, React Native, iOS native, Android native) and what each one emits, see [`../docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](../docs/MOBILE_OBSERVABILITY_OVERVIEW.md). The shared feature spec lives in [`../FEATURES.md`](../FEATURES.md).
+
 ## Features
 
 - Get pizza recommendations with one click
@@ -9,6 +11,7 @@ A React Native mobile application that replicates the QuickPizza web and Flutter
 - User login and profile management
 - Advanced options for customizing pizza recommendations
 - View your pizza ratings history
+- In-app **Debug** tab for runtime config overrides, backend error/latency injection, client-side fault simulation, sending test logs and custom events (`debug_custom_event`), reporting handled and unhandled exceptions, and triggering native crashes that arrive in Faro as `kind=exception, type=crash` on the next launch.
 
 ## Prerequisites
 
@@ -98,6 +101,10 @@ yarn android
 ## Faro SDK
 
 This app depends on `@grafana/faro-react-native` and `@grafana/faro-react-native-tracing` at **1.0.0-alpha.1** from npm (`package.json`; the git tag may be `v1.0.0-alpha.1`). After those versions are published, run `yarn install` here and commit the updated `yarn.lock` (with resolved URLs and integrity hashes). Until then, `yarn install` will 404 against the public registry.
+
+In Grafana Cloud the app reports as `app_name=QuickPizza_ReactNative` (Faro app id `123` on the demo stack). Telemetry includes auto fetch + XMLHttpRequest tracing, `app_lifecycle_changed`, `view_changed`, custom business measurements (`pizza.recommendation`, `pizza.rating`), and native crash capture via Faro CrashKit.
+
+**Known issue:** RN exception logs occasionally include `console.error: Faro is already registered. Either add instrumentations, transports etc. to the global faro instance or use the "isolate" property`. This appears to come from a hot-reload / re-bootstrap path in `src/bootstrap.ts`. It does not affect telemetry flow but pollutes the error stream.
 
 ## Project structure
 

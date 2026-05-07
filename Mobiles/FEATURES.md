@@ -1,6 +1,13 @@
-# Android Native App — Required Screens & Workflows
+# QuickPizza Mobile Apps — Required Screens & Workflows
 
-This document lists the key screens and user workflows that the Android native app must support, based on the Flutter app and the Arbigent e2e test suite.
+This document is the **shared feature spec** for all four QuickPizza mobile
+demo apps (Flutter, React Native, native iOS, native Android). Each app
+must implement the same screens and workflows so the four implementations
+can be compared apples-to-apples for observability demos.
+
+For the observability comparison (what each app emits, where it lands in
+Grafana Cloud, Faro vs OTel), see
+[`docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](./docs/MOBILE_OBSERVABILITY_OVERVIEW.md).
 
 ---
 
@@ -145,17 +152,32 @@ Accessible from the bottom navigation bar.
 
 ## Observability Requirements
 
-The app must instrument the following signals via OpenTelemetry (OTLP export):
+Each platform emits a different shape of telemetry depending on its SDK:
+
+- **Flutter** and **React Native** use the Grafana Faro mobile SDKs and emit
+  Faro signals (`event`, `log`, `measurement`, `exception`) into Grafana Cloud
+  Frontend Observability.
+- **Native iOS** and **native Android** use OpenTelemetry mobile SDKs and emit
+  OTel spans + log records over OTLP/HTTP.
+
+All four implementations must cover, at minimum:
 
 | Signal | Examples |
 |---|---|
-| Traces | `pizza.get_recommendation`, `pizza.rate`, `auth.login`, auto-instrumented HTTP spans |
-| Logs | Structured app logs, exception records with `exception.stacktrace` |
-| Crashes | Unhandled exceptions captured and exported |
-| Sessions | Session ID stamped on all telemetry, 15-min inactivity timeout |
+| Business spans / events | `pizza.get_recommendation`, `pizza.rate`, `auth.login` (manual) |
+| Auto HTTP signals | one span / `faro.tracing.fetch` event per outgoing request |
+| Logs | Structured app logs at `debug` / `info` / `warn` / `error` |
+| Exceptions | Both handled (`logger.exception(...)` / `o11yErrors.reportError`) and unhandled (global error handler / native crash reporter) paths |
+| Sessions | Session ID stamped on all telemetry, 15-minute inactivity timeout |
 
-Resource attributes on all telemetry:
-- `service.name = quickpizza-android`
+Native iOS and Android additionally identify themselves with OTel resource
+attributes:
+
+- `service.name = quickpizza-ios` / `quickpizza-android`
 - `service.namespace = quickpizza`
-- `service.version = <versionName>`
+- `service.version = <bundleVersion / versionName>`
 - `deployment.environment = production`
+
+The full per-platform inventory (auto-instrumentation, lifecycle spans,
+device attributes, ANR/crash semantics, MetricKit etc.) is documented in
+[`docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](./docs/MOBILE_OBSERVABILITY_OVERVIEW.md).

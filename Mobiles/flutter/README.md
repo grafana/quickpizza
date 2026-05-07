@@ -1,6 +1,8 @@
 # QuickPizza Flutter Mobile App
 
-A Flutter mobile application that replicates the QuickPizza web application functionality. This app allows users to get pizza recommendations, rate pizzas, and manage their profile.
+A Flutter mobile application that replicates the QuickPizza web application functionality. This app allows users to get pizza recommendations, rate pizzas, and manage their profile, and demonstrates Grafana Faro mobile telemetry.
+
+> For a cross-platform comparison of all four QuickPizza mobile demos (Flutter, React Native, iOS native, Android native) and what each one emits, see [`../docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](../docs/MOBILE_OBSERVABILITY_OVERVIEW.md). The shared feature spec lives in [`../FEATURES.md`](../FEATURES.md).
 
 ## Features
 
@@ -14,6 +16,7 @@ A Flutter mobile application that replicates the QuickPizza web application func
   - Vegetarian option
   - Custom pizza name
 - 📊 View your pizza ratings history
+- 🐛 In-app **Debug** tab for runtime config overrides, backend error/latency injection, client-side fault simulation, sending test logs/events, throwing handled and unhandled exceptions, and triggering native crashes (covers both Android and iOS via a `MethodChannel`-based `NativeCrashService`).
 
 ## Setup
 

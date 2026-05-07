@@ -346,12 +346,22 @@ To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafan
 
 ## Mobile Apps
 
-This repository includes native mobile implementations of QuickPizza for observability demonstrations. Each app connects to the same QuickPizza backend and is instrumented with OpenTelemetry.
+This repository includes four native and cross-platform implementations of
+QuickPizza for mobile observability demonstrations. Each app talks to the
+same QuickPizza backend and implements the same screens — what differs is
+the telemetry SDK and where the data lands in Grafana Cloud.
 
-| Platform | Location | SDK | Setup Guide |
-| --- | --- | --- | --- |
-| Flutter (Android & iOS) | `Mobiles/flutter/` | Grafana Faro | [Flutter setup](./Mobiles/docs/XCODE_SETUP.md) |
-| iOS (native Swift/SwiftUI) | `Mobiles/ios/` | opentelemetry-swift | [iOS setup](./Mobiles/docs/XCODE_SETUP.md) |
-| Android (native Kotlin/Compose) | `Mobiles/android/` | opentelemetry-android | [Android native setup](./Mobiles/docs/ANDROID_NATIVE_SETUP.md) |
+| Platform | Location | SDK | Telemetry destination | Setup |
+| --- | --- | --- | --- | --- |
+| Flutter (Android & iOS) | `Mobiles/flutter/` | Grafana Faro (`faro` Dart SDK) | Frontend Observability plugin | [Flutter README](./Mobiles/flutter/README.md) + [Flutter Android setup](./Mobiles/docs/ANDROID_SETUP.md) / [Flutter iOS setup](./Mobiles/docs/XCODE_SETUP.md) |
+| React Native (Android & iOS) | `Mobiles/react-native/` | Grafana Faro (`@grafana/faro-react-native`) | Frontend Observability plugin | [React Native README](./Mobiles/react-native/README.md) |
+| iOS native (Swift / SwiftUI) | `Mobiles/ios/` | `opentelemetry-swift` (+ `URLSessionInstrumentation`, `Sessions`, `MetricKitInstrumentation`) | OTLP/HTTP → Tempo + Loki | [iOS native README](./Mobiles/ios/README.md) |
+| Android native (Kotlin / Compose) | `Mobiles/android/` | `opentelemetry-android` RUM agent | OTLP/HTTP → Tempo + Loki | [Android native README](./Mobiles/android/README.md) + [Android native setup](./Mobiles/docs/ANDROID_NATIVE_SETUP.md) |
 
-All mobile apps produce traces, logs, and session telemetry compatible with Grafana Cloud. See the per-platform setup guides in `Mobiles/docs/` for configuration details.
+For a single document that covers what each platform actually emits, where
+the data lives, and how the Faro and OpenTelemetry SDKs differ
+side-by-side, see
+[`Mobiles/docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](./Mobiles/docs/MOBILE_OBSERVABILITY_OVERVIEW.md).
+
+The shared cross-platform feature spec (Home, Login, Profile, About, Debug)
+lives in [`Mobiles/FEATURES.md`](./Mobiles/FEATURES.md).

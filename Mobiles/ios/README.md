@@ -2,7 +2,9 @@
 
 A native SwiftUI app that demonstrates mobile observability using OpenTelemetry.
 It connects to the QuickPizza backend and sends traces/logs to an OTLP collector
-(e.g. the `mobileo11y.grafana-dev.net` Grafana Cloud stack).
+(any Grafana Cloud stack you configure — see [Sending Telemetry to Grafana Cloud](#sending-telemetry-to-grafana-cloud)).
+
+> For a cross-platform comparison of all four QuickPizza mobile demos (Flutter, React Native, iOS native, Android native) and what each one emits, see [`../docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](../docs/MOBILE_OBSERVABILITY_OVERVIEW.md). For the iOS instrumentation deep-dive see [`../docs/IOS_OBSERVABILITY_OTEL_GUIDE.md`](../docs/IOS_OBSERVABILITY_OTEL_GUIDE.md). The shared feature spec lives in [`../FEATURES.md`](../FEATURES.md).
 
 ---
 
@@ -108,21 +110,20 @@ traced with OpenTelemetry.
 
 ## Sending Telemetry to Grafana Cloud
 
-To send traces and logs to the `mobileo11y.grafana-dev.net` Grafana Cloud stack,
-you need an OTLP endpoint and an API token.
+To send traces and logs to a Grafana Cloud stack, you need an OTLP endpoint
+and an API token.
 
 ### Find your OTLP endpoint and credentials
 
-The OTLP endpoint for this project's dev stacks follows this pattern (derived from
-`deployments/docker-compose/grafana-cloud/cloud-dev.alloy`):
+The OTLP endpoint follows the standard Grafana Cloud pattern:
 
 ```
-https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp
+https://otlp-gateway-<clusterSlug>.grafana.net/otlp
 ```
 
 To find your `clusterSlug`, Instance ID, and API token:
 
-1. Go to https://grafana-dev.com/orgs/mobileo11y
+1. Go to your Grafana Cloud org page (`https://grafana.com/orgs/<your-org>`)
 2. Find the stack and click through to its details — the **cluster slug** and **numeric Instance ID** are listed there
 3. Generate an API token with scopes: `metrics:write`, `logs:write`, `traces:write`
 
@@ -135,7 +136,7 @@ so you only need to provide the raw values:
 BASE_URL = http:/$()/localhost:3333
 PORT = 3333
 
-OTLP_ENDPOINT = https://otlp-gateway-<clusterSlug>.grafana-dev.net/otlp
+OTLP_ENDPOINT = https://otlp-gateway-<clusterSlug>.grafana.net/otlp
 OTLP_INSTANCE_ID = 123456
 OTLP_API_KEY = glc_abc123...
 ```
@@ -237,13 +238,13 @@ BASE_URL = https:/$()/abc123.ngrok.io
 
 ## How Observability Works
 
-The app uses the [OpenTelemetry Swift SDK](https://github.com/open-telemetry/opentelemetry-swift).
+The app uses the [OpenTelemetry Swift SDK](https://github.com/open-telemetry/opentelemetry-swift) (`opentelemetry-swift` 2.3.0) with the `URLSessionInstrumentation`, `Sessions`, and `MetricKitInstrumentation` libraries.
 
-| Signal     | What is instrumented                                        |
-| ---------- | ----------------------------------------------------------- |
-| **Traces** | Every API call (pizza recommendations, ratings, auth)       |
-| **Logs**   | App lifecycle events, errors, custom events                 |
-| **Events** | `screen.view` on tab changes, custom events via `AppEvents` |
+| Signal           | What is instrumented                                                                |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| **Spans**        | Auto: every `URLSession` call. Manual: `pizza.get_recommendation`, `auth.login`, `pizza.rate`. MetricKit: `MXMetricPayload` spans (Apple's daily aggregated CPU/memory/hangs/hitch data). |
+| **Logs**         | Auto: `session.start` / `session.end`, MetricKit `metrickit.diagnostic.{crash,hang,cpu_exception,disk_write_exception}`. Manual: app logs at `DEBUG`/`INFO`/`WARN`/`ERROR`, exception logs (`event_name=exception`), screen views (`event_name=app.screen.view`). |
+| **Resource**     | `service.name=quickpizza-ios`, `service.namespace=quickpizza`, `service.version`, `service.build`, `deployment.environment`, `device.id`, `device.model.identifier`, `os.*`, `session.id`, `session.previous_id`, `telemetry.sdk.{language=swift, version=2.3.0}`. |
 
 Configuration is read from `Config.xcconfig` at build time and injected into
 `BuildConfig.generated.swift` (auto-generated, gitignored). The `OTelService`
@@ -255,6 +256,8 @@ from the **Debug → Config** screen without rebuilding. These are persisted in
 
 When `OTLP_ENDPOINT` is empty, telemetry is written to the Xcode console only
 (via `OSLog`). When set, it is exported over OTLP/HTTP to your collector.
+
+The in-app **Debug** tab additionally lets you simulate backend errors and latency, send test logs / events / handled exceptions, and trigger native crashes (note: MetricKit crash diagnostics are delivered by Apple later and may not appear in Grafana Cloud immediately). See [`../docs/IOS_OBSERVABILITY_OTEL_GUIDE.md § 5`](../docs/IOS_OBSERVABILITY_OTEL_GUIDE.md#5-demo-workflow-customer-facing) for the full demo workflow.
 
 ---
 
