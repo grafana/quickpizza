@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { InternalLoggerLevel, LogLevel, SamplingRate, initializeFaro, type ReactNativeConfig } from './core/o11y/faroSdk';
 
 import { extractTokenFromCollectorUrl } from './core/utils/faroUtils';
@@ -29,12 +30,18 @@ export async function initFaro(): Promise<void> {
   const collectorUrl = getFaroCollectorUrl();
   const apiKey = extractTokenFromCollectorUrl(collectorUrl);
 
-  const config: ReactNativeConfig = {
+  const config = {
     app: {
       name: 'QuickPizza_ReactNative',
       version: APP_VERSION,
       environment: APP_ENV,
     },
+    /**
+     * Hermes release stacks: must match Metro `sourceMapFile` / source map `file` (see `metro.config.js`).
+     * Android assets are typically `index.android.bundle`; iOS is often `main.jsbundle`.
+     */
+    releaseBundleFilename:
+      Platform.OS === 'ios' ? 'main.jsbundle' : 'index.android.bundle',
     url: collectorUrl,
     apiKey: apiKey || undefined,
     
@@ -84,7 +91,7 @@ export async function initFaro(): Promise<void> {
         propagateTraceHeaderCorsUrls: getQuickPizzaTracePropagationUrlPatterns(),
       },
     },
-  };
+  } as ReactNativeConfig;
   const faro = await initializeFaro(config);
 
   // When Faro is already registered, initializeFaro logs an error and returns undefined

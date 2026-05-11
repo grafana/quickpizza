@@ -25,6 +25,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@grafana/faro-metro-plugin": "file:../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin",
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
@@ -50,6 +51,7 @@
   },
   "resolutions": {
     "@grafana/faro-react-native": "1.0.0",
-    "@grafana/faro-react-native-tracing": "1.0.0"
+    "@grafana/faro-react-native-tracing": "1.0.0",
+    "@grafana/faro-bundlers-shared": "file:../../../faro-javascript-bundler-plugins/packages/faro-bundlers-shared"
   }
 }
