@@ -2,6 +2,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Local QuickPizza API is HTTP (10.0.2.2 from emulator). RN release used to inject usesCleartextTraffic=false → blocked release only. -->
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"
@@ -9,7 +10,7 @@
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
       android:theme="@style/AppTheme"
-      android:usesCleartextTraffic="${usesCleartextTraffic}"
+      android:usesCleartextTraffic="true"
       android:supportsRtl="true">
       <activity
         android:name=".MainActivity"

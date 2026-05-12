@@ -9,10 +9,17 @@ export function reportError(options: {
   if (!faro?.api) return;
 
   const context: Record<string, string> = { ...options.context };
+  const err = new Error(options.error);
+  /**
+   * Faro builds `stacktrace.frames` from `error.stack` via `parseStacktrace`.
+   * Assigning the caught stack here ensures handled exceptions use the real Hermes positions
+   * for symbolification — not the shallow stack from `new Error()` inside this helper.
+   */
   if (options.stacktrace) {
-    context.stacktrace = options.stacktrace;
+    err.stack = options.stacktrace;
   }
-  faro.api.pushError(new Error(options.error), {
+
+  faro.api.pushError(err, {
     type: options.type,
     context,
   });
