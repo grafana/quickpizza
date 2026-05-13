@@ -148,6 +148,8 @@ bash Scripts/sim-run.sh
 ```
 
 Traces will appear in **Explore → Tempo** in your Grafana Cloud stack within seconds.
+To view native iOS telemetry in a RUM-style dashboard, import and configure the
+shared [Mobile OTel RUM dashboard](../docs/MOBILE_OTEL_RUM_DASHBOARD.md).
 
 ---
 

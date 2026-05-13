@@ -81,8 +81,8 @@ Common feature set:
 | --- | --- |
 | Flutter | Frontend Observability plugin → `/a/grafana-kowalski-app/apps/<faro-app-id>` on your Grafana Cloud stack |
 | React Native | Frontend Observability plugin → `/a/grafana-kowalski-app/apps/<faro-app-id>` on your Grafana Cloud stack |
-| iOS native | "Android & iOS OTel RUM" dashboard (and an iOS-specific dashboard) on your Grafana Cloud stack |
-| Android native | "Android & iOS OTel RUM" dashboard on your Grafana Cloud stack |
+| iOS native | [Mobile OTel RUM dashboard](./MOBILE_OTEL_RUM_DASHBOARD.md) on your Grafana Cloud stack |
+| Android native | [Mobile OTel RUM dashboard](./MOBILE_OTEL_RUM_DASHBOARD.md) on your Grafana Cloud stack |
 
 Underlying datasources on whichever Grafana Cloud stack you target:
 
@@ -94,7 +94,9 @@ Underlying datasources on whichever Grafana Cloud stack you target:
   for log records, both labeled with `service_name` / `service_namespace`.
 
 The Frontend Observability plugin queries Loki for Faro-shaped data; the
-"Android & iOS OTel RUM" dashboard queries Tempo + Loki for OTel-shaped data.
+Mobile OTel RUM dashboard queries Tempo + Loki for OTel-shaped data.
+To import and configure the reusable dashboard, see
+[`MOBILE_OTEL_RUM_DASHBOARD.md`](./MOBILE_OTEL_RUM_DASHBOARD.md).
 
 ---
 
@@ -253,7 +255,7 @@ events.
 | Auto perf metrics | `app_memory`, `app_cpu_usage`, `app_frames_rate`, `app_frozen_frame`, `app_startup` (both) | _None on iOS_; `app.jank` events on Android |
 | Crashes | Native crash → `kind=exception, type=crash` (FaroCrashKit) | iOS: MetricKit (delayed); Android: `device.crash` event (next launch) |
 | Where to query | Frontend Observability plugin (Loki under the hood) | Tempo + Loki via Explore + custom dashboards |
-| Where to view | Frontend Observability plugin (per-app drilldown UI) | "Android & iOS OTel RUM" dashboard |
+| Where to view | Frontend Observability plugin (per-app drilldown UI) | [Mobile OTel RUM dashboard](./MOBILE_OTEL_RUM_DASHBOARD.md) |
 | User context | `user_id` / `user_username` (Faro auto when set via SDK) | Not yet attached on every signal — `enduser.id` is the OTel attribute to use; tracked in [#48](https://github.com/grafana/mobile-o11y-demo/issues/48) / [`OTEL_MOBILE_MATURITY.md` § M-001](./OTEL_MOBILE_MATURITY.md#m-001--no-first-class-user-context-enduserid-on-mobile-sdks) |
 
 ---

@@ -120,7 +120,7 @@ nav.destination          = current Compose route
 
 Where to view the data on the demo stack:
 
-- **Dashboard:** "Android & iOS OTel RUM" on your Grafana Cloud stack
+- **Dashboard:** import and configure the shared [Mobile OTel RUM dashboard](../docs/MOBILE_OTEL_RUM_DASHBOARD.md)
 - **Explore Tempo:** filter by `resource.service.name="quickpizza-android"`
 - **Explore Loki:** filter by `service_name="quickpizza-android"`
 
