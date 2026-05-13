@@ -58,6 +58,7 @@ logs.txt
 # macOS
 .DS_Store
 /.claude/CLAUDE.md
+/CLAUDE.local.md
 /tmp_dev/
 /Mobiles/android/.gradle
 /Mobiles/android/app/src/main/res/raw/config.json
