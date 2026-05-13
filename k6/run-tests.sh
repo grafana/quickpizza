@@ -33,7 +33,7 @@ for test in $TESTS; do
 	# Disable thresholds because some threshold examples fail
     echo "Running: $test"
     rm -f $LOGS
-	$K6_PATH run --no-thresholds -e BASE_URL="$BASE_URL" --log-output=file=$LOGS --log-format=json -w --no-summary "$test"
+	$K6_PATH run --no-thresholds -e BASE_URL="$BASE_URL" --log-output=file=$LOGS --log-format=json -w --summary-mode=disabled "$test"
     k6_exit_code=$?
 
     # Only check error logs if logs file is not empty.
