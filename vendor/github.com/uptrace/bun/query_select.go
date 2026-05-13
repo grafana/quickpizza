@@ -20,6 +20,7 @@ type union struct {
 	query *SelectQuery
 }
 
+// SelectQuery builds SQL SELECT statements.
 type SelectQuery struct {
 	whereBaseQuery
 	idxHintsQuery
@@ -37,6 +38,7 @@ type SelectQuery struct {
 
 var _ Query = (*SelectQuery)(nil)
 
+// NewSelectQuery returns a SelectQuery attached to the provided DB.
 func NewSelectQuery(db *DB) *SelectQuery {
 	return &SelectQuery{
 		whereBaseQuery: whereBaseQuery{
@@ -47,16 +49,19 @@ func NewSelectQuery(db *DB) *SelectQuery {
 	}
 }
 
+// Conn sets the database connection for this query.
 func (q *SelectQuery) Conn(db IConn) *SelectQuery {
 	q.setConn(db)
 	return q
 }
 
+// Model sets the model to select into and generates SELECT and FROM clauses.
 func (q *SelectQuery) Model(model any) *SelectQuery {
 	q.setModel(model)
 	return q
 }
 
+// Err sets an error on the query, causing subsequent operations to fail.
 func (q *SelectQuery) Err(err error) *SelectQuery {
 	q.setErr(err)
 	return q
@@ -72,26 +77,31 @@ func (q *SelectQuery) Apply(fns ...func(*SelectQuery) *SelectQuery) *SelectQuery
 	return q
 }
 
+// With adds a WITH clause (Common Table Expression) to the query.
 func (q *SelectQuery) With(name string, query Query) *SelectQuery {
 	q.addWith(NewWithQuery(name, query))
 	return q
 }
 
+// WithRecursive adds a WITH RECURSIVE clause to the query.
 func (q *SelectQuery) WithRecursive(name string, query Query) *SelectQuery {
 	q.addWith(NewWithQuery(name, query).Recursive())
 	return q
 }
 
+// WithQuery adds a pre-configured WITH clause to the query.
 func (q *SelectQuery) WithQuery(query *WithQuery) *SelectQuery {
 	q.addWith(query)
 	return q
 }
 
+// Distinct adds a DISTINCT clause to eliminate duplicate rows.
 func (q *SelectQuery) Distinct() *SelectQuery {
 	q.distinctOn = make([]schema.QueryWithArgs, 0)
 	return q
 }
 
+// DistinctOn adds a DISTINCT ON clause for PostgreSQL-specific distinct behavior.
 func (q *SelectQuery) DistinctOn(query string, args ...any) *SelectQuery {
 	q.distinctOn = append(q.distinctOn, schema.SafeQuery(query, args))
 	return q
@@ -99,6 +109,7 @@ func (q *SelectQuery) DistinctOn(query string, args ...any) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// Table specifies the table(s) to select from.
 func (q *SelectQuery) Table(tables ...string) *SelectQuery {
 	for _, table := range tables {
 		q.addTable(schema.UnsafeIdent(table))
@@ -106,11 +117,13 @@ func (q *SelectQuery) Table(tables ...string) *SelectQuery {
 	return q
 }
 
+// TableExpr adds a table expression to the FROM clause with arguments.
 func (q *SelectQuery) TableExpr(query string, args ...any) *SelectQuery {
 	q.addTable(schema.SafeQuery(query, args))
 	return q
 }
 
+// ModelTableExpr overrides the table name derived from the model.
 func (q *SelectQuery) ModelTableExpr(query string, args ...any) *SelectQuery {
 	q.modelTableName = schema.SafeQuery(query, args)
 	return q
@@ -118,6 +131,7 @@ func (q *SelectQuery) ModelTableExpr(query string, args ...any) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// Column adds columns to the SELECT clause.
 func (q *SelectQuery) Column(columns ...string) *SelectQuery {
 	for _, column := range columns {
 		q.addColumn(schema.UnsafeIdent(column))
@@ -125,11 +139,13 @@ func (q *SelectQuery) Column(columns ...string) *SelectQuery {
 	return q
 }
 
+// ColumnExpr adds a column expression to the SELECT clause with arguments.
 func (q *SelectQuery) ColumnExpr(query string, args ...any) *SelectQuery {
 	q.addColumn(schema.SafeQuery(query, args))
 	return q
 }
 
+// ExcludeColumn excludes specific columns from being selected.
 func (q *SelectQuery) ExcludeColumn(columns ...string) *SelectQuery {
 	q.excludeColumn(columns)
 	return q
@@ -137,21 +153,25 @@ func (q *SelectQuery) ExcludeColumn(columns ...string) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// WherePK adds a WHERE condition on the model's primary key columns.
 func (q *SelectQuery) WherePK(cols ...string) *SelectQuery {
 	q.addWhereCols(cols)
 	return q
 }
 
+// Where adds a WHERE condition combined with AND.
 func (q *SelectQuery) Where(query string, args ...any) *SelectQuery {
 	q.addWhere(schema.SafeQueryWithSep(query, args, " AND "))
 	return q
 }
 
+// WhereOr adds a WHERE condition combined with OR.
 func (q *SelectQuery) WhereOr(query string, args ...any) *SelectQuery {
 	q.addWhere(schema.SafeQueryWithSep(query, args, " OR "))
 	return q
 }
 
+// WhereGroup groups WHERE conditions with the given separator (AND/OR).
 func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery) *SelectQuery {
 	saved := q.where
 	q.where = nil
@@ -166,11 +186,13 @@ func (q *SelectQuery) WhereGroup(sep string, fn func(*SelectQuery) *SelectQuery)
 	return q
 }
 
+// WhereDeleted adds a WHERE condition to select soft-deleted rows only.
 func (q *SelectQuery) WhereDeleted() *SelectQuery {
 	q.whereDeleted()
 	return q
 }
 
+// WhereAllWithDeleted includes both active and soft-deleted rows.
 func (q *SelectQuery) WhereAllWithDeleted() *SelectQuery {
 	q.whereAllWithDeleted()
 	return q
@@ -178,6 +200,7 @@ func (q *SelectQuery) WhereAllWithDeleted() *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// UseIndex adds a USE INDEX hint for MySQL to suggest index usage.
 func (q *SelectQuery) UseIndex(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addUseIndex(indexes...)
@@ -185,6 +208,7 @@ func (q *SelectQuery) UseIndex(indexes ...string) *SelectQuery {
 	return q
 }
 
+// UseIndexForJoin adds a USE INDEX FOR JOIN hint for MySQL.
 func (q *SelectQuery) UseIndexForJoin(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addUseIndexForJoin(indexes...)
@@ -192,6 +216,7 @@ func (q *SelectQuery) UseIndexForJoin(indexes ...string) *SelectQuery {
 	return q
 }
 
+// UseIndexForOrderBy adds a USE INDEX FOR ORDER BY hint for MySQL.
 func (q *SelectQuery) UseIndexForOrderBy(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addUseIndexForOrderBy(indexes...)
@@ -199,6 +224,7 @@ func (q *SelectQuery) UseIndexForOrderBy(indexes ...string) *SelectQuery {
 	return q
 }
 
+// UseIndexForGroupBy adds a USE INDEX FOR GROUP BY hint for MySQL.
 func (q *SelectQuery) UseIndexForGroupBy(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addUseIndexForGroupBy(indexes...)
@@ -206,6 +232,7 @@ func (q *SelectQuery) UseIndexForGroupBy(indexes ...string) *SelectQuery {
 	return q
 }
 
+// IgnoreIndex adds an IGNORE INDEX hint for MySQL to prevent index usage.
 func (q *SelectQuery) IgnoreIndex(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addIgnoreIndex(indexes...)
@@ -213,6 +240,7 @@ func (q *SelectQuery) IgnoreIndex(indexes ...string) *SelectQuery {
 	return q
 }
 
+// IgnoreIndexForJoin adds an IGNORE INDEX FOR JOIN hint for MySQL.
 func (q *SelectQuery) IgnoreIndexForJoin(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addIgnoreIndexForJoin(indexes...)
@@ -220,6 +248,7 @@ func (q *SelectQuery) IgnoreIndexForJoin(indexes ...string) *SelectQuery {
 	return q
 }
 
+// IgnoreIndexForOrderBy adds an IGNORE INDEX FOR ORDER BY hint for MySQL.
 func (q *SelectQuery) IgnoreIndexForOrderBy(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addIgnoreIndexForOrderBy(indexes...)
@@ -227,6 +256,7 @@ func (q *SelectQuery) IgnoreIndexForOrderBy(indexes ...string) *SelectQuery {
 	return q
 }
 
+// IgnoreIndexForGroupBy adds an IGNORE INDEX FOR GROUP BY hint for MySQL.
 func (q *SelectQuery) IgnoreIndexForGroupBy(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addIgnoreIndexForGroupBy(indexes...)
@@ -234,6 +264,7 @@ func (q *SelectQuery) IgnoreIndexForGroupBy(indexes ...string) *SelectQuery {
 	return q
 }
 
+// ForceIndex adds a FORCE INDEX hint for MySQL to require index usage.
 func (q *SelectQuery) ForceIndex(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addForceIndex(indexes...)
@@ -241,6 +272,7 @@ func (q *SelectQuery) ForceIndex(indexes ...string) *SelectQuery {
 	return q
 }
 
+// ForceIndexForJoin adds a FORCE INDEX FOR JOIN hint for MySQL.
 func (q *SelectQuery) ForceIndexForJoin(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addForceIndexForJoin(indexes...)
@@ -248,6 +280,7 @@ func (q *SelectQuery) ForceIndexForJoin(indexes ...string) *SelectQuery {
 	return q
 }
 
+// ForceIndexForOrderBy adds a FORCE INDEX FOR ORDER BY hint for MySQL.
 func (q *SelectQuery) ForceIndexForOrderBy(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addForceIndexForOrderBy(indexes...)
@@ -255,6 +288,7 @@ func (q *SelectQuery) ForceIndexForOrderBy(indexes ...string) *SelectQuery {
 	return q
 }
 
+// ForceIndexForGroupBy adds a FORCE INDEX FOR GROUP BY hint for MySQL.
 func (q *SelectQuery) ForceIndexForGroupBy(indexes ...string) *SelectQuery {
 	if q.db.dialect.Name() == dialect.MySQL {
 		q.addForceIndexForGroupBy(indexes...)
@@ -264,6 +298,7 @@ func (q *SelectQuery) ForceIndexForGroupBy(indexes ...string) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// Group adds columns to the GROUP BY clause.
 func (q *SelectQuery) Group(columns ...string) *SelectQuery {
 	for _, column := range columns {
 		q.group = append(q.group, schema.UnsafeIdent(column))
@@ -271,41 +306,49 @@ func (q *SelectQuery) Group(columns ...string) *SelectQuery {
 	return q
 }
 
+// GroupExpr adds a GROUP BY expression with optional arguments.
 func (q *SelectQuery) GroupExpr(group string, args ...any) *SelectQuery {
 	q.group = append(q.group, schema.SafeQuery(group, args))
 	return q
 }
 
+// Having adds a HAVING clause condition to filter grouped results.
 func (q *SelectQuery) Having(having string, args ...any) *SelectQuery {
 	q.having = append(q.having, schema.SafeQuery(having, args))
 	return q
 }
 
+// Order adds columns to the ORDER BY clause.
 func (q *SelectQuery) Order(orders ...string) *SelectQuery {
 	q.addOrder(orders...)
 	return q
 }
 
+// OrderBy adds an ORDER BY clause with explicit sort direction.
 func (q *SelectQuery) OrderBy(colName string, sortDir Order) *SelectQuery {
 	q.addOrderBy(colName, sortDir)
 	return q
 }
 
+// OrderExpr adds an ORDER BY expression with optional arguments.
 func (q *SelectQuery) OrderExpr(query string, args ...any) *SelectQuery {
 	q.addOrderExpr(query, args...)
 	return q
 }
 
+// Limit sets the maximum number of rows to return.
 func (q *SelectQuery) Limit(n int) *SelectQuery {
 	q.setLimit(n)
 	return q
 }
 
+// Offset sets the number of rows to skip before returning results.
 func (q *SelectQuery) Offset(n int) *SelectQuery {
 	q.setOffset(n)
 	return q
 }
 
+// For adds a FOR clause for row locking (e.g., "UPDATE", "SHARE").
 func (q *SelectQuery) For(s string, args ...any) *SelectQuery {
 	q.selFor = schema.SafeQuery(s, args)
 	return q
@@ -313,26 +356,32 @@ func (q *SelectQuery) For(s string, args ...any) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// Union combines this query with another using UNION (removes duplicates).
 func (q *SelectQuery) Union(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" UNION ", other)
 }
 
+// UnionAll combines this query with another using UNION ALL (keeps duplicates).
 func (q *SelectQuery) UnionAll(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" UNION ALL ", other)
 }
 
+// Intersect returns rows that appear in both this query and another (removes duplicates).
 func (q *SelectQuery) Intersect(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" INTERSECT ", other)
 }
 
+// IntersectAll returns rows that appear in both this query and another (keeps duplicates).
 func (q *SelectQuery) IntersectAll(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" INTERSECT ALL ", other)
 }
 
+// Except returns rows in this query that are not in another (removes duplicates).
 func (q *SelectQuery) Except(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" EXCEPT ", other)
 }
 
+// ExceptAll returns rows in this query that are not in another (keeps duplicates).
 func (q *SelectQuery) ExceptAll(other *SelectQuery) *SelectQuery {
 	return q.addUnion(" EXCEPT ALL ", other)
 }
@@ -347,6 +396,7 @@ func (q *SelectQuery) addUnion(expr string, other *SelectQuery) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// Join adds a JOIN clause with the specified join expression.
 func (q *SelectQuery) Join(join string, args ...any) *SelectQuery {
 	q.joins = append(q.joins, joinQuery{
 		join: schema.SafeQuery(join, args),
@@ -354,10 +404,12 @@ func (q *SelectQuery) Join(join string, args ...any) *SelectQuery {
 	return q
 }
 
+// JoinOn adds an ON condition to the most recent JOIN, combined with AND.
 func (q *SelectQuery) JoinOn(cond string, args ...any) *SelectQuery {
 	return q.joinOn(cond, args, " AND ")
 }
 
+// JoinOnOr adds an ON condition to the most recent JOIN, combined with OR.
 func (q *SelectQuery) JoinOnOr(cond string, args ...any) *SelectQuery {
 	return q.joinOn(cond, args, " OR ")
 }
@@ -396,6 +448,7 @@ func (q *SelectQuery) Relation(name string, apply ...func(*SelectQuery) *SelectQ
 	return q
 }
 
+// RelationOpts configures how a relation is joined in a SelectQuery.
 type RelationOpts struct {
 	// Apply applies additional options to the relation.
 	Apply func(*SelectQuery) *SelectQuery
@@ -513,6 +566,7 @@ func (q *SelectQuery) Comment(comment string) *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// Operation returns the query operation name ("SELECT").
 func (q *SelectQuery) Operation() string {
 	return "SELECT"
 }
@@ -792,6 +846,7 @@ func (q *SelectQuery) appendTables(gen schema.QueryGen, b []byte) (_ []byte, err
 
 //------------------------------------------------------------------------------
 
+// Rows executes the query and returns the result rows for manual scanning.
 func (q *SelectQuery) Rows(ctx context.Context) (*sql.Rows, error) {
 	if q.err != nil {
 		return nil, q.err
@@ -817,6 +872,7 @@ func (q *SelectQuery) Rows(ctx context.Context) (*sql.Rows, error) {
 	return rows, err
 }
 
+// Exec executes the query and optionally scans results into dest.
 func (q *SelectQuery) Exec(ctx context.Context, dest ...any) (res sql.Result, err error) {
 	if q.err != nil {
 		return nil, q.err
@@ -855,6 +911,7 @@ func (q *SelectQuery) Exec(ctx context.Context, dest ...any) (res sql.Result, er
 	return res, nil
 }
 
+// Scan executes the query and scans the results into dest.
 func (q *SelectQuery) Scan(ctx context.Context, dest ...any) error {
 	_, err := q.scanResult(ctx, dest...)
 	return err
@@ -938,6 +995,7 @@ func (q *SelectQuery) afterSelectHook(ctx context.Context) error {
 	return nil
 }
 
+// Count executes the query and returns the number of rows that match.
 func (q *SelectQuery) Count(ctx context.Context) (int, error) {
 	if q.err != nil {
 		return 0, q.err
@@ -964,6 +1022,7 @@ func (q *SelectQuery) Count(ctx context.Context) (int, error) {
 	return num, err
 }
 
+// ScanAndCount executes the query, scans results into dest, and returns the total count.
 func (q *SelectQuery) ScanAndCount(ctx context.Context, dest ...any) (int, error) {
 	if q.offset == 0 && q.limit == 0 {
 		// If there is no limit and offset, we can use a single query to get the count and scan
@@ -1044,6 +1103,7 @@ func (q *SelectQuery) scanAndCountSeq(ctx context.Context, dest ...any) (int, er
 	return count, firstErr
 }
 
+// Exists checks whether any rows match the query.
 func (q *SelectQuery) Exists(ctx context.Context) (bool, error) {
 	if q.err != nil {
 		return false, q.err
@@ -1112,6 +1172,7 @@ func (q *SelectQuery) String() string {
 	return string(buf)
 }
 
+// Clone creates a deep copy of the SelectQuery.
 func (q *SelectQuery) Clone() *SelectQuery {
 	if q == nil {
 		return nil
@@ -1232,10 +1293,12 @@ func (q *SelectQuery) Clone() *SelectQuery {
 
 //------------------------------------------------------------------------------
 
+// QueryBuilder wraps the SelectQuery in a generic QueryBuilder interface.
 func (q *SelectQuery) QueryBuilder() QueryBuilder {
 	return &selectQueryBuilder{q}
 }
 
+// ApplyQueryBuilder applies a function to a generic QueryBuilder and returns the modified SelectQuery.
 func (q *SelectQuery) ApplyQueryBuilder(fn func(QueryBuilder) QueryBuilder) *SelectQuery {
 	return fn(q.QueryBuilder()).Unwrap().(*SelectQuery)
 }
