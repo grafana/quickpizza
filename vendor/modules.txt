@@ -78,7 +78,7 @@ github.com/klauspost/compress/gzip
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/mattn/go-sqlite3 v1.14.32
+# github.com/mattn/go-sqlite3 v1.14.34
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
@@ -147,8 +147,8 @@ github.com/uptrace/bun/dialect/sqlitedialect
 # github.com/uptrace/bun/driver/pgdriver v1.2.16
 ## explicit; go 1.24.0
 github.com/uptrace/bun/driver/pgdriver
-# github.com/uptrace/bun/driver/sqliteshim v1.2.16
-## explicit; go 1.24.0
+# github.com/uptrace/bun/driver/sqliteshim v1.2.18
+## explicit; go 1.25.0
 github.com/uptrace/bun/driver/sqliteshim
 # github.com/uptrace/bun/extra/bunotel v1.2.16
 ## explicit; go 1.24.0
@@ -294,8 +294,8 @@ go.opentelemetry.io/proto/otlp/trace/v1
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/pbkdf2
-# golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6
-## explicit; go 1.24.0
+# golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
+## explicit; go 1.25.0
 golang.org/x/exp/constraints
 # golang.org/x/net v0.52.0
 ## explicit; go 1.25.0
@@ -445,7 +445,7 @@ gopkg.in/yaml.v3
 # mellium.im/sasl v0.3.2
 ## explicit; go 1.20
 mellium.im/sasl
-# modernc.org/libc v1.67.0
+# modernc.org/libc v1.68.0
 ## explicit; go 1.24.0
 modernc.org/libc
 modernc.org/libc/errno
@@ -479,7 +479,8 @@ modernc.org/mathutil
 # modernc.org/memory v1.11.0
 ## explicit; go 1.23.0
 modernc.org/memory
-# modernc.org/sqlite v1.40.1
+# modernc.org/sqlite v1.46.1
 ## explicit; go 1.24.0
 modernc.org/sqlite
 modernc.org/sqlite/lib
+modernc.org/sqlite/vtab
