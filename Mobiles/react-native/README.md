@@ -150,7 +150,12 @@ Use the **same** `FARO_*` variables and **`sourcemaps.config.json`** as on Andro
 - **Debug** builds skip upload; 
 - **Release** runs the same `faro-upload-source-map` flow as Android once the composed map exists.
 
-**Prerequisite:** This app’s Xcode **Release** configuration sets **`SOURCEMAP_FILE`** so Hermes produces a composed **`main.jsbundle.map`**. Copy that setting into other apps if you reuse this pattern.
+**Prerequisite (`SOURCEMAP_FILE`):** React Native’s iOS bundle step writes the **composed** Hermes map to the path in this user-defined build setting. Without it, **`main.jsbundle.map`** may not be produced where the Faro upload script expects, and upload can be skipped.
+
+- **This demo (QuickPizza):** Already configured — **`Release`** sets **`SOURCEMAP_FILE = $(DERIVED_FILE_DIR)/main.jsbundle.map`** in `ios/QuickPizza.xcodeproj`. You do not need to add anything before **`yarn ios -- --mode Release`**.
+- **Another React Native app:** Add the same setting on your **app target** (usually **Release** only):
+  - **Xcode:** Select the app target → **Build Settings** → **+** → **Add User-Defined Setting** → name **`SOURCEMAP_FILE`**, value **`$(DERIVED_FILE_DIR)/main.jsbundle.map`**. Set it for **Release** (or all configurations if you want composed maps in Debug too; for Faro uploads, **Release** is what matters).
+  - **Project file:** You can instead add the same key/value to the **Release** `XCBuildConfiguration` for your app target in `project.pbxproj`, as in this repo’s QuickPizza target.
 
 1. **Produce a Release build** (from `Mobiles/react-native/`):
 
