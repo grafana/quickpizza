@@ -190,6 +190,58 @@ Use the **same** `FARO_*` variables and **`sourcemaps.config.json`** as on Andro
 - **`FARO_SKIP_SOURCEMAP_UPLOAD=1`** in the environment for the Release build skips upload (offline iteration).
 - **Manual re-upload** with **`npx faro-cli metro upload --map …`** is optional if you need a CI-only retry; autolinking normally uploads using **`SOURCEMAP_FILE`**.
 
+#### Verify the composed source map (pre-flight check)
+
+Before you upload to Faro, deploy a build to a real device, or kick off the full E2E loop (rebuild → install → trigger exception → check Grafana), it is much faster to confirm **locally** that the composed map for your release build actually resolves device frames back into `src/` files. That is what **`scripts/verify-sourcemap.js`** does for both Android and iOS.
+
+**Why bother:** the failure modes that matter (composed map with `sources=0`, frames resolving only into `node_modules/`, bundle id drift between the device payload and the map) all show up here without needing a Faro upload, a Grafana round-trip, or even an internet connection. Run it once after every release build whose composed map you intend to upload.
+
+**Prerequisites (same shell as your Release build):**
+
+- The corresponding Release build was produced with **`ENABLE_FARO_PAYLOAD_DIAGNOSTICS=true`** so the app emits `[Faro diagnostics][exception-frames-json]` (Android: `adb logcat`, iOS: `xcrun simctl log show`).
+- The build has been **installed** on the device or simulator and you triggered an exception **after** that install (Debug → Exceptions → **Handled exception**). Frames from a stale build will not match a freshly composed map.
+- The `source-map` package is available. The script will offer either `npm i -D source-map@^0.7` or a one-shot `npx --yes -p source-map@^0.7 …` invocation.
+
+**Android — verify the composed Gradle map:**
+
+Run from `Mobiles/react-native/` after `yarn android --mode=release` and a Debug → Handled exception:
+
+```bash
+node scripts/verify-sourcemap.js --android-release --logcat
+```
+
+This auto-detects `android/app/build/generated/sourcemaps/react/release/index.android.bundle.map` (the **composed** map — the one that gets uploaded) and `index.android.bundle.packager.map` (Metro intermediate, do **not** upload), pulls the freshest exception frames straight from `adb logcat -d`, and resolves each frame against both maps.
+
+If the buffer rotated past your exception, clear it and re-trigger:
+
+```bash
+node scripts/verify-sourcemap.js --android-release --logcat \
+  --logcat-clear --logcat-wait 15000
+# Trigger Debug → Handled exception within 15s of "Cleared adb logcat ring buffer".
+```
+
+**iOS — verify the composed Xcode map:**
+
+Run from `Mobiles/react-native/` after `yarn ios -- --mode Release` and a Debug → Handled exception:
+
+```bash
+node scripts/verify-sourcemap.js --ios-release --ios-log
+```
+
+This walks `~/Library/Developer/Xcode/DerivedData/**/main.jsbundle.map` and picks the most recently written composed map, then reads the diagnostics payload from the booted Simulator via `xcrun simctl spawn booted log show --predicate 'eventMessage CONTAINS "Faro diagnostics"'`. If you saved Simulator logs to a file, point the script at it: `--ios-log path/to/simulator.log`.
+
+**How to read the verdict:**
+
+The script prints a per-map summary (`APP=… DEP=… OTH=… NONE=…`) plus a final `=== Verdict ===` block:
+
+| Verdict | Meaning | What to do |
+| --- | --- | --- |
+| **PASS** | `APP > 0` — at least one device frame resolved into your `src/` tree. The map is upload-ready. | Proceed with `faro-cli metro upload` (or rely on the autolinked Release upload step), reinstall, re-trigger, and verify in Grafana. `DEP` frames pointing at `node_modules/react-native/*` are normal — only the topmost user-code frame is yours. |
+| **FAIL** | Composed map exists but `sources=0`. `compose-source-maps.js` could not match the packager map against the HBC map. | Almost always an outdated `@grafana/faro-metro-plugin` flattening the packager map at Metro time. Upgrade to a version that autodetects the Hermes precompile pipeline, `yarn install`, then rebundle: `( cd android && ./gradlew :app:bundleReleaseJsAndAssets --rerun-tasks )` (Android) or rerun the iOS Release build. |
+| **WARN** | Map has source mappings but every frame resolved outside `src/`. | The frames came from a different build than this map (stale install, or a bundle-id drift). Reinstall, re-trigger Debug → Handled exception against the **current** build, and rerun the script with `--logcat` / `--ios-log`. |
+
+When a PASS lands, you can confidently upload, reinstall, and run the full Frontend Observability + E2E loop knowing the composed map itself is not the variable. Skip this step only when iterating on something unrelated to symbolication.
+
 ## Running the app
 
 ### Start the QuickPizza backend

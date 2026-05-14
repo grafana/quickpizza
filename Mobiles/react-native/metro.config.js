@@ -8,10 +8,19 @@ const withFaroConfig = require('@grafana/faro-metro-plugin').default;
  * Must match `releaseBundleFilename` in `initializeFaro` for symbolication.
  * There is no `npx react-native bundle` flag for this — set it here (or via FARO_SOURCEMAP_FILE for per-platform CI).
  * Android release bundles often use `index.android.bundle`; iOS often uses `main.jsbundle`.
+ *
+ * Xcode sets PLATFORM_NAME (e.g. iphoneos, iphonesimulator) during the Bundle React Native
+ * script; it does not set FARO_PLATFORM. Without detecting iOS here, Metro would label maps as
+ * `index.android.bundle` while devices report `main.jsbundle`, breaking Hermes compose + FE O11y symbolication for iOS.
  */
+const xcPlatform = (process.env.PLATFORM_NAME || '').toLowerCase();
+const isIosBundlePlatform =
+  process.env.FARO_PLATFORM === 'ios' ||
+  xcPlatform.includes('iphone') ||
+  xcPlatform.includes('ipad');
 const defaultSourceMapFile =
   process.env.FARO_SOURCEMAP_FILE ||
-  (process.env.FARO_PLATFORM === 'ios' ? 'main.jsbundle' : 'index.android.bundle');
+  (isIosBundlePlatform ? 'main.jsbundle' : 'index.android.bundle');
 
 /** Non-secret Faro source map API settings; override per key with env if needed (CI). */
 function loadSourcemapsConfig() {
