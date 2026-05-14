@@ -74,7 +74,7 @@ function faroPayloadDiagnosticsBeforeSend(item: TransportItem): TransportItem | 
       `  frames=${frameSummary.join(' | ')}`,
   );
 
-  const framesJson = JSON.stringify(frames ?? [], null, 2);
+  const framesJson = JSON.stringify(frames ?? []);
   logChunked('[Faro diagnostics][exception-frames-json]', framesJson);
 
   return item;
