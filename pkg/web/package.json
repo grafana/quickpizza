@@ -31,6 +31,7 @@
     "vite": "7.1.11"
   },
   "type": "module",
+  "packageManager": "npm@10.9.7",
   "dependencies": {
     "install": "0.13.0",
     "npm": "11.9.0",
