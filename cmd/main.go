@@ -111,6 +111,7 @@ func main() {
 				envEndpoint("QUICKPIZZA_ENABLE_WS_SERVICE", "QUICKPIZZA_WS_ENDPOINT"),
 				envEndpoint("QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE", "QUICKPIZZA_RECOMMENDATIONS_ENDPOINT"),
 				envEndpoint("QUICKPIZZA_ENABLE_CONFIG_SERVICE", "QUICKPIZZA_CONFIG_ENDPOINT"),
+				envEndpoint("QUICKPIZZA_ENABLE_CHAT_SERVICE", "QUICKPIZZA_CHAT_SERVICE_ENDPOINT"),
 			)
 		}
 	}
@@ -135,6 +136,14 @@ func main() {
 			os.Exit(1)
 		}
 		server.AddCopyHandler(db)
+	}
+
+	// Chat service can optionally forward messages to an external AI service.
+	// If QUICKPIZZA_CHAT_ENDPOINT is not set, it will run in demo mode with canned responses.
+	if envServe("QUICKPIZZA_ENABLE_CHAT_SERVICE") {
+		chatEndpoint := os.Getenv("QUICKPIZZA_CHAT_ENDPOINT")
+		chatClient := qphttp.NewChatClient(chatEndpoint).WithClient(httpCli)
+		server.AddChatHandler(chatClient)
 	}
 
 	// Recommendations service needs to know the URL where the Catalog and Copy services are located.
