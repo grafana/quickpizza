@@ -48,8 +48,4 @@ app.*.map.json
 .env
 config.json
 
-# E2E test results (Arbigent)
-arbigent-result/
-arbigent-result-*/
-scripts/e2e/dart/.dart_tool/
-scripts/e2e/dart/pubspec.lock
+# E2E test results (Arbigent) now live in Mobiles/e2e/results/flutter/

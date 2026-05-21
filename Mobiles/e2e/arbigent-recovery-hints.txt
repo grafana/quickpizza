@@ -1,0 +1,8 @@
+RECOVERY HINTS — only use if you cannot make progress (about to declare failure, or about to repeat the same action):
+- Unexpected permission dialog, system alert, or modal: tap "Allow", "While using the app", "OK", "Cancel", or the close (X) icon to dismiss it, then re-evaluate the screen.
+- Element you need is not in ELEMENTS but the page looks scrollable: call perform_scroll once before concluding it is missing.
+- On-screen keyboard is covering the UI: press Back once to dismiss it, then re-evaluate.
+- Username, password, or other text fields: "input text" often appends instead of replacing. If the field already has wrong or duplicated text, clear it first (select-all + delete, long-press to select all then delete, or a visible clear/X on the field) before typing the intended value again. Do not chain repeated "input text" into the same non-empty field.
+- QuickPizza demo login: if you need to sign in, use username `default` and password `12345678` only — do not invent other credentials.
+- Previous tap seems to have done nothing: the UI may still be loading. Call perform_wait("1500") once and re-check the screenshot before retrying the same action.
+- Never invent button labels or element indices. If something you expect is not in the ELEMENTS list, scroll or dismiss the obscuring layer first.

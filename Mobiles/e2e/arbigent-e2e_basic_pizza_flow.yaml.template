@@ -1,10 +1,13 @@
-# Shared Arbigent project for QuickPizza Android (Flutter + React Native).
+# Shared Arbigent project for QuickPizza Android (Flutter + React Native + Android Native).
 # run_e2e_tests.sh replaces __ANDROID_PACKAGE__ with the app under test:
-#   - Flutter default: com.example.flutter_mobile_o11y_demo
-#   - React Native default: com.quickpizza
-# Both use launcher label "QuickPizza", so icon-tap / app-drawer instructions match.
+#   - Flutter default:        com.example.flutter_mobile_o11y_demo  (launcher label: QPizza Flutter)
+#   - React Native default:   com.quickpizza                        (launcher label: QPizza RN)
+#   - Android Native default: com.grafana.quickpizza                (launcher label: QPizza Android)
+# All three apps share a "QPizza" launcher label prefix and the same pizza-themed icon.
 # LaunchApp uses the package id (not the icon position), so CI passes even when the icon
-# is not on the first home page; the AI fallback below covers real launcher layouts when needed.
+# is not on the first home page; the AI fallback in bring_app_to_foreground matches on the
+# pizza icon + the "QPizza" prefix to cover all three apps without per-app branching.
+
 scenarios:
   - id: "start_app"
     goal: |
@@ -12,6 +15,8 @@ scenarios:
 
       SUCCESS CRITERIA:
       - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
+      __RECOVERY_BLOCK__
 
     initializationMethods:
       - type: "Back"
@@ -26,51 +31,35 @@ scenarios:
 
   - id: "request_pizza"
     goal: |
-      You should see a pizza recommendation card with "Love it!" and "No thanks" buttons below it.
-      As soon as you see the pizza card and those two buttons, OUTPUT "Goal achieved" as your action and STOP. Do NOT tap anything else.
+      You should request a new pizza and see a pizza recommendation card with "Love it!" and "No thanks" buttons below it.
+      As soon as you see the pizza card and those two buttons.
 
-      CRITICAL - NEVER PRESS BACK AT APP START:
-      - When the app first opens (loading spinner or initial screen), do NOT press Back—it will close the app.
-      - Once you see the "Pizza, Please!" button, the app has started. Stay in the app. Do not press Back.
+      WHAT IS A PIZZA RECOMMENDATION CARD:
+      - It is an UI element which contains:
+        - The name of a pizza
+        - Information about the pizza, such as: dough, tool, calories, ingredients
 
-      CRITICAL - QUICKPIZZA LOGIN ONLY (NOT GOOGLE):
-      - The QuickPizza login form has "Username" and "Password" fields and a "Sign In" button. It says "Welcome to QuickPizza".
-      - If you see "Google sign-in", "Enter your email", or any Google-branded screen—you have left QuickPizza. Do NOT enter credentials there. Press Back to return to QuickPizza, then tap the profile/person icon to open the QuickPizza Login screen (with "Username" label, not "email").
+      __RECOVERY_BLOCK__
 
-      STEP-BY-STEP FLOW:
-      1. Wait for the app to load. When you see "Pizza, Please!" button, the app is ready. Do not press Back.
-      2. If you already see the recommendation card (pizza name, ingredients) WITH "Love it!" and "No thanks" → goal achieved, stop. You do not need to tap anything else.
-      3. If you see "Pizza, Please!" but NO recommendation card yet → Tap "Pizza, Please!" once. Wait and observe.
-      4. If you see the error "Failed to get pizza recommendation. Please log in and try again." you are not logged in for the API:
-         - Tap the profile/person icon (QuickPizza app bar) → QuickPizza login ("Username", "Password", "Sign In", "Welcome to QuickPizza"). NOT Google sign-in.
-         - Enter username "default" and password "12345678". Tap "Sign In". Do NOT tap Back after sign-in.
-         - On Home again, tap "Pizza, Please!" once and wait until the card and "Love it!"/"No thanks" appear.
-      5. If you see Profile/ratings list ("X pizzas rated") → you are logged in. Press Back to Home, tap "Pizza, Please!" once, wait for the card.
-      6. Once you see the pizza card with "Love it!" and "No thanks", OUTPUT "Goal achieved" and stop. Do NOT tap anything else.
-
-      NOTE: "Failed to rate pizza. Please try again." is shown after tapping a rating button when the rating API fails (often you are not logged in, or the request failed). It is NOT the goal of this scenario—if you see it before you have a card, log in per step 4 and request a new recommendation. Do not declare goal achieved on that error.
     maxRetry: 1
     maxStep: 15
 
   - id: "rate_pizza"
     dependency: "request_pizza"
     goal: |
-      You must submit one rating and then see the success thank-you text for that tap.
+      You should see the raiting success text below the raiting buttons.
 
-      SUCCESS TEXT (exact strings from the app—either is a pass):
+      SUCCESS TEXT:
+      - The success text will appear below the the raitings buttons.
       - After tapping "Love it!" → look for: Thanks! We're glad you liked it!
       - After tapping "No thanks" → look for: Thanks for your feedback!
 
-      If you see "Failed to rate pizza. Please try again." the rating API failed (you may be logged out or the server rejected the request). Do NOT declare goal achieved.
-      Recovery: tap profile → QuickPizza login (Username/Password, default / 12345678) → Sign In → Home → tap "Pizza, Please!" once → wait for the card → tap "Love it!" OR "No thanks" once → wait again 8 seconds until you see one of the success texts above.
+      HINTS:
+      - If you see the success text, OUTPUT "Goal achieved" and STOP. Do NOT tap anything else.
+      - The "No thanks" and "Love it!" raiting buttons are most likely places at the bottom of the pizza recommendations view.
 
-      FLOW:
-      1. If you already see either success text (glad you liked it OR thanks for your feedback) below the buttons from a previous tap → OUTPUT "Goal achieved" and STOP.
-      2. If you still see "Love it!" and "No thanks" only → Tap exactly ONE of them. Then "Wait for 8000 ms" (8 seconds). Do nothing else during the wait.
-      3. After the wait: if you see the matching success text for the button you chose → OUTPUT "Goal achieved" and STOP.
-      4. If you see "Failed to rate pizza. Please try again." run the Recovery block once, then repeat steps 2–3 at most once more within your step limit.
+      __RECOVERY_BLOCK__
 
-      CRITICAL: Prefer one rating tap + one 8s wait before scrolling or extra taps; avoid rapid double-taps.
     maxRetry: 2
     maxStep: 18
 
@@ -81,6 +70,9 @@ scenarios:
 
       1. Use "Press key: HOME" to go to the Android home screen. Do NOT tap any in-app element (Home/About tabs keep you in the app).
       2. If you see app icons (Play Store, Gmail, QuickPizza, etc.), OUTPUT "Goal achieved" immediately. Do NOT swipe or scroll—you are already on home.
+
+      __RECOVERY_BLOCK__
+
     maxRetry: 1
     maxStep: 4
 
@@ -99,18 +91,20 @@ scenarios:
       ORDERED FALLBACK — Only if you still see the Android launcher (not the QuickPizza UI):
 
       CASE A — Icon on THIS home page:
-      - If you see a QuickPizza app icon (pizza-themed icon, label "QuickPizza"), tap it once. Do not guess unrelated icons.
+      - If you see a QuickPizza app icon (pizza-themed icon; the label starts with "QPizza", e.g. "QPizza Flutter", "QPizza RN", or "QPizza Android"), tap it once. Do not guess unrelated icons.
 
       CASE B — Icon not visible on this page (another home screen or drawer):
       - Try a horizontal swipe from RIGHT to LEFT on the empty WALLPAPER area between the dock and the icon rows (do not start the swipe on Phone, Messages, WebView Browser Tester, Camera, or Gmail). This may move to the next launcher page. Look for QuickPizza again. Repeat at most 3 page changes.
 
       CASE C — Still no QuickPizza icon:
-      - Open the "all apps" / app drawer: swipe UP from the bottom edge of the screen (above the nav bar). Scroll the alphabet list if needed and tap "QuickPizza".
+      - Open the "all apps" / app drawer: swipe UP from the bottom edge of the screen (above the nav bar). Scroll the alphabet list if needed and tap the entry whose label starts with "QPizza".
 
       AVOID: Do not tap WebView Browser Tester, Phone, Messages, or Camera to "find" QuickPizza unless you must press Home first to recover from a mistake.
 
       SUCCESS CRITERIA:
       - You see the QuickPizza app UI with the "Pizza, Please!" button (not the launcher).
+
+      __RECOVERY_BLOCK__
 
     maxRetry: 2
     maxStep: 10

@@ -1,0 +1,4 @@
+# Ignore all Arbigent run artifacts (results, AI response cache, screenshots).
+# The runner writes each app's output here under results/<app>/.
+*
+!.gitignore
