@@ -1,5 +1,5 @@
 PODS:
-  - FaroReactNative (1.0.0):
+  - FaroReactNative (1.1.0):
     - PLCrashReporter (~> 1.11)
     - React-Core
   - FBLazyVector (0.84.1)
@@ -2180,9 +2180,9 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  FaroReactNative: cae60e655fcc5b43afbff967b345ccf3d0a0023f
+  FaroReactNative: dded3d24aef51de696059f34124eb47fdbaa0ad8
   FBLazyVector: e97c19a5a442429d1988f182a1940fb08df514da
-  hermes-engine: af26a2fc195f459f1524c41bc6da855e0eafa8ae
+  hermes-engine: e9e14608a793b9b4b1c7998481f7462e3cb96f99
   PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
   RCTRequired: bb77b070f75f53398ce43c0aaaa58337cebe2bf6
@@ -2192,7 +2192,7 @@ SPEC CHECKSUMS:
   React: 1ba7d364ade7d883a1ec055bfc3606f35fdee17b
   React-callinvoker: bc2a26f8d84fb01f003fc6de6c9337b64715f95b
   React-Core: 7840d3a80b43a95c5e80ef75146bd70925ebab0f
-  React-Core-prebuilt: 8d637a909b2f1ea893ccd5f60707c5db195e57e9
+  React-Core-prebuilt: 6cc8687ba515963c0c1397bf43e6ed197cfa85d6
   React-CoreModules: 2eb010400b63b89e53a324ffb3c112e4c7c3ce42
   React-cxxreact: a558e92199d26f145afa9e62c4233cf8e7950efe
   React-debug: 755200a6e7f5e6e0a40ff8d215493d43cce285fc
@@ -2255,7 +2255,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: e96e93b493d8d86eeaee3e590ba0be53f6abe46f
   ReactCodegen: 797de5178718324c6eba3327b07f9a423fbd5787
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
-  ReactNativeDependencies: c380a964bdefa6cb8a75c47f1d645646b947eb74
+  ReactNativeDependencies: b5d7a80f91f92832aa12d4e7ec1d0e90a92722cd
   RNCAsyncStorage: 7a5a6094f9f6b9158e72f1855cd86e769413d851
   RNDeviceInfo: 900bd20e1fd3bfd894e7384cc4a83880c0341bd3
   RNScreens: 6cb648bdad8fe9bee9259fe144df95b6d1d5b707

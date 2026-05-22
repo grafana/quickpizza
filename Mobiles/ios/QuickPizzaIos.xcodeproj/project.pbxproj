@@ -432,7 +432,7 @@
 			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 2.3.0;
+				minimumVersion = 2.4.1;
 			};
 		};
 		62EFEF4C2F360BAE00E72D9F /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */ = {
@@ -440,7 +440,7 @@
 			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift-core.git";
 			requirement = {
 				kind = upToNextMinorVersion;
-				minimumVersion = 2.3.0;
+				minimumVersion = 2.4.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

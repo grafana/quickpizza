@@ -1046,13 +1046,13 @@
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/otlp-transformer" "^0.213.0"
 
-"@grafana/faro-react-native-tracing@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@grafana/faro-react-native-tracing/-/faro-react-native-tracing-1.0.0.tgz#2cc28c2443eee5a8f6da471e96d679607227243a"
-  integrity sha512-sRJBquH9TufNs8hw6AUpQvHq2+EtkqLnME7jzoqrZ/W54vOHf1iQht0mBMpD6qg/V/f3v6R+/3Asnh1rH+z4PA==
+"@grafana/faro-react-native-tracing@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@grafana/faro-react-native-tracing/-/faro-react-native-tracing-1.1.0.tgz#1a86bfedf5db7a249edb1ed2bc0536bf1928b3e6"
+  integrity sha512-PjP5FIjoWJH4q8ySVlDEHrUyxh1lrgwR7k1rR589Z8I6kd8TujTQuzCapxqMX/Y9WyxUO1yoj1j8MIUMokEmVQ==
   dependencies:
     "@grafana/faro-core" "^2.2.3"
-    "@grafana/faro-react-native" "^1.0.0"
+    "@grafana/faro-react-native" "^1.1.0"
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/core" "^2.0.0"
     "@opentelemetry/instrumentation" "^0.208.0"
@@ -1061,12 +1061,13 @@
     "@opentelemetry/otlp-transformer" "^0.208.0"
     "@opentelemetry/resources" "^2.0.0"
     "@opentelemetry/sdk-trace-base" "^2.0.0"
+    "@opentelemetry/sdk-trace-web" "^2.0.0"
     "@opentelemetry/semantic-conventions" "^1.32.0"
 
-"@grafana/faro-react-native@1.0.0", "@grafana/faro-react-native@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@grafana/faro-react-native/-/faro-react-native-1.0.0.tgz#f09e420a144a77ff041e5eeed414d90615f10100"
-  integrity sha512-6KXtbKHJBtsquopTs9rEB9EBQTDigVn4C/jHtPrxe6/DbwaFePhCtih2JUcEwJIPYjGP4evrEO7A8WbCYEkuoA==
+"@grafana/faro-react-native@1.1.0", "@grafana/faro-react-native@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@grafana/faro-react-native/-/faro-react-native-1.1.0.tgz#76e24dacc6101937c4b92ea024cd5c86adf004ea"
+  integrity sha512-KRAZJFCk2ZVgdi1Z2SeVt9c7r119UO1lCc6q+GDeApQHFPQEbICNmgIFFPL6EGceVPQ32F5mj2xGr/q/p6abtA==
   dependencies:
     "@grafana/faro-core" "^2.2.3"
     "@react-native-async-storage/async-storage" "^1.21.0"
@@ -1433,6 +1434,13 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "^1.29.0"
 
+"@opentelemetry/core@2.7.1":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-2.7.1.tgz#162bfab46d6ff4da1bef240ea52e23a926b0fdbc"
+  integrity sha512-QAqIj32AtK6+pEVNG7EOVxHdE06RP+FM5qpiEJ4RtDcFIqKUZHYhl7/7UY5efhwmwNAg7j8QbJVBLxMerc0+gw==
+  dependencies:
+    "@opentelemetry/semantic-conventions" "^1.29.0"
+
 "@opentelemetry/instrumentation-fetch@^0.208.0":
   version "0.208.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-fetch/-/instrumentation-fetch-0.208.0.tgz#1bfa7593f0e4fac4933e287ce4dd030340281dd2"
@@ -1512,6 +1520,14 @@
     "@opentelemetry/core" "2.6.1"
     "@opentelemetry/semantic-conventions" "^1.29.0"
 
+"@opentelemetry/resources@2.7.1":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/resources/-/resources-2.7.1.tgz#3b2a9179f6119bb1f2cddefe41ba9b2855504a5d"
+  integrity sha512-DeT6KKolmC4e/dRQvMQ/RwlnzhaqeiFOXY5ngoOPJ07GgVVKxZOg9EcrNZb5aTzUn+iCrJldAgOfQm1O/QfPAQ==
+  dependencies:
+    "@opentelemetry/core" "2.7.1"
+    "@opentelemetry/semantic-conventions" "^1.29.0"
+
 "@opentelemetry/sdk-logs@0.208.0":
   version "0.208.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-logs/-/sdk-logs-0.208.0.tgz#013494e23412c1594a694a358211cd150144c525"
@@ -1565,6 +1581,15 @@
     "@opentelemetry/resources" "2.6.0"
     "@opentelemetry/semantic-conventions" "^1.29.0"
 
+"@opentelemetry/sdk-trace-base@2.7.1":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-trace-base/-/sdk-trace-base-2.7.1.tgz#9160c3af9ef2219c26563abd136e22fb7d19b34f"
+  integrity sha512-NAYIlsF8MPUsKqJMiDQJTMPOmlbawC1Iz/omMLygZ1C9am8fTKYjTaI+OZM+WTY3t3Glo0wnOg/6/pac6RGPPw==
+  dependencies:
+    "@opentelemetry/core" "2.7.1"
+    "@opentelemetry/resources" "2.7.1"
+    "@opentelemetry/semantic-conventions" "^1.29.0"
+
 "@opentelemetry/sdk-trace-base@^2.0.0":
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-trace-base/-/sdk-trace-base-2.6.1.tgz#ed353062be4c28a0649247ad369654020c29bfce"
@@ -1581,6 +1606,14 @@
   dependencies:
     "@opentelemetry/core" "2.2.0"
     "@opentelemetry/sdk-trace-base" "2.2.0"
+
+"@opentelemetry/sdk-trace-web@^2.0.0":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-trace-web/-/sdk-trace-web-2.7.1.tgz#4fbfd6147ec366ff87b46057aba7b35900f4cc2e"
+  integrity sha512-K806OouCSOjMd8Nr7+ZCq3QT22tdAzzS/7h8vprfiKjkgFQ99/dvwU8d12WJANA6D5Qtme65hyBAqAu9CkQuxQ==
+  dependencies:
+    "@opentelemetry/core" "2.7.1"
+    "@opentelemetry/sdk-trace-base" "2.7.1"
 
 "@opentelemetry/semantic-conventions@^1.29.0", "@opentelemetry/semantic-conventions@^1.32.0":
   version "1.40.0"
@@ -6935,7 +6968,7 @@ yallist@^3.0.2:
   resolved "https://registry.yarnpkg.com/yallist/-/yallist-3.1.1.tgz#dbb7daf9bfd8bac9ab45ebf602b8cbad0d5d08fd"
   integrity sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==
 
-yaml@^2.2.1, yaml@^2.6.1, yaml@^2.7.0:
+yaml@^2.2.1, yaml@^2.6.1:
   version "2.8.3"
   resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.8.3.tgz#a0d6bd2efb3dd03c59370223701834e60409bd7d"
   integrity sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==
