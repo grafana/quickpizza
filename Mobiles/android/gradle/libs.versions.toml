@@ -16,8 +16,8 @@ coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 desugar = "2.1.4"
 datastore = "1.2.1"
-opentelemetryAndroid = "1.2.0-alpha"
-opentelemetryAndroidInstrumentation = "0.11.0-alpha"
+opentelemetryAndroid = "1.4.0-alpha"
+opentelemetryAndroidInstrumentation = "1.4.0-alpha"
 byteBuddy = "1.18.5"
 
 [libraries]

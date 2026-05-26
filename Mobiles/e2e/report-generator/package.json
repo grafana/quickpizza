@@ -1,0 +1,19 @@
+{
+  "name": "quickpizza-e2e-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generates HTML report from Arbigent E2E test results for the QuickPizza mobile demo apps.",
+  "bin": {
+    "generate-report": "generate_report.js"
+  },
+  "scripts": {
+    "generate": "node generate_report.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "npm@10.9.7",
+  "dependencies": {
+    "yaml": "^2.7.0"
+  }
+}

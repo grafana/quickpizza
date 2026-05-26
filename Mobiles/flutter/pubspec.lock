@@ -213,10 +213,10 @@ packages:
     dependency: "direct main"
     description:
       name: faro
-      sha256: cfd7dc9f1d0343d8929205b4e60b26d4dbe1e46de790bab00de4913c993ae014
+      sha256: c47ed45c810b3cf541c7163ec3abc541918287280e02a8f22a1199c928e52bb7
       url: "https://pub.dev"
     source: hosted
-    version: "0.14.0"
+    version: "0.16.0"
   ffi:
     dependency: transitive
     description:

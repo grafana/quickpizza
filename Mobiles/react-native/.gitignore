@@ -75,9 +75,7 @@ dist/
 # testing
 /coverage
 
-# Arbigent E2E
-arbigent-result/
-arbigent-cache/
+# Arbigent E2E results now live in Mobiles/e2e/results/react-native/
 
 # Yarn
 .yarn/*

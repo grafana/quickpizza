@@ -334,10 +334,12 @@ End-to-end tests use [Arbigent](https://github.com/takahirom/arbigent) (AI-power
 3. **Export your OpenAI API key** and run the E2E tests:
   ```bash
    export OPENAI_API_KEY='your-api-key'
-   ./scripts/e2e/run_e2e_tests.sh
-  ```
+   ../e2e/run_e2e_tests.sh --app=react-native --platform=android
+   ```
 
-Results are written to `arbigent-result/` (including an HTML report when Node.js is available).
+   The unified runner (`Mobiles/e2e/run_e2e_tests.sh`) is shared by all QuickPizza mobile demo apps. See [`Mobiles/e2e/README.md`](../e2e/README.md) for details.
+
+Results are written to `arbigent-result/` (HTML report included).
 
 ### Optional: custom backend URL
 
@@ -345,7 +347,7 @@ If your backend runs elsewhere, set `QUICKPIZZA_BACKEND_URL` before running:
 
 ```bash
 export QUICKPIZZA_BACKEND_URL='http://192.168.1.100:3333'
-./scripts/e2e/run_e2e_tests.sh
+../e2e/run_e2e_tests.sh --app=react-native --platform=android
 ```
 
 ## API endpoints
