@@ -9,11 +9,11 @@
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=flutter         --platform=android
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=react-native    --platform=android
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=android-native  --platform=android
+#   ./Mobiles/e2e/run_e2e_tests.sh --app=ios-native      --platform=ios
 #
 # Future phases will add:
-#   --app=ios-native       --platform=ios       (Phase 3)
-#   --app=flutter          --platform=ios       (Phase 4)
-#   --app=react-native     --platform=ios       (Phase 4)
+#   --app=flutter          --platform=ios
+#   --app=react-native     --platform=ios
 #
 # Required env vars:
 #   OPENAI_API_KEY    OpenAI API key used by Arbigent.
@@ -45,7 +45,12 @@ MOBILES_ROOT="$(cd "$SCRIPT_DIR/.." &> /dev/null && pwd)"
 REPO_ROOT="$(cd "$MOBILES_ROOT/.." &> /dev/null && pwd)"
 REPORT_DIR="$SCRIPT_DIR/report-generator"
 RESULTS_ROOT="$SCRIPT_DIR/results"
-TEMPLATE_FILE="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.yaml.template"
+# Platform-specific scenario templates live next to this script. The Android
+# template covers Flutter/RN/Native on Android; the iOS template covers
+# native iOS (and Flutter/RN on iOS once those phases land). The runner picks
+# the file based on --platform; see render_template().
+TEMPLATE_FILE_ANDROID="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.android.yaml.template"
+TEMPLATE_FILE_IOS="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.ios.yaml.template"
 RECOVERY_HINTS_FILE="$SCRIPT_DIR/arbigent-recovery-hints.txt"
 RENDER_HELPER="$SCRIPT_DIR/render-template.js"
 
@@ -116,16 +121,17 @@ QuickPizza mobile E2E runner (Arbigent)
 Usage: $0 --app=<app> --platform=<platform>
 
 Required:
-  --app=<flutter|react-native|android-native>   App under test
-  --platform=<android>                          Target platform
+  --app=<flutter|react-native|android-native|ios-native>   App under test
+  --platform=<android|ios>                                 Target platform
 
 Other:
-  -h, --help                                    Show this help message
+  -h, --help                                               Show this help message
 
 Examples:
   bash $0 --app=flutter --platform=android
   bash $0 --app=react-native --platform=android
   bash $0 --app=android-native --platform=android
+  bash $0 --app=ios-native --platform=ios
 
 Required env vars:
   OPENAI_API_KEY                    OpenAI key used by Arbigent
@@ -172,8 +178,12 @@ case "$APP" in
         ANDROID_PACKAGE="com.grafana.quickpizza"
         IOS_BUNDLE_ID=""
         ;;
+    ios-native)
+        ANDROID_PACKAGE=""
+        IOS_BUNDLE_ID="com.grafana.QuickPizzaIos"
+        ;;
     *)
-        print_error "Unsupported --app=$APP (supported: flutter, react-native, android-native). Native iOS and iOS variants land in later phases."
+        print_error "Unsupported --app=$APP (supported: flutter, react-native, android-native, ios-native). Flutter/RN on iOS land in later phases."
         ;;
 esac
 
@@ -184,13 +194,22 @@ RESULTS_DIR="$RESULTS_ROOT/$APP"
 
 case "$PLATFORM" in
     android)
-        : # ok
+        # Android currently runs Flutter, React Native, and native Android.
+        if [ -z "$ANDROID_PACKAGE" ]; then
+            print_error "--app=$APP has no Android package id; pass a different --platform."
+        fi
         ;;
     ios)
-        print_error "--platform=ios is not yet wired into the runner (planned for Phase 3 of the e2e refactor)."
+        # iOS currently runs native iOS only; Flutter/RN on iOS land later.
+        if [ "$APP" != "ios-native" ]; then
+            print_error "--platform=ios currently only supports --app=ios-native (Flutter/RN on iOS land in later phases)."
+        fi
+        if [ -z "$IOS_BUNDLE_ID" ]; then
+            print_error "--app=$APP has no iOS bundle id; pass a different --platform."
+        fi
         ;;
     *)
-        print_error "Unsupported --platform=$PLATFORM (supported: android)"
+        print_error "Unsupported --platform=$PLATFORM (supported: android, ios)"
         ;;
 esac
 
@@ -204,6 +223,12 @@ check_dependencies() {
     local required=(unzip)
     if [ "$PLATFORM" = "android" ]; then
         required+=(adb)
+    fi
+    if [ "$PLATFORM" = "ios" ]; then
+        # Arbigent's iOS path runs Maestro's iOS driver, which shells out to
+        # `xcrun simctl` for boot/install/launch. xcrun is shipped with Xcode
+        # Command Line Tools; on macOS-only.
+        required+=(xcrun)
     fi
     for cmd in "${required[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
@@ -277,6 +302,41 @@ check_android_emulator() {
     adb devices -l
 }
 
+# Confirms a booted iOS simulator exists and that the app under test is
+# already installed on it. We do NOT boot a simulator or install the .app
+# here — that's the caller's job (Scripts/sim-run.sh locally, or an explicit
+# "boot simulator + install app" step in CI). Keeping this script
+# install-agnostic mirrors check_android_emulator and avoids hiding "I forgot
+# to install the app" mistakes behind a silent reinstall.
+check_ios_simulator() {
+    print_step "Checking iOS simulator..."
+    local booted_udid
+    booted_udid=$(xcrun simctl list devices booted -j 2>/dev/null \
+        | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+for runtime, devices in data.get("devices", {}).items():
+    for d in devices:
+        if d.get("state") == "Booted":
+            print(d["udid"])
+            sys.exit(0)
+sys.exit(1)
+' 2>/dev/null) || true
+
+    if [ -z "$booted_udid" ]; then
+        print_error "No booted iOS simulator found. Boot one first, e.g.: xcrun simctl boot 'iPhone 16 Pro' && open -a Simulator"
+    fi
+    print_step "Booted simulator UDID: $booted_udid"
+
+    # `simctl get_app_container booted <bundle>` exits non-zero if the bundle
+    # isn't installed. That's a much sharper failure than letting Arbigent
+    # trip later when LaunchApp returns "app not found".
+    if ! xcrun simctl get_app_container booted "$IOS_BUNDLE_ID" &> /dev/null; then
+        print_error "iOS app '$IOS_BUNDLE_ID' is not installed on the booted simulator. Install it first, e.g.: xcrun simctl install booted /path/to/QuickPizzaIos.app"
+    fi
+    print_step "App $IOS_BUNDLE_ID is installed on simulator"
+}
+
 ### Report generator setup ####################################################
 
 install_report_deps() {
@@ -325,8 +385,18 @@ render_template() {
         print_error "Missing render helper: $RENDER_HELPER"
     fi
 
+    local template_file
+    case "$PLATFORM" in
+        android) template_file="$TEMPLATE_FILE_ANDROID" ;;
+        ios)     template_file="$TEMPLATE_FILE_IOS" ;;
+        *)       print_error "render_template: unsupported platform '$PLATFORM'" ;;
+    esac
+    if [ ! -f "$template_file" ]; then
+        print_error "Missing Arbigent template for $PLATFORM: $template_file"
+    fi
+
     node "$RENDER_HELPER" \
-        "$TEMPLATE_FILE" \
+        "$template_file" \
         "$RECOVERY_HINTS_FILE" \
         "$ANDROID_PACKAGE" \
         "$IOS_BUNDLE_ID" \
@@ -334,13 +404,16 @@ render_template() {
 }
 
 run_tests() {
-    print_step "Running E2E tests for app=$APP platform=$PLATFORM (package=$ANDROID_PACKAGE)..."
+    local identity
+    case "$PLATFORM" in
+        android) identity="package=$ANDROID_PACKAGE" ;;
+        ios)     identity="bundle=$IOS_BUNDLE_ID" ;;
+        *)       identity="" ;;
+    esac
+    print_step "Running E2E tests for app=$APP platform=$PLATFORM ($identity)..."
 
     if [ -z "${OPENAI_API_KEY:-}" ]; then
         print_error "OPENAI_API_KEY environment variable is not set"
-    fi
-    if [ ! -f "$TEMPLATE_FILE" ]; then
-        print_error "Missing Arbigent template: $TEMPLATE_FILE"
     fi
 
     install_report_deps
@@ -384,6 +457,7 @@ run_tests() {
         done
 
     if [ -d "arbigent-result" ]; then
+        cp "$project_file" arbigent-result/arbigent-project.yaml
         generate_report "$RESULTS_DIR/arbigent-result"
         local next_number
         next_number=$(next_results_number)
@@ -398,6 +472,7 @@ run_tests() {
     for dir in arbigent-result-*; do
         [ -d "$dir" ] && mv "$dir" arbigent-result/
     done
+    cp "$project_file" arbigent-result/arbigent-project.yaml
     sleep 2
 
     if [ $arbigent_exit_code -ne 0 ]; then
@@ -422,6 +497,14 @@ case "$PLATFORM" in
         check_backend
         cleanup_arbigent_processes
         adb forward --remove-all 2>/dev/null || true
+        ;;
+    ios)
+        check_ios_simulator
+        # The iOS simulator shares the host's network namespace, so localhost
+        # on the Mac and localhost inside the simulator are the same. No
+        # equivalent of `adb reverse` is required.
+        check_backend
+        cleanup_arbigent_processes
         ;;
 esac
 

@@ -111,7 +111,7 @@ export function ProfileScreen({ onBack }: ProfileScreenProps) {
                 <View style={styles.ratingContent}>
                   <Text style={styles.ratingPizza}>Pizza #{r.pizzaId}</Text>
                   <Text style={styles.ratingLabel}>
-                    {r.stars >= 4 ? 'Love it!' : 'No thanks'}
+                    {r.stars >= 4 ? 'Love it!' : 'Passed'}
                   </Text>
                 </View>
                 <View style={styles.stars}>

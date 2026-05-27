@@ -7,7 +7,7 @@ A React Native mobile application that replicates the QuickPizza web and Flutter
 ## Features
 
 - Get pizza recommendations with one click
-- Rate pizzas (Love it! or No thanks)
+- Rate pizzas (Love it! or Pass)
 - User login and profile management
 - Advanced options for customizing pizza recommendations
 - View your pizza ratings history

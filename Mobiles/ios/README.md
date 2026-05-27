@@ -108,6 +108,30 @@ traced with OpenTelemetry.
 
 ---
 
+## E2E tests
+
+Native iOS is covered by the shared Arbigent E2E runner. Build and install the
+app on a booted simulator first:
+
+```bash
+cd Mobiles/ios
+bash Scripts/sim-run.sh
+```
+
+Then, from the repository root, run:
+
+```bash
+export OPENAI_API_KEY='sk-...'
+./Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
+```
+
+The runner stores the HTML report, screenshots, AI logs, and rendered
+`arbigent-project.yaml` under `Mobiles/e2e/results/ios-native/`. See the shared
+[mobile E2E README](../e2e/README.md) for prerequisites, result layout, and CI
+details.
+
+---
+
 ## Sending Telemetry to Grafana Cloud
 
 To send traces and logs to a Grafana Cloud stack, you need an OTLP endpoint

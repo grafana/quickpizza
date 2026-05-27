@@ -31,13 +31,16 @@ scenarios:
 
   - id: "request_pizza"
     goal: |
-      You should request a new pizza and see a pizza recommendation card with "Love it!" and "No thanks" buttons below it.
-      As soon as you see the pizza card and those two buttons.
+      You should request a new pizza and see a pizza recommendation card with "Love it!" and "Pass" buttons below it.
+      As soon as you see the pizza card and those two buttons, OUTPUT "Goal achieved" and STOP. Do not tap either rating button in this scenario.
 
       WHAT IS A PIZZA RECOMMENDATION CARD:
       - It is an UI element which contains:
         - The name of a pizza
         - Information about the pizza, such as: dough, tool, calories, ingredients
+
+      HINTS:
+      - If a pizza recommendation card is partially visible but the "Pass" and "Love it!" buttons are not visible, scroll down once. Do not tap "Pizza, Please!" again.
 
       __RECOVERY_BLOCK__
 
@@ -47,16 +50,15 @@ scenarios:
   - id: "rate_pizza"
     dependency: "request_pizza"
     goal: |
-      You should see the raiting success text below the raiting buttons.
+      You should tap a rating button and see rating success text below the rating buttons.
 
       SUCCESS TEXT:
-      - The success text will appear below the the raitings buttons.
-      - After tapping "Love it!" → look for: Thanks! We're glad you liked it!
-      - After tapping "No thanks" → look for: Thanks for your feedback!
+      - The success text will appear below the rating buttons.
+      - After tapping "Love it!" or "Pass" → look for: Rated!
 
       HINTS:
       - If you see the success text, OUTPUT "Goal achieved" and STOP. Do NOT tap anything else.
-      - The "No thanks" and "Love it!" raiting buttons are most likely places at the bottom of the pizza recommendations view.
+      - The "Pass" and "Love it!" rating buttons are most likely placed at the bottom of the pizza recommendation view.
 
       __RECOVERY_BLOCK__
 

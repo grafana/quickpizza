@@ -7,7 +7,7 @@ import { AppColors } from '../../../core/theme/appColors';
 
 const FEATURES = [
   'Get pizza recommendations with one click',
-  'Rate pizzas (Love it! or No thanks)',
+  'Rate pizzas (Love it! or Pass)',
   'User login and profile management',
   'Advanced customization options',
   'View your pizza ratings history',
