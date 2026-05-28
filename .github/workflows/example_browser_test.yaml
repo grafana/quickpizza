@@ -1,6 +1,9 @@
 name: Browser Test Workflow
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   basic_k6_test:
     name: k6 test run - browser test example
@@ -19,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Install Google Chrome
         run: |

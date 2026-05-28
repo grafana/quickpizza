@@ -9,7 +9,7 @@ build-web: # Build frontend assets
 	rm -rf $(FRONTEND_BUILD_DIR)
 	export PUBLIC_BACKEND_ENDPOINT="" && \
 	export PUBLIC_BACKEND_WS_ENDPOINT="" && \
-	cd pkg/web && npm install && npm run build
+	cd pkg/web && npm ci --ignore-scripts && npm run build
 
 .PHONY: build-go
 build-go: # Build Go binary (doesn't rebuild frontend)
@@ -20,7 +20,7 @@ build-go: # Build Go binary (doesn't rebuild frontend)
 
 .PHONY: install-web
 install-web: # Install frontend dependencies
-	cd pkg/web && npm install
+	cd pkg/web && npm ci --ignore-scripts
 
 .PHONY: dev
 dev: # Run with live-reload (frontend dev server + backend with -dev flag)
@@ -61,4 +61,3 @@ docker-run: # Run Docker container
 .PHONY: help
 help: # Show help for each of the Makefile recipes.
 	@grep -E '^[a-zA-Z0-9 -]+:.*#'  Makefile | sort | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#')\n"; done
-

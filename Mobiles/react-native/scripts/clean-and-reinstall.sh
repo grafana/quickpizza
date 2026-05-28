@@ -51,7 +51,8 @@ echo ""
 echo "5️⃣  Reinstalling @grafana packages (for local SDK changes)..."
 cd "$SCRIPT_DIR/.."
 rm -rf node_modules/@grafana 2>/dev/null || true
-yarn install --force 2>&1 | grep -E "(Done|error)" || true
+corepack enable
+yarn install --immutable 2>&1 | grep -E "(Done|error|YN0000)" || true
 echo ""
 
 echo "=== Cleanup Complete! ==="

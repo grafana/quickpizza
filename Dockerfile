@@ -9,7 +9,8 @@ ENV PUBLIC_BACKEND_ENDPOINT=${PUBLIC_BACKEND_ENDPOINT}
 ARG PUBLIC_BACKEND_WS_ENDPOINT=""
 ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 
-RUN npm install && \
+RUN npm install -g npm@11.10.0 && \
+    npm ci --ignore-scripts && \
     npm run build
 
 FROM golang:1.25-bookworm@sha256:154bd7001b6eb339e88c964442c0ad6ed5e53f09844cc818a41ce4ecb3ce3b43 AS builder
