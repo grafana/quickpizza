@@ -99,8 +99,39 @@ jobs:
         if: steps.cadence.outputs.run_report == 'true'
         run: cat branch-cleanup-dry-run.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check whether an issue is needed
+        id: issue
+        if: steps.cadence.outputs.run_report == 'true'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CREATE_ISSUE_INPUT: ${{ inputs.create_issue }}
+        run: |
+          merged_candidates="$(awk -F': ' '/^- Merged branch cleanup candidates:/ {print $2}' branch-cleanup-dry-run.md)"
+          closed_unmerged="$(awk -F': ' '/^- Closed-unmerged branches needing review:/ {print $2}' branch-cleanup-dry-run.md)"
+          no_pr="$(awk -F': ' '/^- No-PR branches needing review:/ {print $2}' branch-cleanup-dry-run.md)"
+          automation="$(awk -F': ' '/^- Automation branches skipped:/ {print $2}' branch-cleanup-dry-run.md)"
+
+          merged_candidates="${merged_candidates:-0}"
+          closed_unmerged="${closed_unmerged:-0}"
+          no_pr="${no_pr:-0}"
+          automation="${automation:-0}"
+          actionable_count="$((merged_candidates + closed_unmerged + no_pr + automation))"
+
+          echo "actionable_count=$actionable_count" >> "$GITHUB_OUTPUT"
+
+          if [ "$CREATE_ISSUE_INPUT" = "true" ]; then
+            echo "create_issue=true" >> "$GITHUB_OUTPUT"
+            echo "Creating an issue because create_issue=true was requested manually." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$EVENT_NAME" = "schedule" ] && [ "$actionable_count" -gt 0 ]; then
+            echo "create_issue=true" >> "$GITHUB_OUTPUT"
+            echo "Creating an issue because $actionable_count actionable branch cleanup items were found." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "create_issue=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping issue creation because there are no actionable branch cleanup items." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Create GitHub issue report
-        if: steps.cadence.outputs.run_report == 'true' && (github.event_name == 'schedule' || inputs.create_issue)
+        if: steps.cadence.outputs.run_report == 'true' && steps.issue.outputs.create_issue == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_REPO: ${{ github.repository }}
