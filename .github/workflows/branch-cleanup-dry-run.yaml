@@ -135,10 +135,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_REPO: ${{ github.repository }}
+          ISSUE_LABEL: branch-cleanup
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           report_date="$(date -u +%F)"
           issue_title="Branch cleanup dry-run report - $report_date"
+
+          if ! gh label list --repo "$ISSUE_REPO" --search "$ISSUE_LABEL" --json name --jq '.[].name' | grep -Fxq "$ISSUE_LABEL"; then
+            gh label create "$ISSUE_LABEL" \
+              --repo "$ISSUE_REPO" \
+              --color "0e8a16" \
+              --description "Branch cleanup automation reports"
+          fi
 
           {
             echo "Automated read-only branch cleanup report."
@@ -151,6 +159,7 @@ jobs:
           gh issue create \
             --repo "$ISSUE_REPO" \
             --title "$issue_title" \
+            --label "$ISSUE_LABEL" \
             --body-file branch-cleanup-issue.md
 
       - name: Upload report
