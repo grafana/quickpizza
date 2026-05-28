@@ -20,9 +20,19 @@ on:
         required: true
         type: boolean
         default: false
+      create_issue:
+        description: Create a GitHub issue with the report
+        required: true
+        type: boolean
+        default: false
+  schedule:
+    # GitHub cron does not support "every 14 days" directly. This runs weekly,
+    # then the cadence step below only lets the report continue every other week.
+    - cron: "0 14 * * 4"
 
 permissions:
   contents: read
+  issues: write
   pull-requests: read
 
 jobs:
@@ -30,23 +40,49 @@ jobs:
     name: Audit stale branches
     runs-on: ubuntu-24.04
     steps:
+      - name: Check 14-day report cadence
+        id: cadence
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPORT_ANCHOR_DATE: "2026-05-28"
+        run: |
+          if [ "$EVENT_NAME" != "schedule" ]; then
+            echo "run_report=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          today="$(date -u +%F)"
+          today_seconds="$(date -u -d "$today" +%s)"
+          anchor_seconds="$(date -u -d "$REPORT_ANCHOR_DATE" +%s)"
+          days_since_anchor="$(( (today_seconds - anchor_seconds) / 86400 ))"
+
+          if [ "$(( days_since_anchor % 14 ))" -eq 0 ]; then
+            echo "run_report=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_report=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping branch cleanup report. Next report runs on the 14-day cadence." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Checkout code
+        if: steps.cadence.outputs.run_report == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - name: Set up Node.js
+        if: steps.cadence.outputs.run_report == 'true'
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ">=24.5.0"
 
       - name: Generate dry-run branch cleanup report
+        if: steps.cadence.outputs.run_report == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INPUT_OWNER: ${{ inputs.owner }}
-          INPUT_REPO: ${{ inputs.repo }}
-          INPUT_MIN_MERGED_AGE_DAYS: ${{ inputs.min_merged_age_days }}
-          INPUT_INCLUDE_AUTOMATION: ${{ inputs.include_automation }}
+          INPUT_OWNER: ${{ github.event_name == 'schedule' && 'grafana' || inputs.owner }}
+          INPUT_REPO: ${{ github.event_name == 'schedule' && 'mobile-o11y-demo' || inputs.repo }}
+          INPUT_MIN_MERGED_AGE_DAYS: ${{ github.event_name == 'schedule' && '14' || inputs.min_merged_age_days }}
+          INPUT_INCLUDE_AUTOMATION: ${{ github.event_name == 'schedule' && 'false' || inputs.include_automation }}
         run: |
           node scripts/audit-stale-branches.mjs \
             --owner "$INPUT_OWNER" \
@@ -56,12 +92,38 @@ jobs:
             > branch-cleanup-dry-run.md
 
       - name: Print report summary
+        if: steps.cadence.outputs.run_report == 'true'
         run: sed -n '1,80p' branch-cleanup-dry-run.md
 
       - name: Publish report to job summary
+        if: steps.cadence.outputs.run_report == 'true'
         run: cat branch-cleanup-dry-run.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Create GitHub issue report
+        if: steps.cadence.outputs.run_report == 'true' && (github.event_name == 'schedule' || inputs.create_issue)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          report_date="$(date -u +%F)"
+          issue_title="Branch cleanup dry-run report - $report_date"
+
+          {
+            echo "Automated read-only branch cleanup report."
+            echo
+            echo "Workflow run: $RUN_URL"
+            echo
+            cat branch-cleanup-dry-run.md
+          } > branch-cleanup-issue.md
+
+          gh issue create \
+            --repo "$ISSUE_REPO" \
+            --title "$issue_title" \
+            --body-file branch-cleanup-issue.md
+
       - name: Upload report
+        if: steps.cadence.outputs.run_report == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: branch-cleanup-dry-run
