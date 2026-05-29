@@ -1018,9 +1018,10 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		}
 
 		r.Post("/api/users/token/logout", func(w http.ResponseWriter, r *http.Request) {
-			logoutCookie := newSessionCookie(qpUserTokenCookie, "")
-			logoutCookie.Expires = time.Unix(0, 0)
-			http.SetCookie(w, logoutCookie)
+		logoutCookie := newSessionCookie(qpUserTokenCookie, "")
+		logoutCookie.Expires = time.Unix(0, 0)
+		logoutCookie.MaxAge = -1
+		http.SetCookie(w, logoutCookie)
 
 			w.WriteHeader(http.StatusOK)
 		})
