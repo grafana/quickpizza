@@ -16,7 +16,6 @@ final class KeychainTokenStorage: TokenStoring {
     func saveSession(token: String, username: String) {
         AuthKeychain.save(token: token, username: username)
         defaults.set(username, forKey: "auth_username")
-        defaults.removeObject(forKey: "auth_token")
     }
 
     func loadSession() -> StoredSession {
@@ -29,6 +28,5 @@ final class KeychainTokenStorage: TokenStoring {
     func clearSession() {
         AuthKeychain.clear()
         defaults.removeObject(forKey: "auth_username")
-        defaults.removeObject(forKey: "auth_token")
     }
 }

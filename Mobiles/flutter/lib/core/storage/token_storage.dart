@@ -47,7 +47,6 @@ class TokenStorage {
     await _secureStorage.write(key: _tokenKey, value: token);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_usernameKey, username);
-    await prefs.remove(_tokenKey);
     _sessionController.add(StoredSession(token: token, username: username));
   }
 
@@ -64,7 +63,6 @@ class TokenStorage {
     await _secureStorage.delete(key: _tokenKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_usernameKey);
-    await prefs.remove(_tokenKey);
     _sessionController.add(const StoredSession());
   }
 }

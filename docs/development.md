@@ -2,7 +2,7 @@
 
 Running QuickPizza locally.
 
-**Prerequisites**: Go 1.24+, Node.js 24.5+, and npm 11.10+
+**Prerequisites**: Go 1.24+, Node.js 24.5+, and npm 11.10+ (Make targets use Corepack from `pkg/web/package.json`)
 
 ## Development Mode (with Live-Reload)
 
