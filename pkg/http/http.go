@@ -355,9 +355,14 @@ func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
 		cors.New(cors.Options{
 			AllowedOrigins: []string{
 				"http://localhost:3333",
+				"https://localhost:3333",
 				"http://localhost:5173",
+				"https://localhost:5173",
 				"http://127.0.0.1:3333",
+				"https://127.0.0.1:3333",
 				"http://127.0.0.1:5173",
+				"https://127.0.0.1:5173",
+			},
 			},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", authHeader, "Content-Type", "X-CSRF-Token"},
