@@ -44,10 +44,11 @@ class QuickPizzaAppBar extends ConsumerWidget implements PreferredSizeWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 8),
-          child: GestureDetector(
-            onTap: () =>
+          child: IconButton(
+            tooltip: state.isLoggedIn ? 'Open profile' : 'Open login',
+            onPressed: () =>
                 ref.read(quickPizzaAppBarActionsProvider).navigateToProfile(),
-            child: CircleAvatar(
+            icon: CircleAvatar(
               radius: 18,
               backgroundColor: state.isLoggedIn
                   ? Colors.orange
