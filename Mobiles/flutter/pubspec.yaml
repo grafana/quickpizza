@@ -27,6 +27,7 @@ dependencies:
   flutter_riverpod: ^3.1.0
   http: ^1.1.0
   shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.2.4
   url_launcher: ^6.2.5
   go_router: ^17.0.1
   package_info_plus: ^8.3.1

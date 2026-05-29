@@ -6,7 +6,9 @@
 # Do not modify this file unless you really need to. You very likely don't need to.
 
 name: Build and Test (without Docker)
-on: [push]
+on:
+  push:
+  pull_request:
 
 permissions:
   contents: read

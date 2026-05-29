@@ -1,0 +1,201 @@
+name: Mobile Demo Telemetry (build only)
+
+# Compile-only validation on pull requests. No Vault secrets, no e2e, no Cloud telemetry.
+# Full build + telemetry: merge to main, hourly schedule, or workflow_dispatch on
+# mobile_demo_telemetry.yaml.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/mobile_demo_telemetry.yaml"
+      - ".github/workflows/mobile_demo_telemetry_build.yaml"
+      - "Mobiles/e2e/**"
+      - "Mobiles/flutter/**"
+      - "Mobiles/react-native/**"
+      - "Mobiles/android/**"
+      - "Mobiles/ios/**"
+      - "compose.grafana-cloud.microservices.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_CHANNEL: "stable"
+  # Placeholder telemetry values — well-formed only, not real Grafana Cloud credentials.
+  CI_FARO_COLLECTOR_URL: "https://collector.example.com/collect/ci-build-placeholder"
+  CI_OTLP_ENDPOINT: "https://otlp.example.com/otlp"
+  CI_OTLP_INSTANCE_ID: "ci-build-placeholder"
+  CI_OTLP_API_KEY: "ci-build-placeholder"
+
+jobs:
+  build-flutter-apk:
+    name: Build check — Flutter APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93601a5a40bde3801046 # v2.19.0
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install Flutter dependencies
+        working-directory: Mobiles/flutter
+        run: flutter pub get
+
+      - name: Create placeholder config.json for CI
+        working-directory: Mobiles/flutter
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${{ env.CI_FARO_COLLECTOR_URL }}",
+            "BASE_URL": "",
+            "PORT": "3333",
+            "CI_DEMO_VERSIONING": "true"
+          }
+          EOF
+          echo "Created placeholder config.json for build check"
+
+      - name: Build APK (debug)
+        working-directory: Mobiles/flutter
+        run: |
+          flutter build apk --debug --dart-define-from-file=config.json
+
+  build-react-native-apk:
+    name: Build check — React Native APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22"
+          cache: "yarn"
+          cache-dependency-path: Mobiles/react-native/yarn.lock
+
+      - name: Install dependencies
+        working-directory: Mobiles/react-native
+        run: yarn install --frozen-lockfile
+
+      - name: Create placeholder config.json for CI
+        working-directory: Mobiles/react-native
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${{ env.CI_FARO_COLLECTOR_URL }}",
+            "BASE_URL": "",
+            "PORT": "3333"
+          }
+          EOF
+          echo "Created placeholder config.json for build check"
+
+      - name: Bundle JS for offline debug APK
+        working-directory: Mobiles/react-native
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev true \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
+      - name: Build APK (debug)
+        working-directory: Mobiles/react-native/android
+        run: ./gradlew assembleDebug
+
+  build-android-native-apk:
+    name: Build check — Android Native APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Create placeholder config.json for CI
+        working-directory: Mobiles/android
+        run: |
+          mkdir -p app/src/main/res/raw
+          cat > app/src/main/res/raw/config.json << EOF
+          {
+            "OTLP_ENDPOINT": "${{ env.CI_OTLP_ENDPOINT }}",
+            "OTLP_INSTANCE_ID": "${{ env.CI_OTLP_INSTANCE_ID }}",
+            "OTLP_API_KEY": "${{ env.CI_OTLP_API_KEY }}",
+            "BASE_URL": ""
+          }
+          EOF
+          echo "Created placeholder config.json for build check"
+
+      - name: Build APK (debug)
+        working-directory: Mobiles/android
+        run: ./gradlew :app:assembleDebug
+
+  build-ios-native-app:
+    name: Build check — iOS Native .app
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create placeholder Config.xcconfig for CI
+        working-directory: Mobiles/ios
+        run: |
+          cat > Config.xcconfig <<EOF
+          BASE_URL = http:/\$()/localhost:3333
+          PORT = 3333
+          OTLP_ENDPOINT = ${{ env.CI_OTLP_ENDPOINT }}
+          OTLP_INSTANCE_ID = ${{ env.CI_OTLP_INSTANCE_ID }}
+          OTLP_API_KEY = ${{ env.CI_OTLP_API_KEY }}
+          EOF
+          echo "Created placeholder Config.xcconfig for build check"
+
+      - name: Build iOS .app for Simulator
+        working-directory: Mobiles/ios
+        run: |
+          set -e
+          mkdir -p build/ci
+          SRCROOT="$PWD" Scripts/generate-config.sh
+          xcodebuild \
+            -project QuickPizzaIos.xcodeproj \
+            -scheme QuickPizzaIos \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            build

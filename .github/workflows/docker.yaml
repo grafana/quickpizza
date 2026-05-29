@@ -12,6 +12,7 @@ jobs:
   all:
     name: Build and push
     runs-on: ubuntu-24.04
+    environment: docker-release
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -42,5 +43,7 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          # :latest is mutable; pushes require docker-release environment approval.
           tags: |
-            ghcr.io/grafana/quickpizza-local:${{ steps.set_version.outputs.tag-no-v }}, ghcr.io/grafana/quickpizza-local:latest
+            ghcr.io/grafana/quickpizza-local:${{ steps.set_version.outputs.tag-no-v }}
+            ghcr.io/grafana/quickpizza-local:latest

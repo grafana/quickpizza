@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	_ "net/http/pprof"
@@ -234,6 +235,51 @@ func getRequestToken(r *http.Request) string {
 	return token
 }
 
+func authCookiesSecure() bool {
+	v := os.Getenv("QUICKPIZZA_TLS")
+	return v == "1" || strings.EqualFold(v, "true")
+}
+
+func newSessionCookie(name, value string) *http.Cookie {
+	return &http.Cookie{
+		Name:     name,
+		Value:    value,
+		HttpOnly: true,
+		Secure:   authCookiesSecure(),
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	}
+}
+
+func adminTokenFromRequest(r *http.Request) string {
+	if tokenCookie, err := r.Cookie("admin_token"); err == nil {
+		return tokenCookie.Value
+	}
+	return ""
+}
+
+// isTrustedInternalRequest gates service-to-service calls that use X-Is-Internal.
+// Loopback/private-network callers may use the header alone (gateway/microservices).
+// Remote callers must also send X-Internal-Secret matching QUICKPIZZA_INTERNAL_SECRET.
+// Set QUICKPIZZA_ALLOW_PUBLIC_INTERNAL=1 to restore the previous demo behaviour.
+func isTrustedInternalRequest(r *http.Request) bool {
+	if r.Header.Get("X-Is-Internal") == "" {
+		return false
+	}
+	if os.Getenv("QUICKPIZZA_ALLOW_PUBLIC_INTERNAL") == "1" {
+		return true
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	if ip := net.ParseIP(host); ip != nil && (ip.IsLoopback() || ip.IsPrivate()) {
+		return true
+	}
+	secret := os.Getenv("QUICKPIZZA_INTERNAL_SECRET")
+	return secret != "" && r.Header.Get("X-Internal-Secret") == secret
+}
+
 func contextUser(ctx context.Context) *model.User {
 	user, ok := ctx.Value(userKey).(*model.User)
 	if !ok {
@@ -303,7 +349,12 @@ func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
 		httplog.RequestLogger(reqLogger),
 		middleware.Recoverer,
 		cors.New(cors.Options{
-			AllowedOrigins:   []string{"*"},
+			AllowedOrigins: []string{
+				"http://localhost:3333",
+				"http://localhost:5173",
+				"http://127.0.0.1:3333",
+				"http://127.0.0.1:5173",
+			},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", authHeader, "Content-Type", "X-CSRF-Token"},
 			ExposedHeaders:   []string{"Link"},
@@ -476,6 +527,9 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 
 				// Mark outgoing requests as internal so trace context is trusted.
 				request.Out.Header.Add("X-Is-Internal", "1")
+				if secret := os.Getenv("QUICKPIZZA_INTERNAL_SECRET"); secret != "" {
+					request.Out.Header.Set("X-Internal-Secret", secret)
+				}
 			},
 		})
 
@@ -960,13 +1014,9 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		}
 
 		r.Post("/api/users/token/logout", func(w http.ResponseWriter, r *http.Request) {
-			http.SetCookie(w, &http.Cookie{
-				Name:     qpUserTokenCookie,
-				Value:    "",
-				SameSite: http.SameSiteStrictMode,
-				Path:     "/",
-				Expires:  time.Unix(0, 0),
-			})
+			logoutCookie := newSessionCookie(qpUserTokenCookie, "")
+			logoutCookie.Expires = time.Unix(0, 0)
+			http.SetCookie(w, logoutCookie)
 
 			w.WriteHeader(http.StatusOK)
 		})
@@ -1025,12 +1075,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		s.traceInstaller.Install(r, "users")
 
 		r.Post("/api/csrf-token", func(w http.ResponseWriter, r *http.Request) {
-			http.SetCookie(w, &http.Cookie{
-				Name:     csrfTokenCookie,
-				Value:    util.GenerateAlphaNumToken(csrfTokenLength),
-				SameSite: http.SameSiteStrictMode,
-				Path:     "/",
-			})
+			http.SetCookie(w, newSessionCookie(csrfTokenCookie, util.GenerateAlphaNumToken(csrfTokenLength)))
 		})
 
 		r.Post("/api/users", func(w http.ResponseWriter, r *http.Request) {
@@ -1102,21 +1147,12 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 			if setCookie {
 				// Set the QP user token cookie
-				http.SetCookie(w, &http.Cookie{
-					Name:     qpUserTokenCookie,
-					Value:    user.Token,
-					SameSite: http.SameSiteStrictMode,
-					Path:     "/",
-				})
+				http.SetCookie(w, newSessionCookie(qpUserTokenCookie, user.Token))
 
 				// Delete the cookie containing the CSRF token
-				http.SetCookie(w, &http.Cookie{
-					Name:     csrfTokenCookie,
-					Value:    "",
-					SameSite: http.SameSiteStrictMode,
-					Path:     "/",
-					Expires:  time.Unix(0, 0),
-				})
+				csrfClear := newSessionCookie(csrfTokenCookie, "")
+				csrfClear.Expires = time.Unix(0, 0)
+				http.SetCookie(w, csrfClear)
 			}
 
 			s.writeJSONResponse(w, r, map[string]string{"token": user.Token}, http.StatusOK)
@@ -1152,7 +1188,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		r.Use(errorinjector.InjectErrorHeadersMiddleware)
 
 		r.Post("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("X-Is-Internal") == "" {
+			if !isTrustedInternalRequest(r) {
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
@@ -1172,6 +1208,11 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		})
 
 		r.Get("/api/internal/recommendations/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
+			if adminTokenFromRequest(r) == "" {
+				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
+				return
+			}
+
 			idParam, err := strconv.Atoi(chi.URLParam(r, "id"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -1195,12 +1236,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 
 		r.Get("/api/internal/recommendations", func(w http.ResponseWriter, r *http.Request) {
 			s.log.DebugContext(r.Context(), "Recommendations requested")
-			token := ""
-			if tokenCookie, err := r.Cookie("admin_token"); err == nil {
-				token = tokenCookie.Value
-			}
-
-			if token == "" {
+			if adminTokenFromRequest(r) == "" {
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}
@@ -1241,12 +1277,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 			guid := xid.New()
 			token := guid.String()
 
-			http.SetCookie(w, &http.Cookie{
-				Name:     "admin_token",
-				Value:    token,
-				SameSite: http.SameSiteStrictMode,
-				Path:     "/", // Required for /admin to be able to use a cookie returned by /api.
-			})
+			http.SetCookie(w, newSessionCookie("admin_token", token))
 
 			s.writeJSONResponse(w, r, map[string]string{"token": token}, http.StatusOK)
 		})

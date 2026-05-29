@@ -116,7 +116,7 @@ final class DebugSettingsRepository {
         setString(DebugSettingsKey.backendUrl, value: normalize(backendUrl))
         setString(DebugSettingsKey.otlpEndpoint, value: normalize(otlpEndpoint))
         setString(DebugSettingsKey.otlpInstanceId, value: normalize(otlpInstanceId))
-        setString(DebugSettingsKey.otlpApiKey, value: normalize(otlpApiKey))
+        setSecureOtlpApiKey(normalize(otlpApiKey))
         publish()
     }
 
@@ -136,7 +136,7 @@ final class DebugSettingsRepository {
     }
 
     func setOtlpApiKeyOverride(_ value: String?) {
-        setString(DebugSettingsKey.otlpApiKey, value: normalize(value))
+        setSecureOtlpApiKey(normalize(value))
         publish()
     }
 
@@ -177,7 +177,6 @@ final class DebugSettingsRepository {
             DebugSettingsKey.backendUrl,
             DebugSettingsKey.otlpEndpoint,
             DebugSettingsKey.otlpInstanceId,
-            DebugSettingsKey.otlpApiKey,
             DebugSettingsKey.errorRecommendations,
             DebugSettingsKey.errorIngredients,
             DebugSettingsKey.slowRecommendations,
@@ -187,10 +186,17 @@ final class DebugSettingsRepository {
         ] {
             store.removeObject(forKey: key)
         }
+        DebugKeychain.clearOtlpApiKey()
+        store.removeObject(forKey: DebugSettingsKey.otlpApiKey)
         publish()
     }
 
     // MARK: Private
+
+    private func setSecureOtlpApiKey(_ value: String?) {
+        DebugKeychain.writeOtlpApiKey(value)
+        store.removeObject(forKey: DebugSettingsKey.otlpApiKey)
+    }
 
     private func setString(_ key: String, value: String?) {
         if let value {
@@ -216,7 +222,7 @@ final class DebugSettingsRepository {
             backendUrlOverride: store.string(forKey: DebugSettingsKey.backendUrl),
             otlpEndpointOverride: store.string(forKey: DebugSettingsKey.otlpEndpoint),
             otlpInstanceIdOverride: store.string(forKey: DebugSettingsKey.otlpInstanceId),
-            otlpApiKeyOverride: store.string(forKey: DebugSettingsKey.otlpApiKey),
+            otlpApiKeyOverride: DebugKeychain.readOtlpApiKey(),
             errorOnRecommendations: store.bool(forKey: DebugSettingsKey.errorRecommendations),
             errorOnIngredients: store.bool(forKey: DebugSettingsKey.errorIngredients),
             slowRecommendations: store.bool(forKey: DebugSettingsKey.slowRecommendations),

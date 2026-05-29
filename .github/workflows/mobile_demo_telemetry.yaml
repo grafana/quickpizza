@@ -1,8 +1,15 @@
 name: Mobile Demo Telemetry
 
 on:
-  # For development: trigger on PR changes to iterate easily
-  pull_request:
+  # Manual trigger for ad hoc testing (pick branch in Actions UI)
+  workflow_dispatch: {}
+  # Scheduled run every hour for continuous telemetry
+  schedule:
+    - cron: "0 * * * *"
+  # Post-merge full telemetry on main (PR compile checks use mobile_demo_telemetry_build.yaml)
+  push:
+    branches:
+      - main
     paths:
       - ".github/workflows/mobile_demo_telemetry.yaml"
       - "Mobiles/e2e/**"
@@ -11,11 +18,6 @@ on:
       - "Mobiles/android/**"
       - "Mobiles/ios/**"
       - "compose.grafana-cloud.microservices.yaml"
-  # Manual trigger for ad hoc testing
-  workflow_dispatch: {}
-  # Scheduled run every hour for continuous telemetry
-  schedule:
-    - cron: "0 * * * *"
 
 permissions:
   contents: read
@@ -32,10 +34,11 @@ jobs:
     name: Build Flutter APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Get Vault secrets
         id: get-secrets
@@ -95,8 +98,7 @@ jobs:
             "CI_DEMO_VERSIONING": "true"
           }
           EOF
-          echo "Created config.json:"
-          cat config.json
+          echo "Created config.json (FARO_COLLECTOR_URL redacted)"
 
       - name: Build APK (debug)
         if: steps.cache-apk.outputs.cache-hit != 'true'
@@ -107,17 +109,11 @@ jobs:
           echo "APK built successfully"
           ls -la build/app/outputs/flutter-apk/
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: flutter-apk
-          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 1
-
   build-react-native-apk:
     name: Build React Native APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
@@ -132,12 +128,6 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Checkout faro-react-native-sdk
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: grafana/faro-react-native-sdk
-          path: faro-react-native-sdk
 
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
@@ -211,17 +201,11 @@ jobs:
           echo "APK built successfully"
           ls -la app/build/outputs/apk/debug/
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: react-native-apk
-          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
-
   build-android-native-apk:
     name: Build Android Native APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
@@ -292,13 +276,6 @@ jobs:
           echo "APK built successfully"
           ls -la app/build/outputs/apk/debug/
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: android-native-apk
-          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
-
   build-ios-native-app:
     name: Build iOS Native .app
     # macOS-only: xcodebuild lives in Xcode and only runs on macOS runners.
@@ -308,6 +285,7 @@ jobs:
     # a working Xcode version.
     runs-on: macos-26
     timeout-minutes: 45
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
@@ -447,13 +425,6 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
-      - name: Upload .app artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ios-native-app
-          path: Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-          retention-days: 1
-
   run-mobile-demo:
     name: Run Mobile Demo
     needs:
@@ -463,6 +434,7 @@ jobs:
     if: ${{ needs.build-flutter-apk.result == 'success' && needs.build-react-native-apk.result == 'success' && needs.build-android-native-apk.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
@@ -480,23 +452,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Download Flutter APK artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Restore Flutter APK from cache
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          name: flutter-apk
-          path: apk/flutter/
+          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
+          key: apk-cache-${{ runner.os }}-${{ env.FLUTTER_CHANNEL }}-${{ hashFiles('Mobiles/flutter/pubspec.yaml', 'Mobiles/flutter/pubspec.lock', 'Mobiles/flutter/lib/**', 'Mobiles/flutter/android/**', 'Mobiles/flutter/assets/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
+          fail-on-cache-miss: true
 
-      - name: Download React Native APK artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Restore React Native APK from cache
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          name: react-native-apk
-          path: apk/react-native/
+          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
+          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
+          fail-on-cache-miss: true
 
-      - name: Download Android Native APK artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Restore Android Native APK from cache
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          name: android-native-apk
-          path: apk/android-native/
+          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
+          key: android-native-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/android/app/build.gradle.kts', 'Mobiles/android/build.gradle.kts', 'Mobiles/android/settings.gradle.kts', 'Mobiles/android/gradle/libs.versions.toml', 'Mobiles/android/gradle.properties', 'Mobiles/android/app/src/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
+          fail-on-cache-miss: true
+
+      - name: Stage APKs for e2e
+        run: |
+          mkdir -p apk/flutter apk/react-native apk/android-native
+          cp Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk apk/flutter/
+          cp Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk apk/react-native/
+          cp Mobiles/android/app/build/outputs/apk/debug/app-debug.apk apk/android-native/
 
       - name: Verify APKs
         run: |
@@ -642,6 +624,7 @@ jobs:
     # Uses the same pinned macOS runner as the iOS build job so caches line up.
     runs-on: macos-26
     timeout-minutes: 60
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
@@ -659,11 +642,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Download iOS .app artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Restore iOS .app from cache
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          name: ios-native-app
-          path: ios-app/
+          path: |
+            Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
+            Mobiles/ios/DerivedData
+          key: ios-native-app-cache-${{ runner.os }}-${{ hashFiles('Mobiles/ios/QuickPizzaIos.xcodeproj/**', 'Mobiles/ios/QuickPizzaIos/**', 'Mobiles/ios/Scripts/**', 'Mobiles/ios/Config.xcconfig.example', '.github/workflows/mobile_demo_telemetry.yaml') }}
+          fail-on-cache-miss: true
+
+      - name: Stage iOS .app for e2e
+        run: |
+          mkdir -p ios-app
+          cp Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz ios-app/
 
       - name: Untar iOS .app
         run: |
