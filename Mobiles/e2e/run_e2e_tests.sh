@@ -245,7 +245,7 @@ check_dependencies() {
     fi
 
     if ! command -v node &> /dev/null; then
-        print_error "node is required for HTML report generation (install Node.js >=18)"
+        print_error "node is required for HTML report generation (install Node.js >=24.5)"
     fi
     if ! command -v npm &> /dev/null; then
         print_error "npm is required to install the report generator's dependencies"
@@ -347,11 +347,8 @@ install_report_deps() {
         return 0
     fi
     print_step "Installing report generator dependencies in $REPORT_DIR..."
-    if [ -f "$REPORT_DIR/package-lock.json" ]; then
-        (cd "$REPORT_DIR" && npm ci --silent)
-    else
-        (cd "$REPORT_DIR" && npm install --silent)
-    fi
+    [ -f "$REPORT_DIR/package-lock.json" ] || print_error "Missing $REPORT_DIR/package-lock.json — refusing non-lockfile npm install"
+    (cd "$REPORT_DIR" && npm ci --ignore-scripts --silent)
     if ! (cd "$REPORT_DIR" && node -e "require.resolve('yaml')" 2>/dev/null); then
         print_error "After install, node still cannot resolve 'yaml' — check $REPORT_DIR/package.json"
     fi

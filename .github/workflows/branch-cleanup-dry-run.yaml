@@ -1,0 +1,69 @@
+name: Branch Cleanup Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: GitHub owner or organization to audit
+        required: true
+        default: grafana
+      repo:
+        description: Repository to audit
+        required: true
+        default: mobile-o11y-demo
+      min_merged_age_days:
+        description: Minimum age in days before merged branches are cleanup candidates
+        required: true
+        default: "14"
+      include_automation:
+        description: Include renovate/dependabot/release-please branches as candidates
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  audit:
+    name: Audit stale branches
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ">=24.5.0"
+
+      - name: Generate dry-run branch cleanup report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_OWNER: ${{ inputs.owner }}
+          INPUT_REPO: ${{ inputs.repo }}
+          INPUT_MIN_MERGED_AGE_DAYS: ${{ inputs.min_merged_age_days }}
+          INPUT_INCLUDE_AUTOMATION: ${{ inputs.include_automation }}
+        run: |
+          node scripts/audit-stale-branches.mjs \
+            --owner "$INPUT_OWNER" \
+            --repo "$INPUT_REPO" \
+            --min-merged-age-days "$INPUT_MIN_MERGED_AGE_DAYS" \
+            --include-automation "$INPUT_INCLUDE_AUTOMATION" \
+            > branch-cleanup-dry-run.md
+
+      - name: Print report summary
+        run: sed -n '1,80p' branch-cleanup-dry-run.md
+
+      - name: Publish report to job summary
+        run: cat branch-cleanup-dry-run.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: branch-cleanup-dry-run
+          path: branch-cleanup-dry-run.md
+          retention-days: 14

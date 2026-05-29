@@ -45,7 +45,7 @@ Prerequisites (Android):
 - QuickPizza backend running and reachable at `http://localhost:3333`.
   For Android emulators, also run `adb reverse tcp:3333 tcp:3333`.
 - `OPENAI_API_KEY` exported.
-- `adb`, `unzip`, `node` (18+), `npm`, and either `wget` or `curl` available.
+- `adb`, `unzip`, Node.js 24.5+, npm 11.10+, and either `wget` or `curl` available.
 
 Prerequisites (iOS — macOS only):
 - Xcode + Command Line Tools (`xcrun`, `xcodebuild`).
@@ -54,7 +54,7 @@ Prerequisites (iOS — macOS only):
   installs in one go, then you can `Ctrl+C` out of the log stream).
 - QuickPizza backend on `http://localhost:3333` (the simulator shares the
   Mac's network, so no port forwarding is required).
-- `OPENAI_API_KEY` exported. `xcrun`, `unzip`, `node` (18+), `npm`, and
+- `OPENAI_API_KEY` exported. `xcrun`, `unzip`, Node.js 24.5+, npm 11.10+, and
   either `wget` or `curl` available.
 
 ```bash
@@ -91,7 +91,7 @@ adb reverse tcp:3333 tcp:3333
 
 This does NOT apply in CI: the
 [`mobile_demo_telemetry.yaml`](../../.github/workflows/mobile_demo_telemetry.yaml)
-workflow runs `npx react-native bundle` before `./gradlew assembleDebug`,
+workflow runs `yarn react-native bundle` before `./gradlew assembleDebug`,
 which produces an **offline** debug APK (JS embedded at
 `assets/index.android.bundle`) that doesn't talk to Metro at all. The
 runner script intentionally doesn't try to manage Metro itself —
