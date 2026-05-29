@@ -13,7 +13,6 @@
     "@grafana/faro-react-native": "1.1.0",
     "@grafana/faro-react-native-tracing": "1.1.0",
     "@react-native-async-storage/async-storage": "^1.21.0",
-    "react-native-keychain": "10.0.0",
     "@react-native-vector-icons/material-icons": "^13.1.1",
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.18",
@@ -21,6 +20,7 @@
     "react": "19.2.3",
     "react-native": "0.84.1",
     "react-native-device-info": "^11.1.0",
+    "react-native-keychain": "10.0.0",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.6.0",
     "zustand": "^4.5.5"
