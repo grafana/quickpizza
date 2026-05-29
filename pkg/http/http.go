@@ -1157,6 +1157,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 				// Delete the cookie containing the CSRF token
 				csrfClear := newSessionCookie(csrfTokenCookie, "")
 				csrfClear.Expires = time.Unix(0, 0)
+				csrfClear.MaxAge = -1
 				http.SetCookie(w, csrfClear)
 			}
 
