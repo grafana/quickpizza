@@ -32,13 +32,17 @@ on:
 
 permissions:
   contents: read
-  issues: write
   pull-requests: read
 
 jobs:
   audit:
     name: Audit stale branches
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      create_issue: ${{ steps.issue.outputs.create_issue }}
     steps:
       - name: Check 14-day report cadence
         id: cadence
@@ -130,8 +134,28 @@ jobs:
             echo "Skipping issue creation because there are no actionable branch cleanup items." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Upload report
+        if: steps.cadence.outputs.run_report == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: branch-cleanup-dry-run
+          path: branch-cleanup-dry-run.md
+          retention-days: 14
+
+  create-issue:
+    name: Create issue report
+    needs: audit
+    if: needs.audit.outputs.create_issue == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - name: Download report
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: branch-cleanup-dry-run
+
       - name: Create GitHub issue report
-        if: steps.cadence.outputs.run_report == 'true' && steps.issue.outputs.create_issue == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_REPO: ${{ github.repository }}
@@ -161,11 +185,3 @@ jobs:
             --title "$issue_title" \
             --label "$ISSUE_LABEL" \
             --body-file branch-cleanup-issue.md
-
-      - name: Upload report
-        if: steps.cadence.outputs.run_report == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: branch-cleanup-dry-run
-          path: branch-cleanup-dry-run.md
-          retention-days: 14
