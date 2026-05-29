@@ -241,10 +241,14 @@ func authCookiesSecure() bool {
 }
 
 func newSessionCookie(name, value string) *http.Cookie {
+	httpOnly := true
+	if name == csrfTokenCookie || name == qpUserTokenCookie || name == "admin_token" {
+		httpOnly = false
+	}
 	return &http.Cookie{
 		Name:     name,
 		Value:    value,
-		HttpOnly: true,
+		HttpOnly: httpOnly,
 		Secure:   authCookiesSecure(),
 		SameSite: http.SameSiteStrictMode,
 		Path:     "/",
