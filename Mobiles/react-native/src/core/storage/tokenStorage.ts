@@ -16,7 +16,6 @@ export function isValidSession(session: StoredSession): boolean {
 export async function saveSession(token: string, username: string): Promise<void> {
   await Keychain.setGenericPassword(username, token, { service: KEYCHAIN_SERVICE });
   await AsyncStorage.setItem(USERNAME_KEY, username);
-  await AsyncStorage.removeItem('auth_token');
 }
 
 export async function loadSession(): Promise<StoredSession> {
@@ -29,5 +28,5 @@ export async function loadSession(): Promise<StoredSession> {
 
 export async function clearSession(): Promise<void> {
   await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
-  await AsyncStorage.multiRemove([USERNAME_KEY, 'auth_token']);
+  await AsyncStorage.removeItem(USERNAME_KEY);
 }

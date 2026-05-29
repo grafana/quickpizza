@@ -363,7 +363,6 @@ func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
 				"http://127.0.0.1:5173",
 				"https://127.0.0.1:5173",
 			},
-			},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", authHeader, "Content-Type", "X-CSRF-Token"},
 			ExposedHeaders:   []string{"Link"},
@@ -1023,10 +1022,10 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		}
 
 		r.Post("/api/users/token/logout", func(w http.ResponseWriter, r *http.Request) {
-		logoutCookie := newSessionCookie(qpUserTokenCookie, "")
-		logoutCookie.Expires = time.Unix(0, 0)
-		logoutCookie.MaxAge = -1
-		http.SetCookie(w, logoutCookie)
+			logoutCookie := newSessionCookie(qpUserTokenCookie, "")
+			logoutCookie.Expires = time.Unix(0, 0)
+			logoutCookie.MaxAge = -1
+			http.SetCookie(w, logoutCookie)
 
 			w.WriteHeader(http.StatusOK)
 		})

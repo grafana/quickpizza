@@ -8,6 +8,7 @@
 name: Build and Test (without Docker)
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
