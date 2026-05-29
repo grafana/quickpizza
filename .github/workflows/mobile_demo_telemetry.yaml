@@ -118,6 +118,110 @@ jobs:
           path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 1
 
+  build-flutter-ios-app:
+    name: Build Flutter iOS .app
+    # macOS-only: Flutter iOS simulator builds require Xcode.
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Get Vault secrets
+        id: get-secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
+        with:
+          repo_secrets: |
+            FARO_COLLECTOR_URL=faro_collector_url:value
+
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93601a5a40bde3801046 # v2.19.0
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Cache Flutter iOS .app
+        id: cache-flutter-ios-app
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            Mobiles/flutter/build/ci/QuickPizzaFlutter.app.tar.gz
+            Mobiles/flutter/build/ios
+          # Hash only Flutter iOS build inputs so iOS changes rebuild,
+          # while unrelated repo changes (Android/backend/frontend) keep cache hits.
+          key: flutter-ios-app-cache-${{ runner.os }}-${{ env.FLUTTER_CHANNEL }}-${{ hashFiles('Mobiles/flutter/pubspec.yaml', 'Mobiles/flutter/pubspec.lock', 'Mobiles/flutter/lib/**', 'Mobiles/flutter/ios/**', 'Mobiles/flutter/assets/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
+
+      - name: Log Flutter iOS app cache status
+        env:
+          CACHE_HIT: ${{ steps.cache-flutter-ios-app.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            echo "Flutter iOS .app found in cache, skipping build"
+            ls -la Mobiles/flutter/build/ci/QuickPizzaFlutter.app.tar.gz
+          else
+            echo "Flutter iOS .app not in cache, will build"
+          fi
+
+      - name: Show Xcode and Flutter versions
+        if: steps.cache-flutter-ios-app.outputs.cache-hit != 'true'
+        run: |
+          xcodebuild -version
+          xcrun --show-sdk-path --sdk iphonesimulator
+          flutter --version
+
+      - name: Install Flutter dependencies
+        if: steps.cache-flutter-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/flutter
+        run: flutter pub get
+
+      - name: Create config.json for CI
+        if: steps.cache-flutter-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/flutter
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333",
+            "CI_DEMO_VERSIONING": "true"
+          }
+          EOF
+          echo "Created config.json (FARO_COLLECTOR_URL redacted)"
+
+      - name: Build Flutter iOS .app for Simulator
+        if: steps.cache-flutter-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/flutter
+        run: |
+          set -e
+          echo "Building Flutter iOS .app for Simulator..."
+          flutter build ios --debug --simulator --dart-define-from-file=config.json
+
+          APP_PATH="build/ios/iphonesimulator/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Could not locate Flutter iOS .app at $APP_PATH"
+            find build/ios -maxdepth 4 -name "*.app" -type d
+            exit 1
+          fi
+          echo "Built app: $APP_PATH"
+
+          mkdir -p build/ci
+          tar -C "$(dirname "$APP_PATH")" -czf build/ci/QuickPizzaFlutter.app.tar.gz "$(basename "$APP_PATH")"
+          ls -la build/ci/
+
+      - name: Upload Flutter iOS .app artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flutter-ios-app
+          path: Mobiles/flutter/build/ci/QuickPizzaFlutter.app.tar.gz
+          retention-days: 1
+
   build-react-native-apk:
     name: Build React Native APK
     runs-on: ubuntu-latest
@@ -226,6 +330,155 @@ jobs:
         with:
           name: react-native-apk
           path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
+
+  build-react-native-ios-app:
+    name: Build React Native iOS .app
+    # macOS-only: React Native iOS simulator builds require Xcode.
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Get Vault secrets
+        id: get-secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
+        with:
+          repo_secrets: |
+            FARO_COLLECTOR_URL_RN=faro_collector_url_rn:value
+
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ">=24.5.0"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Cache React Native iOS .app
+        id: cache-react-native-ios-app
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            Mobiles/react-native/ios/build/ci/QuickPizza.app.tar.gz
+            Mobiles/react-native/ios/DerivedData
+          # Hash only React Native iOS build inputs so iOS changes rebuild,
+          # while unrelated repo changes (Android/Flutter/backend) keep cache hits.
+          key: rn-ios-app-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/ios/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
+
+      - name: Log React Native iOS app cache status
+        env:
+          CACHE_HIT: ${{ steps.cache-react-native-ios-app.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            echo "React Native iOS .app found in cache, skipping build"
+            ls -la Mobiles/react-native/ios/build/ci/QuickPizza.app.tar.gz
+          else
+            echo "React Native iOS .app not in cache, will build"
+          fi
+
+      - name: Show Xcode version
+        if: steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
+        run: |
+          xcodebuild -version
+          xcrun --show-sdk-path --sdk iphonesimulator
+
+      - name: Install JavaScript dependencies
+        if: steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/react-native
+        run: yarn install --immutable
+
+      - name: Install iOS dependencies
+        if: steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/react-native
+        run: |
+          bundle config set path vendor/bundle
+          bundle install
+          cd ios
+          bundle exec pod install
+
+      - name: Create config.json for CI
+        if: steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/react-native
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL_RN }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333"
+          }
+          EOF
+          echo "Created config.json (FARO_COLLECTOR_URL redacted)"
+
+      - name: Build React Native iOS .app for Simulator
+        if: steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
+        working-directory: Mobiles/react-native
+        run: |
+          set -e
+          echo "Building React Native iOS .app for Simulator..."
+          mkdir -p ios/build/ci
+          set +e
+          FORCE_BUNDLING=1 xcodebuild \
+            -workspace ios/QuickPizza.xcworkspace \
+            -scheme QuickPizza \
+            -configuration Release \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath ios/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            PRODUCT_BUNDLE_IDENTIFIER=com.quickpizza \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            build > ios/build/ci/xcodebuild.log 2>&1
+          build_status=$?
+          set -e
+
+          if [ "$build_status" -ne 0 ]; then
+            echo "xcodebuild failed with status $build_status"
+            echo "Relevant build diagnostics:"
+            grep -nE "error:|fatal error:|BUILD FAILED|The following build commands failed|Command SwiftCompile failed" ios/build/ci/xcodebuild.log | tail -200 || true
+            echo "Last 300 xcodebuild log lines:"
+            tail -300 ios/build/ci/xcodebuild.log
+            exit "$build_status"
+          fi
+
+          tail -80 ios/build/ci/xcodebuild.log
+
+          APP_PATH=$(find ios/DerivedData/Build/Products -name "QuickPizza.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not locate built QuickPizza.app under ios/DerivedData"
+            find ios/DerivedData/Build/Products -maxdepth 4 -name "*.app" -type d || true
+            exit 1
+          fi
+          echo "Built app: $APP_PATH"
+
+          tar -C "$(dirname "$APP_PATH")" -czf ios/build/ci/QuickPizza.app.tar.gz "$(basename "$APP_PATH")"
+          ls -la ios/build/ci/
+
+      - name: Upload React Native iOS build log
+        if: failure() && steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: react-native-ios-build-log
+          path: Mobiles/react-native/ios/build/ci/xcodebuild.log
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Upload React Native iOS .app artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: react-native-ios-app
+          path: Mobiles/react-native/ios/build/ci/QuickPizza.app.tar.gz
           retention-days: 1
 
   build-android-native-apk:
@@ -660,7 +913,9 @@ jobs:
     name: Run iOS Mobile Demo
     needs:
       - build-ios-native-app
-    if: ${{ needs.build-ios-native-app.result == 'success' }}
+      - build-flutter-ios-app
+      - build-react-native-ios-app
+    if: ${{ needs.build-ios-native-app.result == 'success' && needs.build-flutter-ios-app.result == 'success' && needs.build-react-native-ios-app.result == 'success' }}
     # macOS-only: xcrun simctl + the booted iOS simulator only work on macOS.
     # Uses the same pinned macOS runner as the iOS build job so caches line up.
     runs-on: macos-26
@@ -684,25 +939,61 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download iOS .app artifact
+      - name: Download iOS Native .app artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ios-native-app
-          path: ios-app/
+          path: ios-app/native/
 
-      - name: Untar iOS .app
+      - name: Download Flutter iOS .app artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: flutter-ios-app
+          path: ios-app/flutter/
+
+      - name: Download React Native iOS .app artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: react-native-ios-app
+          path: ios-app/react-native/
+
+      - name: Untar iOS .app artifacts
         run: |
           set -e
-          ls -la ios-app/
-          mkdir -p ios-app/unpacked
-          tar -C ios-app/unpacked -xzf ios-app/QuickPizzaIos.app.tar.gz
-          APP_PATH="$(pwd)/ios-app/unpacked/QuickPizzaIos.app"
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Expected QuickPizzaIos.app at $APP_PATH but it does not exist"
+          echo "Downloaded iOS app artifacts:"
+          find ios-app -maxdepth 2 -type f -print
+
+          mkdir -p ios-app/unpacked/native ios-app/unpacked/flutter ios-app/unpacked/react-native
+
+          tar -C ios-app/unpacked/native -xzf ios-app/native/QuickPizzaIos.app.tar.gz
+          IOS_NATIVE_APP_PATH="$(pwd)/ios-app/unpacked/native/QuickPizzaIos.app"
+          if [ ! -d "$IOS_NATIVE_APP_PATH" ]; then
+            echo "Expected QuickPizzaIos.app at $IOS_NATIVE_APP_PATH but it does not exist"
             exit 1
           fi
-          echo "IOS_APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
-          echo "Unpacked .app: $APP_PATH"
+
+          tar -C ios-app/unpacked/flutter -xzf ios-app/flutter/QuickPizzaFlutter.app.tar.gz
+          FLUTTER_IOS_APP_PATH="$(pwd)/ios-app/unpacked/flutter/Runner.app"
+          if [ ! -d "$FLUTTER_IOS_APP_PATH" ]; then
+            echo "Expected Runner.app at $FLUTTER_IOS_APP_PATH but it does not exist"
+            exit 1
+          fi
+
+          tar -C ios-app/unpacked/react-native -xzf ios-app/react-native/QuickPizza.app.tar.gz
+          REACT_NATIVE_IOS_APP_PATH="$(pwd)/ios-app/unpacked/react-native/QuickPizza.app"
+          if [ ! -d "$REACT_NATIVE_IOS_APP_PATH" ]; then
+            echo "Expected QuickPizza.app at $REACT_NATIVE_IOS_APP_PATH but it does not exist"
+            exit 1
+          fi
+
+          # Export explicit per-app paths for the install/test step.
+          echo "IOS_NATIVE_APP_PATH=$IOS_NATIVE_APP_PATH" >> "$GITHUB_ENV"
+          echo "FLUTTER_IOS_APP_PATH=$FLUTTER_IOS_APP_PATH" >> "$GITHUB_ENV"
+          echo "REACT_NATIVE_IOS_APP_PATH=$REACT_NATIVE_IOS_APP_PATH" >> "$GITHUB_ENV"
+
+          echo "Unpacked native iOS .app: $IOS_NATIVE_APP_PATH"
+          echo "Unpacked Flutter iOS .app: $FLUTTER_IOS_APP_PATH"
+          echo "Unpacked React Native iOS .app: $REACT_NATIVE_IOS_APP_PATH"
 
       - name: Set up Go (QuickPizza backend)
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -744,7 +1035,7 @@ jobs:
           cat backend-ios.log
           exit 1
 
-      - name: Boot iOS simulator + install app
+      - name: Boot iOS simulator
         run: |
           set -e
           # Pick the newest available iPhone runtime/device on the runner.
@@ -777,10 +1068,6 @@ jobs:
           xcrun simctl bootstatus "$DEVICE_UDID" -b
           xcrun simctl list devices booted
 
-          echo "Installing $IOS_APP_PATH..."
-          xcrun simctl install booted "$IOS_APP_PATH"
-          xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
-
       - name: Set up Node.js (shared e2e HTML report generator)
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
@@ -793,11 +1080,28 @@ jobs:
         working-directory: Mobiles/e2e/report-generator
         run: npm ci --ignore-scripts
 
-      - name: Run iOS e2e
+      - name: Install iOS apps and run e2e tests
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
         run: |
+          set -e
+
+          echo "==> Native iOS .app: install and E2E"
+          xcrun simctl install booted "$IOS_NATIVE_APP_PATH"
+          xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
+
+          echo "==> Flutter iOS .app: install and E2E"
+          xcrun simctl install booted "$FLUTTER_IOS_APP_PATH"
+          xcrun simctl get_app_container booted com.example.flutterMobileO11yDemo
+          bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios
+
+          echo "==> React Native iOS .app: install and E2E"
+          xcrun simctl install booted "$REACT_NATIVE_IOS_APP_PATH"
+          xcrun simctl get_app_container booted com.quickpizza
+          bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios
+
+          echo "iOS E2E tests completed (Native iOS, Flutter iOS, React Native iOS on same simulator)."
 
       - name: Upload e2e test results
         if: always()
