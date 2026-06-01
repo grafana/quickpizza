@@ -22,26 +22,35 @@ const defaultSourceMapFile =
   process.env.FARO_SOURCEMAP_FILE ||
   (isIosBundlePlatform ? 'main.jsbundle' : 'index.android.bundle');
 
+/** Must match `FARO_APP_NAME` in `src/bootstrap.ts` and `initializeFaro` `app.name`. */
+const DEFAULT_FARO_APP_NAME = 'QuickPizza_ReactNative';
+
 /** Non-secret Faro source map API settings; override per key with env if needed (CI). */
 function loadSourcemapsConfig() {
   const configPath = path.join(__dirname, 'sourcemaps.config.json');
   if (!fs.existsSync(configPath)) {
-    throw new Error(
-      'Missing sourcemaps.config.json — copy sourcemaps.config.example.json and fill appId, stackId, endpoint.'
-    );
+    return {
+      appName: DEFAULT_FARO_APP_NAME,
+      endpoint: '',
+      appId: '',
+      stackId: '',
+      apiKey: '',
+      bundleId: undefined,
+    };
   }
   const raw = fs.readFileSync(configPath, 'utf8');
   const parsed = JSON.parse(raw);
-  if (!parsed.appName || typeof parsed.appName !== 'string') {
-    throw new Error('sourcemaps.config.json: "appName" is required and must match initializeFaro app.name');
-  }
+  const appName =
+    typeof parsed.appName === 'string' && parsed.appName.trim() !== ''
+      ? parsed.appName.trim()
+      : DEFAULT_FARO_APP_NAME;
   const apiKey = typeof parsed.apiKey === 'string' ? parsed.apiKey : '';
   const bundleId =
     typeof parsed.bundleId === 'string' && String(parsed.bundleId).trim() !== ''
       ? String(parsed.bundleId).trim()
       : undefined;
   return {
-    appName: parsed.appName,
+    appName,
     endpoint: typeof parsed.endpoint === 'string' ? parsed.endpoint : '',
     appId: typeof parsed.appId === 'string' ? parsed.appId : '',
     stackId: typeof parsed.stackId === 'string' ? parsed.stackId : '',
