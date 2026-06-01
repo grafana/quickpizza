@@ -1101,21 +1101,18 @@ jobs:
           xcrun simctl install booted "$IOS_NATIVE_APP_PATH"
           xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
-          xcrun simctl uninstall booted com.grafana.QuickPizzaIos || true
 
           echo "==> Flutter iOS .app: install and E2E"
           xcrun simctl uninstall booted com.example.flutterMobileO11yDemo || true
           xcrun simctl install booted "$FLUTTER_IOS_APP_PATH"
           xcrun simctl get_app_container booted com.example.flutterMobileO11yDemo
           bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios
-          xcrun simctl uninstall booted com.example.flutterMobileO11yDemo || true
 
           echo "==> React Native iOS .app: install and E2E"
           xcrun simctl uninstall booted com.quickpizza || true
           xcrun simctl install booted "$REACT_NATIVE_IOS_APP_PATH"
           xcrun simctl get_app_container booted com.quickpizza
           bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios
-          xcrun simctl uninstall booted com.quickpizza || true
 
           echo "iOS E2E tests completed (Native iOS, Flutter iOS, React Native iOS on same simulator)."
 
