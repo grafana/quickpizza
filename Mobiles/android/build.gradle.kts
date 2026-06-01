@@ -1,5 +1,5 @@
 buildscript {
-    // Lock the plugin/buildscript classpath so plugin versions are pinned too.
+    // Lock the resolved plugin/buildscript classpath including transitive plugin dependencies.
     configurations.classpath {
         resolutionStrategy.activateDependencyLocking()
     }
