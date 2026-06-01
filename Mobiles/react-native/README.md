@@ -68,7 +68,7 @@ cd ios && pod install && cd ..
 | **Android** | **`@grafana/faro-react-native` is autolinked** like any other native module. For **release** builds, the SDK wires in a step that runs **after** the composed map exists and calls **`faro-cli metro upload`** for you (using `index.android.bundle.map`). Set the `FARO_*` env vars when you build so that step can run. |
 | **iOS** | **`@grafana/faro-react-native` is autolinked** via CocoaPods. **`pod install`** adds a **`[Faro] Upload composed source map (Release)`** Run Script phase that runs the same `faro-upload-source-map` shim (→ **`faro-cli metro upload`**) after Metro + Hermes + compose produce **`main.jsbundle.map`**. Export the same **`FARO_*`** variables for the build environment you use. **Release** should define **`SOURCEMAP_FILE`** in Xcode so `react-native-xcode.sh` writes the composed map (this demo sets it on the Release configuration — see iOS steps below). |
 
-Deeper technical notes: [`@grafana/faro-metro-plugin` README](../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin/README.md).
+Deeper technical notes: [`@grafana/faro-metro-plugin` README](https://github.com/grafana/faro-javascript-bundler-plugins/blob/main/packages/faro-metro-plugin/README.md).
 
 #### Configure
 
