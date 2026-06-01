@@ -54,7 +54,8 @@ scenarios:
       - Tap exactly one handled-exception control.
       - The button may be labeled "Send Handled Exception" or "Handled exception" depending on the app.
       - Do not tap any crash, ANR, unhandled exception, or error-log button in this scenario.
-      - After tapping the handled exception button once, wait 1-2 seconds, then OUTPUT "Goal achieved" and STOP.
+      - The UI may not visually change after this tap. That is expected.
+      - After tapping the handled exception button once, OUTPUT "Goal achieved" and STOP. Do not retry the same button just because the screen looks unchanged.
 
       SUCCESS CRITERIA:
       - The handled exception action was tapped once.

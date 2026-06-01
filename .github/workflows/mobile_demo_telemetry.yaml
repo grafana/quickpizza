@@ -630,18 +630,16 @@ jobs:
             adb install -r apk/android-native/app-debug.apk
             bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android
 
-            if [ "$RUN_DIAGNOSTICS" = "true" ]; then
-              echo "==> Flutter APK: diagnostics E2E"
-              bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android --flow=diagnostics
-
-              echo "==> React Native APK: diagnostics E2E"
-              bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android --flow=diagnostics
-
-              echo "==> Android Native APK: diagnostics E2E"
-              bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android --flow=diagnostics
-            else
-              echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
-            fi
+            # android-emulator-runner executes script lines individually, so
+            # keep diagnostics gating as one-line commands instead of a
+            # multi-line shell if block.
+            [ "$RUN_DIAGNOSTICS" = "true" ] || echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
+            [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> Flutter APK: diagnostics E2E"
+            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> React Native APK: diagnostics E2E"
+            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> Android Native APK: diagnostics E2E"
+            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android --flow=diagnostics
 
             echo "E2E tests completed (Flutter, React Native, Android Native on same emulator)."
 
