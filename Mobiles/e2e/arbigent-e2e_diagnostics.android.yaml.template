@@ -1,0 +1,115 @@
+# Shared Arbigent diagnostics project for QuickPizza Android (Flutter + React Native + Android Native).
+# run_e2e_tests.sh replaces __ANDROID_PACKAGE__ with the app under test:
+#   - Flutter default:        com.example.flutter_mobile_o11y_demo
+#   - React Native default:   com.quickpizza
+#   - Android Native default: com.grafana.quickpizza
+#
+# This flow intentionally exercises the Debug tab instead of the normal pizza
+# happy path. It emits a handled exception, triggers a native crash, and
+# relaunches the app so persisted crash telemetry can flush on next startup.
+
+scenarios:
+  - id: "start_app"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
+      __RECOVERY_BLOCK__
+
+    initializationMethods:
+      - type: "Back"
+        times: 3
+      - type: "CleanupData"
+        packageName: "__ANDROID_PACKAGE__"
+      - type: "LaunchApp"
+        packageName: "__ANDROID_PACKAGE__"
+    maxRetry: 2
+    maxStep: 5
+
+  - id: "open_debug_tab"
+    dependency: "start_app"
+    goal: |
+      You should open the QuickPizza Debug tab.
+
+      STEPS:
+      - Tap the bottom navigation tab labeled "Debug".
+      - If the bottom navigation is not visible, press Back once or scroll to recover, then tap "Debug".
+
+      SUCCESS CRITERIA:
+      - You see a Debug screen with controls such as "Send Debug Log", "Send Handled Exception", "Handled exception", or crash buttons.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 8
+
+  - id: "send_handled_exception"
+    dependency: "open_debug_tab"
+    goal: |
+      You should emit one handled exception from the Debug tab.
+
+      STEPS:
+      - Tap exactly one handled-exception control.
+      - The button may be labeled "Send Handled Exception" or "Handled exception" depending on the app.
+      - Do not tap any crash, ANR, unhandled exception, or error-log button in this scenario.
+      - After tapping the handled exception button once, wait 1-2 seconds, then OUTPUT "Goal achieved" and STOP.
+
+      SUCCESS CRITERIA:
+      - The handled exception action was tapped once.
+      - The app is still running on the Debug screen.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 8
+
+  - id: "trigger_native_crash"
+    dependency: "send_handled_exception"
+    goal: |
+      You should trigger one intentional native crash from the Debug tab.
+
+      STEPS:
+      - Tap exactly one crash control. Acceptable labels include:
+        - "Crash (RuntimeException)"
+        - "Crash (NPE)"
+        - "Crash (custom message)"
+        - "Crash (simulated NPE)"
+        - "RuntimeException / fatalError"
+        - "Null pointer / force unwrap"
+      - If a confirmation dialog appears, tap "Crash now" or "Crash".
+      - After confirming the crash, the app may terminate, disappear, show the Android launcher, or show an Android crash dialog. That is expected.
+
+      SUCCESS CRITERIA:
+      - You tapped one crash control and confirmed the crash if prompted.
+      - The app terminated or left the foreground, or an Android crash dialog appeared.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 1
+    maxStep: 12
+
+  - id: "relaunch_after_crash"
+    dependency: "trigger_native_crash"
+    initializationMethods:
+      - type: "LaunchApp"
+        packageName: "__ANDROID_PACKAGE__"
+    goal: |
+      QuickPizza should be relaunched after the intentional crash.
+
+      WHY:
+      - Android crash reporters often persist the crash and export it on the next app launch.
+
+      STEPS:
+      - If an Android crash dialog is visible, dismiss it.
+      - Launch QuickPizza again if it is not already visible.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza app UI again, preferably the home screen or Debug screen.
+      - The app is running after the crash.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 8

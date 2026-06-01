@@ -12,7 +12,13 @@ on:
       - "Mobiles/ios/**"
       - "compose.grafana-cloud.microservices.yaml"
   # Manual trigger for ad hoc testing
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      run_diagnostics:
+        description: "Also run Debug-tab diagnostics that emit handled exceptions and intentional crashes"
+        required: false
+        default: false
+        type: boolean
   # Scheduled run every hour for continuous telemetry
   schedule:
     - cron: "0 * * * *"
@@ -595,6 +601,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # v2.35.0
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          RUN_DIAGNOSTICS: ${{ github.event_name == 'workflow_dispatch' && inputs.run_diagnostics == true }}
         with:
           api-level: 34
           arch: x86_64
@@ -622,6 +629,19 @@ jobs:
             echo "==> Android Native APK: install and E2E"
             adb install -r apk/android-native/app-debug.apk
             bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android
+
+            if [ "$RUN_DIAGNOSTICS" = "true" ]; then
+              echo "==> Flutter APK: diagnostics E2E"
+              bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android --flow=diagnostics
+
+              echo "==> React Native APK: diagnostics E2E"
+              bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android --flow=diagnostics
+
+              echo "==> Android Native APK: diagnostics E2E"
+              bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android --flow=diagnostics
+            else
+              echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
+            fi
 
             echo "E2E tests completed (Flutter, React Native, Android Native on same emulator)."
 
@@ -796,8 +816,14 @@ jobs:
       - name: Run iOS e2e
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          RUN_DIAGNOSTICS: ${{ github.event_name == 'workflow_dispatch' && inputs.run_diagnostics == true }}
         run: |
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
+          if [ "$RUN_DIAGNOSTICS" = "true" ]; then
+            bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios --flow=diagnostics
+          else
+            echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
+          fi
 
       - name: Upload e2e test results
         if: always()
