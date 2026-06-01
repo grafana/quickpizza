@@ -2,7 +2,7 @@
 
 Running QuickPizza locally.
 
-**Prerequisites**: Go 1.21+ and Node.js 18+
+**Prerequisites**: Go 1.24+, Node.js 24.5+, and npm 11.10+
 
 ## Development Mode (with Live-Reload)
 
@@ -41,6 +41,4 @@ To build and run as in production:
    ```
 
 3. Access at `http://localhost:3333`
-
-
 

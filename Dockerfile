@@ -9,10 +9,11 @@ ENV PUBLIC_BACKEND_ENDPOINT=${PUBLIC_BACKEND_ENDPOINT}
 ARG PUBLIC_BACKEND_WS_ENDPOINT=""
 ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 
-RUN npm install && \
+RUN npm install -g npm@11.10.0 && \
+    npm ci --ignore-scripts && \
     npm run build
 
-FROM golang:1.24-bullseye@sha256:2cdc80dc25edcb96ada1654f73092f2928045d037581fa4aa7c40d18af7dd85a AS builder
+FROM golang:1.25-bookworm@sha256:154bd7001b6eb339e88c964442c0ad6ed5e53f09844cc818a41ce4ecb3ce3b43 AS builder
 
 WORKDIR /app
 COPY . ./
@@ -21,7 +22,7 @@ COPY --from=fe-builder /app/pkg/web/build /app/pkg/web/build
 # with uses a different distribution of libc.
 RUN CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
 
-FROM gcr.io/distroless/static-debian11@sha256:1dbe426d60caed5d19597532a2d74c8056cd7b1674042b88f7328690b5ead8ed
+FROM gcr.io/distroless/static-debian12@sha256:9c346e4be81b5ca7ff31a0d89eaeade58b0f95cfd3baed1f36083ddb47ca3160
 
 COPY --from=builder /bin/quickpizza /bin
 EXPOSE 3333 3334 3335

@@ -1,0 +1,113 @@
+# Shared Arbigent project for QuickPizza iOS (native iOS + future Flutter/RN on iOS).
+# run_e2e_tests.sh replaces __IOS_BUNDLE_ID__ with the app under test:
+#   - iOS Native default: com.grafana.QuickPizzaIos               (Springboard label: QPizza iOS)
+# (Flutter on iOS and React Native on iOS will reuse this template once those land.)
+#
+# Arbigent on iOS runs through Maestro's iOS driver, which talks to the booted
+# simulator via `xcrun simctl` + XCUITest. LaunchApp/CleanupData use the bundle
+# id; Press key: HOME maps to the simulator's home button via XCUITest. The
+# bring_app_to_foreground scenario relies on LaunchApp to re-foreground the app
+# by bundle id (works for both physical-button and gesture-only simulators),
+# falling back to tapping the QPizza icon on Springboard if Maestro can't.
+
+scenarios:
+  - id: "start_app"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
+      __RECOVERY_BLOCK__
+
+    initializationMethods:
+      - type: "CleanupData"
+        packageName: "__IOS_BUNDLE_ID__"
+      - type: "LaunchApp"
+        packageName: "__IOS_BUNDLE_ID__"
+    # CI: first screen + OpenAI vision calls often flake (socket timeout, model hesitation).
+    maxRetry: 2
+    maxStep: 5
+
+  - id: "request_pizza"
+    goal: |
+      You should request a new pizza and see a pizza recommendation card with "Love it!" and "Pass" buttons below it.
+      As soon as you see the pizza card and those two buttons, OUTPUT "Goal achieved" and STOP. Do not tap either rating button in this scenario.
+
+      WHAT IS A PIZZA RECOMMENDATION CARD:
+      - It is an UI element which contains:
+        - The name of a pizza
+        - Information about the pizza, such as: dough, tool, calories, ingredients
+
+      HINTS:
+      - If a pizza recommendation card is partially visible but the "Pass" and "Love it!" buttons are not visible, scroll down once. Do not tap "Pizza, Please!" again.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 1
+    maxStep: 15
+
+  - id: "rate_pizza"
+    dependency: "request_pizza"
+    goal: |
+      You should tap "Love it!" or "Pass" once and see the rating success text below the rating buttons.
+
+      SUCCESS TEXT:
+      - The success text will appear below the rating buttons.
+      - After tapping "Love it!" or "Pass" → look for: Rated!
+
+      HINTS:
+      - If you see the success text, OUTPUT "Goal achieved" and STOP. Do NOT tap anything else.
+      - The "Pass" and "Love it!" rating buttons are most likely placed at the bottom of the pizza recommendation view.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 18
+
+  - id: "put_app_to_background"
+    goal: |
+      You should see the iOS Springboard (home screen with app icons / dock).
+      QuickPizza must go to the background.
+
+      1. Use "Press key: HOME" to go to the iOS Springboard. Do NOT tap any in-app element (Home/About tabs keep you in the app).
+      2. If you see app icons (Safari, Messages, Settings, QPizza iOS, etc.) and a dock at the bottom, OUTPUT "Goal achieved" immediately. Do NOT swipe or scroll—you are already on Springboard.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 1
+    maxStep: 4
+
+  - id: "bring_app_to_foreground"
+    dependency: "put_app_to_background"
+    # Bootstrap: re-launch the app by bundle id (substituted per app). This is the
+    # primary way QuickPizza comes back to the foreground on iOS; the AI fallback
+    # below only runs if LaunchApp didn't visibly foreground the app.
+    initializationMethods:
+      - type: "LaunchApp"
+        packageName: "__IOS_BUNDLE_ID__"
+    goal: |
+      QuickPizza must return to the foreground after HOME (same flow for native iOS and any future iOS Flutter / React Native builds).
+
+      STEP 0 — After automation: wait 1–2 seconds. If you already see the in-app screen with the "Pizza, Please!" button, OUTPUT "Goal achieved" and STOP. Do not tap Springboard icons in that case.
+
+      ORDERED FALLBACK — Only if you still see the iOS Springboard (not the QuickPizza UI):
+
+      CASE A — Icon on THIS Springboard page:
+      - If you see a QuickPizza app icon (pizza-themed icon; the label starts with "QPizza", e.g. "QPizza iOS", "QPizza Flutter", or "QPizza RN"), tap it once. Do not guess unrelated icons.
+
+      CASE B — Icon not visible on this page (another Springboard page):
+      - Try a horizontal swipe from RIGHT to LEFT on empty WALLPAPER area between the dock and the icon rows (do not start the swipe on the dock icons like Safari, Messages, Mail, or Music). This may move to the next Springboard page. Look for QuickPizza again. Repeat at most 3 page changes.
+
+      CASE C — Still no QuickPizza icon:
+      - Open the App Library: swipe LEFT past the last Springboard page (or swipe DOWN from the middle of the screen to open Spotlight search and type "QPizza"). Tap the entry whose label starts with "QPizza".
+
+      AVOID: Do not tap Safari, Messages, Settings, Mail, or any other built-in iOS app to "find" QuickPizza. If you tap the wrong icon, press the HOME key once and restart the fallback.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza app UI with the "Pizza, Please!" button (not Springboard).
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 10

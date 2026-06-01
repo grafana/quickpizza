@@ -77,7 +77,11 @@ class HomeViewModel {
     /// to reproduce a real-world bug where the tools list goes stale.
     private func observeAuthState() async {
         for await _ in authService.authStateChanged {
-            if !authService.isAuthenticated {
+            if authService.isAuthenticated {
+                if errorMessage == "Please sign in to get pizza recommendations" {
+                    errorMessage = nil
+                }
+            } else {
                 clearRecommendationState()
             }
             if !debugSettings.current.skipAuthDepInTools {

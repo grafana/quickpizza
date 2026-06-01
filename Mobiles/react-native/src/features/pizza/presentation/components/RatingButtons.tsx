@@ -44,7 +44,7 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
 
     try {
       await ratingsRepository.ratePizza(pizzaId, stars);
-      setRateResult(stars >= 4 ? 'Thanks! We\'re glad you liked it!' : 'Thanks for your feedback!');
+      setRateResult('Rated!');
     } catch (error) {
       setRateResult(
         error instanceof Error ? error.message : 'Failed to submit rating',
@@ -68,7 +68,7 @@ export function RatingButtons({ recommendation }: RatingButtonsProps) {
           ) : (
             <>
               <Text style={styles.buttonIcon}>👎</Text>
-              <Text style={styles.buttonLabelSecondary}>No thanks</Text>
+              <Text style={styles.buttonLabelSecondary}>Pass</Text>
             </>
           )}
         </TrackedRatingButton>

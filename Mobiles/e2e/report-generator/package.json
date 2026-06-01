@@ -10,10 +10,11 @@
     "generate": "node generate_report.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24.5.0",
+    "npm": ">=11.10.0"
   },
-  "packageManager": "npm@10.9.7",
+  "packageManager": "npm@11.10.0",
   "dependencies": {
-    "yaml": "^2.7.0"
+    "yaml": "2.9.0"
   }
 }

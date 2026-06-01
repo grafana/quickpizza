@@ -1,6 +1,9 @@
 name: Basic Test Workflow
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   basic_k6_test:
     name: k6 test run - basic example
@@ -14,7 +17,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - name: Setup k6
         uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
       - name: Run k6 test

@@ -4,6 +4,12 @@ import SwiftiePod
 struct LoginView: View {
     @State private var viewModel = pod.resolve(loginViewModelProvider)
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case username
+        case password
+    }
 
     var body: some View {
         NavigationStack {
@@ -42,20 +48,44 @@ struct LoginView: View {
                             TextField("Username", text: $viewModel.username)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
+                                .textContentType(.username)
+                                .submitLabel(.next)
+                                .focused($focusedField, equals: .username)
+                                .onSubmit {
+                                    focusedField = .password
+                                }
                         }
                         .padding(14)
                         .background(Color.gray.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            focusedField = .username
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Username")
 
                         // Password
                         HStack {
                             Image(systemName: "lock.fill")
                                 .foregroundStyle(AppColors.textSecondary)
                             SecureField("Password", text: $viewModel.password)
+                                .textContentType(.password)
+                                .submitLabel(.go)
+                                .focused($focusedField, equals: .password)
+                                .onSubmit {
+                                    Task { await viewModel.login() }
+                                }
                         }
                         .padding(14)
                         .background(Color.gray.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            focusedField = .password
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Password")
 
                         // Error message
                         if let error = viewModel.errorMessage {

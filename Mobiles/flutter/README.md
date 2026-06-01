@@ -7,7 +7,7 @@ A Flutter mobile application that replicates the QuickPizza web application func
 ## Features
 
 - 🍕 Get pizza recommendations with one click
-- ⭐ Rate pizzas (Love it! or No thanks)
+- ⭐ Rate pizzas (Love it! or Pass)
 - 🔐 User login and profile management
 - ⚙️ Advanced options for customizing pizza recommendations:
   - Max calories per slice

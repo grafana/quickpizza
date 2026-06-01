@@ -7,7 +7,7 @@ A React Native mobile application that replicates the QuickPizza web and Flutter
 ## Features
 
 - Get pizza recommendations with one click
-- Rate pizzas (Love it! or No thanks)
+- Rate pizzas (Love it! or Pass)
 - User login and profile management
 - Advanced options for customizing pizza recommendations
 - View your pizza ratings history
@@ -15,8 +15,8 @@ A React Native mobile application that replicates the QuickPizza web and Flutter
 
 ## Prerequisites
 
-- Node.js >= 22
-- Yarn
+- Node.js >= 24.5
+- Yarn 4.14+ via Corepack
 - React Native development environment ([setup guide](https://reactnative.dev/docs/environment-setup))
 - QuickPizza backend running (default: `http://localhost:3333`)
 
@@ -25,7 +25,8 @@ A React Native mobile application that replicates the QuickPizza web and Flutter
 ### 1. Install dependencies
 
 ```bash
-yarn install
+corepack enable
+yarn install --immutable
 ```
 
 ### 2. Configure the app
@@ -38,9 +39,9 @@ cp config.json.example config.json
 
 Edit `config.json`:
 
-- `FARO_COLLECTOR_URL` (required): Your Grafana Faro collector URL for observability
-- `BASE_URL` (optional): Backend API URL. Leave empty for emulators (uses 10.0.2.2 for Android, localhost for iOS)
-- `PORT` (optional): Backend port, defaults to 3333
+- **FARO_COLLECTOR_URL** (required): Your Grafana Faro collector URL for observability
+- **BASE_URL** (optional): Backend API URL. Leave empty for emulators (uses 10.0.2.2 for Android, localhost for iOS)
+- **PORT** (optional): Backend port, defaults to 3333
 
 For physical devices, set `BASE_URL` to your machine's IP (e.g. `http://192.168.1.100:3333`).
 
@@ -292,7 +293,7 @@ yarn android
 
 ## Faro SDK
 
-This app depends on `@grafana/faro-react-native` and `@grafana/faro-react-native-tracing` at `1.0.0-alpha.1` from npm (`package.json`; the git tag may be `v1.0.0-alpha.1`). After those versions are published, run `yarn install` here and commit the updated `yarn.lock` (with resolved URLs and integrity hashes). Until then, `yarn install` will 404 against the public registry.
+This app depends on `@grafana/faro-react-native` and `@grafana/faro-react-native-tracing` from npm (`package.json`). Run `yarn install --immutable` here to verify the committed `yarn.lock`.
 
 In Grafana Cloud the app reports as `app_name=QuickPizza_ReactNative` (Faro app id `123` on the demo stack). Telemetry includes auto fetch + XMLHttpRequest tracing, `app_lifecycle_changed`, `view_changed`, custom business measurements (`pizza.recommendation`, `pizza.rating`), and native crash capture via Faro CrashKit.
 
