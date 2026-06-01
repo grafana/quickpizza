@@ -589,6 +589,18 @@ function classify(src) {
   return 'OTH ';
 }
 
+/** Whether the map file itself carries source mappings (independent of sample frames). */
+function mapHasSourceMappings(map) {
+  const sources = Array.isArray(map.sources) ? map.sources : [];
+  const mappings = typeof map.mappings === 'string' ? map.mappings : '';
+  if (sources.length === 0 || mappings.length === 0) {
+    return false;
+  }
+  // Composed Hermes maps use VLQ segments separated by ';'. A flat map (no ';')
+  // usually means compose-source-maps could not merge packager + HBC maps.
+  return mappings.includes(';');
+}
+
 async function checkOneMap(label, mapPath, frames) {
   const raw = fs.readFileSync(mapPath, 'utf8');
   const map = JSON.parse(raw);
@@ -630,10 +642,11 @@ async function checkOneMap(label, mapPath, frames) {
   } finally {
     consumer.destroy?.();
   }
+  const hasSourceMappings = mapHasSourceMappings(map);
   process.stdout.write(
-    `  summary: APP=${app}  DEP=${dep}  OTH=${oth}  NONE=${none}\n`,
+    `  summary: APP=${app}  DEP=${dep}  OTH=${oth}  NONE=${none}  mapHasSources=${hasSourceMappings}\n`,
   );
-  return { label, mapPath, app, dep, none, oth, flat };
+  return { label, mapPath, app, dep, none, oth, flat, hasSourceMappings };
 }
 
 function autoAndroidPaths() {
@@ -796,8 +809,7 @@ async function main() {
   }
 
   process.stdout.write('\n=== Verdict ===\n');
-  const totalResolved = composed.app + composed.dep + composed.oth;
-  const composedHasSources = totalResolved > 0;
+  const mapHasSources = composed.hasSourceMappings;
 
   if (composed.app > 0) {
     process.stdout.write(
@@ -821,7 +833,7 @@ async function main() {
         '    2. Re-install the release APK and trigger the exception (Debug → Handled exception).\n' +
         '    3. Confirm in Frontend Observability that the top frame points at your src/ file.\n',
     );
-  } else if (!composedHasSources) {
+  } else if (!mapHasSources) {
     process.stdout.write(
       '  FAIL: COMPOSED map exists but has no source mappings. compose-source-maps.js could\n' +
         '  not match the packager map against the HBC map. Most likely cause: an older\n' +
@@ -832,9 +844,10 @@ async function main() {
     );
   } else {
     process.stdout.write(
-      '  WARN: COMPOSED map has source mappings, all frames resolve outside src/.\n' +
+      '  WARN: COMPOSED map has source mappings but sample frames did not resolve into src/.\n' +
         `        APP=${composed.app}  DEP=${composed.dep}  OTH=${composed.oth}  NONE=${composed.none}\n` +
         '        Likely causes:\n' +
+        '          - Stale Logcat/device frames from an older build (all NONE is common here).\n' +
         '          - The frames came from a different build than this map. Re-run with --logcat\n' +
         '            after triggering the exception against the *current* installed build.\n' +
         '          - bundleId mismatch between the device payload and this build.\n',
