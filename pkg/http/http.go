@@ -1218,7 +1218,7 @@ func (s *Server) AddCatalogHandler(db *database.Catalog) {
 		})
 
 		r.Get("/api/internal/recommendations/{id:\\d+}", func(w http.ResponseWriter, r *http.Request) {
-			if adminTokenFromRequest(r) == "" {
+			if adminTokenFromRequest(r) == "" && !isTrustedInternalRequest(r) {
 				s.writeJSONErrorResponse(w, r, authError, http.StatusUnauthorized)
 				return
 			}

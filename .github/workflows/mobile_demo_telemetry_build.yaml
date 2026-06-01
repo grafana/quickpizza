@@ -6,15 +6,6 @@ name: Mobile Demo Telemetry (build only)
 
 on:
   pull_request:
-    paths:
-      - ".github/workflows/mobile_demo_telemetry.yaml"
-      - ".github/workflows/mobile_demo_telemetry_build.yaml"
-      - "Mobiles/e2e/**"
-      - "Mobiles/flutter/**"
-      - "Mobiles/react-native/**"
-      - "Mobiles/android/**"
-      - "Mobiles/ios/**"
-      - "compose.grafana-cloud.microservices.yaml"
 
 permissions:
   contents: read
@@ -32,8 +23,41 @@ env:
   CI_OTLP_API_KEY: "ci-build-placeholder"
 
 jobs:
+  mobile-changes:
+    name: Detect mobile changes
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect mobile-related changes
+        id: filter
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+          mobile=false
+          while IFS= read -r file; do
+            case "$file" in
+              .github/workflows/mobile_demo_telemetry.yaml|\
+              .github/workflows/mobile_demo_telemetry_build.yaml|\
+              Mobiles/*|\
+              compose.grafana-cloud.microservices.yaml)
+                mobile=true
+                break
+                ;;
+            esac
+          done <<< "$CHANGED"
+          echo "mobile=$mobile" >> "$GITHUB_OUTPUT"
+
   build-flutter-apk:
     name: Build check — Flutter APK
+    needs: mobile-changes
+    if: needs.mobile-changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -76,6 +100,8 @@ jobs:
 
   build-react-native-apk:
     name: Build check — React Native APK
+    needs: mobile-changes
+    if: needs.mobile-changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -130,6 +156,8 @@ jobs:
 
   build-android-native-apk:
     name: Build check — Android Native APK
+    needs: mobile-changes
+    if: needs.mobile-changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -161,9 +189,10 @@ jobs:
         working-directory: Mobiles/android
         run: ./gradlew :app:assembleDebug
 
-        
   build-ios-native-app:
     name: Build check — iOS Native .app
+    needs: mobile-changes
+    if: needs.mobile-changes.outputs.mobile == 'true'
     runs-on: macos-26
     timeout-minutes: 45
 

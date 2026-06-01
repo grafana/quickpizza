@@ -172,7 +172,7 @@ Two workflows cover mobile telemetry — **PR builds never fetch Vault secrets**
 
 | Workflow | Trigger | Vault | Purpose |
 | -------- | ------- | ----- | ------- |
-| [`mobile_demo_telemetry_build.yaml`](../../.github/workflows/mobile_demo_telemetry_build.yaml) | `pull_request` (mobile paths) | No | Compile-only check with placeholder telemetry config |
+| [`mobile_demo_telemetry_build.yaml`](../../.github/workflows/mobile_demo_telemetry_build.yaml) | `pull_request` (mobile jobs skip when unrelated paths change) | No | Compile-only check with placeholder telemetry config |
 | [`mobile_demo_telemetry.yaml`](../../.github/workflows/mobile_demo_telemetry.yaml) | `schedule`, `workflow_dispatch`, `push` to `main` | Yes | Full build + e2e + Grafana Cloud telemetry |
 
 **After opening a mobile PR:** wait for the four **Build check — …** jobs in *Mobile Demo Telemetry (build only)*.
@@ -182,14 +182,17 @@ Two workflows cover mobile telemetry — **PR builds never fetch Vault secrets**
 The full telemetry workflow has two independent legs that run in parallel:
 
 - **Android leg** — `ubuntu-latest`. Builds the Flutter, React Native,
-  and native Android APKs (credentials from Vault at build time, passed
-  between jobs via Actions cache — not uploaded as downloadable artifacts);
-  boots a single Android emulator; installs each APK in turn and runs
+  and native Android APKs (credentials from Vault at build time), uploads
+  each APK as a run-scoped Actions artifact (`retention-days: 1`), and
+  the e2e job downloads them within the same workflow run — artifacts are
+  not restorable from PR workflows the way branch-scoped caches are.
+  Boots a single Android emulator; installs each APK in turn and runs
   `run_e2e_tests.sh --platform=android` for each app.
-- **iOS leg** — `macos-26`. Builds the native iOS `.app` (cached on
-  hash of `Mobiles/ios/**` inputs), boots an iOS simulator, installs
-  the app, and runs `run_e2e_tests.sh --app=ios-native --platform=ios`.
-  The QuickPizza backend is started natively on the macOS runner.
+- **iOS leg** — `macos-26`. Builds the native iOS `.app` (Vault creds at
+  build time), uploads it as a run-scoped artifact for the e2e job in
+  the same workflow run, boots an iOS simulator, installs the app, and
+  runs `run_e2e_tests.sh --app=ios-native --platform=ios`. The QuickPizza
+  backend is started natively on the macOS runner.
 
 The iOS variants of Flutter and React Native will be added later by
 plugging their respective .app builds into the iOS leg.

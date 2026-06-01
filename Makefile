@@ -10,7 +10,7 @@ build-web: # Build frontend assets
 	rm -rf $(FRONTEND_BUILD_DIR)
 	export PUBLIC_BACKEND_ENDPOINT="" && \
 	export PUBLIC_BACKEND_WS_ENDPOINT="" && \
-	corepack enable
+	corepack enable && \
 	cd pkg/web && $(NPM) ci --ignore-scripts && $(NPM) run build
 
 .PHONY: build-go

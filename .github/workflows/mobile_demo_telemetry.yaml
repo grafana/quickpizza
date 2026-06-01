@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -63,33 +64,11 @@ jobs:
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
 
-      - name: Cache APK
-        id: cache-apk
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          # Hash only Flutter Android APK inputs so Flutter changes rebuild,
-          # while unrelated repo changes (iOS/backend/frontend) keep cache hits.
-          key: apk-cache-${{ runner.os }}-${{ env.FLUTTER_CHANNEL }}-${{ hashFiles('Mobiles/flutter/pubspec.yaml', 'Mobiles/flutter/pubspec.lock', 'Mobiles/flutter/lib/**', 'Mobiles/flutter/android/**', 'Mobiles/flutter/assets/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-apk.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "✅ APK found in cache, skipping build"
-            ls -la Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          else
-            echo "❌ APK not in cache, will build"
-          fi
-
       - name: Install Flutter dependencies
-        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         run: flutter pub get
 
       - name: Create config.json for CI
-        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         env:
           FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
@@ -105,13 +84,19 @@ jobs:
           echo "Created config.json (FARO_COLLECTOR_URL redacted)"
 
       - name: Build APK (debug)
-        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         run: |
           echo "Building APK..."
           flutter build apk --debug --dart-define-from-file=config.json
           echo "APK built successfully"
           ls -la build/app/outputs/flutter-apk/
+
+      - name: Upload Flutter APK for e2e
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flutter-apk
+          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 1
 
   build-react-native-apk:
     name: Build React Native APK
@@ -149,33 +134,11 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Cache React Native APK
-        id: cache-rn-apk
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          # Hash only React Native Android APK inputs so RN changes rebuild,
-          # while unrelated repo changes (Flutter/iOS/backend) keep cache hits.
-          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log React Native APK cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-rn-apk.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "✅ React Native APK found in cache, skipping build"
-            ls -la Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          else
-            echo "❌ React Native APK not in cache, will build"
-          fi
-
       - name: Install dependencies
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native
         run: yarn install --immutable
 
       - name: Create config.json for CI
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native
         env:
           FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL_RN }}
@@ -190,7 +153,6 @@ jobs:
           echo "Created config.json (FARO_COLLECTOR_URL redacted)"
 
       - name: Bundle JS for offline debug APK
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native
         run: |
           mkdir -p android/app/src/main/assets
@@ -202,13 +164,19 @@ jobs:
             --assets-dest android/app/src/main/res
 
       - name: Build APK (debug)
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native/android
         run: |
           echo "Building React Native APK..."
           ./gradlew assembleDebug
           echo "APK built successfully"
           ls -la app/build/outputs/apk/debug/
+
+      - name: Upload React Native APK for e2e
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rn-apk
+          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
 
   build-android-native-apk:
     name: Build Android Native APK
@@ -240,29 +208,7 @@ jobs:
           distribution: "zulu"
           java-version: "17"
 
-      - name: Cache Android Native APK
-        id: cache-android-native-apk
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          # Hash native Android build inputs so source/Gradle changes rebuild,
-          # while unrelated repo changes (Flutter/RN/backend) keep cache hits.
-          # Note: OTLP secrets aren't hashed; rotate secrets => manually clear cache or rerun.
-          key: android-native-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/android/app/build.gradle.kts', 'Mobiles/android/build.gradle.kts', 'Mobiles/android/settings.gradle.kts', 'Mobiles/android/gradle/libs.versions.toml', 'Mobiles/android/gradle.properties', 'Mobiles/android/app/src/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log Android Native APK cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-android-native-apk.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "✅ Android Native APK found in cache, skipping build"
-            ls -la Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          else
-            echo "❌ Android Native APK not in cache, will build"
-          fi
-
       - name: Create config.json for CI
-        if: steps.cache-android-native-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/android
         env:
           OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
@@ -281,7 +227,6 @@ jobs:
           echo "Created config.json (secrets redacted)"
 
       - name: Build APK (debug)
-        if: steps.cache-android-native-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/android
         run: |
           echo "Building native Android APK..."
@@ -289,13 +234,19 @@ jobs:
           echo "APK built successfully"
           ls -la app/build/outputs/apk/debug/
 
+      - name: Upload Android Native APK for e2e
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-native-apk
+          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
+
   build-ios-native-app:
     name: Build iOS Native .app
     # macOS-only: xcodebuild lives in Xcode and only runs on macOS runners.
-    # macos-15 includes a new enough Xcode to open QuickPizzaIos.xcodeproj
+    # macos-26 includes a new enough Xcode to open QuickPizzaIos.xcodeproj
     # (project file format 77). Pinned rather than -latest so a GitHub-side
-    # macOS image bump doesn't silently invalidate the build cache or break
-    # a working Xcode version.
+    # macOS image bump doesn't silently break a working Xcode version.
     runs-on: macos-26
     timeout-minutes: 45
     environment: mobile-demo-telemetry
@@ -322,42 +273,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Cache iOS .app and DerivedData
-        id: cache-ios-app
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          # The .app is a directory bundle; tar/zip it as part of the build
-          # step so the cache can store a single file. DerivedData is cached
-          # alongside to keep SPM-resolved deps + module cache between runs;
-          # without it linking adds ~2-3 min.
-          path: |
-            Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-            Mobiles/ios/DerivedData
-          # Hash only iOS build inputs so iOS source changes rebuild while
-          # unrelated repo changes (Flutter/RN/Android/backend) keep cache
-          # hits. OTLP secrets aren't hashed; rotate secrets => clear cache
-          # or rerun manually.
-          key: ios-native-app-cache-${{ runner.os }}-${{ hashFiles('Mobiles/ios/QuickPizzaIos.xcodeproj/**', 'Mobiles/ios/QuickPizzaIos/**', 'Mobiles/ios/Scripts/**', 'Mobiles/ios/Config.xcconfig.example', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log iOS app cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-ios-app.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "iOS .app found in cache, skipping build"
-            ls -la Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-          else
-            echo "iOS .app not in cache, will build"
-          fi
-
       - name: Show Xcode version
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
         run: |
           xcodebuild -version
           xcrun --show-sdk-path --sdk iphonesimulator
 
       - name: Create Config.xcconfig for CI
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
         working-directory: Mobiles/ios
         env:
           OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
@@ -377,7 +298,6 @@ jobs:
           echo "Created Config.xcconfig (secrets redacted)"
 
       - name: Build iOS .app for Simulator
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
         working-directory: Mobiles/ios
         run: |
           set -e
@@ -425,7 +345,7 @@ jobs:
           fi
           echo "Built app: $APP_PATH"
 
-          # tar.gz so cache + upload-artifact handle it as a single file
+          # tar.gz so upload-artifact handles it as a single file
           # (the .app is a directory bundle; tar preserves the symlinks
           # and permissions xcrun simctl needs at install time). A debug
           # build is ~150-300 MB raw; gzip brings the artifact down to a
@@ -433,8 +353,15 @@ jobs:
           tar -C "$(dirname "$APP_PATH")" -czf build/ci/QuickPizzaIos.app.tar.gz "$(basename "$APP_PATH")"
           ls -la build/ci/
 
+      - name: Upload iOS .app for e2e
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-native-app
+          path: Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
+          retention-days: 1
+
       - name: Upload iOS build log
-        if: failure() && steps.cache-ios-app.outputs.cache-hit != 'true'
+        if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-native-build-log
@@ -471,26 +398,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Restore Flutter APK from cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - name: Download Flutter APK
+        uses: actions/download-artifact@d3f1487c106f58a81ef8072caa7d8438952e9de4 # v4.3.0
         with:
-          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          key: apk-cache-${{ runner.os }}-${{ env.FLUTTER_CHANNEL }}-${{ hashFiles('Mobiles/flutter/pubspec.yaml', 'Mobiles/flutter/pubspec.lock', 'Mobiles/flutter/lib/**', 'Mobiles/flutter/android/**', 'Mobiles/flutter/assets/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
-          fail-on-cache-miss: true
+          name: flutter-apk
+          path: Mobiles/flutter/build/app/outputs/flutter-apk
 
-      - name: Restore React Native APK from cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - name: Download React Native APK
+        uses: actions/download-artifact@d3f1487c106f58a81ef8072caa7d8438952e9de4 # v4.3.0
         with:
-          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
-          fail-on-cache-miss: true
+          name: rn-apk
+          path: Mobiles/react-native/android/app/build/outputs/apk/debug
 
-      - name: Restore Android Native APK from cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - name: Download Android Native APK
+        uses: actions/download-artifact@d3f1487c106f58a81ef8072caa7d8438952e9de4 # v4.3.0
         with:
-          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          key: android-native-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/android/app/build.gradle.kts', 'Mobiles/android/build.gradle.kts', 'Mobiles/android/settings.gradle.kts', 'Mobiles/android/gradle/libs.versions.toml', 'Mobiles/android/gradle.properties', 'Mobiles/android/app/src/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
-          fail-on-cache-miss: true
+          name: android-native-apk
+          path: Mobiles/android/app/build/outputs/apk/debug
 
       - name: Stage APKs for e2e
         run: |
@@ -643,7 +567,6 @@ jobs:
       - build-ios-native-app
     if: ${{ needs.build-ios-native-app.result == 'success' }}
     # macOS-only: xcrun simctl + the booted iOS simulator only work on macOS.
-    # Uses the same pinned macOS runner as the iOS build job so caches line up.
     runs-on: macos-26
     timeout-minutes: 60
     environment: mobile-demo-telemetry
@@ -666,14 +589,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Restore iOS .app from cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - name: Download iOS .app
+        uses: actions/download-artifact@d3f1487c106f58a81ef8072caa7d8438952e9de4 # v4.3.0
         with:
-          path: |
-            Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-            Mobiles/ios/DerivedData
-          key: ios-native-app-cache-${{ runner.os }}-${{ hashFiles('Mobiles/ios/QuickPizzaIos.xcodeproj/**', 'Mobiles/ios/QuickPizzaIos/**', 'Mobiles/ios/Scripts/**', 'Mobiles/ios/Config.xcconfig.example', '.github/workflows/mobile_demo_telemetry.yaml') }}
-          fail-on-cache-miss: true
+          name: ios-native-app
+          path: Mobiles/ios/build/ci
 
       - name: Stage iOS .app for e2e
         run: |
