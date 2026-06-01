@@ -366,9 +366,10 @@ jobs:
         id: cache-react-native-ios-app
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
+          # Cache only the packaged simulator app. React Native DerivedData is
+          # large and not needed by the downstream e2e run job.
           path: |
             Mobiles/react-native/ios/build/ci/QuickPizza.app.tar.gz
-            Mobiles/react-native/ios/DerivedData
           # Hash only React Native iOS build inputs so iOS changes rebuild,
           # while unrelated repo changes (Android/Flutter/backend) keep cache hits.
           key: rn-ios-app-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/ios/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
@@ -394,6 +395,7 @@ jobs:
         if: steps.cache-react-native-ios-app.outputs.cache-hit != 'true'
         uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
+          # Ruby 3.4 currently breaks this CocoaPods install via missing kconv.
           ruby-version: "3.3"
           bundler-cache: false
 
@@ -434,6 +436,7 @@ jobs:
           echo "Building React Native iOS .app for Simulator..."
           mkdir -p ios/build/ci
           set +e
+          # Release + FORCE_BUNDLING embeds the JS bundle so e2e does not need Metro.
           FORCE_BUNDLING=1 xcodebuild \
             -workspace ios/QuickPizza.xcworkspace \
             -scheme QuickPizza \
@@ -1094,19 +1097,25 @@ jobs:
           set -e
 
           echo "==> Native iOS .app: install and E2E"
+          xcrun simctl uninstall booted com.grafana.QuickPizzaIos || true
           xcrun simctl install booted "$IOS_NATIVE_APP_PATH"
           xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
+          xcrun simctl uninstall booted com.grafana.QuickPizzaIos || true
 
           echo "==> Flutter iOS .app: install and E2E"
+          xcrun simctl uninstall booted com.example.flutterMobileO11yDemo || true
           xcrun simctl install booted "$FLUTTER_IOS_APP_PATH"
           xcrun simctl get_app_container booted com.example.flutterMobileO11yDemo
           bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios
+          xcrun simctl uninstall booted com.example.flutterMobileO11yDemo || true
 
           echo "==> React Native iOS .app: install and E2E"
+          xcrun simctl uninstall booted com.quickpizza || true
           xcrun simctl install booted "$REACT_NATIVE_IOS_APP_PATH"
           xcrun simctl get_app_container booted com.quickpizza
           bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios
+          xcrun simctl uninstall booted com.quickpizza || true
 
           echo "iOS E2E tests completed (Native iOS, Flutter iOS, React Native iOS on same simulator)."
 
