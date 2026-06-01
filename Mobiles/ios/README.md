@@ -38,7 +38,7 @@ cd mobile-o11y-demo
 docker run --rm -d \
   --name quickpizza \
   -p 3333:3333 \
-  ghcr.io/grafana/quickpizza-local:latest
+  ghcr.io/grafana/quickpizza-mobile-local:latest
 ```
 
 Verify it's up:

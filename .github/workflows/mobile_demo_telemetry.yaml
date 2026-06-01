@@ -207,6 +207,8 @@ jobs:
           DEPLOYMENT_ENVIRONMENT: ci
           # Use dev Alloy config for grafana-dev.net stack
           ALLOY_FILE_NAME: cloud-dev.alloy
+          # Mobile fork image (k6 workflows keep upstream quickpizza-local).
+          QUICKPIZZA_IMAGE: ghcr.io/grafana/quickpizza-mobile-local:latest
         run: |
           echo "Starting QuickPizza backend (Grafana Cloud microservices + dev Alloy override)..."
           docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up -d

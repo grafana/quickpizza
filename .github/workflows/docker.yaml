@@ -43,7 +43,8 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          # Mobile fork image (upstream k6/web uses ghcr.io/grafana/quickpizza-local).
           # :latest is mutable; pushes require docker-release environment approval.
           tags: |
-            ghcr.io/grafana/quickpizza-local:${{ steps.set_version.outputs.tag-no-v }}
-            ghcr.io/grafana/quickpizza-local:latest
+            ghcr.io/grafana/quickpizza-mobile-local:${{ steps.set_version.outputs.tag-no-v }}
+            ghcr.io/grafana/quickpizza-mobile-local:latest
