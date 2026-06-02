@@ -1484,7 +1484,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-bundlers-shared@npm:^0.10.0, @grafana/faro-bundlers-shared@npm:^0.10.1":
+"@grafana/faro-bundlers-shared@npm:^0.10.1":
   version: 0.10.1
   resolution: "@grafana/faro-bundlers-shared@npm:0.10.1"
   dependencies:
@@ -1492,6 +1492,17 @@ __metadata:
     tar: "npm:^7.1.0"
     undici: "npm:^8.1.0"
   checksum: 10c0/865ff10c8e794e0a4128b5a4c01e64f815c7dbcb7a0dad44ff1242880360f02ae15d409181029c72647019271073b1d5a77faf6c9f78a6846ac5a04c74e49b9f
+  languageName: node
+  linkType: hard
+
+"@grafana/faro-bundlers-shared@npm:^0.11.0":
+  version: 0.11.0
+  resolution: "@grafana/faro-bundlers-shared@npm:0.11.0"
+  dependencies:
+    ansis: "npm:^4.0.0"
+    tar: "npm:^7.1.0"
+    undici: "npm:^8.1.0"
+  checksum: 10c0/90e8a950a0dc0b9e953d40ad8f748f9601c6d8567ace71a51866aade12844e4e7fbdce167db544746547a0cb0fba0272f18862313c6ce430f5b8bfc374de3f56
   languageName: node
   linkType: hard
 
@@ -1520,11 +1531,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-metro-plugin@npm:0.1.0":
-  version: 0.1.0
-  resolution: "@grafana/faro-metro-plugin@npm:0.1.0"
+"@grafana/faro-metro-plugin@npm:0.2.0":
+  version: 0.2.0
+  resolution: "@grafana/faro-metro-plugin@npm:0.2.0"
   dependencies:
-    "@grafana/faro-bundlers-shared": "npm:^0.10.0"
+    "@grafana/faro-bundlers-shared": "npm:^0.11.0"
     "@grafana/faro-cli": "npm:^0.10.0"
     cross-fetch: "npm:^4.0.0"
     source-map: "npm:^0.7.4"
@@ -1532,16 +1543,16 @@ __metadata:
     metro: ">=0.81.0"
   bin:
     faro-upload-source-map: bin/faro-upload-source-map.js
-  checksum: 10c0/c14a383789641d2dd7b67529539e9d6fe3b62b8824ed569bf3bfab036d83c6220a0f776fd49deeb337ec9b6c3a2c2858595a6134b37057fd922381db1375da4b
+  checksum: 10c0/668c66b908a14dc23115f9a265149b5f0faa83abc313c789043cf984f7e3f04b5f99ca423a74068cf5d2ae0f6569a92fa1babedcde064e9f5b7b39562b66f2f4
   languageName: node
   linkType: hard
 
-"@grafana/faro-react-native-tracing@npm:1.1.0":
-  version: 1.1.0
-  resolution: "@grafana/faro-react-native-tracing@npm:1.1.0"
+"@grafana/faro-react-native-tracing@npm:1.2.0":
+  version: 1.2.0
+  resolution: "@grafana/faro-react-native-tracing@npm:1.2.0"
   dependencies:
     "@grafana/faro-core": "npm:^2.2.3"
-    "@grafana/faro-react-native": "npm:^1.1.0"
+    "@grafana/faro-react-native": "npm:^1.2.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/core": "npm:^2.0.0"
     "@opentelemetry/instrumentation": "npm:^0.208.0"
@@ -1554,7 +1565,7 @@ __metadata:
     "@opentelemetry/semantic-conventions": "npm:^1.32.0"
   peerDependencies:
     react-native: ">=0.70.0"
-  checksum: 10c0/79394a34f2c07722b0f88f1f379b0d4047adad9505273b66007e3545d159ddec05ad1840b384dd20b2b55c30e10dc383ee4636a9fb1f092877d462a323fb08bf
+  checksum: 10c0/ea51b0d17d84b5dbce025935463a402777e19534f9bbcaeba79a6d028445a13a7c08c8ec5a5d46db66d13d9fc26d08f897e5b9c28013df5c7add4574a3c91e19
   languageName: node
   linkType: hard
 
@@ -3291,9 +3302,9 @@ __metadata:
     "@babel/core": "npm:^7.25.2"
     "@babel/preset-env": "npm:^7.25.3"
     "@babel/runtime": "npm:^7.25.0"
-    "@grafana/faro-metro-plugin": "npm:0.1.0"
+    "@grafana/faro-metro-plugin": "npm:0.2.0"
     "@grafana/faro-react-native": "npm:1.2.0"
-    "@grafana/faro-react-native-tracing": "npm:1.1.0"
+    "@grafana/faro-react-native-tracing": "npm:1.2.0"
     "@react-native-async-storage/async-storage": "npm:^1.21.0"
     "@react-native-community/cli": "npm:20.1.0"
     "@react-native-community/cli-platform-android": "npm:20.1.0"
