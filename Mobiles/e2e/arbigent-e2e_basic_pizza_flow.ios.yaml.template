@@ -40,6 +40,8 @@ scenarios:
         - Information about the pizza, such as: dough, tool, calories, ingredients
 
       HINTS:
+      - If you see a sign-in/login warning, tap the top-right profile/login/person button, sign in with username `default` and password `12345678`, then return to Home and tap "Pizza, Please!" again.
+      - Stay inside the QuickPizza app. Do not open About links, SDK links, Safari, Debug, or Config while requesting a pizza.
       - If a pizza recommendation card is partially visible but the "Pass" and "Love it!" buttons are not visible, scroll down once. Do not tap "Pizza, Please!" again.
 
       __RECOVERY_BLOCK__
@@ -57,6 +59,7 @@ scenarios:
       - After tapping "Love it!" or "Pass" → look for: Rated!
 
       HINTS:
+      - Stay on the pizza recommendation card. Do not navigate to About, Debug, Config, Safari, or SDK links.
       - If you see the success text, OUTPUT "Goal achieved" and STOP. Do NOT tap anything else.
       - The "Pass" and "Love it!" rating buttons are most likely placed at the bottom of the pizza recommendation view.
 
