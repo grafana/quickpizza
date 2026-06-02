@@ -1,3 +1,10 @@
+buildscript {
+    // Lock the plugin/buildscript classpath for this module too.
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
