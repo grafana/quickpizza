@@ -1,8 +1,15 @@
 name: Mobile Demo Telemetry
 
 on:
-  # For development: trigger on PR changes to iterate easily
-  pull_request:
+  # Manual trigger for ad hoc testing (pick branch in Actions UI)
+  workflow_dispatch: {}
+  # Scheduled run every hour for continuous telemetry
+  schedule:
+    - cron: "0 * * * *"
+  # Post-merge full telemetry on main (PR compile checks use mobile_demo_telemetry_build.yaml)
+  push:
+    branches:
+      - main
     paths:
       - ".github/workflows/mobile_demo_telemetry.yaml"
       - "Mobiles/e2e/**"
@@ -11,11 +18,6 @@ on:
       - "Mobiles/android/**"
       - "Mobiles/ios/**"
       - "compose.grafana-cloud.microservices.yaml"
-  # Manual trigger for ad hoc testing
-  workflow_dispatch: {}
-  # Scheduled run every hour for continuous telemetry
-  schedule:
-    - cron: "0 * * * *"
 
 permissions:
   contents: read
@@ -28,14 +30,15 @@ env:
   FLUTTER_CHANNEL: "stable"
 
 jobs:
-  build-flutter-apk:
-    name: Build Flutter APK
+  run-mobile-demo:
+    name: Run Mobile Demo
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Get Vault secrets
         id: get-secrets
@@ -43,11 +46,32 @@ jobs:
         with:
           repo_secrets: |
             FARO_COLLECTOR_URL=faro_collector_url:value
+            FARO_COLLECTOR_URL_RN=faro_collector_url_rn:value
+            OTLP_ENDPOINT=otlp_endpoint_android_native:value
+            OTLP_INSTANCE_ID=otlp_instance_id_android_native:value
+            OTLP_API_KEY=otlp_api_key_android_native:value
+            GRAFANA_CLOUD_STACK=grafana_cloud_stack:value
+            GRAFANA_CLOUD_TOKEN=grafana_cloud_token:value
+            OPENAI_API_KEY=openai_api_key:value
 
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Free disk space for Android builds and emulator
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+
+          echo "Removing unnecessary tools..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo apt-get clean
+
+          echo "Disk space after cleanup:"
+          df -h
 
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
@@ -60,33 +84,11 @@ jobs:
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
 
-      - name: Cache APK
-        id: cache-apk
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          # Hash only Flutter Android APK inputs so Flutter changes rebuild,
-          # while unrelated repo changes (iOS/backend/frontend) keep cache hits.
-          key: apk-cache-${{ runner.os }}-${{ env.FLUTTER_CHANNEL }}-${{ hashFiles('Mobiles/flutter/pubspec.yaml', 'Mobiles/flutter/pubspec.lock', 'Mobiles/flutter/lib/**', 'Mobiles/flutter/android/**', 'Mobiles/flutter/assets/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-apk.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "✅ APK found in cache, skipping build"
-            ls -la Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          else
-            echo "❌ APK not in cache, will build"
-          fi
-
       - name: Install Flutter dependencies
-        if: steps.cache-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/flutter
         run: flutter pub get
 
-      - name: Create config.json for CI
-        if: steps.cache-apk.outputs.cache-hit != 'true'
+      - name: Create Flutter config.json for CI
         working-directory: Mobiles/flutter
         env:
           FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
@@ -99,58 +101,14 @@ jobs:
             "CI_DEMO_VERSIONING": "true"
           }
           EOF
-          echo "Created config.json:"
-          cat config.json
+          echo "Created Flutter config.json (FARO_COLLECTOR_URL redacted)"
 
-      - name: Build APK (debug)
-        if: steps.cache-apk.outputs.cache-hit != 'true'
+      - name: Build Flutter APK (debug)
         working-directory: Mobiles/flutter
         run: |
-          echo "Building APK..."
+          echo "Building Flutter APK..."
           flutter build apk --debug --dart-define-from-file=config.json
-          echo "APK built successfully"
           ls -la build/app/outputs/flutter-apk/
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: flutter-apk
-          path: Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 1
-
-  build-react-native-apk:
-    name: Build React Native APK
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Get Vault secrets
-        id: get-secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
-        with:
-          repo_secrets: |
-            FARO_COLLECTOR_URL_RN=faro_collector_url_rn:value
-
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Checkout faro-react-native-sdk
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: grafana/faro-react-native-sdk
-          path: faro-react-native-sdk
-          persist-credentials: false
-
-      - name: Set up Java
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
-        with:
-          distribution: "zulu"
-          java-version: "17"
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -160,33 +118,11 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Cache React Native APK
-        id: cache-rn-apk
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          # Hash only React Native Android APK inputs so RN changes rebuild,
-          # while unrelated repo changes (Flutter/iOS/backend) keep cache hits.
-          key: rn-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/react-native/package.json', 'Mobiles/react-native/yarn.lock', 'Mobiles/react-native/src/**', 'Mobiles/react-native/android/**', 'Mobiles/react-native/App.tsx', 'Mobiles/react-native/index.js', 'Mobiles/react-native/babel.config.js', 'Mobiles/react-native/metro.config.js', 'Mobiles/react-native/app.json', 'Mobiles/react-native/tsconfig.json', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log React Native APK cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-rn-apk.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "✅ React Native APK found in cache, skipping build"
-            ls -la Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          else
-            echo "❌ React Native APK not in cache, will build"
-          fi
-
-      - name: Install dependencies
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
+      - name: Install React Native dependencies
         working-directory: Mobiles/react-native
         run: yarn install --immutable
 
-      - name: Create config.json for CI
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
+      - name: Create React Native config.json for CI
         working-directory: Mobiles/react-native
         env:
           FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL_RN }}
@@ -198,10 +134,9 @@ jobs:
             "PORT": "3333"
           }
           EOF
-          echo "Created config.json (FARO_COLLECTOR_URL redacted)"
+          echo "Created React Native config.json (FARO_COLLECTOR_URL redacted)"
 
       - name: Bundle JS for offline debug APK
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
         working-directory: Mobiles/react-native
         run: |
           mkdir -p android/app/src/main/assets
@@ -212,74 +147,14 @@ jobs:
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
 
-      - name: Build APK (debug)
-        if: steps.cache-rn-apk.outputs.cache-hit != 'true'
+      - name: Build React Native APK (debug)
         working-directory: Mobiles/react-native/android
         run: |
           echo "Building React Native APK..."
           ./gradlew assembleDebug
-          echo "APK built successfully"
           ls -la app/build/outputs/apk/debug/
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: react-native-apk
-          path: Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
-
-  build-android-native-apk:
-    name: Build Android Native APK
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Get Vault secrets
-        id: get-secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
-        with:
-          repo_secrets: |
-            OTLP_ENDPOINT=otlp_endpoint_android_native:value
-            OTLP_INSTANCE_ID=otlp_instance_id_android_native:value
-            OTLP_API_KEY=otlp_api_key_android_native:value
-
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Set up Java
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
-        with:
-          distribution: "zulu"
-          java-version: "17"
-
-      - name: Cache Android Native APK
-        id: cache-android-native-apk
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          # Hash native Android build inputs so source/Gradle changes rebuild,
-          # while unrelated repo changes (Flutter/RN/backend) keep cache hits.
-          # Note: OTLP secrets aren't hashed; rotate secrets => manually clear cache or rerun.
-          key: android-native-apk-cache-${{ runner.os }}-${{ hashFiles('Mobiles/android/app/build.gradle.kts', 'Mobiles/android/build.gradle.kts', 'Mobiles/android/settings.gradle.kts', 'Mobiles/android/gradle/libs.versions.toml', 'Mobiles/android/gradle.properties', 'Mobiles/android/app/src/**', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log Android Native APK cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-android-native-apk.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "✅ Android Native APK found in cache, skipping build"
-            ls -la Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          else
-            echo "❌ Android Native APK not in cache, will build"
-          fi
-
-      - name: Create config.json for CI
-        if: steps.cache-android-native-apk.outputs.cache-hit != 'true'
+      - name: Create Android Native config.json for CI
         working-directory: Mobiles/android
         env:
           OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
@@ -295,232 +170,25 @@ jobs:
             "BASE_URL": ""
           }
           EOF
-          echo "Created config.json (secrets redacted)"
+          echo "Created Android Native config.json (secrets redacted)"
 
-      - name: Build APK (debug)
-        if: steps.cache-android-native-apk.outputs.cache-hit != 'true'
+      - name: Build Android Native APK (debug)
         working-directory: Mobiles/android
         run: |
           echo "Building native Android APK..."
           ./gradlew :app:assembleDebug
-          echo "APK built successfully"
           ls -la app/build/outputs/apk/debug/
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: android-native-apk
-          path: Mobiles/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
-
-  build-ios-native-app:
-    name: Build iOS Native .app
-    # macOS-only: xcodebuild lives in Xcode and only runs on macOS runners.
-    # macos-15 includes a new enough Xcode to open QuickPizzaIos.xcodeproj
-    # (project file format 77). Pinned rather than -latest so a GitHub-side
-    # macOS image bump doesn't silently invalidate the build cache or break
-    # a working Xcode version.
-    runs-on: macos-26
-    timeout-minutes: 45
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Get Vault secrets
-        id: get-secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
-        with:
-          # Reuse the Android Native OTLP creds: both apps ship to the same
-          # Grafana Cloud stack and are separated by the `service.name`
-          # resource attribute (quickpizza-android vs quickpizza-ios) in
-          # the shared "Android & iOS OTel RUM" dashboard.
-          repo_secrets: |
-            OTLP_ENDPOINT=otlp_endpoint_android_native:value
-            OTLP_INSTANCE_ID=otlp_instance_id_android_native:value
-            OTLP_API_KEY=otlp_api_key_android_native:value
-
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Cache iOS .app and DerivedData
-        id: cache-ios-app
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          # The .app is a directory bundle; tar/zip it as part of the build
-          # step so the cache can store a single file. DerivedData is cached
-          # alongside to keep SPM-resolved deps + module cache between runs;
-          # without it linking adds ~2-3 min.
-          path: |
-            Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-            Mobiles/ios/DerivedData
-          # Hash only iOS build inputs so iOS source changes rebuild while
-          # unrelated repo changes (Flutter/RN/Android/backend) keep cache
-          # hits. OTLP secrets aren't hashed; rotate secrets => clear cache
-          # or rerun manually.
-          key: ios-native-app-cache-${{ runner.os }}-${{ hashFiles('Mobiles/ios/QuickPizzaIos.xcodeproj/**', 'Mobiles/ios/QuickPizzaIos/**', 'Mobiles/ios/Scripts/**', 'Mobiles/ios/Config.xcconfig.example', '.github/workflows/mobile_demo_telemetry.yaml') }}
-
-      - name: Log iOS app cache status
-        env:
-          CACHE_HIT: ${{ steps.cache-ios-app.outputs.cache-hit }}
+      - name: Stage APKs for e2e
         run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            echo "iOS .app found in cache, skipping build"
-            ls -la Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-          else
-            echo "iOS .app not in cache, will build"
-          fi
-
-      - name: Show Xcode version
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        run: |
-          xcodebuild -version
-          xcrun --show-sdk-path --sdk iphonesimulator
-
-      - name: Create Config.xcconfig for CI
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        working-directory: Mobiles/ios
-        env:
-          OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
-          OTLP_INSTANCE_ID: ${{ env.OTLP_INSTANCE_ID }}
-          OTLP_API_KEY: ${{ env.OTLP_API_KEY }}
-        run: |
-          # BASE_URL points at localhost on the host running the simulator,
-          # which is the same machine as the runner. xcconfig URLs require
-          # /$()/ to escape the :// since semicolons split values.
-          cat > Config.xcconfig <<EOF
-          BASE_URL = http:/\$()/localhost:3333
-          PORT = 3333
-          OTLP_ENDPOINT = ${OTLP_ENDPOINT}
-          OTLP_INSTANCE_ID = ${OTLP_INSTANCE_ID}
-          OTLP_API_KEY = ${OTLP_API_KEY}
-          EOF
-          echo "Created Config.xcconfig (secrets redacted)"
-
-      - name: Build iOS .app for Simulator
-        if: steps.cache-ios-app.outputs.cache-hit != 'true'
-        working-directory: Mobiles/ios
-        run: |
-          set -e
-          echo "Building QuickPizzaIos.app for iOS Simulator..."
-          # generic/platform=iOS Simulator avoids xcodebuild requiring a
-          # specific simulator to exist at build time; the resulting .app runs
-          # on arm64 iOS simulators available on the macOS runner image.
-          # Force unsigned simulator build: the runner has no access to the
-          # repo's Apple Developer team, and simulator builds don't need a
-          # signature anyway. All three CODE_SIGN_* flags are required for
-          # this to work reliably across Xcode versions.
-          mkdir -p build/ci
-          SRCROOT="$PWD" Scripts/generate-config.sh
-          set +e
-          xcodebuild \
-            -project QuickPizzaIos.xcodeproj \
-            -scheme QuickPizzaIos \
-            -configuration Debug \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath DerivedData \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ARCHS=arm64 \
-            ONLY_ACTIVE_ARCH=YES \
-            build > build/ci/xcodebuild.log 2>&1
-          build_status=$?
-          set -e
-
-          if [ "$build_status" -ne 0 ]; then
-            echo "xcodebuild failed with status $build_status"
-            echo "Relevant build diagnostics:"
-            grep -nE "error:|fatal error:|BUILD FAILED|The following build commands failed|Command SwiftCompile failed" build/ci/xcodebuild.log | tail -200 || true
-            echo "Last 300 xcodebuild log lines:"
-            tail -300 build/ci/xcodebuild.log
-            exit "$build_status"
-          fi
-
-          tail -80 build/ci/xcodebuild.log
-
-          APP_PATH=$(find DerivedData/Build/Products -name "QuickPizzaIos.app" -type d | head -1)
-          if [ -z "$APP_PATH" ]; then
-            echo "Could not locate built QuickPizzaIos.app under DerivedData"
-            exit 1
-          fi
-          echo "Built app: $APP_PATH"
-
-          # tar.gz so cache + upload-artifact handle it as a single file
-          # (the .app is a directory bundle; tar preserves the symlinks
-          # and permissions xcrun simctl needs at install time). A debug
-          # build is ~150-300 MB raw; gzip brings the artifact down to a
-          # more reasonable size.
-          tar -C "$(dirname "$APP_PATH")" -czf build/ci/QuickPizzaIos.app.tar.gz "$(basename "$APP_PATH")"
-          ls -la build/ci/
-
-      - name: Upload iOS build log
-        if: failure() && steps.cache-ios-app.outputs.cache-hit != 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ios-native-build-log
-          path: Mobiles/ios/build/ci/xcodebuild.log
-          retention-days: 3
-          if-no-files-found: ignore
-
-      - name: Upload .app artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ios-native-app
-          path: Mobiles/ios/build/ci/QuickPizzaIos.app.tar.gz
-          retention-days: 1
-
-  run-mobile-demo:
-    name: Run Mobile Demo
-    needs:
-      - build-flutter-apk
-      - build-react-native-apk
-      - build-android-native-apk
-    if: ${{ needs.build-flutter-apk.result == 'success' && needs.build-react-native-apk.result == 'success' && needs.build-android-native-apk.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Get Vault secrets
-        id: get-secrets
-        uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
-        with:
-          repo_secrets: |
-            GRAFANA_CLOUD_STACK=grafana_cloud_stack:value
-            GRAFANA_CLOUD_TOKEN=grafana_cloud_token:value
-            OPENAI_API_KEY=openai_api_key:value
-
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Download Flutter APK artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: flutter-apk
-          path: apk/flutter/
-
-      - name: Download React Native APK artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: react-native-apk
-          path: apk/react-native/
-
-      - name: Download Android Native APK artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: android-native-apk
-          path: apk/android-native/
+          mkdir -p apk/flutter apk/react-native apk/android-native
+          cp Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk apk/flutter/
+          cp Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk apk/react-native/
+          cp Mobiles/android/app/build/outputs/apk/debug/app-debug.apk apk/android-native/
 
       - name: Verify APKs
         run: |
-          echo "Verifying downloaded APKs..."
+          echo "Verifying built APKs..."
           ls -la apk/flutter/
           file apk/flutter/app-debug.apk
           echo "Flutter APK size: $(du -h apk/flutter/app-debug.apk | cut -f1)"
@@ -539,11 +207,13 @@ jobs:
           DEPLOYMENT_ENVIRONMENT: ci
           # Use dev Alloy config for grafana-dev.net stack
           ALLOY_FILE_NAME: cloud-dev.alloy
+          # Mobile fork image (k6 workflows keep upstream quickpizza-local).
+          QUICKPIZZA_IMAGE: ghcr.io/grafana/quickpizza-mobile-local:latest
         run: |
           echo "Starting QuickPizza backend (Grafana Cloud microservices + dev Alloy override)..."
           docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up -d
           docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml ps
-          
+
           echo "Waiting for backend to be ready..."
           for i in {1..60}; do
             if curl -fsS "http://localhost:3333/ready" > /dev/null 2>&1; then
@@ -553,7 +223,7 @@ jobs:
             echo "Waiting for backend... attempt $i/60"
             sleep 2
           done
-          
+
           echo "Backend did not become ready in time"
           docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml logs --no-color
           exit 1
@@ -564,28 +234,6 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           ls /dev/kvm
-
-      - name: Free disk space for Android emulator
-        run: |
-          echo "Disk space before cleanup:"
-          df -h
-          
-          echo "Removing unnecessary tools..."
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/.ghcup
-          sudo apt-get clean
-          
-          echo "Disk space after cleanup:"
-          df -h
-
-      - name: Set up Node.js (shared e2e HTML report generator)
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: ">=24.5.0"
-
-      - name: Setup npm
-        run: npm install -g npm@11.10.0
 
       - name: Install shared e2e report generator deps
         working-directory: Mobiles/e2e/report-generator
@@ -629,9 +277,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          # Suffixed so the iOS leg (run-ios-mobile-demo) can publish a
-          # parallel artifact without colliding with this one — artifact
-          # names must be unique within a workflow run.
           name: e2e-test-results-android
           path: Mobiles/e2e/results/
           retention-days: 1
@@ -658,13 +303,10 @@ jobs:
 
   run-ios-mobile-demo:
     name: Run iOS Mobile Demo
-    needs:
-      - build-ios-native-app
-    if: ${{ needs.build-ios-native-app.result == 'success' }}
     # macOS-only: xcrun simctl + the booted iOS simulator only work on macOS.
-    # Uses the same pinned macOS runner as the iOS build job so caches line up.
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 180
+    environment: mobile-demo-telemetry
     permissions:
       id-token: write
       contents: read
@@ -675,8 +317,11 @@ jobs:
         uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
         with:
           repo_secrets: |
-            GRAFANA_CLOUD_STACK=grafana_cloud_stack:value
-            GRAFANA_CLOUD_TOKEN=grafana_cloud_token:value
+            FARO_COLLECTOR_URL=faro_collector_url:value
+            FARO_COLLECTOR_URL_RN=faro_collector_url_rn:value
+            OTLP_ENDPOINT=otlp_endpoint_android_native:value
+            OTLP_INSTANCE_ID=otlp_instance_id_android_native:value
+            OTLP_API_KEY=otlp_api_key_android_native:value
             OPENAI_API_KEY=openai_api_key:value
 
       - name: Checkout code
@@ -684,25 +329,217 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download iOS .app artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: ios-native-app
-          path: ios-app/
+      - name: Show Xcode version
+        run: |
+          xcodebuild -version
+          xcrun --show-sdk-path --sdk iphonesimulator
 
-      - name: Untar iOS .app
+      - name: Create Config.xcconfig for CI
+        working-directory: Mobiles/ios
+        env:
+          OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
+          OTLP_INSTANCE_ID: ${{ env.OTLP_INSTANCE_ID }}
+          OTLP_API_KEY: ${{ env.OTLP_API_KEY }}
+        run: |
+          # BASE_URL points at localhost on the host running the simulator,
+          # which is the same machine as the runner. xcconfig URLs require
+          # /$()/ to escape the :// since semicolons split values.
+          cat > Config.xcconfig <<EOF
+          BASE_URL = http:/\$()/localhost:3333
+          PORT = 3333
+          OTLP_ENDPOINT = ${OTLP_ENDPOINT}
+          OTLP_INSTANCE_ID = ${OTLP_INSTANCE_ID}
+          OTLP_API_KEY = ${OTLP_API_KEY}
+          EOF
+          echo "Created Config.xcconfig (secrets redacted)"
+
+      - name: Build iOS .app for Simulator
+        id: build-ios-app
+        working-directory: Mobiles/ios
         run: |
           set -e
-          ls -la ios-app/
-          mkdir -p ios-app/unpacked
-          tar -C ios-app/unpacked -xzf ios-app/QuickPizzaIos.app.tar.gz
-          APP_PATH="$(pwd)/ios-app/unpacked/QuickPizzaIos.app"
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Expected QuickPizzaIos.app at $APP_PATH but it does not exist"
+          echo "Building QuickPizzaIos.app for iOS Simulator..."
+          mkdir -p build/ci
+          SRCROOT="$PWD" Scripts/generate-config.sh
+          set +e
+          xcodebuild \
+            -project QuickPizzaIos.xcodeproj \
+            -scheme QuickPizzaIos \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            build > build/ci/xcodebuild.log 2>&1
+          build_status=$?
+          set -e
+
+          if [ "$build_status" -ne 0 ]; then
+            echo "xcodebuild failed with status $build_status"
+            echo "Relevant build diagnostics:"
+            grep -nE "error:|fatal error:|BUILD FAILED|The following build commands failed|Command SwiftCompile failed" build/ci/xcodebuild.log | tail -200 || true
+            echo "Last 300 xcodebuild log lines:"
+            tail -300 build/ci/xcodebuild.log
+            exit "$build_status"
+          fi
+
+          tail -80 build/ci/xcodebuild.log
+
+          APP_PATH=$(find DerivedData/Build/Products -name "QuickPizzaIos.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not locate built QuickPizzaIos.app under DerivedData"
             exit 1
           fi
-          echo "IOS_APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
-          echo "Unpacked .app: $APP_PATH"
+          echo "Built app: $APP_PATH"
+          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS build log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-native-build-log
+          path: Mobiles/ios/build/ci/xcodebuild.log
+          retention-days: 3
+          if-no-files-found: ignore
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93601a5a40bde3801046 # v2.19.0
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install Flutter dependencies
+        working-directory: Mobiles/flutter
+        run: flutter pub get
+
+      - name: Create Flutter config.json for CI
+        working-directory: Mobiles/flutter
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333",
+            "CI_DEMO_VERSIONING": "true"
+          }
+          EOF
+          echo "Created Flutter config.json (FARO_COLLECTOR_URL redacted)"
+
+      - name: Build Flutter iOS .app for Simulator
+        id: build-flutter-ios-app
+        working-directory: Mobiles/flutter
+        run: |
+          set -e
+          echo "Building Flutter iOS .app for Simulator..."
+          flutter build ios --debug --simulator --dart-define-from-file=config.json
+
+          APP_PATH="build/ios/iphonesimulator/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Could not locate Flutter iOS .app at $APP_PATH"
+            find build/ios -maxdepth 4 -name "*.app" -type d
+            exit 1
+          fi
+          echo "Built app: $APP_PATH"
+          echo "app_path=$(pwd)/$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ">=24.5.0"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          # Ruby 3.4 currently breaks this CocoaPods install via missing kconv.
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Install React Native JavaScript dependencies
+        working-directory: Mobiles/react-native
+        run: yarn install --immutable
+
+      - name: Install React Native iOS dependencies
+        working-directory: Mobiles/react-native
+        run: |
+          bundle config set path vendor/bundle
+          bundle install
+          cd ios
+          bundle exec pod install
+
+      - name: Create React Native config.json for CI
+        working-directory: Mobiles/react-native
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL_RN }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333"
+          }
+          EOF
+          echo "Created React Native config.json (FARO_COLLECTOR_URL redacted)"
+
+      - name: Build React Native iOS .app for Simulator
+        id: build-react-native-ios-app
+        working-directory: Mobiles/react-native
+        run: |
+          set -e
+          echo "Building React Native iOS .app for Simulator..."
+          mkdir -p ios/build/ci
+          set +e
+          # Release + FORCE_BUNDLING embeds the JS bundle so e2e does not need Metro.
+          FORCE_BUNDLING=1 xcodebuild \
+            -workspace ios/QuickPizza.xcworkspace \
+            -scheme QuickPizza \
+            -configuration Release \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath ios/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            PRODUCT_BUNDLE_IDENTIFIER=com.quickpizza \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            build > ios/build/ci/xcodebuild.log 2>&1
+          build_status=$?
+          set -e
+
+          if [ "$build_status" -ne 0 ]; then
+            echo "xcodebuild failed with status $build_status"
+            echo "Relevant build diagnostics:"
+            grep -nE "error:|fatal error:|BUILD FAILED|The following build commands failed|Command SwiftCompile failed" ios/build/ci/xcodebuild.log | tail -200 || true
+            echo "Last 300 xcodebuild log lines:"
+            tail -300 ios/build/ci/xcodebuild.log
+            exit "$build_status"
+          fi
+
+          tail -80 ios/build/ci/xcodebuild.log
+
+          APP_PATH=$(find ios/DerivedData/Build/Products -name "QuickPizza.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not locate built QuickPizza.app under ios/DerivedData"
+            find ios/DerivedData/Build/Products -maxdepth 4 -name "*.app" -type d || true
+            exit 1
+          fi
+          echo "Built app: $APP_PATH"
+          echo "app_path=$(pwd)/$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload React Native iOS build log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: react-native-ios-build-log
+          path: Mobiles/react-native/ios/build/ci/xcodebuild.log
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Set up Go (QuickPizza backend)
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -744,16 +581,10 @@ jobs:
           cat backend-ios.log
           exit 1
 
-      - name: Boot iOS simulator + install app
+      - name: Boot iOS simulator
         run: |
           set -e
           # Pick the newest available iPhone runtime/device on the runner.
-          # macos-14 ships several iOS runtimes; we don't hard-code one so
-          # an image bump doesn't break the workflow. Resolve to a UDID
-          # because `simctl bootstatus` requires a UDID (not a name), and
-          # because device names contain spaces ("iPhone 15 Pro") which
-          # make `read` splitting fragile. Tab-separate UDID + name so the
-          # log shows which device we picked without ambiguity.
           IFS=$'\t' read -r DEVICE_UDID DEVICE_NAME < <(xcrun simctl list devices available -j | python3 -c '
           import json, sys
           data = json.load(sys.stdin)
@@ -771,20 +602,8 @@ jobs:
           fi
           echo "Booting simulator: $DEVICE_NAME ($DEVICE_UDID)"
           xcrun simctl boot "$DEVICE_UDID" || true
-          # Wait until the simulator finishes booting before installing —
-          # `simctl install` on a still-booting device is a common cause of
-          # silent install failures.
           xcrun simctl bootstatus "$DEVICE_UDID" -b
           xcrun simctl list devices booted
-
-          echo "Installing $IOS_APP_PATH..."
-          xcrun simctl install booted "$IOS_APP_PATH"
-          xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
-
-      - name: Set up Node.js (shared e2e HTML report generator)
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: ">=24.5.0"
 
       - name: Setup npm
         run: npm install -g npm@11.10.0
@@ -793,17 +612,51 @@ jobs:
         working-directory: Mobiles/e2e/report-generator
         run: npm ci --ignore-scripts
 
-      - name: Run iOS e2e
+      - name: Install iOS apps and run e2e tests
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          IOS_NATIVE_APP_PATH: ${{ steps.build-ios-app.outputs.app_path }}
+          FLUTTER_IOS_APP_PATH: ${{ steps.build-flutter-ios-app.outputs.app_path }}
+          REACT_NATIVE_IOS_APP_PATH: ${{ steps.build-react-native-ios-app.outputs.app_path }}
         run: |
+          set -e
+
+          echo "==> Native iOS .app: install and E2E"
+          if [ ! -d "$IOS_NATIVE_APP_PATH" ]; then
+            echo "Expected QuickPizzaIos.app at $IOS_NATIVE_APP_PATH but it does not exist"
+            exit 1
+          fi
+          xcrun simctl uninstall booted com.grafana.QuickPizzaIos || true
+          xcrun simctl install booted "$IOS_NATIVE_APP_PATH"
+          xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
+
+          echo "==> Flutter iOS .app: install and E2E"
+          if [ ! -d "$FLUTTER_IOS_APP_PATH" ]; then
+            echo "Expected Runner.app at $FLUTTER_IOS_APP_PATH but it does not exist"
+            exit 1
+          fi
+          xcrun simctl uninstall booted com.example.flutterMobileO11yDemo || true
+          xcrun simctl install booted "$FLUTTER_IOS_APP_PATH"
+          xcrun simctl get_app_container booted com.example.flutterMobileO11yDemo
+          bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios
+
+          echo "==> React Native iOS .app: install and E2E"
+          if [ ! -d "$REACT_NATIVE_IOS_APP_PATH" ]; then
+            echo "Expected QuickPizza.app at $REACT_NATIVE_IOS_APP_PATH but it does not exist"
+            exit 1
+          fi
+          xcrun simctl uninstall booted com.quickpizza || true
+          xcrun simctl install booted "$REACT_NATIVE_IOS_APP_PATH"
+          xcrun simctl get_app_container booted com.quickpizza
+          bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios
+
+          echo "iOS E2E tests completed (Native iOS, Flutter iOS, React Native iOS on same simulator)."
 
       - name: Upload e2e test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          # Suffixed to avoid colliding with the Android leg's artifact.
           name: e2e-test-results-ios
           path: Mobiles/e2e/results/
           retention-days: 1

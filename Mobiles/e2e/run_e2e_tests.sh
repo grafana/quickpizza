@@ -9,11 +9,9 @@
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=flutter         --platform=android
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=react-native    --platform=android
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=android-native  --platform=android
+#   ./Mobiles/e2e/run_e2e_tests.sh --app=flutter         --platform=ios
+#   ./Mobiles/e2e/run_e2e_tests.sh --app=react-native    --platform=ios
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=ios-native      --platform=ios
-#
-# Future phases will add:
-#   --app=flutter          --platform=ios
-#   --app=react-native     --platform=ios
 #
 # Required env vars:
 #   OPENAI_API_KEY    OpenAI API key used by Arbigent.
@@ -131,6 +129,8 @@ Examples:
   bash $0 --app=flutter --platform=android
   bash $0 --app=react-native --platform=android
   bash $0 --app=android-native --platform=android
+  bash $0 --app=flutter --platform=ios
+  bash $0 --app=react-native --platform=ios
   bash $0 --app=ios-native --platform=ios
 
 Required env vars:
@@ -159,8 +159,7 @@ done
 [ -n "$PLATFORM" ] || { show_help; print_error "--platform is required"; }
 
 ### App configuration table ###################################################
-# Add new apps here as later phases bring them online (native android,
-# native ios, plus iOS variants of Flutter and RN).
+# Add new apps here as later phases bring them online.
 
 ANDROID_PACKAGE=""
 IOS_BUNDLE_ID=""
@@ -183,7 +182,7 @@ case "$APP" in
         IOS_BUNDLE_ID="com.grafana.QuickPizzaIos"
         ;;
     *)
-        print_error "Unsupported --app=$APP (supported: flutter, react-native, android-native, ios-native). Flutter/RN on iOS land in later phases."
+        print_error "Unsupported --app=$APP (supported: flutter, react-native, android-native, ios-native)."
         ;;
 esac
 
@@ -200,10 +199,7 @@ case "$PLATFORM" in
         fi
         ;;
     ios)
-        # iOS currently runs native iOS only; Flutter/RN on iOS land later.
-        if [ "$APP" != "ios-native" ]; then
-            print_error "--platform=ios currently only supports --app=ios-native (Flutter/RN on iOS land in later phases)."
-        fi
+        # iOS runs Flutter, React Native, and native iOS.
         if [ -z "$IOS_BUNDLE_ID" ]; then
             print_error "--app=$APP has no iOS bundle id; pass a different --platform."
         fi
