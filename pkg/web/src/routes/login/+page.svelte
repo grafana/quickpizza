@@ -4,6 +4,7 @@ import { faro } from '@grafana/faro-web-sdk';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 import { onMount } from 'svelte';
 import {
+	clearCookie,
 	getCookie,
 	verifyUserLoggedIn,
 	hasUserTokenCookie,
@@ -14,7 +15,11 @@ var loginError = '';
 var username = '';
 var password = '';
 var qpUserLoggedIn = false;
-var ratings = [];
+var ratings: string[] = [];
+
+function csrfTokenInput(): HTMLInputElement | null {
+	return document.getElementById('csrf-token') as HTMLInputElement | null;
+}
 
 onMount(async () => {
 	// Check if user is logged in via cookie
@@ -32,11 +37,14 @@ async function fetchCSRFToken() {
 		credentials: 'same-origin',
 	});
 
-	document.getElementById('csrf-token').value = getCookie('csrf_token') || '';
+	const csrfInput = csrfTokenInput();
+	if (csrfInput) {
+		csrfInput.value = getCookie('csrf_token') || '';
+	}
 }
 
 async function handleSubmit() {
-	window.faro?.api?.startUserAction(
+	faro?.api?.startUserAction(
 		'userLogin', // name of the user action
 		{ username: username }, // custom attributes attached to the user action
 		{ triggerName: 'userLoginButtonClick', importance: 'critical' }, // custom config
@@ -51,19 +59,19 @@ async function handleSubmit() {
 			body: JSON.stringify({
 				username: username,
 				password: password,
-				csrf: document.getElementById('csrf-token').value,
+				csrf: csrfTokenInput()?.value ?? '',
 			}),
 			credentials: 'same-origin',
 		},
 	);
 	if (!res.ok) {
-		loginError = 'Login failed: ' + res.statusText;
-		window.faro?.api?.pushEvent('Unsuccessful Login', { username: username });
-		window.faro?.api?.pushError(new Error('Login Error: ' + res.statusText));
+		loginError = `Login failed: ${res.statusText}`;
+		faro?.api?.pushEvent('Unsuccessful Login', { username: username });
+		faro?.api?.pushError(new Error(`Login Error: ${res.statusText}`));
 		return;
 	}
 
-	window.faro?.api?.pushEvent('Successful Login', { username: username });
+	faro?.api?.pushEvent('Successful Login', { username: username });
 	// After successful login, the cookie is set by the server, so we can trust it's valid
 	qpUserLoggedIn = hasUserTokenCookie();
 	isLoggedInStore.set(qpUserLoggedIn);
@@ -85,17 +93,19 @@ async function updateRatings() {
 	}
 	const json = await res.json();
 
-	var newRatings = [];
-	json.ratings.forEach((rating) => {
-		newRatings.push(
-			`Rating ID: ${rating.id} (stars=${rating.stars}, pizza_id=${rating.pizza_id})`,
-		);
-	});
+	var newRatings: string[] = [];
+	json.ratings.forEach(
+		(rating: { id: number; stars: number; pizza_id: number }) => {
+			newRatings.push(
+				`Rating ID: ${rating.id} (stars=${rating.stars}, pizza_id=${rating.pizza_id})`,
+			);
+		},
+	);
 	ratings = newRatings;
 }
 
 async function deleteRatings() {
-	window.faro?.api?.startUserAction(
+	faro?.api?.startUserAction(
 		'userDeleteRatings', // name of the user action
 		{ username: username }, // custom attributes attached to the user action
 		{ triggerName: 'userDeleteRatingsButtonClick', importance: 'critical' }, // custom config
@@ -114,7 +124,7 @@ async function deleteRatings() {
 		} else if (res.status === 401) {
 			alert('You need to be logged in to clear ratings.');
 		} else {
-			alert('Failed to clear ratings: ' + res.statusText);
+			alert(`Failed to clear ratings: ${res.statusText}`);
 		}
 		return;
 	}
@@ -123,13 +133,13 @@ async function deleteRatings() {
 }
 
 async function handleLogout() {
-	window.faro?.api?.startUserAction(
+	faro?.api?.startUserAction(
 		'userLogout', // name of the user action
 		{ username: username }, // custom attributes attached to the user action
 		{ triggerName: 'userLogoutButtonClick', importance: 'critical' }, // custom config
 	);
-	window.faro?.api?.pushEvent('User Logout');
-	document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
+	faro?.api?.pushEvent('User Logout');
+	clearCookie('qp_user_token');
 	qpUserLoggedIn = false;
 	isLoggedInStore.set(false);
 	window.location.href = '/';
