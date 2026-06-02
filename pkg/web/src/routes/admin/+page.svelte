@@ -3,7 +3,6 @@
 import { faro } from '@grafana/faro-web-sdk';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 import { onMount } from 'svelte';
-import { clearCookie } from '../../lib/auth';
 
 var loginError = '';
 var username = 'admin';
@@ -60,7 +59,7 @@ async function handleLogout() {
 	);
 	faro?.api?.pushEvent('Admin Logout');
 	// Perhaps surprisingly, this only deletes (clears the value of) the admin_token cookie.
-	clearCookie('admin_token');
+	document.cookie = 'admin_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 	adminLoggedIn = false;
 }
 

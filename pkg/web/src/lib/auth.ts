@@ -14,15 +14,6 @@ export function getCookie(name: string): string | null {
 }
 
 /**
- * Clear a cookie by name (expires it in the past).
- * Uses document.cookie because Cookie Store API is not universally available.
- */
-export function clearCookie(name: string): void {
-	// biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API lacks broad browser support
-	document.cookie = `${name}=; Expires=Thu, 01 Jan 1970 00:00:01 GMT`;
-}
-
-/**
  * Check if the qp_user_token cookie is present.
  * Note: This only checks for cookie presence, not validity.
  * Use verifyUserLoggedIn() for server-side validation.
