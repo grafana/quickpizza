@@ -16,7 +16,7 @@ For a single source of truth on what each app emits, where it lands, and how the
 ### Mobile Apps Quick Reference
 
 - **Demo cloud stack:** internal Grafana Cloud stack — substitute your own (`<your-grafana-cloud-stack>.grafana.net`) when running outside Grafana Labs
-- **Backend (local):** `docker run --rm -d -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest`
+- **Backend (local, mobile):** `docker run --rm -d -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest` (or `QUICKPIZZA_IMAGE=ghcr.io/grafana/quickpizza-mobile-local:latest` with compose; k6/upstream uses `quickpizza-local`)
 - **Shared feature spec:** [`Mobiles/FEATURES.md`](./Mobiles/FEATURES.md)
 - **Per-platform READMEs:** [`Mobiles/flutter/README.md`](./Mobiles/flutter/README.md), [`Mobiles/react-native/README.md`](./Mobiles/react-native/README.md), [`Mobiles/ios/README.md`](./Mobiles/ios/README.md), [`Mobiles/android/README.md`](./Mobiles/android/README.md)
 - **OTel mobile SDK gaps & contribution backlog:** [`Mobiles/docs/OTEL_MOBILE_MATURITY.md`](./Mobiles/docs/OTEL_MOBILE_MATURITY.md)
@@ -28,7 +28,7 @@ For a single source of truth on what each app emits, where it lands, and how the
 ### Building & Running
 - `make build` - Build frontend and backend together
 - `make build-go` - Build only Go backend (doesn't rebuild frontend)
-- `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest` - Run with Docker
+- `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest` - Run backend for mobile (see root README `QUICKPIZZA_IMAGE`)
 
 ### Frontend Development
 - `cd pkg/web && npm install` - Install frontend dependencies
