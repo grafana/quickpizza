@@ -30,6 +30,14 @@ private val Context.authDataStore: DataStore<Preferences> by preferencesDataStor
 
 /**
  * Persists the user's auth token and username.
+ *
+ * Reads ([token], [username]) are synchronous — they're called on every HTTP
+ * request and cannot afford a coroutine round-trip. Backed by a hot
+ * [StateFlow] seeded at construction with a one-shot blocking DataStore read,
+ * then kept in sync via [applicationScope].
+ *
+ * Writes ([setToken], [setUsername], [clear]) are `suspend` — DataStore writes
+ * are atomic and never touch the main thread.
  */
 @Singleton
 class TokenStorage @Inject constructor(
@@ -39,18 +47,14 @@ class TokenStorage @Inject constructor(
     private val dataStore: DataStore<Preferences> = context.authDataStore
 
     private val flow = dataStore.data.map { prefs ->
-        AuthState(
-            token = prefs[AuthKeys.token],
-            username = prefs[AuthKeys.username],
-        )
+        AuthState(token = prefs[AuthKeys.token], username = prefs[AuthKeys.username])
     }
 
-    private val _state: MutableStateFlow<AuthState> = MutableStateFlow(AuthState(null, null))
+    private val _state: MutableStateFlow<AuthState> = MutableStateFlow(
+        runBlocking { flow.first() },
+    )
 
     init {
-        runBlocking {
-            _state.value = flow.first()
-        }
         applicationScope.launch {
             flow.collect { _state.value = it }
         }
@@ -59,10 +63,15 @@ class TokenStorage @Inject constructor(
     val token: String? get() = _state.value.token
     val username: String? get() = _state.value.username
 
+    /**
+     * Hot stream of token-presence changes. Emits the current value on subscription
+     * and a new value whenever [setToken] / [clear] mutate the underlying DataStore.
+     * Consumers that need to react to login / logout should observe this rather than
+     * polling [token] on a lifecycle event.
+     */
     val tokenFlow: Flow<String?> = _state.map { it.token }.distinctUntilChanged()
 
     suspend fun setToken(value: String?) = updateString(AuthKeys.token, value)
-
     suspend fun setUsername(value: String?) = updateString(AuthKeys.username, value)
 
     suspend fun clear() {
@@ -70,7 +79,6 @@ class TokenStorage @Inject constructor(
             prefs.remove(AuthKeys.token)
             prefs.remove(AuthKeys.username)
         }
-        _state.value = AuthState(null, null)
     }
 
     private suspend fun updateString(key: Preferences.Key<String>, value: String?) {

@@ -103,14 +103,16 @@ class DebugSettingsRepository @Inject constructor(
 
     val flow: Flow<DebugSettings> = dataStore.data.map { it.toSettings() }
 
-    private val _state: MutableStateFlow<DebugSettings> = MutableStateFlow(DebugSettings())
+    // Hot snapshot kept in sync with DataStore. Seeded synchronously at construction
+    // so [current] is safe to read from any thread without coroutine ceremony — used
+    // by ApiClient.errorHeadersProvider on every request.
+    private val _state: MutableStateFlow<DebugSettings> = MutableStateFlow(
+        runBlocking { snapshot() },
+    )
     val state: StateFlow<DebugSettings> = _state.asStateFlow()
     val current: DebugSettings get() = _state.value
 
     init {
-        runBlocking {
-            _state.value = snapshot()
-        }
         applicationScope.launch {
             flow.collect { _state.value = it }
         }
@@ -159,17 +161,10 @@ class DebugSettingsRepository @Inject constructor(
             if (normalizedApiKey != null) prefs[DebugSettingsKeys.otlpApiKey] = normalizedApiKey
             else prefs.remove(DebugSettingsKeys.otlpApiKey)
         }
-        _state.value = _state.value.copy(
-            backendUrlOverride = normalizedBackend,
-            otlpEndpointOverride = normalizedOtlp,
-            otlpInstanceIdOverride = normalizedInstanceId,
-            otlpApiKeyOverride = normalizedApiKey,
-        )
     }
 
     suspend fun resetAll() {
         dataStore.edit { it.clear() }
-        _state.value = snapshot()
     }
 
     private suspend fun updateString(key: Preferences.Key<String>, value: String?) {

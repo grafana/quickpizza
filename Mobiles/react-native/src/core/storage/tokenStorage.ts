@@ -13,17 +13,21 @@ export function isValidSession(session: StoredSession): boolean {
 }
 
 export async function saveSession(token: string, username: string): Promise<void> {
-  await AsyncStorage.multiSet([
-    [TOKEN_KEY, token],
-    [USERNAME_KEY, username],
-  ]);
+  await AsyncStorage.setItem(TOKEN_KEY, token);
+  await AsyncStorage.setItem(USERNAME_KEY, username);
 }
 
 export async function loadSession(): Promise<StoredSession> {
-  const [[, token], [, username]] = await AsyncStorage.multiGet([TOKEN_KEY, USERNAME_KEY]);
+  const [token, username] = await Promise.all([
+    AsyncStorage.getItem(TOKEN_KEY),
+    AsyncStorage.getItem(USERNAME_KEY),
+  ]);
   return { token, username };
 }
 
 export async function clearSession(): Promise<void> {
-  await AsyncStorage.multiRemove([TOKEN_KEY, USERNAME_KEY]);
+  await Promise.all([
+    AsyncStorage.removeItem(TOKEN_KEY),
+    AsyncStorage.removeItem(USERNAME_KEY),
+  ]);
 }

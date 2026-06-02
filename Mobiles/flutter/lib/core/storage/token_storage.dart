@@ -22,16 +22,25 @@ class StoredSession extends Equatable {
   List<Object?> get props => [token, username];
 }
 
-const _tokenKey = 'auth_token';
-const _usernameKey = 'auth_username';
-
 /// Handles persistent storage of authentication session data.
+///
+/// Uses SharedPreferences to store the auth token and username
+/// so the user remains logged in across app restarts.
+///
+/// Exposes a [sessionChanges] stream that emits whenever the session is
+/// saved or cleared, allowing subscribers (like ApiClient) to react to changes.
 class TokenStorage {
+  static const _tokenKey = 'auth_token';
+  static const _usernameKey = 'auth_username';
+
   final _sessionController = StreamController<StoredSession>.broadcast();
 
+  /// Stream that emits whenever the session changes.
+  /// Only emits if the value is different from the last emission (distinct).
   Stream<StoredSession> get sessionChanges =>
       _sessionController.stream.distinct();
 
+  /// Saves the authentication session to persistent storage.
   Future<void> saveSession({
     required String token,
     required String username,
@@ -42,6 +51,9 @@ class TokenStorage {
     _sessionController.add(StoredSession(token: token, username: username));
   }
 
+  /// Loads the saved authentication session from persistent storage.
+  ///
+  /// Returns a [StoredSession] and emits on the stream if the value changed.
   Future<StoredSession> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
@@ -51,6 +63,7 @@ class TokenStorage {
     return session;
   }
 
+  /// Clears the saved authentication session from persistent storage.
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);

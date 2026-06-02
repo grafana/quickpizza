@@ -4,7 +4,6 @@ import { faro } from '@grafana/faro-web-sdk';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 import { onMount } from 'svelte';
 import {
-	clearCookie,
 	getCookie,
 	verifyUserLoggedIn,
 	hasUserTokenCookie,
@@ -139,7 +138,7 @@ async function handleLogout() {
 		{ triggerName: 'userLogoutButtonClick', importance: 'critical' }, // custom config
 	);
 	faro?.api?.pushEvent('User Logout');
-	clearCookie('qp_user_token');
+	document.cookie = 'qp_user_token=; Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 	qpUserLoggedIn = false;
 	isLoggedInStore.set(false);
 	window.location.href = '/';
