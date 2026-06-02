@@ -305,7 +305,7 @@ jobs:
     name: Run iOS Mobile Demo
     # macOS-only: xcrun simctl + the booted iOS simulator only work on macOS.
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 180
     environment: mobile-demo-telemetry
     permissions:
       id-token: write
@@ -317,6 +317,8 @@ jobs:
         uses: grafana/shared-workflows/actions/get-vault-secrets@5d7e361bc7e0a183cde8afe9899fb7b596d2659b # v1.2.0
         with:
           repo_secrets: |
+            FARO_COLLECTOR_URL=faro_collector_url:value
+            FARO_COLLECTOR_URL_RN=faro_collector_url_rn:value
             OTLP_ENDPOINT=otlp_endpoint_android_native:value
             OTLP_INSTANCE_ID=otlp_instance_id_android_native:value
             OTLP_API_KEY=otlp_api_key_android_native:value
@@ -403,6 +405,142 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93601a5a40bde3801046 # v2.19.0
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Install Flutter dependencies
+        working-directory: Mobiles/flutter
+        run: flutter pub get
+
+      - name: Create Flutter config.json for CI
+        working-directory: Mobiles/flutter
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333",
+            "CI_DEMO_VERSIONING": "true"
+          }
+          EOF
+          echo "Created Flutter config.json (FARO_COLLECTOR_URL redacted)"
+
+      - name: Build Flutter iOS .app for Simulator
+        id: build-flutter-ios-app
+        working-directory: Mobiles/flutter
+        run: |
+          set -e
+          echo "Building Flutter iOS .app for Simulator..."
+          flutter build ios --debug --simulator --dart-define-from-file=config.json
+
+          APP_PATH="build/ios/iphonesimulator/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Could not locate Flutter iOS .app at $APP_PATH"
+            find build/ios -maxdepth 4 -name "*.app" -type d
+            exit 1
+          fi
+          echo "Built app: $APP_PATH"
+          echo "app_path=$(pwd)/$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ">=24.5.0"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          # Ruby 3.4 currently breaks this CocoaPods install via missing kconv.
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Install React Native JavaScript dependencies
+        working-directory: Mobiles/react-native
+        run: yarn install --immutable
+
+      - name: Install React Native iOS dependencies
+        working-directory: Mobiles/react-native
+        run: |
+          bundle config set path vendor/bundle
+          bundle install
+          cd ios
+          bundle exec pod install
+
+      - name: Create React Native config.json for CI
+        working-directory: Mobiles/react-native
+        env:
+          FARO_COLLECTOR_URL: ${{ env.FARO_COLLECTOR_URL_RN }}
+        run: |
+          cat > config.json << EOF
+          {
+            "FARO_COLLECTOR_URL": "${FARO_COLLECTOR_URL}",
+            "BASE_URL": "",
+            "PORT": "3333"
+          }
+          EOF
+          echo "Created React Native config.json (FARO_COLLECTOR_URL redacted)"
+
+      - name: Build React Native iOS .app for Simulator
+        id: build-react-native-ios-app
+        working-directory: Mobiles/react-native
+        run: |
+          set -e
+          echo "Building React Native iOS .app for Simulator..."
+          mkdir -p ios/build/ci
+          set +e
+          # Release + FORCE_BUNDLING embeds the JS bundle so e2e does not need Metro.
+          FORCE_BUNDLING=1 xcodebuild \
+            -workspace ios/QuickPizza.xcworkspace \
+            -scheme QuickPizza \
+            -configuration Release \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath ios/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            PRODUCT_BUNDLE_IDENTIFIER=com.quickpizza \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            build > ios/build/ci/xcodebuild.log 2>&1
+          build_status=$?
+          set -e
+
+          if [ "$build_status" -ne 0 ]; then
+            echo "xcodebuild failed with status $build_status"
+            echo "Relevant build diagnostics:"
+            grep -nE "error:|fatal error:|BUILD FAILED|The following build commands failed|Command SwiftCompile failed" ios/build/ci/xcodebuild.log | tail -200 || true
+            echo "Last 300 xcodebuild log lines:"
+            tail -300 ios/build/ci/xcodebuild.log
+            exit "$build_status"
+          fi
+
+          tail -80 ios/build/ci/xcodebuild.log
+
+          APP_PATH=$(find ios/DerivedData/Build/Products -name "QuickPizza.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Could not locate built QuickPizza.app under ios/DerivedData"
+            find ios/DerivedData/Build/Products -maxdepth 4 -name "*.app" -type d || true
+            exit 1
+          fi
+          echo "Built app: $APP_PATH"
+          echo "app_path=$(pwd)/$APP_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload React Native iOS build log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: react-native-ios-build-log
+          path: Mobiles/react-native/ios/build/ci/xcodebuild.log
+          retention-days: 3
+          if-no-files-found: ignore
+
       - name: Set up Go (QuickPizza backend)
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
@@ -443,15 +581,9 @@ jobs:
           cat backend-ios.log
           exit 1
 
-      - name: Boot iOS simulator + install app
-        env:
-          IOS_APP_PATH: ${{ steps.build-ios-app.outputs.app_path }}
+      - name: Boot iOS simulator
         run: |
           set -e
-          if [ ! -d "$IOS_APP_PATH" ]; then
-            echo "Expected QuickPizzaIos.app at $IOS_APP_PATH but it does not exist"
-            exit 1
-          fi
           # Pick the newest available iPhone runtime/device on the runner.
           IFS=$'\t' read -r DEVICE_UDID DEVICE_NAME < <(xcrun simctl list devices available -j | python3 -c '
           import json, sys
@@ -473,15 +605,6 @@ jobs:
           xcrun simctl bootstatus "$DEVICE_UDID" -b
           xcrun simctl list devices booted
 
-          echo "Installing $IOS_APP_PATH..."
-          xcrun simctl install booted "$IOS_APP_PATH"
-          xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
-
-      - name: Set up Node.js (shared e2e HTML report generator)
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: ">=24.5.0"
-
       - name: Setup npm
         run: npm install -g npm@11.10.0
 
@@ -489,11 +612,46 @@ jobs:
         working-directory: Mobiles/e2e/report-generator
         run: npm ci --ignore-scripts
 
-      - name: Run iOS e2e
+      - name: Install iOS apps and run e2e tests
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          IOS_NATIVE_APP_PATH: ${{ steps.build-ios-app.outputs.app_path }}
+          FLUTTER_IOS_APP_PATH: ${{ steps.build-flutter-ios-app.outputs.app_path }}
+          REACT_NATIVE_IOS_APP_PATH: ${{ steps.build-react-native-ios-app.outputs.app_path }}
         run: |
+          set -e
+
+          echo "==> Native iOS .app: install and E2E"
+          if [ ! -d "$IOS_NATIVE_APP_PATH" ]; then
+            echo "Expected QuickPizzaIos.app at $IOS_NATIVE_APP_PATH but it does not exist"
+            exit 1
+          fi
+          xcrun simctl uninstall booted com.grafana.QuickPizzaIos || true
+          xcrun simctl install booted "$IOS_NATIVE_APP_PATH"
+          xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
+
+          echo "==> Flutter iOS .app: install and E2E"
+          if [ ! -d "$FLUTTER_IOS_APP_PATH" ]; then
+            echo "Expected Runner.app at $FLUTTER_IOS_APP_PATH but it does not exist"
+            exit 1
+          fi
+          xcrun simctl uninstall booted com.example.flutterMobileO11yDemo || true
+          xcrun simctl install booted "$FLUTTER_IOS_APP_PATH"
+          xcrun simctl get_app_container booted com.example.flutterMobileO11yDemo
+          bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios
+
+          echo "==> React Native iOS .app: install and E2E"
+          if [ ! -d "$REACT_NATIVE_IOS_APP_PATH" ]; then
+            echo "Expected QuickPizza.app at $REACT_NATIVE_IOS_APP_PATH but it does not exist"
+            exit 1
+          fi
+          xcrun simctl uninstall booted com.quickpizza || true
+          xcrun simctl install booted "$REACT_NATIVE_IOS_APP_PATH"
+          xcrun simctl get_app_container booted com.quickpizza
+          bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios
+
+          echo "iOS E2E tests completed (Native iOS, Flutter iOS, React Native iOS on same simulator)."
 
       - name: Upload e2e test results
         if: always()
