@@ -14,11 +14,22 @@ import ToggleConfetti from '../lib/ToggleConfetti.svelte';
 const defaultRestrictions = {
 	maxCaloriesPerSlice: 1000,
 	mustBeVegetarian: false,
-	excludedIngredients: [],
-	excludedTools: [],
+	excludedIngredients: [] as string[],
+	excludedTools: [] as string[],
 	maxNumberOfToppings: 5,
 	minNumberOfToppings: 2,
 	customName: '',
+};
+
+type PizzaResponse = {
+	pizza: {
+		id: number;
+		name: string;
+		dough: { name: string };
+		ingredients: Array<{ name: string }>;
+		tool: string;
+	};
+	calories: number;
 };
 
 var ratingStars = 5;
@@ -34,24 +45,24 @@ var anonymousToken = '';
 
 var render = false;
 var quote = '';
-var pizza = '';
+var pizza: PizzaResponse | null = null;
 var tools: string[] = [];
 var pizzaCount = 0;
 let restrictions = defaultRestrictions;
 var advanced = false;
-var rateResult = null;
-var errorResult = null;
+var rateResult: string | null = null;
+var errorResult: string | null = null;
 var isLoggedIn = false;
 
 $: if (advanced) {
-	pizza = '';
+	pizza = null;
 	restrictions = defaultRestrictions;
 } else {
-	pizza = '';
+	pizza = null;
 	restrictions = defaultRestrictions;
 }
 
-function randomToken(length) {
+function randomToken(length: number) {
 	let result = '';
 	const characters =
 		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -90,11 +101,11 @@ onMount(async () => {
 		wsUrl =
 			(l.protocol === 'https:' ? 'wss://' : 'ws://') +
 			l.hostname +
-			(l.port !== 80 && l.port !== 443 ? ':' + l.port : '') +
+			(l.port && l.port !== '80' && l.port !== '443' ? `:${l.port}` : '') +
 			'/ws';
 	}
 	socket = new WebSocket(wsUrl);
-	socket.addEventListener('message', function (event) {
+	socket.addEventListener('message', (event) => {
 		const data = JSON.parse(event.data);
 		if (data.msg === 'new_pizza') {
 			if (data.ws_visitor_id !== wsVisitorID) {
@@ -104,23 +115,26 @@ onMount(async () => {
 	});
 	getTools();
 	render = true;
-	window.faro?.api?.pushEvent('Navigation', { url: window.location.href });
+	faro?.api?.pushEvent('Navigation', { url: window.location.href });
 });
 
-async function ratePizza(stars) {
-	window.faro?.api?.pushEvent('Submit Pizza Rating', {
-		pizza_id: pizza['pizza']['id'],
-		stars: stars,
+async function ratePizza(stars: number) {
+	if (!pizza?.pizza) {
+		return;
+	}
+	faro?.api?.pushEvent('Submit Pizza Rating', {
+		pizza_id: String(pizza.pizza.id),
+		stars: String(stars),
 	});
-	window.faro?.api?.startUserAction(
+	faro?.api?.startUserAction(
 		'ratePizza', // name of the user action
-		{ pizza_id: pizza['pizza']['id'], stars: stars }, // custom attributes attached to the user action
+		{ pizza_id: String(pizza.pizza.id), stars: String(stars) }, // custom attributes attached to the user action
 		{ triggerName: 'ratePizzaButtonClick' }, // custom config
 	);
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 		method: 'POST',
 		body: JSON.stringify({
-			pizza_id: pizza['pizza']['id'],
+			pizza_id: pizza.pizza.id,
 			stars: stars,
 		}),
 		headers: {
@@ -131,23 +145,21 @@ async function ratePizza(stars) {
 		rateResult = 'Rated!';
 	} else {
 		rateResult = 'Please log in first.';
-		window.faro?.api?.pushError(
-			new Error('Unauthenticated Ratings Submission'),
-		);
+		faro?.api?.pushError(new Error('Unauthenticated Ratings Submission'));
 	}
 }
 
 async function getPizza() {
-	window.faro?.api?.pushEvent('Get Pizza Recommendation', {
-		restrictions: restrictions,
+	faro?.api?.pushEvent('Get Pizza Recommendation', {
+		restrictions: JSON.stringify(restrictions),
 	});
-	window.faro?.api?.startUserAction(
+	faro?.api?.startUserAction(
 		'getPizza', // name of the user action
-		{ restrictions: restrictions }, // custom attributes attached to the user action
+		{ restrictions: JSON.stringify(restrictions) }, // custom attributes attached to the user action
 		{ triggerName: 'getPizzaButtonClick' }, // custom config
 	);
 	if (restrictions.minNumberOfToppings > restrictions.maxNumberOfToppings) {
-		window.faro?.api?.pushError(new Error('Invalid Restrictions, Min > Max'));
+		faro?.api?.pushError(new Error('Invalid Restrictions, Min > Max'));
 	}
 
 	// Build headers: use cookie auth if logged in, otherwise use anonymous token
@@ -155,7 +167,7 @@ async function getPizza() {
 		'Content-Type': 'application/json',
 	};
 	if (!isLoggedIn) {
-		headers['Authorization'] = 'Token ' + anonymousToken;
+		headers.Authorization = `Token ${anonymousToken}`;
 	}
 
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
@@ -169,14 +181,15 @@ async function getPizza() {
 	rateResult = null;
 	errorResult = null;
 	if (!res.ok) {
-		pizza = '';
-		errorResult =
+		pizza = null;
+		const message =
 			json.error || 'Failed to get pizza recommendation. Please try again.';
-		window.faro?.api?.pushError(new Error(errorResult));
+		errorResult = message;
+		faro?.api?.pushError(new Error(message));
 		return;
 	}
 
-	pizza = json;
+	pizza = json as PizzaResponse;
 	const wsMsg = JSON.stringify({
 		// FIXME: The 'user' key is present in order not to break
 		// existing examples using QP WS. Remove it at some point.
@@ -194,13 +207,15 @@ async function getPizza() {
 		};
 		socket.addEventListener('open', handleOpen);
 	} else {
-		window.faro?.api?.pushError(
-			new Error('socket state error: ' + socket.readyState),
-		);
+		faro?.api?.pushError(new Error(`socket state error: ${socket.readyState}`));
 	}
 
-	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
-		window.faro?.api?.pushError(
+	if (
+		typeof pizza === 'object' &&
+		'pizza' in pizza &&
+		pizza.pizza.ingredients.find((e) => e.name === 'Pineapple')
+	) {
+		faro?.api?.pushError(
 			new Error(
 				'Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!',
 			),
@@ -209,12 +224,12 @@ async function getPizza() {
 }
 
 async function getTools() {
-	window.faro?.api?.pushEvent('Get Pizza Tools', { tools: tools });
+	faro?.api?.pushEvent('Get Pizza Tools', { tools: tools.join(',') });
 
 	// Build headers: use cookie auth if logged in, otherwise use anonymous token
 	const headers: Record<string, string> = {};
 	if (!isLoggedIn) {
-		headers['Authorization'] = 'Token ' + anonymousToken;
+		headers.Authorization = `Token ${anonymousToken}`;
 	}
 
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
@@ -355,7 +370,7 @@ async function getTools() {
 						</div>
 					</div>
 					<div class="flex mt-8 justify-center items-center">
-						<div clas="flex items-center ml-16">
+						<div class="flex items-center ml-16">
 							<label for="pizza-name" class="ml-2 text-sm text-gray-900">Custom Pizza Name:</label>
 							<input
 								id="pizza-name"
@@ -392,7 +407,7 @@ async function getTools() {
 					>
 				</div>
 			{/if}
-			{#if pizzaCount > 0 && !pizza['pizza']}
+			{#if pizzaCount > 0 && !pizza?.pizza}
 				<div class="mt-4">
 					<span class="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded"
 						>What are you waiting for? We have already given {pizzaCount} recommendations since you opened
@@ -401,22 +416,22 @@ async function getTools() {
 				</div>
 			{/if}
 			<p>
-				{#if pizza['pizza']}
+				{#if pizza?.pizza}
 					<div class="flex justify-center" id="recommendations">
 						<div class="w-[300px] sm:w-[500px] mt-6 bg-gray-50 border border-gray-200 rounded-lg">
 							<div class="text-left p-4">
 								<h2 class="font-medium" id="pizza-name">Our recommendation:</h2>
 								<div class="ml-2">
-									<p>Name: {pizza['pizza']['name']}</p>
-									<p>Dough: {pizza['pizza']['dough']['name']}</p>
+									<p>Name: {pizza.pizza.name}</p>
+									<p>Dough: {pizza.pizza.dough.name}</p>
 									<p>Ingredients:</p>
 									<ul class="list-disc list-inside">
-										{#each pizza['pizza']['ingredients'] as ingredient}
-											<li class="pl-5 list-inside">{ingredient['name']}</li>
+										{#each pizza.pizza.ingredients as ingredient}
+											<li class="pl-5 list-inside">{ingredient.name}</li>
 										{/each}
 									</ul>
-									<p>Tool: {pizza['pizza']['tool']}</p>
-									<p>Calories per slice: {pizza['calories']}</p>
+									<p>Tool: {pizza.pizza.tool}</p>
+									<p>Calories per slice: {pizza.calories}</p>
 								</div>
 							</div>
 						</div>
