@@ -12,6 +12,7 @@
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=flutter         --platform=ios
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=react-native    --platform=ios
 #   ./Mobiles/e2e/run_e2e_tests.sh --app=ios-native      --platform=ios
+#   ./Mobiles/e2e/run_e2e_tests.sh --app=flutter         --platform=android --flow=diagnostics
 #
 # Required env vars:
 #   OPENAI_API_KEY    OpenAI API key used by Arbigent.
@@ -43,12 +44,12 @@ MOBILES_ROOT="$(cd "$SCRIPT_DIR/.." &> /dev/null && pwd)"
 REPO_ROOT="$(cd "$MOBILES_ROOT/.." &> /dev/null && pwd)"
 REPORT_DIR="$SCRIPT_DIR/report-generator"
 RESULTS_ROOT="$SCRIPT_DIR/results"
-# Platform-specific scenario templates live next to this script. The Android
-# template covers Flutter/RN/Native on Android; the iOS template covers
-# native iOS (and Flutter/RN on iOS once those phases land). The runner picks
-# the file based on --platform; see render_template().
-TEMPLATE_FILE_ANDROID="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.android.yaml.template"
-TEMPLATE_FILE_IOS="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.ios.yaml.template"
+# Flow/platform-specific scenario templates live next to this script. The
+# runner picks the file based on --flow and --platform; see render_template().
+TEMPLATE_FILE_ANDROID_BASIC="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.android.yaml.template"
+TEMPLATE_FILE_IOS_BASIC="$SCRIPT_DIR/arbigent-e2e_basic_pizza_flow.ios.yaml.template"
+TEMPLATE_FILE_ANDROID_DIAGNOSTICS="$SCRIPT_DIR/arbigent-e2e_diagnostics.android.yaml.template"
+TEMPLATE_FILE_IOS_DIAGNOSTICS="$SCRIPT_DIR/arbigent-e2e_diagnostics.ios.yaml.template"
 RECOVERY_HINTS_FILE="$SCRIPT_DIR/arbigent-recovery-hints.txt"
 RENDER_HELPER="$SCRIPT_DIR/render-template.js"
 
@@ -111,6 +112,7 @@ trap cleanup_on_exit INT TERM QUIT
 
 APP=""
 PLATFORM=""
+FLOW="basic"
 
 show_help() {
     cat <<EOF
@@ -123,6 +125,7 @@ Required:
   --platform=<android|ios>                                 Target platform
 
 Other:
+  --flow=<basic|diagnostics>                               Scenario flow (default: basic)
   -h, --help                                               Show this help message
 
 Examples:
@@ -132,6 +135,7 @@ Examples:
   bash $0 --app=flutter --platform=ios
   bash $0 --app=react-native --platform=ios
   bash $0 --app=ios-native --platform=ios
+  bash $0 --app=flutter --platform=android --flow=diagnostics
 
 Required env vars:
   OPENAI_API_KEY                    OpenAI key used by Arbigent
@@ -150,6 +154,8 @@ while [[ $# -gt 0 ]]; do
         --app)        APP="$2"; shift 2 ;;
         --platform=*) PLATFORM="${1#--platform=}"; shift ;;
         --platform)   PLATFORM="$2"; shift 2 ;;
+        --flow=*)     FLOW="${1#--flow=}"; shift ;;
+        --flow)       FLOW="$2"; shift 2 ;;
         -h|--help)    show_help; exit 0 ;;
         *)            echo "Unknown option: $1" >&2; show_help; exit 1 ;;
     esac
@@ -157,6 +163,11 @@ done
 
 [ -n "$APP" ]      || { show_help; print_error "--app is required"; }
 [ -n "$PLATFORM" ] || { show_help; print_error "--platform is required"; }
+
+case "$FLOW" in
+    basic|diagnostics) ;;
+    *) print_error "Unsupported --flow=$FLOW (supported: basic, diagnostics)" ;;
+esac
 
 ### App configuration table ###################################################
 # Add new apps here as later phases bring them online.
@@ -187,9 +198,14 @@ case "$APP" in
 esac
 
 # All test artifacts (arbigent-result/, arbigent-cache/, archived runs)
-# are written under Mobiles/e2e/results/<app>/ to keep the per-app
-# directories clean and centralise e2e outputs in one place.
-RESULTS_DIR="$RESULTS_ROOT/$APP"
+# are written under Mobiles/e2e/results/<app>/ for the default happy path.
+# Non-default flows add a suffix so diagnostics failures/reports do not
+# overwrite the normal pizza flow for the same app.
+RESULTS_APP_DIR="$APP"
+if [ "$FLOW" != "basic" ]; then
+    RESULTS_APP_DIR="$APP-$FLOW"
+fi
+RESULTS_DIR="$RESULTS_ROOT/$RESULTS_APP_DIR"
 
 case "$PLATFORM" in
     android)
@@ -379,13 +395,15 @@ render_template() {
     fi
 
     local template_file
-    case "$PLATFORM" in
-        android) template_file="$TEMPLATE_FILE_ANDROID" ;;
-        ios)     template_file="$TEMPLATE_FILE_IOS" ;;
-        *)       print_error "render_template: unsupported platform '$PLATFORM'" ;;
+    case "$FLOW:$PLATFORM" in
+        basic:android)       template_file="$TEMPLATE_FILE_ANDROID_BASIC" ;;
+        basic:ios)           template_file="$TEMPLATE_FILE_IOS_BASIC" ;;
+        diagnostics:android) template_file="$TEMPLATE_FILE_ANDROID_DIAGNOSTICS" ;;
+        diagnostics:ios)     template_file="$TEMPLATE_FILE_IOS_DIAGNOSTICS" ;;
+        *)                   print_error "render_template: unsupported flow/platform '$FLOW/$PLATFORM'" ;;
     esac
     if [ ! -f "$template_file" ]; then
-        print_error "Missing Arbigent template for $PLATFORM: $template_file"
+        print_error "Missing Arbigent template for flow=$FLOW platform=$PLATFORM: $template_file"
     fi
 
     node "$RENDER_HELPER" \
@@ -403,7 +421,7 @@ run_tests() {
         ios)     identity="bundle=$IOS_BUNDLE_ID" ;;
         *)       identity="" ;;
     esac
-    print_step "Running E2E tests for app=$APP platform=$PLATFORM ($identity)..."
+    print_step "Running E2E tests for app=$APP platform=$PLATFORM flow=$FLOW ($identity)..."
 
     if [ -z "${OPENAI_API_KEY:-}" ]; then
         print_error "OPENAI_API_KEY environment variable is not set"
@@ -478,6 +496,7 @@ run_tests() {
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
 printf "║   QuickPizza E2E   app=%-14s   platform=%-7s      ║\n" "$APP" "$PLATFORM"
+printf "║   flow=%-12s                                      ║\n" "$FLOW"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 

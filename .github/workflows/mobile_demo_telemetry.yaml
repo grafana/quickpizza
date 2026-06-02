@@ -2,7 +2,13 @@ name: Mobile Demo Telemetry
 
 on:
   # Manual trigger for ad hoc testing (pick branch in Actions UI)
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      run_diagnostics:
+        description: "Also run Debug-tab diagnostics that emit handled exceptions and intentional crashes"
+        required: false
+        default: false
+        type: boolean
   # Scheduled run every hour for continuous telemetry
   schedule:
     - cron: "0 * * * *"
@@ -243,6 +249,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@b530d96654c385303d652368551fb075bc2f0b6b # v2.35.0
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          RUN_DIAGNOSTICS: ${{ github.event_name == 'workflow_dispatch' && inputs.run_diagnostics == true }}
         with:
           api-level: 34
           arch: x86_64
@@ -270,6 +277,17 @@ jobs:
             echo "==> Android Native APK: install and E2E"
             adb install -r apk/android-native/app-debug.apk
             bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android
+
+            # android-emulator-runner executes script lines individually, so
+            # keep diagnostics gating as one-line commands instead of a
+            # multi-line shell if block.
+            [ "$RUN_DIAGNOSTICS" = "true" ] || echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
+            [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> Flutter APK: diagnostics E2E"
+            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> React Native APK: diagnostics E2E"
+            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> Android Native APK: diagnostics E2E"
+            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android --flow=diagnostics
 
             echo "E2E tests completed (Flutter, React Native, Android Native on same emulator)."
 
@@ -615,6 +633,7 @@ jobs:
       - name: Install iOS apps and run e2e tests
         env:
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          RUN_DIAGNOSTICS: ${{ github.event_name == 'workflow_dispatch' && inputs.run_diagnostics == true }}
           IOS_NATIVE_APP_PATH: ${{ steps.build-ios-app.outputs.app_path }}
           FLUTTER_IOS_APP_PATH: ${{ steps.build-flutter-ios-app.outputs.app_path }}
           REACT_NATIVE_IOS_APP_PATH: ${{ steps.build-react-native-ios-app.outputs.app_path }}
@@ -631,6 +650,13 @@ jobs:
           xcrun simctl get_app_container booted com.grafana.QuickPizzaIos
           bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios
 
+          if [ "$RUN_DIAGNOSTICS" = "true" ]; then
+            echo "==> Native iOS .app: diagnostics E2E"
+            bash Mobiles/e2e/run_e2e_tests.sh --app=ios-native --platform=ios --flow=diagnostics
+          else
+            echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
+          fi
+
           echo "==> Flutter iOS .app: install and E2E"
           if [ ! -d "$FLUTTER_IOS_APP_PATH" ]; then
             echo "Expected Runner.app at $FLUTTER_IOS_APP_PATH but it does not exist"
@@ -640,6 +666,10 @@ jobs:
           xcrun simctl install booted "$FLUTTER_IOS_APP_PATH"
           xcrun simctl get_app_container booted com.example.flutterMobileO11yDemo
           bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios
+          if [ "$RUN_DIAGNOSTICS" = "true" ]; then
+            echo "==> Flutter iOS .app: diagnostics E2E"
+            bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=ios --flow=diagnostics
+          fi
 
           echo "==> React Native iOS .app: install and E2E"
           if [ ! -d "$REACT_NATIVE_IOS_APP_PATH" ]; then
@@ -650,6 +680,10 @@ jobs:
           xcrun simctl install booted "$REACT_NATIVE_IOS_APP_PATH"
           xcrun simctl get_app_container booted com.quickpizza
           bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios
+          if [ "$RUN_DIAGNOSTICS" = "true" ]; then
+            echo "==> React Native iOS .app: diagnostics E2E"
+            bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=ios --flow=diagnostics
+          fi
 
           echo "iOS E2E tests completed (Native iOS, Flutter iOS, React Native iOS on same simulator)."
 
