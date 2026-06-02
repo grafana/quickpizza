@@ -351,6 +351,30 @@ QuickPizza for mobile observability demonstrations. Each app talks to the
 same QuickPizza backend and implements the same screens — what differs is
 the telemetry SDK and where the data lands in Grafana Cloud.
 
+### Backend Docker image (mobile vs k6/web)
+
+This fork publishes a separate GHCR image so releases here do not overwrite the
+upstream QuickPizza image used by k6 and web workshops:
+
+| Use case | Image |
+| --- | --- |
+| k6 tests, example workflows, compose defaults | `ghcr.io/grafana/quickpizza-local` (upstream) |
+| Mobile demos, mobile CI, releases from this repo | `ghcr.io/grafana/quickpizza-mobile-local` |
+
+When running the backend for **mobile** work with Docker Compose, override the
+image (compose defaults stay on upstream `quickpizza-local` for k6 compatibility):
+
+```bash
+export QUICKPIZZA_IMAGE=ghcr.io/grafana/quickpizza-mobile-local:latest
+docker compose -f compose.grafana-cloud.microservices.yaml up -d
+```
+
+For a single container (no compose):
+
+```bash
+docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest
+```
+
 | Platform | Location | SDK | Telemetry destination | Setup |
 | --- | --- | --- | --- | --- |
 | Flutter (Android & iOS) | `Mobiles/flutter/` | Grafana Faro (`faro` Dart SDK) | Frontend Observability plugin | [Flutter README](./Mobiles/flutter/README.md) + [Flutter Android setup](./Mobiles/docs/ANDROID_SETUP.md) / [Flutter iOS setup](./Mobiles/docs/XCODE_SETUP.md) |

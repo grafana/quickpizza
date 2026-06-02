@@ -1,5 +1,6 @@
 GO_SOURCES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 FRONTEND_BUILD_DIR = pkg/web/build
+NPM = corepack npm
 
 .PHONY: build
 build: build-web build-go # Builds frontend and backend
@@ -9,7 +10,8 @@ build-web: # Build frontend assets
 	rm -rf $(FRONTEND_BUILD_DIR)
 	export PUBLIC_BACKEND_ENDPOINT="" && \
 	export PUBLIC_BACKEND_WS_ENDPOINT="" && \
-	cd pkg/web && npm ci --ignore-scripts && npm run build
+	corepack enable && \
+	cd pkg/web && $(NPM) ci --ignore-scripts && $(NPM) run build
 
 .PHONY: build-go
 build-go: # Build Go binary (doesn't rebuild frontend)
@@ -20,7 +22,8 @@ build-go: # Build Go binary (doesn't rebuild frontend)
 
 .PHONY: install-web
 install-web: # Install frontend dependencies
-	cd pkg/web && npm ci --ignore-scripts
+	corepack enable
+	cd pkg/web && $(NPM) ci --ignore-scripts
 
 .PHONY: dev
 dev: # Run with live-reload (frontend dev server + backend with -dev flag)
@@ -28,7 +31,7 @@ dev: # Run with live-reload (frontend dev server + backend with -dev flag)
 	@trap 'kill 0' EXIT; \
 	(export PUBLIC_BACKEND_ENDPOINT="http://localhost:3333" && \
 	export PUBLIC_BACKEND_WS_ENDPOINT="ws://localhost:3333/ws" && \
-	cd pkg/web && npm run dev) & \
+	cd pkg/web && $(NPM) run dev) & \
 	go run ./cmd -dev
 
 .PHONY: proto
@@ -44,7 +47,7 @@ format-go: # Format Go code with goimports
 
 .PHONY: format-web
 format-web: # Format frontend code
-	cd pkg/web/ && npm run biome-format
+	cd pkg/web/ && $(NPM) run biome-format
 
 .PHONY: format-check
 format-check: # Check Go code formatting

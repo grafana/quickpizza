@@ -168,7 +168,7 @@ After fixing storage:
 cd repos/mobile-o11y-demo/Mobiles/react-native
 
 # Make sure backend is running
-docker run --rm -d -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
+docker run --rm -d -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest
 
 # Start Metro
 yarn start

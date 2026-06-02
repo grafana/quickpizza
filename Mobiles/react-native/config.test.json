@@ -1,0 +1,5 @@
+{
+  "FARO_COLLECTOR_URL": "https://collector.example.com/collect/test-placeholder",
+  "BASE_URL": "",
+  "PORT": "3333"
+}
