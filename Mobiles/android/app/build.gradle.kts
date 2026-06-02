@@ -85,7 +85,6 @@ dependencies {
 
     // Persistence
     implementation(libs.datastore.preferences)
-    implementation(libs.security.crypto)
 
     // OpenTelemetry Android
     implementation(platform(libs.opentelemetry.android.bom))

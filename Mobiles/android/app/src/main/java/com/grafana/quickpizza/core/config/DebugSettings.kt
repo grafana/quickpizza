@@ -7,7 +7,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.grafana.quickpizza.core.storage.SecureStringStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -79,14 +78,13 @@ data class DebugSettings(
         }
 }
 
-private const val SECURE_OTLP_API_KEY = "debug_otlp_api_key"
-
 private val Context.debugSettingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "debug_settings")
 
 private object DebugSettingsKeys {
     val backendUrl = stringPreferencesKey("debug_backend_url")
     val otlpEndpoint = stringPreferencesKey("debug_otlp_endpoint")
     val otlpInstanceId = stringPreferencesKey("debug_otlp_instance_id")
+    val otlpApiKey = stringPreferencesKey("debug_otlp_api_key")
     val errorRecommendations = booleanPreferencesKey("debug_error_recommendations")
     val errorIngredients = booleanPreferencesKey("debug_error_ingredients")
     val slowRecommendations = booleanPreferencesKey("debug_slow_recommendations")
@@ -102,7 +100,6 @@ class DebugSettingsRepository @Inject constructor(
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) {
     private val dataStore: DataStore<Preferences> = context.debugSettingsDataStore
-    private val secureStore = SecureStringStore(context, "quickpizza_debug_secure")
 
     val flow: Flow<DebugSettings> = dataStore.data.map { it.toSettings() }
 
@@ -129,11 +126,7 @@ class DebugSettingsRepository @Inject constructor(
     suspend fun setBackendUrlOverride(value: String?) = updateString(DebugSettingsKeys.backendUrl, value)
     suspend fun setOtlpEndpointOverride(value: String?) = updateString(DebugSettingsKeys.otlpEndpoint, value)
     suspend fun setOtlpInstanceIdOverride(value: String?) = updateString(DebugSettingsKeys.otlpInstanceId, value)
-    suspend fun setOtlpApiKeyOverride(value: String?) {
-        val normalized = normalize(value)
-        secureStore.setString(SECURE_OTLP_API_KEY, normalized)
-        _state.value = _state.value.copy(otlpApiKeyOverride = normalized)
-    }
+    suspend fun setOtlpApiKeyOverride(value: String?) = updateString(DebugSettingsKeys.otlpApiKey, value)
     suspend fun setErrorOnRecommendations(value: Boolean) = updateBoolean(DebugSettingsKeys.errorRecommendations, value)
     suspend fun setErrorOnIngredients(value: Boolean) = updateBoolean(DebugSettingsKeys.errorIngredients, value)
     suspend fun setSlowRecommendations(value: Boolean) = updateBoolean(DebugSettingsKeys.slowRecommendations, value)
@@ -163,8 +156,9 @@ class DebugSettingsRepository @Inject constructor(
             else prefs.remove(DebugSettingsKeys.otlpEndpoint)
             if (normalizedInstanceId != null) prefs[DebugSettingsKeys.otlpInstanceId] = normalizedInstanceId
             else prefs.remove(DebugSettingsKeys.otlpInstanceId)
+            if (normalizedApiKey != null) prefs[DebugSettingsKeys.otlpApiKey] = normalizedApiKey
+            else prefs.remove(DebugSettingsKeys.otlpApiKey)
         }
-        secureStore.setString(SECURE_OTLP_API_KEY, normalizedApiKey)
         _state.value = _state.value.copy(
             backendUrlOverride = normalizedBackend,
             otlpEndpointOverride = normalizedOtlp,
@@ -175,7 +169,6 @@ class DebugSettingsRepository @Inject constructor(
 
     suspend fun resetAll() {
         dataStore.edit { it.clear() }
-        secureStore.setString(SECURE_OTLP_API_KEY, null)
         _state.value = snapshot()
     }
 
@@ -199,7 +192,7 @@ class DebugSettingsRepository @Inject constructor(
         backendUrlOverride = this[DebugSettingsKeys.backendUrl],
         otlpEndpointOverride = this[DebugSettingsKeys.otlpEndpoint],
         otlpInstanceIdOverride = this[DebugSettingsKeys.otlpInstanceId],
-        otlpApiKeyOverride = secureStore.getString(SECURE_OTLP_API_KEY),
+        otlpApiKeyOverride = this[DebugSettingsKeys.otlpApiKey],
         errorOnRecommendations = this[DebugSettingsKeys.errorRecommendations] ?: false,
         errorOnIngredients = this[DebugSettingsKeys.errorIngredients] ?: false,
         slowRecommendations = this[DebugSettingsKeys.slowRecommendations] ?: false,

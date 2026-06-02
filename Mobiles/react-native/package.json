@@ -20,7 +20,6 @@
     "react": "19.2.3",
     "react-native": "0.84.1",
     "react-native-device-info": "^11.1.0",
-    "react-native-keychain": "10.0.0",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.6.0",
     "zustand": "^4.5.5"

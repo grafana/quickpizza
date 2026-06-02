@@ -2,11 +2,11 @@ import Foundation
 import SwiftiePod
 
 let tokenStorageProvider = Provider<TokenStoring> { _ in
-    KeychainTokenStorage()
+    UserDefaultsTokenStorage()
 }
 
-/// Keychain-based implementation of TokenStoring.
-final class KeychainTokenStorage: TokenStoring {
+/// UserDefaults-based implementation of TokenStoring.
+final class UserDefaultsTokenStorage: TokenStoring {
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -14,19 +14,19 @@ final class KeychainTokenStorage: TokenStoring {
     }
 
     func saveSession(token: String, username: String) {
-        AuthKeychain.save(token: token, username: username)
+        defaults.set(token, forKey: "auth_token")
         defaults.set(username, forKey: "auth_username")
     }
 
     func loadSession() -> StoredSession {
         StoredSession(
-            token: AuthKeychain.readToken(),
-            username: AuthKeychain.readUsername() ?? defaults.string(forKey: "auth_username")
+            token: defaults.string(forKey: "auth_token"),
+            username: defaults.string(forKey: "auth_username")
         )
     }
 
     func clearSession() {
-        AuthKeychain.clear()
+        defaults.removeObject(forKey: "auth_token")
         defaults.removeObject(forKey: "auth_username")
     }
 }

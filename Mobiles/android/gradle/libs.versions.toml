@@ -16,7 +16,6 @@ coreKtx = "1.15.0"
 lifecycle = "2.8.7"
 desugar = "2.1.4"
 datastore = "1.2.1"
-securityCrypto = "1.1.0"
 opentelemetryAndroid = "1.4.0-alpha"
 opentelemetryAndroidInstrumentation = "1.4.0-alpha"
 byteBuddy = "1.18.5"
@@ -58,7 +57,6 @@ opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-exte
 
 # Persistence
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 
 # Desugaring
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }

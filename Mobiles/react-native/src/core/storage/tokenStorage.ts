@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Keychain from 'react-native-keychain';
 
-const KEYCHAIN_SERVICE = 'com.grafana.quickpizza.auth';
+const TOKEN_KEY = 'auth_token';
 const USERNAME_KEY = 'auth_username';
 
 export interface StoredSession {
@@ -14,19 +13,17 @@ export function isValidSession(session: StoredSession): boolean {
 }
 
 export async function saveSession(token: string, username: string): Promise<void> {
-  await Keychain.setGenericPassword(username, token, { service: KEYCHAIN_SERVICE });
-  await AsyncStorage.setItem(USERNAME_KEY, username);
+  await AsyncStorage.multiSet([
+    [TOKEN_KEY, token],
+    [USERNAME_KEY, username],
+  ]);
 }
 
 export async function loadSession(): Promise<StoredSession> {
-  const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-  const username =
-    credentials ? credentials.username : await AsyncStorage.getItem(USERNAME_KEY);
-  const token = credentials ? credentials.password : null;
+  const [[, token], [, username]] = await AsyncStorage.multiGet([TOKEN_KEY, USERNAME_KEY]);
   return { token, username };
 }
 
 export async function clearSession(): Promise<void> {
-  await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
-  await AsyncStorage.removeItem(USERNAME_KEY);
+  await AsyncStorage.multiRemove([TOKEN_KEY, USERNAME_KEY]);
 }

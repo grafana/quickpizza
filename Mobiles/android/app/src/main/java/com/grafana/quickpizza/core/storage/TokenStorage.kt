@@ -22,15 +22,14 @@ import javax.inject.Singleton
 private data class AuthState(val token: String?, val username: String?)
 
 private object AuthKeys {
+    val token = stringPreferencesKey("auth_token")
     val username = stringPreferencesKey("auth_username")
 }
-
-private const val SECURE_TOKEN_KEY = "auth_token"
 
 private val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth")
 
 /**
- * Persists the user's auth token (encrypted) and username.
+ * Persists the user's auth token and username.
  */
 @Singleton
 class TokenStorage @Inject constructor(
@@ -38,11 +37,10 @@ class TokenStorage @Inject constructor(
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) {
     private val dataStore: DataStore<Preferences> = context.authDataStore
-    private val secureStore = SecureStringStore(context, "quickpizza_auth_secure")
 
     private val flow = dataStore.data.map { prefs ->
         AuthState(
-            token = secureStore.getString(SECURE_TOKEN_KEY),
+            token = prefs[AuthKeys.token],
             username = prefs[AuthKeys.username],
         )
     }
@@ -63,16 +61,13 @@ class TokenStorage @Inject constructor(
 
     val tokenFlow: Flow<String?> = _state.map { it.token }.distinctUntilChanged()
 
-    suspend fun setToken(value: String?) {
-        secureStore.setString(SECURE_TOKEN_KEY, value)
-        _state.value = _state.value.copy(token = value?.takeIf { it.isNotEmpty() })
-    }
+    suspend fun setToken(value: String?) = updateString(AuthKeys.token, value)
 
     suspend fun setUsername(value: String?) = updateString(AuthKeys.username, value)
 
     suspend fun clear() {
-        secureStore.setString(SECURE_TOKEN_KEY, null)
         dataStore.edit { prefs ->
+            prefs.remove(AuthKeys.token)
             prefs.remove(AuthKeys.username)
         }
         _state.value = AuthState(null, null)

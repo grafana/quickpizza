@@ -4,12 +4,6 @@ import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/asy
 
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
-jest.mock('react-native-keychain', () => ({
-  setGenericPassword: jest.fn(() => Promise.resolve(true)),
-  getGenericPassword: jest.fn(() => Promise.resolve(false)),
-  resetGenericPassword: jest.fn(() => Promise.resolve(true)),
-}));
-
 jest.mock('react-native-device-info', () => ({
   getApplicationName: jest.fn(() => 'QuickPizza'),
   getBrand: jest.fn(() => 'Apple'),

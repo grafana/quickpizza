@@ -3266,7 +3266,6 @@ __metadata:
     react: "npm:19.2.3"
     react-native: "npm:0.84.1"
     react-native-device-info: "npm:^11.1.0"
-    react-native-keychain: "npm:10.0.0"
     react-native-safe-area-context: "npm:^5.5.2"
     react-native-screens: "npm:^4.6.0"
     react-test-renderer: "npm:19.2.3"
@@ -7993,13 +7992,6 @@ __metadata:
   peerDependencies:
     react-native: "*"
   checksum: 10c0/424eb512a35264699d0f1c2f9dce2b0ca10247fbe263af37eda5563d9eb5fb333ea513c90aa58444b67d7364ac03d9a0d9cf913a0054e78ec0f2dfff22033ab0
-  languageName: node
-  linkType: hard
-
-"react-native-keychain@npm:10.0.0":
-  version: 10.0.0
-  resolution: "react-native-keychain@npm:10.0.0"
-  checksum: 10c0/a632ad27e58264506d2b373d329a867f042fb014e8a78db3a63031e953d61b5c98066eed1be238ee6c186d3f213d0efaa2a26526fb3a1d36a624c4460e982230
   languageName: node
   linkType: hard
 

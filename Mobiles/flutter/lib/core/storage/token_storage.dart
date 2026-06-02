@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Provider for TokenStorage with dependency injection
@@ -27,14 +26,7 @@ const _tokenKey = 'auth_token';
 const _usernameKey = 'auth_username';
 
 /// Handles persistent storage of authentication session data.
-///
-/// Auth tokens are stored in [FlutterSecureStorage]; usernames remain in
-/// SharedPreferences for quick reads.
 class TokenStorage {
-  static const _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
-
   final _sessionController = StreamController<StoredSession>.broadcast();
 
   Stream<StoredSession> get sessionChanges =>
@@ -44,15 +36,15 @@ class TokenStorage {
     required String token,
     required String username,
   }) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
     await prefs.setString(_usernameKey, username);
     _sessionController.add(StoredSession(token: token, username: username));
   }
 
   Future<StoredSession> loadSession() async {
-    final token = await _secureStorage.read(key: _tokenKey);
     final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_tokenKey);
     final username = prefs.getString(_usernameKey);
     final session = StoredSession(token: token, username: username);
     _sessionController.add(session);
@@ -60,8 +52,8 @@ class TokenStorage {
   }
 
   Future<void> clearSession() async {
-    await _secureStorage.delete(key: _tokenKey);
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
     await prefs.remove(_usernameKey);
     _sessionController.add(const StoredSession());
   }
