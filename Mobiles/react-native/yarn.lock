@@ -1547,12 +1547,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-react-native-tracing@npm:1.2.0":
-  version: 1.2.0
-  resolution: "@grafana/faro-react-native-tracing@npm:1.2.0"
+"@grafana/faro-react-native-tracing@npm:1.2.1":
+  version: 1.2.1
+  resolution: "@grafana/faro-react-native-tracing@npm:1.2.1"
   dependencies:
     "@grafana/faro-core": "npm:^2.2.3"
-    "@grafana/faro-react-native": "npm:^1.2.0"
+    "@grafana/faro-react-native": "npm:^1.2.1"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/core": "npm:^2.0.0"
     "@opentelemetry/instrumentation": "npm:^0.208.0"
@@ -1565,13 +1565,13 @@ __metadata:
     "@opentelemetry/semantic-conventions": "npm:^1.32.0"
   peerDependencies:
     react-native: ">=0.70.0"
-  checksum: 10c0/ea51b0d17d84b5dbce025935463a402777e19534f9bbcaeba79a6d028445a13a7c08c8ec5a5d46db66d13d9fc26d08f897e5b9c28013df5c7add4574a3c91e19
+  checksum: 10c0/86e5e0ac8d71b330244fe2b63f83eb0caad09e0538431ce42b45c01c1f53c3a500c522e1ec46a475dc70ea55c3684af9a6de2e048d3bf42a400ee55e95773ee7
   languageName: node
   linkType: hard
 
-"@grafana/faro-react-native@npm:1.2.0":
-  version: 1.2.0
-  resolution: "@grafana/faro-react-native@npm:1.2.0"
+"@grafana/faro-react-native@npm:1.2.1":
+  version: 1.2.1
+  resolution: "@grafana/faro-react-native@npm:1.2.1"
   dependencies:
     "@grafana/faro-core": "npm:^2.2.3"
     "@react-native-async-storage/async-storage": "npm:^1.21.0"
@@ -1586,7 +1586,7 @@ __metadata:
       optional: true
     react-native-mmkv:
       optional: true
-  checksum: 10c0/10e00d06b143c6606a111ef82647e271498c9e7d1763c27be1313e61b45a12b5a3bb02d051e9855a0175fafb73835234d8bd231ef15c46acd1055bac773c02d8
+  checksum: 10c0/07a3844f4f304e8a028afca366efedb7b3bc794bec64d411d224690a2ccd4ae8df5ed666277ffb109d0f0109436026cb6c2978de1981035a905e040fc179d725
   languageName: node
   linkType: hard
 
@@ -3303,8 +3303,8 @@ __metadata:
     "@babel/preset-env": "npm:^7.25.3"
     "@babel/runtime": "npm:^7.25.0"
     "@grafana/faro-metro-plugin": "npm:0.2.0"
-    "@grafana/faro-react-native": "npm:1.2.0"
-    "@grafana/faro-react-native-tracing": "npm:1.2.0"
+    "@grafana/faro-react-native": "npm:1.2.1"
+    "@grafana/faro-react-native-tracing": "npm:1.2.1"
     "@react-native-async-storage/async-storage": "npm:^1.21.0"
     "@react-native-community/cli": "npm:20.1.0"
     "@react-native-community/cli-platform-android": "npm:20.1.0"
