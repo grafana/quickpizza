@@ -38,6 +38,9 @@ local.properties
 # Config (contains secrets, copy from config.json.example)
 config.json
 
+# Faro Metro source map settings (stack/app ids; copy from sourcemaps.config.example.json)
+sourcemaps.config.json
+
 # node.js
 #
 node_modules/
@@ -62,6 +65,9 @@ android/app/src/main/assets/index.android.bundle
 android/app/src/main/res/drawable-*/node_modules_*.png
 android/app/src/main/res/raw/node_modules_*.ttf
 android/app/src/main/res/raw/keep.xml
+
+# CLI bundle + sourcemap output (react-native bundle → dist/android-release/…)
+dist/
 
 # Ruby / CocoaPods
 **/Pods/
