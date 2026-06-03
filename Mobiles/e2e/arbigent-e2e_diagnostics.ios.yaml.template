@@ -1,0 +1,116 @@
+# Shared Arbigent diagnostics project for QuickPizza iOS (native iOS + Flutter/RN on iOS).
+# run_e2e_tests.sh replaces __IOS_BUNDLE_ID__ with the app under test:
+#   - iOS Native default:       com.grafana.QuickPizzaIos
+#   - Flutter iOS default:      com.example.flutterMobileO11yDemo
+#   - React Native iOS default: com.quickpizza
+#
+# This flow intentionally exercises the Debug tab instead of the normal pizza
+# happy path. It emits a handled exception, triggers a native crash, and
+# relaunches the app. iOS MetricKit crash diagnostics are OS-managed and may be
+# delivered later, so the immediate verification is that the flow triggered the
+# crash and relaunched the app.
+
+scenarios:
+  - id: "start_app"
+    goal: |
+      You should see the QuickPizza home screen.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza home screen with a "Pizza, Please!" button.
+
+      __RECOVERY_BLOCK__
+
+    initializationMethods:
+      - type: "CleanupData"
+        packageName: "__IOS_BUNDLE_ID__"
+      - type: "LaunchApp"
+        packageName: "__IOS_BUNDLE_ID__"
+    maxRetry: 2
+    maxStep: 5
+
+  - id: "open_debug_tab"
+    dependency: "start_app"
+    goal: |
+      You should open the QuickPizza Debug tab.
+
+      STEPS:
+      - Tap the bottom tab labeled "Debug".
+      - If the bottom tab bar is not visible, press Back once or scroll to recover, then tap "Debug".
+
+      SUCCESS CRITERIA:
+      - You see a Debug screen with controls such as "Send Debug Log", "Send Handled Exception", "Handled exception", or crash buttons.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 8
+
+  - id: "send_handled_exception"
+    dependency: "open_debug_tab"
+    goal: |
+      You should emit one handled exception from the Debug tab.
+
+      STEPS:
+      - Tap exactly one handled-exception control.
+      - The button may be labeled "Send Handled Exception" or "Handled exception" depending on the app.
+      - Do not tap any crash, unhandled exception, or error-log button in this scenario.
+      - The UI may not visually change after this tap. That is expected.
+      - After tapping the handled exception button once, OUTPUT "Goal achieved" and STOP. Do not retry the same button just because the screen looks unchanged.
+
+      SUCCESS CRITERIA:
+      - The handled exception action was tapped once.
+      - The app is still running on the Debug screen.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 8
+
+  - id: "trigger_native_crash"
+    dependency: "send_handled_exception"
+    goal: |
+      You should trigger one intentional native crash from the Debug tab.
+
+      STEPS:
+      - Tap exactly one crash control. Acceptable labels include:
+        - "Crash (fatalError)"
+        - "Crash (force-unwrap nil)"
+        - "Crash (custom message)"
+        - "Crash (simulated NPE)"
+        - "RuntimeException / fatalError"
+        - "Null pointer / force unwrap"
+      - If a confirmation dialog appears, tap "Crash now" or "Crash".
+      - After confirming the crash, the app may terminate, disappear, or return to the iOS Springboard. That is expected.
+
+      SUCCESS CRITERIA:
+      - You tapped one crash control and confirmed the crash if prompted.
+      - The app terminated or left the foreground.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 1
+    maxStep: 12
+
+  - id: "relaunch_after_crash"
+    dependency: "trigger_native_crash"
+    initializationMethods:
+      - type: "LaunchApp"
+        packageName: "__IOS_BUNDLE_ID__"
+    goal: |
+      QuickPizza should be relaunched after the intentional crash.
+
+      WHY:
+      - Flutter and React Native crash reporters may flush persisted crash telemetry on the next launch.
+      - Native iOS MetricKit crash diagnostics can be delayed by the OS, so immediate Grafana crash visibility is not guaranteed.
+
+      STEPS:
+      - Launch QuickPizza again if it is not already visible.
+
+      SUCCESS CRITERIA:
+      - You see the QuickPizza app UI again, preferably the home screen or Debug screen.
+      - The app is running after the crash.
+
+      __RECOVERY_BLOCK__
+
+    maxRetry: 2
+    maxStep: 8

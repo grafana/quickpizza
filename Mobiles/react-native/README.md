@@ -250,7 +250,7 @@ When a PASS lands, you can confidently upload, reinstall, and run the full Front
 **Option A – Monolithic (simple):**
 
 ```bash
-docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
+docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest
 ```
 
 **Option B – Microservices with Grafana Cloud observability** (from the `mobile-o11y-demo` root):
@@ -316,16 +316,18 @@ End-to-end tests use [Arbigent](https://github.com/takahirom/arbigent) (AI-power
 ### Prerequisites
 
 - Android emulator running with the app installed
-- QuickPizza backend running (e.g. `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest`)
+- QuickPizza backend running (e.g. `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest`)
 - `OPENAI_API_KEY` environment variable set (Arbigent uses OpenAI for AI-driven test execution)
 - `adb`, `unzip`, and either `wget` or `curl` installed
 
 ### Running E2E tests locally
 
 1. **Start the QuickPizza backend** (in one terminal):
-  ```bash
-   docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest
-  ```
+
+   ```bash
+   docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-mobile-local:latest
+   ```
+
 2. **Build and run the app on an Android emulator** (in another terminal):
   ```bash
    yarn start

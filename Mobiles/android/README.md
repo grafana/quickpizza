@@ -28,7 +28,7 @@ cp app/src/main/res/raw/config.json.example \
 
 # 2. Start the QuickPizza backend
 docker run --rm -d --name quickpizza -p 3333:3333 \
-  ghcr.io/grafana/quickpizza-local:latest
+  ghcr.io/grafana/quickpizza-mobile-local:latest
 
 # 3. Build and install on a running emulator
 cd Mobiles/android

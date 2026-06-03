@@ -11,6 +11,12 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+buildscript {
+    // Lock the settings classpath (anything resolved by settings.gradle.kts).
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {

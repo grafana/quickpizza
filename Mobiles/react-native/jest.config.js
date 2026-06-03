@@ -3,5 +3,6 @@ module.exports = {
   setupFiles: ['./jest.setup.js'],
   moduleNameMapper: {
     '\\.(png|jpg|jpeg|gif|webp|ttf)$': '<rootDir>/__mocks__/fileMock.js',
+    '^\\.\\./\\.\\./\\.\\./config\\.json$': '<rootDir>/config.test.json',
   },
 };
