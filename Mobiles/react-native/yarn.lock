@@ -1484,17 +1484,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-bundlers-shared@npm:^0.10.1":
-  version: 0.10.1
-  resolution: "@grafana/faro-bundlers-shared@npm:0.10.1"
-  dependencies:
-    ansis: "npm:^4.0.0"
-    tar: "npm:^7.1.0"
-    undici: "npm:^8.1.0"
-  checksum: 10c0/865ff10c8e794e0a4128b5a4c01e64f815c7dbcb7a0dad44ff1242880360f02ae15d409181029c72647019271073b1d5a77faf6c9f78a6846ac5a04c74e49b9f
-  languageName: node
-  linkType: hard
-
 "@grafana/faro-bundlers-shared@npm:^0.11.0":
   version: 0.11.0
   resolution: "@grafana/faro-bundlers-shared@npm:0.11.0"
@@ -1506,20 +1495,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-cli@npm:^0.10.0":
-  version: 0.10.0
-  resolution: "@grafana/faro-cli@npm:0.10.0"
+"@grafana/faro-cli@portal:../../../faro-javascript-bundler-plugins/packages/faro-cli::locator=QuickPizza%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@grafana/faro-cli@portal:../../../faro-javascript-bundler-plugins/packages/faro-cli::locator=QuickPizza%40workspace%3A."
   dependencies:
-    "@grafana/faro-bundlers-shared": "npm:^0.10.1"
+    "@grafana/faro-bundlers-shared": "npm:^0.11.0"
     commander: "npm:^14.0.0"
     dotenv: "npm:^17.0.1"
     glob: "npm:^13.0.0"
     tar: "npm:^7.1.0"
   bin:
     faro-cli: dist/cjs/cli.js
-  checksum: 10c0/c6628803874226d8bb4ac3f3c46e7b4ed3fb431c41c21b40b7301a15841ad9619b3cb512ade351cf160e9d760130c50a891cd80fe84fab65f3c20ce82814fd05
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "@grafana/faro-core@npm:^2.2.3":
   version: 2.3.1
@@ -1531,9 +1519,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-metro-plugin@npm:0.2.0":
-  version: 0.2.0
-  resolution: "@grafana/faro-metro-plugin@npm:0.2.0"
+"@grafana/faro-metro-plugin@portal:../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin::locator=QuickPizza%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@grafana/faro-metro-plugin@portal:../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin::locator=QuickPizza%40workspace%3A."
   dependencies:
     "@grafana/faro-bundlers-shared": "npm:^0.11.0"
     "@grafana/faro-cli": "npm:^0.10.0"
@@ -1543,9 +1531,8 @@ __metadata:
     metro: ">=0.81.0"
   bin:
     faro-upload-source-map: bin/faro-upload-source-map.js
-  checksum: 10c0/668c66b908a14dc23115f9a265149b5f0faa83abc313c789043cf984f7e3f04b5f99ca423a74068cf5d2ae0f6569a92fa1babedcde064e9f5b7b39562b66f2f4
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "@grafana/faro-react-native-tracing@npm:1.2.1":
   version: 1.2.1
@@ -1569,9 +1556,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grafana/faro-react-native@npm:1.2.1":
+"@grafana/faro-react-native@file:../../../faro-react-native-sdk/packages/react-native::locator=QuickPizza%40workspace%3A.":
   version: 1.2.1
-  resolution: "@grafana/faro-react-native@npm:1.2.1"
+  resolution: "@grafana/faro-react-native@file:../../../faro-react-native-sdk/packages/react-native#../../../faro-react-native-sdk/packages/react-native::hash=224f6a&locator=QuickPizza%40workspace%3A."
   dependencies:
     "@grafana/faro-core": "npm:^2.2.3"
     "@react-native-async-storage/async-storage": "npm:^1.21.0"
@@ -1586,7 +1573,7 @@ __metadata:
       optional: true
     react-native-mmkv:
       optional: true
-  checksum: 10c0/07a3844f4f304e8a028afca366efedb7b3bc794bec64d411d224690a2ccd4ae8df5ed666277ffb109d0f0109436026cb6c2978de1981035a905e040fc179d725
+  checksum: 10c0/28f773afb9a30e08f138894c2ba018a3bb63a49fc1d091ecee663a188497121d5c01b78d9fcc41a18ca357a224091da962050292af3d23f8d4566cf979748f12
   languageName: node
   linkType: hard
 
@@ -3302,8 +3289,9 @@ __metadata:
     "@babel/core": "npm:^7.25.2"
     "@babel/preset-env": "npm:^7.25.3"
     "@babel/runtime": "npm:^7.25.0"
-    "@grafana/faro-metro-plugin": "npm:0.2.0"
-    "@grafana/faro-react-native": "npm:1.2.1"
+    "@grafana/faro-cli": "portal:../../../faro-javascript-bundler-plugins/packages/faro-cli"
+    "@grafana/faro-metro-plugin": "portal:../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin"
+    "@grafana/faro-react-native": "file:../../../faro-react-native-sdk/packages/react-native"
     "@grafana/faro-react-native-tracing": "npm:1.2.1"
     "@react-native-async-storage/async-storage": "npm:^1.21.0"
     "@react-native-community/cli": "npm:20.1.0"

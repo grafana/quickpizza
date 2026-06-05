@@ -1,8 +1,7 @@
 {
   "appName": "QuickPizza_ReactNative",
-  "endpoint": "https://your-stack.grafana.net/api/v1",
-  "appId": "your-frontend-observability-app-id",
-  "stackId": "your-grafana-cloud-stack-id",
-  "apiKey": "",
-  "bundleId": ""
+  "endpoint": "http://localhost:8000/faro/api/v1",
+  "appId": "1",
+  "stackId": "1",
+  "apiKey": "auth_token_value"
 }

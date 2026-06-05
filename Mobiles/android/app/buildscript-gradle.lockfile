@@ -1,4 +1,14 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-empty=classpath
+com.grafana.faro:com.grafana.faro.gradle.plugin:0.1.0=classpath
+com.grafana.faro:faro-android-gradle-plugin:0.1.0=classpath
+com.squareup.okhttp3:okhttp:4.12.0=classpath
+com.squareup.okio:okio-jvm:3.6.0=classpath
+com.squareup.okio:okio:3.6.0=classpath
+org.jetbrains.kotlin:kotlin-stdlib-common:2.2.0=classpath
+org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10=classpath
+org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10=classpath
+org.jetbrains.kotlin:kotlin-stdlib:2.2.0=classpath
+org.jetbrains:annotations:13.0=classpath
+empty=

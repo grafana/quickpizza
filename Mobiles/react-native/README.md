@@ -87,13 +87,13 @@ Edit **`sourcemaps.config.json`** (gitignored, like `config.json`):
 | `appName` | Must match `app.name` in `initializeFaro` (`src/bootstrap.ts`). |
 | `endpoint`, `appId`, `stackId` | **Frontend Observability → your app → Settings → Source maps** (not the Faro collector URL). |
 | `apiKey` | Bearer token for the source map API (optional if you use env only). |
-| `bundleId` | Optional default id; release builds usually set `FARO_BUNDLE_ID` in the shell so it matches the uploaded map. |
+| `bundleId` | Optional default id for **iOS** / dev; **Android release** uses Gradle (`applicationId@versionCode@versionName`) via `@grafana/faro-metro-plugin` — do not set `FARO_BUNDLE_ID` in CI. |
 
-For **Android** release, export these in the same shell where you run **`yarn android --mode=release`**. 
+For **Android** release, configure **`com.grafana.faro`** in `android/app/build.gradle` and run **`yarn android --mode=release`** (or `./gradlew :app:assembleRelease` from `android/`). Metro reads the same bundle id from Gradle; R8 symbols upload with the plugin.
 
-For **iOS** release, export them in the same shell where you run **`yarn ios -- --mode Release`** (or inject them into CI **`xcodebuild`**) so the autolinked upload step can run **`faro-upload-source-map`**.
+For **iOS** release, export source map API vars in the same shell where you run **`yarn ios -- --mode Release`** (or inject them into CI **`xcodebuild`**) so the autolinked upload step can run **`faro-upload-source-map`**. Set **`FARO_BUNDLE_ID`** (or `bundleId` in config) to a stable id per shipped IPA build.
 
-`FARO_BUNDLE_ID`, `FARO_SOURCEMAP_ENDPOINT`, `FARO_SOURCEMAP_APP_ID`, `FARO_SOURCEMAP_STACK_ID`, `FARO_SOURCEMAP_API_KEY`.
+`FARO_SOURCEMAP_ENDPOINT`, `FARO_SOURCEMAP_APP_ID`, `FARO_SOURCEMAP_STACK_ID`, `FARO_SOURCEMAP_API_KEY` (and on iOS, `FARO_BUNDLE_ID` when not using an explicit `bundleId` in `metro.config.js`).
 
 They override the JSON values when set. Use **one** bundle id per build you ship; changing the id means uploading a new map.
 
@@ -101,21 +101,20 @@ They override the JSON values when set. Use **one** bundle id per build you ship
 
 Run everything from **`Mobiles/react-native/`**.
 
-1. **Produce a release install and upload the map** — Metro, Hermes, compose, then the upload step injected by autolinking:
+1. **Produce a release install** — Gradle runs Metro with the Faro plugin; bundle id is `applicationId@versionCode@versionName` (see `android/app/build/faro/bundle-id-release.txt` after build):
 
    ```bash
-   export FARO_BUNDLE_ID="$(git rev-parse --short HEAD)-$(date +%s)"
    export FARO_SOURCEMAP_ENDPOINT="https://<your-stack>.grafana.net/api/v1"
    export FARO_SOURCEMAP_APP_ID="<app-id>"
    export FARO_SOURCEMAP_STACK_ID="<stack-id>"
    export FARO_SOURCEMAP_API_KEY="<token>"
    export ENABLE_FARO_PAYLOAD_DIAGNOSTICS=true
 
-   yarn install   # after changing faro-metro-plugin / faro-cli deps
+   yarn install   # after changing faro-metro-plugin / faro-android-gradle-plugin deps
    yarn android --mode=release
    ```
 
-   **What you should see:** the build finishes without `[Faro] Skipping composed source map upload` unless a required env var is missing. The composed map path is `android/app/build/generated/sourcemaps/react/release/index.android.bundle.map`.
+   **What you should see:** release build completes; R8/native symbols upload via the Faro Gradle plugin when configured. JS source maps use the same bundle id as `meta.app.bundleId`. Composed map path: `android/app/build/generated/sourcemaps/react/release/index.android.bundle.map`.
 
 2. **Check the device payload (optional but fast)** — confirms the bundle id and frame filenames are usable for symbolication:
 
@@ -123,7 +122,7 @@ Run everything from **`Mobiles/react-native/`**.
    adb logcat -d | rg '\[Faro diagnostics\]'
    ```
 
-   **What to look for:** `[Faro diagnostics][init]` includes your `meta.app.bundleId` matching `FARO_BUNDLE_ID`; `[Faro diagnostics][exception]` lists frames with `index.android.bundle`, not only raw `address at …` lines.
+   **What to look for:** `[Faro diagnostics][init]` shows `meta.app.bundleId` like `com.example@42@1.0.0`; `[Faro diagnostics][exception]` lists frames with `index.android.bundle`, not only raw `address at …` lines.
 
 3. **Trigger an error in the app** — open **Debug** → under **Exceptions** tap **Handled exception** (or provoke another JS error you care about).
 
@@ -132,16 +131,17 @@ Run everything from **`Mobiles/react-native/`**.
 **Useful toggles**
 
 - Skip upload while iterating: `FARO_SKIP_SOURCEMAP_UPLOAD=1 yarn android --mode=release`.
-- Re-upload the same composed map manually (same env vars):
+- Re-upload the same composed map manually (read bundle id from Gradle output):
 
   ```bash
+  BUNDLE_ID="$(cat android/app/build/faro/bundle-id-release.txt)"
   npx faro-cli metro upload \
     --map android/app/build/generated/sourcemaps/react/release/index.android.bundle.map \
     --endpoint "$FARO_SOURCEMAP_ENDPOINT" \
     --app-id "$FARO_SOURCEMAP_APP_ID" \
     --stack-id "$FARO_SOURCEMAP_STACK_ID" \
     --api-key "$FARO_SOURCEMAP_API_KEY" \
-    --bundle-id "$FARO_BUNDLE_ID"
+    --bundle-id "$BUNDLE_ID"
   ```
 
 #### iOS — release build, upload, verify

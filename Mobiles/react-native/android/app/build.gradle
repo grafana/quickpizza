@@ -1,3 +1,8 @@
+plugins {
+    // Auto-uploads R8 mapping.txt + native-debug-symbols.zip after assembleRelease/bundleRelease.
+    id "com.grafana.faro" version "0.1.0"
+}
+
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -57,7 +62,7 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -102,9 +107,41 @@ android {
             // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+}
+
+def loadSourcemapsConfig = {
+    def configFile = file("${rootProject.projectDir.parentFile}/sourcemaps.config.json")
+    if (!configFile.exists()) {
+        return [:]
+    }
+    try {
+        return new groovy.json.JsonSlurper().parse(configFile)
+    } catch (Exception ignored) {
+        return [:]
+    }
+}()
+
+def faroEnvOrConfig = { String envName, String configKey ->
+    def fromEnv = System.getenv(envName)
+    if (fromEnv != null && !fromEnv.trim().isEmpty()) {
+        return fromEnv.trim()
+    }
+    def fromConfig = loadSourcemapsConfig[configKey]
+    return fromConfig != null ? fromConfig.toString().trim() : null
+}
+
+// Grafana Faro symbol upload. Env vars override sourcemaps.config.json (gitignored).
+faro {
+    endpoint = faroEnvOrConfig("FARO_SOURCEMAP_ENDPOINT", "endpoint")
+    appId = faroEnvOrConfig("FARO_SOURCEMAP_APP_ID", "appId")
+    stackId = faroEnvOrConfig("FARO_SOURCEMAP_STACK_ID", "stackId")
+    apiKey = faroEnvOrConfig("FARO_SOURCEMAP_API_KEY", "apiKey")
 }
 
 dependencies {

@@ -1,6 +1,6 @@
 import { NativeModules } from 'react-native';
 
-type CrashVariant = 'runtimeException' | 'nullPointer';
+type CrashVariant = 'runtimeException' | 'nullPointer' | 'anr';
 
 type QuickPizzaCrashModule = {
   crash: (variant: CrashVariant) => void;

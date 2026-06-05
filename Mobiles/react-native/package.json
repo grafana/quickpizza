@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@grafana/faro-react-native": "1.2.1",
+    "@grafana/faro-react-native": "file:../../../faro-react-native-sdk/packages/react-native",
     "@grafana/faro-react-native-tracing": "1.2.1",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-vector-icons/material-icons": "^13.1.1",
@@ -28,7 +28,8 @@
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
-    "@grafana/faro-metro-plugin": "0.2.0",
+    "@grafana/faro-cli": "portal:../../../faro-javascript-bundler-plugins/packages/faro-cli",
+    "@grafana/faro-metro-plugin": "portal:../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin",
     "@react-native-community/cli": "20.1.0",
     "@react-native-community/cli-platform-android": "20.1.0",
     "@react-native-community/cli-platform-ios": "20.1.0",
@@ -53,7 +54,9 @@
     "node": ">=24.5.0"
   },
   "resolutions": {
-    "@grafana/faro-react-native": "1.2.1",
+    "@grafana/faro-cli": "portal:../../../faro-javascript-bundler-plugins/packages/faro-cli",
+    "@grafana/faro-metro-plugin": "portal:../../../faro-javascript-bundler-plugins/packages/faro-metro-plugin",
+    "@grafana/faro-react-native": "file:../../../faro-react-native-sdk/packages/react-native",
     "@grafana/faro-react-native-tracing": "1.2.1"
   }
 }

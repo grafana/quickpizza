@@ -149,6 +149,21 @@ export function DebugScreen({ onNavigateToConfig }: DebugScreenProps) {
     );
   };
 
+  const confirmNativeAnr = () => {
+    Alert.alert(
+      'Trigger native ANR?',
+      'The UI will freeze for ~10s while the main thread is blocked. Faro reports it as an ANR.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Freeze',
+          style: 'destructive',
+          onPress: () => triggerNativeCrash('anr'),
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -290,6 +305,11 @@ export function DebugScreen({ onNavigateToConfig }: DebugScreenProps) {
               title="Null pointer / force unwrap"
               tone="danger"
               onPress={() => confirmNativeCrash('nullPointer')}
+            />
+            <ActionButton
+              title="ANR (block main thread ~10s)"
+              tone="danger"
+              onPress={confirmNativeAnr}
             />
           </View>
         </View>
