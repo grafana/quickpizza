@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.14.2@sha256:eadfe35ea52b26cbec4d4d780fbcc31edb31108c1c9e537ca59557a5a102c712
+    image: grafana/alloy:v1.16.2@sha256:32913cbfac652d15fa84d256a74e5ee3f71575961bb19d34796ce3838bfba693
     container_name: alloy
     labels:
       - "service.type=instrumentation"
