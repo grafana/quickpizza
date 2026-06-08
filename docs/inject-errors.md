@@ -52,14 +52,3 @@ curl -X POST http://localhost:3333/api/pizza \
      -H "x-error-record-recommendation-percentage: 20" \
      -d '{}'
 ```
-
-## Inject Errors Running k6 Disruptor Tests (Kubernetes) 
-
-When deploying QuickPizza on Kubernetes, you can run k6 tests using [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/) to inject HTTP errors.
-
-To run a basic xk6-disruptor test, follow the installation instructions and run the tests in the `k6/disruptor` folder:
-
-```bash
-./k6 run k6/disruptor/02.error.js
-```
-

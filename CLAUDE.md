@@ -106,5 +106,5 @@ The application supports error injection via HTTP headers for testing:
 The application is specifically designed for k6 load testing:
 - Extensive k6 test suite in `k6/` directory
 - Support for k6 browser testing
-- k6 extensions and disruptor examples
+- k6 extensions and examples
 - Prometheus output for k6 metrics correlation
