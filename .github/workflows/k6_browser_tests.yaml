@@ -35,7 +35,7 @@ jobs:
           sudo apt-get install -y google-chrome-stable
 
       - name: Setup k6
-        uses: grafana/setup-k6-action@ffe7d7290dfa715e48c2ccc924d068444c94bde2 # v1
+        uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
         with:
           browser: true
       - name: Run k6 test
