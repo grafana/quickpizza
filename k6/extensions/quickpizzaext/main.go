@@ -1,16 +1,16 @@
-package internal
+package quickpizzaext
 
 import (
 	"fmt"
 
-	"go.k6.io/k6/js/modules"
+	"go.k6.io/k6/v2/js/modules"
 
 	"github.com/grafana/quickpizza/pkg/model"
 )
 
 // init is called by the Go runtime at application startup.
 func init() {
-	modules.Register("k6/x/internal", new(Internal))
+	modules.Register("k6/x/quickpizzaext", new(Internal))
 }
 
 // Internal is the type for our custom API.
