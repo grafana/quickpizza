@@ -1,5 +1,5 @@
-# node:24-bullseye
-FROM node:24-bullseye@sha256:87ba72ac15b59ca7dc49c63c7ad6253b7bc15ab28fa22351f7e402f64e0c8ea9 AS fe-builder
+# node:24-alpine
+FROM node:24-alpine@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14 AS fe-builder
 
 WORKDIR /app/pkg/web
 COPY pkg/web ./
@@ -13,7 +13,8 @@ ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 RUN npm install && \
     npm run build
 
-FROM golang:1.24-bullseye@sha256:2cdc80dc25edcb96ada1654f73092f2928045d037581fa4aa7c40d18af7dd85a AS builder
+# golang:1.25-alpine
+FROM golang:1.25-alpine@sha256:c05ba4b73604069d376c4f41346b05374335b5ca0c46fb6dfede5a59f5196931 AS builder
 
 WORKDIR /app
 COPY . ./
@@ -22,7 +23,8 @@ COPY --from=fe-builder /app/pkg/web/build /app/pkg/web/build
 # with uses a different distribution of libc.
 RUN CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
 
-FROM gcr.io/distroless/static-debian11@sha256:1dbe426d60caed5d19597532a2d74c8056cd7b1674042b88f7328690b5ead8ed
+# gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian12@sha256:9c346e4be81b5ca7ff31a0d89eaeade58b0f95cfd3baed1f36083ddb47ca3160
 
 COPY --from=builder /bin/quickpizza /bin
 EXPOSE 3333 3334 3335
