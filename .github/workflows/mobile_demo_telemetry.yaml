@@ -37,7 +37,7 @@ env:
 
 jobs:
   run-mobile-demo:
-    name: Run Mobile Demo
+    name: Run Android Mobile Demo
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment: mobile-demo-telemetry
@@ -78,6 +78,10 @@ jobs:
 
           echo "Disk space after cleanup:"
           df -h
+
+      - name: Build QuickPizza backend image
+        run: |
+          docker build -t quickpizza-mobile-local:ci .
 
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
@@ -213,8 +217,7 @@ jobs:
           DEPLOYMENT_ENVIRONMENT: ci
           # Use dev Alloy config for grafana-dev.net stack
           ALLOY_FILE_NAME: cloud-dev.alloy
-          # Mobile fork image (k6 workflows keep upstream quickpizza-local).
-          QUICKPIZZA_IMAGE: ghcr.io/grafana/quickpizza-mobile-local:latest
+          QUICKPIZZA_IMAGE: quickpizza-mobile-local:ci
         run: |
           echo "Starting QuickPizza backend (Grafana Cloud microservices + dev Alloy override)..."
           docker compose -f compose.grafana-cloud.microservices.yaml -f compose.grafana-cloud.dev-override.yaml up -d
@@ -412,7 +415,7 @@ jobs:
             exit 1
           fi
           echo "Built app: $APP_PATH"
-          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "app_path=$(pwd)/$APP_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Upload iOS build log
         if: failure()
