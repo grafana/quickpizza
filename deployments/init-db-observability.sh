@@ -56,10 +56,13 @@ setup_database() {
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" <<-EOSQL
         CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
+        -- Required for schema_details and explain_plans collectors (per docs)
         GRANT USAGE ON SCHEMA public TO "$DB_O11Y_USER";
         GRANT SELECT ON ALL TABLES IN SCHEMA public TO "$DB_O11Y_USER";
 
-        -- Cover tables created in the future by any role
+        -- Cover tables created after init by migrations.
+        -- Without this, explain_plans fails with "permission denied" on tables
+        -- created by the app user after the init script runs.
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "$DB_O11Y_USER";
         ALTER DEFAULT PRIVILEGES FOR ROLE "$POSTGRES_USER" IN SCHEMA public GRANT SELECT ON TABLES TO "$DB_O11Y_USER";
 EOSQL
