@@ -368,8 +368,36 @@ prometheus.exporter.postgres "postgres_quickpizza" {
   data_source_names  = [env("DB_O11Y_CONNECTION")]
   enabled_collectors = ["stat_statements"]
 
+  stat_statements {
+    // Exclude monitoring user queries from stats — only app queries matter
+    exclude_users = ["db-o11y"]
+  }
+
   autodiscovery {
-    enabled = true
+    enabled           = true
+    // Exclude the postgres system database — the app doesn't use it and it generates noise
+    // from internal queries (e.g. init scripts, pg_reload_conf)
+    database_denylist = ["postgres"]
+  }
+}
+
+loki.source.kubernetes "database_observability_postgres_quickpizza" {
+  targets = discovery.relabel.postgres_pod.output
+  forward_to = [
+    // Add processing of logs in DB o11y
+    database_observability.postgres.postgres_quickpizza.logs_receiver,
+    // Also send raw logs to Loki so errors are queryable (database_observability does not forward raw lines)
+    loki.relabel.database_observability_postgres_quickpizza.receiver,
+  ]
+}
+
+discovery.relabel "postgres_pod" {
+  targets = discovery.kubernetes.application_pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+    regex         = "database"
+    action        = "keep"
   }
 }
 
@@ -378,6 +406,9 @@ database_observability.postgres "postgres_quickpizza" {
   forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
   targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
   enable_collectors = ["query_details", "query_samples", "schema_details", "explain_plans"]
+  // Exclude monitoring user queries from stats — only app queries matter
+  exclude_users     = ["db-o11y"]
+  exclude_databases = ["postgres"]
 }
 
 loki.relabel "database_observability_postgres_quickpizza" {

@@ -182,6 +182,8 @@ services:
       - "track_activity_query_size=4096"
       - "-c"
       - "pg_stat_statements.track=all"
+      - "-c"
+      - "compute_query_id=on"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

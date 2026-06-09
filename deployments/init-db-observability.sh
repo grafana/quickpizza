@@ -53,15 +53,17 @@ setup_database() {
     local db=$1
     echo "Setting up database: $db"
     
-    # Enable pg_stat_statements extension
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" <<-EOSQL
-        -- Enable pg_stat_statements extension
         CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-        
-        -- Verify extension is installed
-        SELECT * FROM pg_extension WHERE extname = 'pg_stat_statements';
+
+        GRANT USAGE ON SCHEMA public TO "$DB_O11Y_USER";
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO "$DB_O11Y_USER";
+
+        -- Cover tables created in the future by any role
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "$DB_O11Y_USER";
+        ALTER DEFAULT PRIVILEGES FOR ROLE "$POSTGRES_USER" IN SCHEMA public GRANT SELECT ON TABLES TO "$DB_O11Y_USER";
 EOSQL
-    
+
     echo "✓ pg_stat_statements extension enabled for database: $db"
 }
 
@@ -85,11 +87,6 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
     GRANT pg_monitor TO "$DB_O11Y_USER";
     GRANT pg_read_all_stats TO "$DB_O11Y_USER";
 
-    -- Grant object privileges for detailed data
-    GRANT pg_read_all_data TO "$DB_O11Y_USER";
-
-    -- Disable pg_stat_statements tracking for this user
-    ALTER ROLE "$DB_O11Y_USER" SET pg_stat_statements.track = 'none';
 EOSQL
 
 echo "✓ User $DB_O11Y_USER created with base privileges"

@@ -67,7 +67,8 @@ resource "kubernetes_stateful_set_v1" "postgres_statefulset" {
           args = [
             "-c", "shared_preload_libraries=pg_stat_statements",
             "-c", "track_activity_query_size=4096",
-            "-c", "pg_stat_statements.track=all"
+            "-c", "pg_stat_statements.track=all",
+            "-c", "compute_query_id=on"
           ]
           
           resources {
