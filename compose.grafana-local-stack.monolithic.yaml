@@ -80,7 +80,7 @@ services:
       retries: 5
 
   loki:
-    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
+    image: grafana/loki:3.7.2@sha256:191d4fdfb7264f16989f0a57f320872620a5a7c2ceeec6229212c4190ec49b86
     container_name: loki
     labels:
       - "service.type=instrumentation"
