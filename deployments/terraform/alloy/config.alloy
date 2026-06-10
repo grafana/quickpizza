@@ -101,9 +101,19 @@ prometheus.scrape "application_pods" {
   targets = concat(discovery.relabel.application_pods.output, discovery.relabel.database_observability_postgres_quickpizza.output)
 }
 
+discovery.relabel "application_pods_without_db" {
+  // Drop database pods — logs are collected separately by the DB o11y pipeline to avoid duplicate ingestion
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+    regex         = "database"
+    action        = "drop"
+  }
+  targets = discovery.relabel.application_pods.output
+}
+
 // Logs: application pods
 loki.source.kubernetes "application_pods" {
-  targets = discovery.relabel.application_pods.output
+  targets    = discovery.relabel.application_pods_without_db.output
   forward_to = [grafana_cloud.stack.receivers.logs]
 }
 
@@ -382,7 +392,8 @@ prometheus.exporter.postgres "postgres_quickpizza" {
 }
 
 loki.source.kubernetes "database_observability_postgres_quickpizza" {
-  targets = discovery.relabel.postgres_pod.output
+  targets    = discovery.relabel.postgres_pod.output
+  // Add processing of logs in DB o11y
   forward_to = [
     // Add processing of logs in DB o11y
     database_observability.postgres.postgres_quickpizza.logs_receiver,
