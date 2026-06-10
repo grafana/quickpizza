@@ -56,6 +56,9 @@ setup_database() {
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" <<-EOSQL
         CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
+        -- Prevent tracking of queries executed by the monitoring user itself:
+        ALTER ROLE "$DB_O11Y_USER" SET pg_stat_statements.track = 'none';
+
         -- Required for schema_details and explain_plans collectors (per docs)
         GRANT USAGE ON SCHEMA public TO "$DB_O11Y_USER";
         GRANT SELECT ON ALL TABLES IN SCHEMA public TO "$DB_O11Y_USER";
