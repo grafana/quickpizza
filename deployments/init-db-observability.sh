@@ -4,6 +4,7 @@ set -e
 # Script to initialize PostgreSQL for Grafana Cloud Database Observability
 # This script enables the pg_stat_statements extension and creates the db-o11y user
 # with appropriate permissions for database monitoring.
+# log_line_prefix is configured via postgres command args (see compose/terraform).
 # See https://grafana.com/docs/grafana-cloud/monitor-applications/database-observability/get-started/postgres/
 
 echo "Initializing Database Observability setup..."
@@ -26,15 +27,23 @@ setup_database() {
     local db=$1
     echo "Setting up database: $db"
     
-    # Enable pg_stat_statements extension
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" <<-EOSQL
-        -- Enable pg_stat_statements extension
         CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-        
-        -- Verify extension is installed
-        SELECT * FROM pg_extension WHERE extname = 'pg_stat_statements';
+
+        -- Prevent tracking of queries executed by the monitoring user itself:
+        ALTER ROLE "$DB_O11Y_USER" SET pg_stat_statements.track = 'none';
+
+        -- Required for schema_details and explain_plans collectors (per docs)
+        GRANT USAGE ON SCHEMA public TO "$DB_O11Y_USER";
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO "$DB_O11Y_USER";
+
+        -- Cover tables created after init by migrations.
+        -- Without this, explain_plans fails with "permission denied" on tables
+        -- created by the app user after the init script runs.
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "$DB_O11Y_USER";
+        ALTER DEFAULT PRIVILEGES FOR ROLE "$POSTGRES_USER" IN SCHEMA public GRANT SELECT ON TABLES TO "$DB_O11Y_USER";
 EOSQL
-    
+
     echo "✓ pg_stat_statements extension enabled for database: $db"
 }
 
@@ -58,11 +67,6 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
     GRANT pg_monitor TO "$DB_O11Y_USER";
     GRANT pg_read_all_stats TO "$DB_O11Y_USER";
 
-    -- Grant object privileges for detailed data
-    GRANT pg_read_all_data TO "$DB_O11Y_USER";
-
-    -- Disable pg_stat_statements tracking for this user
-    ALTER ROLE "$DB_O11Y_USER" SET pg_stat_statements.track = 'none';
 EOSQL
 
 echo "✓ User $DB_O11Y_USER created with base privileges"

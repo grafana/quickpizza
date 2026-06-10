@@ -18,10 +18,10 @@ discovery.docker "all_containers" {
 // set expected labels
 discovery.relabel "app_containers" {
 
-  // Drop containers with service.type=instrumentation
+  // Drop containers with service.type=instrumentation or service.type=database
   rule {
     source_labels = ["__meta_docker_container_label_service_type"]
-    regex = "instrumentation"
+    regex = "instrumentation|database"
     action = "drop"
   }
   // Application Observability expects `job` to be `$service.namespace/$service.name`
@@ -285,16 +285,48 @@ prometheus.exporter.postgres "postgres_quickpizza" {
   data_source_names  = [coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
   enabled_collectors = ["stat_statements"]
 
-  autodiscovery {
-    enabled = true
+  stat_statements {
+    // Prevent monitoring user's own queries from appearing as application queries in pg_stat_statements
+    exclude_users = ["db-o11y"]
   }
+
+  autodiscovery {
+    enabled           = true
+    // Exclude the postgres system database — the app doesn't use it and it generates noise
+    // from internal queries (e.g. init scripts, pg_reload_conf)
+    database_denylist = ["postgres"]
+  }
+}
+
+discovery.relabel "postgres_quickpizza" {
+  targets = discovery.docker.all_containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_service_type"]
+    regex         = "database"
+    action        = "keep"
+  }
+}
+
+loki.source.docker "database_observability_postgres_quickpizza" {
+  host    = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.postgres_quickpizza.output
+  forward_to = [
+    // Add processing of logs in DB o11y
+    database_observability.postgres.postgres_quickpizza.logs_receiver,
+    // Also send raw logs to Loki so errors are queryable (database_observability does not forward raw lines)
+    loki.relabel.database_observability_postgres_quickpizza.receiver,
+  ]
 }
 
 database_observability.postgres "postgres_quickpizza" {
   data_source_name  = coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")
   forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
   targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
-  enable_collectors = ["query_details", "query_samples", "schema_details", "explain_plans"]
+  enable_collectors    = ["query_details", "query_samples", "schema_details", "explain_plans"]
+  // Exclude monitoring user queries from stats — only app queries matter
+  exclude_users        = ["db-o11y"]
+  exclude_databases    = ["postgres"]
 }
 
 loki.relabel "database_observability_postgres_quickpizza" {
