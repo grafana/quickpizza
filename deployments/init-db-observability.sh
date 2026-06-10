@@ -2,9 +2,9 @@
 set -e
 
 # Script to initialize PostgreSQL for Grafana Cloud Database Observability
-# This script enables the pg_stat_statements extension, creates the db-o11y user
-# with appropriate permissions for database monitoring, and configures
-# log_line_prefix for log processing.
+# This script enables the pg_stat_statements extension and creates the db-o11y user
+# with appropriate permissions for database monitoring.
+# log_line_prefix is configured via postgres command args (see compose/terraform).
 # See https://grafana.com/docs/grafana-cloud/monitor-applications/database-observability/get-started/postgres/
 
 echo "Initializing Database Observability setup..."
@@ -19,34 +19,8 @@ DB_O11Y_PASSWORD="${DB_O11Y_PASSWORD:-db-o11y-password}"
 # Array of DB_O11Y_DATABASES to configure (default to POSTGRES_DB if not specified)
 DB_O11Y_DATABASES="${DB_O11Y_DATABASES:-quickpizza_db}"
 
-REQUIRED_LOG_LINE_PREFIX='%m:%r:%u@%d:[%p]:%l:%e:%s:%v:%x:%c:%q%a:'
-
 echo "Configuring DB_O11Y_DATABASES: $DB_O11Y_DATABASES"
 echo "Monitoring user: $DB_O11Y_USER"
-
-# Configure log_line_prefix for log processing (requires superuser, persists across restarts)
-configure_log_line_prefix() {
-    echo "Checking log_line_prefix configuration..."
-
-    local current
-    current=$(psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" -Atc \
-        "SHOW log_line_prefix;")
-
-    if [ "$current" = "$REQUIRED_LOG_LINE_PREFIX" ]; then
-        echo "✓ log_line_prefix already set correctly, skipping"
-        return
-    fi
-
-    echo "  Current : $current"
-    echo "  Required: $REQUIRED_LOG_LINE_PREFIX"
-
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
-        ALTER SYSTEM SET log_line_prefix = '$REQUIRED_LOG_LINE_PREFIX';
-        SELECT pg_reload_conf();
-EOSQL
-
-    echo "✓ log_line_prefix updated and configuration reloaded"
-}
 
 # Enable pg_stat_statements for each database
 setup_database() {
@@ -102,8 +76,6 @@ for db in $DB_O11Y_DATABASES; do
     setup_database "$db"
 done
 
-configure_log_line_prefix
-
 echo ""
 echo "✓ Database Observability setup completed successfully!"
 echo ""
@@ -111,7 +83,6 @@ echo "Configuration summary:"
 echo "  - User: $DB_O11Y_USER"
 echo "  - DB_O11Y_DATABASES configured: $DB_O11Y_DATABASES"
 echo "  - Extensions: pg_stat_statements"
-echo "  - Log line prefix: configured"
 echo ""
 echo "Connection string for $DB_O11Y_USER user:"
 for db in $DB_O11Y_DATABASES; do

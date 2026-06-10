@@ -68,7 +68,8 @@ resource "kubernetes_stateful_set_v1" "postgres_statefulset" {
             "-c", "shared_preload_libraries=pg_stat_statements",
             "-c", "track_activity_query_size=4096",
             "-c", "pg_stat_statements.track=all",
-            "-c", "compute_query_id=on"
+            "-c", "compute_query_id=on",
+            "-c", "log_line_prefix=%m:%r:%u@%d:[%p]:%l:%e:%s:%v:%x:%c:%q%a:"
           ]
           
           resources {

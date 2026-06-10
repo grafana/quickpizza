@@ -184,6 +184,8 @@ services:
       - "pg_stat_statements.track=all"
       - "-c"
       - "compute_query_id=on"
+      - "-c"
+      - "log_line_prefix=%m:%r:%u@%d:[%p]:%l:%e:%s:%v:%x:%c:%q%a:"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
