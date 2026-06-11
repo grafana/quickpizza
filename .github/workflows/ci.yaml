@@ -77,5 +77,18 @@ jobs:
       - name: Run k6 browser tests
         run: ./k6/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
 
+      - name: Install xk6
+        run: go install go.k6.io/xk6/cmd/xk6@latest
+
+      - name: Build custom k6 binary with quickpizzaext
+        run: |
+          xk6 build \
+            --output k6/extensions/k6 \
+            --with github.com/grafana/quickpizza/extensions/quickpizzaext=./k6/extensions/quickpizzaext \
+            --replace github.com/grafana/quickpizza=.
+
+      - name: Run k6 extension tests
+        run: ./k6/extensions/k6 run k6/extensions/01.quickpizzaext.js
+
       - name: Stop Server
         run: pkill -9 quickpizza

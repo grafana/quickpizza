@@ -3,9 +3,11 @@ module github.com/grafana/quickpizza/extensions/quickpizzaext
 go 1.25.0
 
 require (
-	github.com/grafana/quickpizza v0.15.23
+	github.com/grafana/quickpizza v0.0.0
 	go.k6.io/k6/v2 v2.0.0
 )
+
+replace github.com/grafana/quickpizza => ../../..
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
@@ -30,7 +32,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/afero v1.1.2 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
-	github.com/uptrace/bun v1.2.16 // indirect
+	github.com/uptrace/bun v1.2.18 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -42,7 +44,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
