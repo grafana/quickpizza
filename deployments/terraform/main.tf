@@ -5,8 +5,8 @@ resource "kubernetes_namespace_v1" "quickpizza" {
 
   lifecycle {
     precondition {
-      condition     = strcontains(var.quickpizza_image, ":${var.quickpizza_image_version}@sha256:")
-      error_message = "quickpizza_image_version (${var.quickpizza_image_version}) must match the tag in quickpizza_image (${var.quickpizza_image})."
+      condition     = !var.quickpizza_enforce_image_digest || strcontains(var.quickpizza_image, ":${var.quickpizza_image_version}@sha256:")
+      error_message = "quickpizza_image_version (${var.quickpizza_image_version}) must match the tag in quickpizza_image (${var.quickpizza_image}). Set quickpizza_enforce_image_digest=false to skip for local development."
     }
   }
 }
