@@ -18,7 +18,8 @@ Tests pizza recommendations against custom restrictions using a local Go extensi
 
 ```bash
 xk6 build --output k6/extensions/k6 \
-  --with github.com/grafana/quickpizza/extensions/quickpizzaext=./k6/extensions/quickpizzaext
+  --with github.com/grafana/quickpizza/extensions/quickpizzaext=./k6/extensions/quickpizzaext \
+  --replace github.com/grafana/quickpizza=.
 ```
 
 **Run the test:**
