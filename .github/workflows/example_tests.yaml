@@ -1,0 +1,53 @@
+# DEMO: This workflow demonstrates how to use the grafana/setup-k6-action and
+# grafana/run-k6-action GitHub Actions. It is not part of the real CI pipeline.
+# See ci.yaml for the authoritative test workflow.
+name: Example Tests Workflow
+on: [push]
+
+jobs:
+  basic_k6_test:
+    name: k6 test run - basic example
+    runs-on: ubuntu-latest
+
+    services:
+      quickpizza:
+        image: ghcr.io/grafana/quickpizza-local:0.15.23@sha256:023e5299dece56f7d5a0bbd8fcab4dd69cb13478bb61c9c406f0cfaad1fa4f48 # zizmor: ignore[unpinned-images]
+        ports:
+          - 3333:3333
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Setup k6
+        uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
+      - name: Run k6 test
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1.4.0
+        with:
+          path: |
+            ./k6/foundations/01.basic.js
+          flags: --duration 5s
+
+  k6_all_tests:
+    name: k6 test run - foundations and internal tests
+    runs-on: ubuntu-latest
+
+    services:
+      quickpizza:
+        image: ghcr.io/grafana/quickpizza-local:0.15.23@sha256:023e5299dece56f7d5a0bbd8fcab4dd69cb13478bb61c9c406f0cfaad1fa4f48 # zizmor: ignore[unpinned-images]
+        ports:
+          - 3333:3333
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Setup k6
+        uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
+        with:
+          browser: true
+      - name: Run k6 test
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1.4.0
+        with:
+          path: |
+            ./k6/foundations/*.js
+            ./k6/foundations/*.ts
+            ./k6/internal/*.js

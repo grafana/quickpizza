@@ -5,7 +5,7 @@
 # and linters here.
 # Do not modify this file unless you really need to. You very likely don't need to.
 
-name: Build and Test (without Docker)
+name: CI
 on: [push]
 
 permissions:
