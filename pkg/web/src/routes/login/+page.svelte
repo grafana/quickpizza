@@ -57,9 +57,9 @@ async function handleSubmit() {
 		},
 	);
 	if (!res.ok) {
-		loginError = 'Login failed: ' + res.statusText;
+		loginError = `Login failed: ${res.statusText}`;
 		window.faro?.api?.pushEvent('Unsuccessful Login', { username: username });
-		window.faro?.api?.pushError(new Error('Login Error: ' + res.statusText));
+		window.faro?.api?.pushError(new Error(`Login Error: ${res.statusText}`));
 		return;
 	}
 
@@ -114,7 +114,7 @@ async function deleteRatings() {
 		} else if (res.status === 401) {
 			alert('You need to be logged in to clear ratings.');
 		} else {
-			alert('Failed to clear ratings: ' + res.statusText);
+			alert(`Failed to clear ratings: ${res.statusText}`);
 		}
 		return;
 	}

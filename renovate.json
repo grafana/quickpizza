@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>grafana/grafana-renovate-config//presets/base",
+    "github>grafana/grafana-renovate-config//presets/labels",
+    "github>grafana/grafana-renovate-config//presets/github-actions",
+    "schedule:earlyMondays"
+  ],
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "schedule": ["at any time"],
+    "additionalBranchPrefix": "security-"
+  },
+  "packageRules": [
+    {
+      "description": "Do not pin digests for docker-compose images — digest pinning breaks Windows systems (architecture mismatch)",
+      "matchManagers": ["docker-compose"],
+      "pinDigests": false
+    },
+    {
+      "description": "Pin npm dependency ranges to exact versions — defense-in-depth against supply-chain attacks on range-pinned releases",
+      "matchManagers": ["npm"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "description": "Group all npm dependency updates into a single PR to reduce noise",
+      "matchManagers": ["npm"],
+      "groupName": "npm dependencies"
+    },
+    {
+      "description": "Group all container image updates (docker-compose and terraform) into a single PR",
+      "matchManagers": ["docker-compose", "terraform"],
+      "groupName": "container images"
+    },
+    {
+      "description": "Group all Go module updates into a single PR to reduce noise",
+      "matchManagers": ["gomod"],
+      "groupName": "go dependencies"
+    },
+    {
+      "description": "Auto-merge lock file maintenance PRs — no version bumps, safe to merge automatically",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": true
+    }
+  ]
+}

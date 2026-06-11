@@ -39,12 +39,12 @@ async function handleSubmit() {
 		},
 	);
 	if (!res.ok) {
-		loginError = 'Login failed: ' + res.statusText;
+		loginError = `Login failed: ${res.statusText}`;
 		window.faro?.api?.pushEvent('Unsuccessful Admin Login', {
 			username: username,
 		});
 		window.faro?.api?.pushError(
-			new Error('Admin Login Error: ' + res.statusText),
+			new Error(`Admin Login Error: ${res.statusText}`),
 		);
 		return;
 	}
@@ -87,7 +87,7 @@ function updateRecommendations() {
 			}
 			newRec = newRec.slice(0, 15);
 			if (newRec.length >= 0) {
-				newRec[0] = newRec[0] + ' (newest)';
+				newRec[0] = `${newRec[0]} (newest)`;
 			}
 			latestPizzaRecommendations = newRec;
 		});

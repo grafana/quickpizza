@@ -12,7 +12,7 @@ x-quickpizza-env-common: &quickpizza-env-common
 name: quickpizza
 services:
   alloy:
-    image: grafana/alloy:v1.16.2@sha256:32913cbfac652d15fa84d256a74e5ee3f71575961bb19d34796ce3838bfba693
+    image: grafana/alloy:v1.16.2
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -52,7 +52,7 @@ services:
       - grpc
 
   catalog:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
     container_name: catalog
     labels:
       - "service.type=application"
@@ -69,7 +69,7 @@ services:
         condition: service_healthy
 
   config:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
     container_name: config
     labels:
       - "service.type=application"
@@ -80,7 +80,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "config"
       QUICKPIZZA_OTEL_SERVICE_NAME: "config"
   copy:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
     container_name: copy
     labels:
       - "service.type=application"
@@ -99,7 +99,7 @@ services:
         condition: service_started
 
   public-api:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
     container_name: public-api
     labels:
       - "service.type=application"
@@ -113,7 +113,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
 
   recommendations:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
     container_name: recommendations
     labels:
       - "service.type=application"
@@ -125,7 +125,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
 
   ws:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21}
     container_name: ws
     labels:
       - "service.type=application"
@@ -137,7 +137,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
 
   grpc:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.19@sha256:9bb274e6178bfccc8da2f7d28dd65285fd6f6f8fd9d006febec65c7da655cfde}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.19}
     container_name: grpc
     labels:
       - "service.type=application"
@@ -152,7 +152,7 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "grpc"
 
   quickpizza-db:
-    image: postgres:18.1@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f
+    image: postgres:18.1
     container_name: quickpizza-db
     labels:
       - "service.type=database"
@@ -172,7 +172,7 @@ services:
       retries: 5
 
   loki:
-    image: grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
+    image: grafana/loki:3.4.3
     container_name: loki
     labels:
       - "service.type=instrumentation"
@@ -180,7 +180,7 @@ services:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.9.1@sha256:1f0f50f06acaceb0f5670d2c8a658a599affe7b0d8e78b898c1035653849a702
+    image: prom/prometheus:v3.9.1
     container_name: prometheus
     labels:
       - "service.type=instrumentation"
@@ -194,7 +194,7 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.16.0@sha256:58e49fa3443195c7b95f5c9821ce8920a8627f215c2ccdf955a9cd78c76a3468
+    image: grafana/pyroscope:1.16.0
     container_name: pyroscope
     labels:
       - "service.type=instrumentation"
@@ -202,7 +202,7 @@ services:
       - "4040:4040"
 
   tempo:
-    image: grafana/tempo:2.9.0@sha256:65a5789759435f1ef696f1953258b9bbdb18eb571d5ce711ff812d2e128288a4
+    image: grafana/tempo:2.9.0
     container_name: tempo
     labels:
       - "service.type=instrumentation"

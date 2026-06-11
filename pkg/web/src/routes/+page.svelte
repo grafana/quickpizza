@@ -66,7 +66,6 @@ function randomToken(length) {
 
 let socket: WebSocket;
 onMount(async () => {
-	// biome-ignore lint/suspicious/noAssignInExpressions: -
 	wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
 	if (wsVisitorID === 0) {
 		wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
@@ -90,11 +89,11 @@ onMount(async () => {
 		wsUrl =
 			(l.protocol === 'https:' ? 'wss://' : 'ws://') +
 			l.hostname +
-			(l.port !== 80 && l.port !== 443 ? ':' + l.port : '') +
+			(l.port !== 80 && l.port !== 443 ? `:${l.port}` : '') +
 			'/ws';
 	}
 	socket = new WebSocket(wsUrl);
-	socket.addEventListener('message', function (event) {
+	socket.addEventListener('message', (event) => {
 		const data = JSON.parse(event.data);
 		if (data.msg === 'new_pizza') {
 			if (data.ws_visitor_id !== wsVisitorID) {
@@ -109,18 +108,18 @@ onMount(async () => {
 
 async function ratePizza(stars) {
 	window.faro?.api?.pushEvent('Submit Pizza Rating', {
-		pizza_id: pizza['pizza']['id'],
+		pizza_id: pizza.pizza.id,
 		stars: stars,
 	});
 	window.faro?.api?.startUserAction(
 		'ratePizza', // name of the user action
-		{ pizza_id: pizza['pizza']['id'], stars: stars }, // custom attributes attached to the user action
+		{ pizza_id: pizza.pizza.id, stars: stars }, // custom attributes attached to the user action
 		{ triggerName: 'ratePizzaButtonClick' }, // custom config
 	);
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/ratings`, {
 		method: 'POST',
 		body: JSON.stringify({
-			pizza_id: pizza['pizza']['id'],
+			pizza_id: pizza.pizza.id,
 			stars: stars,
 		}),
 		headers: {
@@ -155,7 +154,7 @@ async function getPizza() {
 		'Content-Type': 'application/json',
 	};
 	if (!isLoggedIn) {
-		headers['Authorization'] = 'Token ' + anonymousToken;
+		headers.Authorization = `Token ${anonymousToken}`;
 	}
 
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/pizza`, {
@@ -195,11 +194,11 @@ async function getPizza() {
 		socket.addEventListener('open', handleOpen);
 	} else {
 		window.faro?.api?.pushError(
-			new Error('socket state error: ' + socket.readyState),
+			new Error(`socket state error: ${socket.readyState}`),
 		);
 	}
 
-	if (pizza['pizza']['ingredients'].find((e) => e.name === 'Pineapple')) {
+	if (pizza.pizza.ingredients.find((e) => e.name === 'Pineapple')) {
 		window.faro?.api?.pushError(
 			new Error(
 				'Pizza Error: Pineapple detected! This is a violation of ancient pizza law. Proceed at your own risk!',
@@ -214,7 +213,7 @@ async function getTools() {
 	// Build headers: use cookie auth if logged in, otherwise use anonymous token
 	const headers: Record<string, string> = {};
 	if (!isLoggedIn) {
-		headers['Authorization'] = 'Token ' + anonymousToken;
+		headers.Authorization = `Token ${anonymousToken}`;
 	}
 
 	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
