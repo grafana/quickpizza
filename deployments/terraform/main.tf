@@ -40,7 +40,7 @@ locals {
     },
     {
       name  = "OTEL_RESOURCE_ATTRIBUTES"
-      value = "deployment.environment=${var.deployment_environment},service.version=${var.quickpizza_image}"
+      value = "deployment.environment=${var.deployment_environment},service.version=${var.quickpizza_image_version}"
     },
     {
       name  = "QUICKPIZZA_LOG_LEVEL"
