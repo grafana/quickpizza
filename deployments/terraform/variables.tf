@@ -39,16 +39,26 @@ variable "quickpizza_kubernetes_namespace" {
 
 variable "quickpizza_image" {
   default     = "ghcr.io/grafana/quickpizza-local:0.15.25@sha256:a49ea625d8f1a58738ff1635f59d42b539f5d4f64b040ff974a6012aa7cf22f2"
-  description = "The Image to use for the QuickPizza Demo Application. Use tag@sha256:digest format for immutable references."
+  description = "The Image to use for the QuickPizza Demo Application. Must use tag@sha256:digest format for immutable references."
   nullable    = false
   type        = string
+
+  validation {
+    condition     = can(regex("^.+:.+@sha256:[a-f0-9]{64}$", var.quickpizza_image))
+    error_message = "quickpizza_image must use tag@sha256:digest format (e.g. image:tag@sha256:abc123...)."
+  }
 }
 
 variable "quickpizza_image_version" {
   default     = "0.15.25"
-  description = "The version of the QuickPizza image. Used to populate the service.version OTEL attribute."
+  description = "The version of the QuickPizza image. Must match the tag in quickpizza_image."
   nullable    = false
   type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+$", var.quickpizza_image_version))
+    error_message = "quickpizza_image_version must match the tag in quickpizza_image, which must use tag@sha256:digest format."
+  }
 }
 
 variable "quickpizza_git_ref" {

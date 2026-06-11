@@ -2,6 +2,13 @@ resource "kubernetes_namespace_v1" "quickpizza" {
   metadata {
     name = var.quickpizza_kubernetes_namespace
   }
+
+  lifecycle {
+    precondition {
+      condition     = strcontains(var.quickpizza_image, ":${var.quickpizza_image_version}@sha256:")
+      error_message = "quickpizza_image_version (${var.quickpizza_image_version}) must match the tag in quickpizza_image (${var.quickpizza_image})."
+    }
+  }
 }
 
 locals {
