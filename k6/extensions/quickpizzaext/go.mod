@@ -1,6 +1,6 @@
 module github.com/grafana/quickpizza/extensions/quickpizzaext
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/grafana/quickpizza v0.0.0
