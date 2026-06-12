@@ -1,6 +1,11 @@
 # terraform.tfvars.local - Local configuration reference
 # Copy this file to terraform.tfvars and fill in your values
 
+
+# quickpizza_enforce_image_digest = false
+# To build a local image, use "make build" or "docker build -t local-quickpizza:latest ."
+# quickpizza_image = "local-quickpizza:latest"
+
 # Required: Your Grafana Cloud Stack name
 grafana_cloud_stack = "your-stack-name"
 

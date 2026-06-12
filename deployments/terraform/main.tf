@@ -2,6 +2,13 @@ resource "kubernetes_namespace_v1" "quickpizza" {
   metadata {
     name = var.quickpizza_kubernetes_namespace
   }
+
+  lifecycle {
+    precondition {
+      condition     = !var.quickpizza_enforce_image_digest || strcontains(var.quickpizza_image, ":${var.quickpizza_image_version}@sha256:")
+      error_message = "quickpizza_image_version (${var.quickpizza_image_version}) must match the tag in quickpizza_image (${var.quickpizza_image}). Set quickpizza_enforce_image_digest=false to skip for local development."
+    }
+  }
 }
 
 locals {
@@ -40,7 +47,7 @@ locals {
     },
     {
       name  = "OTEL_RESOURCE_ATTRIBUTES"
-      value = "deployment.environment=${var.deployment_environment},service.version=${var.quickpizza_image}"
+      value = "deployment.environment=${var.deployment_environment},service.version=${var.quickpizza_image_version}"
     },
     {
       name  = "QUICKPIZZA_LOG_LEVEL"

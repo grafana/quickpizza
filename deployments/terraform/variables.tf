@@ -37,15 +37,29 @@ variable "quickpizza_kubernetes_namespace" {
   type        = string
 }
 
+variable "quickpizza_enforce_image_digest" {
+  default     = true
+  description = "Enforce tag@sha256:digest format for quickpizza_image. Set to false for local development."
+  nullable    = false
+  type        = bool
+}
+
 variable "quickpizza_image" {
-  default     = "ghcr.io/grafana/quickpizza-local:0.15.21"
-  description = "The Image to use for the QuickPizza Demo Application."
+  default     = "ghcr.io/grafana/quickpizza-local:0.15.25@sha256:a49ea625d8f1a58738ff1635f59d42b539f5d4f64b040ff974a6012aa7cf22f2"
+  description = "The Image to use for the QuickPizza Demo Application. Must use tag@sha256:digest format when quickpizza_enforce_image_digest is true."
+  nullable    = false
+  type        = string
+}
+
+variable "quickpizza_image_version" {
+  default     = "0.15.25"
+  description = "The version of the QuickPizza image. Must match the tag in quickpizza_image when quickpizza_enforce_image_digest is true."
   nullable    = false
   type        = string
 }
 
 variable "quickpizza_git_ref" {
-  default     = "56ce74d"
+  default     = "c2cb21f"
   description = "The GitHub reference to the specific commit of the QuickPizza version"
   nullable    = false
   type        = string
