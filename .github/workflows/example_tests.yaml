@@ -4,6 +4,9 @@
 name: Example Tests Workflow
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   basic_k6_test:
     name: k6 test run - basic example

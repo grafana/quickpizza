@@ -4,6 +4,9 @@
 name: Specific k6 version Workflow
 on: [push]
 
+permissions:
+  contents: read
+
 jobs:
   basic_k6_test:
     name: k6 test run - specific k6 version example
