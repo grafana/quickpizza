@@ -35,6 +35,11 @@
       "groupName": "container images"
     },
     {
+      "description": "Group all Dockerfile base image updates into a single PR",
+      "matchManagers": ["dockerfile"],
+      "groupName": "dockerfile base images"
+    },
+    {
       "description": "Group all Go module updates into a single PR to reduce noise",
       "matchManagers": ["gomod"],
       "groupName": "go dependencies"
