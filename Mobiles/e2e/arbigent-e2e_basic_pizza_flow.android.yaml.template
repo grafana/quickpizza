@@ -67,11 +67,11 @@ scenarios:
 
   - id: "put_app_to_background"
     goal: |
-      You should see the Android system home screen (launcher with app icons).
+      You should see the Android system home screen.
       QuickPizza must go to the background.
 
       1. Use "Press key: HOME" to go to the Android home screen. Do NOT tap any in-app element (Home/About tabs keep you in the app).
-      2. If you see app icons (Play Store, Gmail, QuickPizza, etc.), OUTPUT "Goal achieved" immediately. Do NOT swipe or scroll—you are already on home.
+      2. If QuickPizza is no longer visible and you see the launcher, wallpaper, app icons, dock, search bar, or a plain/default Android home screen, OUTPUT "Goal achieved" immediately. Do NOT swipe or scroll—you are already on home.
 
       __RECOVERY_BLOCK__
 

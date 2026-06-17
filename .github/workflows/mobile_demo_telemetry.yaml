@@ -256,41 +256,61 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
+          cores: 2
+          ram-size: 2048M
           disable-animations: true
-          disk-size: 6000M
-          heap-size: 600M
-          emulator-options: "-no-window -no-metrics"
+          disable-spellchecker: true
+          disk-size: 4096M
+          heap-size: 384M
+          emulator-boot-timeout: 300
+          emulator-options: "-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics -camera-back none -camera-front none"
           script: |
             echo "Emulator is running!"
             adb devices -l
+            adb shell getprop ro.build.fingerprint
+            adb shell getprop ro.kernel.qemu
+            adb shell settings put global window_animation_scale 0 || true
+            adb shell settings put global transition_animation_scale 0 || true
+            adb shell settings put global animator_duration_scale 0 || true
 
-            # Single reverse for all apps on the same emulator (devices use localhost:3333)
+            # Devices use localhost:3333; refresh this between apps in case
+            # ADB state changes during test cleanup.
             echo "Setting up ADB reverse port forwarding..."
+            adb reverse --remove tcp:3333 || true
             adb reverse tcp:3333 tcp:3333
 
             echo "==> Flutter APK: install and E2E"
             adb install -r apk/flutter/app-debug.apk
-            bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android
+            timeout --foreground 25m bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android
+            adb shell am force-stop com.example.flutter_mobile_o11y_demo || true
+            adb reverse --remove tcp:3333 || true
+            adb reverse tcp:3333 tcp:3333
 
             echo "==> React Native APK: install and E2E"
             adb install -r apk/react-native/app-debug.apk
-            bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android
+            timeout --foreground 25m bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android
+            adb shell am force-stop com.quickpizza || true
+            adb reverse --remove tcp:3333 || true
+            adb reverse tcp:3333 tcp:3333
 
             echo "==> Android Native APK: install and E2E"
             adb install -r apk/android-native/app-debug.apk
-            bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android
+            timeout --foreground 25m bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android
+            adb shell am force-stop com.grafana.quickpizza || true
+            adb reverse --remove tcp:3333 || true
+            adb reverse tcp:3333 tcp:3333
 
             # android-emulator-runner executes script lines individually, so
             # keep diagnostics gating as one-line commands instead of a
             # multi-line shell if block.
             [ "$RUN_DIAGNOSTICS" = "true" ] || echo "Skipping diagnostics flow. Set workflow_dispatch input run_diagnostics=true to run it manually."
             [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> Flutter APK: diagnostics E2E"
-            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || timeout --foreground 20m bash Mobiles/e2e/run_e2e_tests.sh --app=flutter --platform=android --flow=diagnostics
             [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> React Native APK: diagnostics E2E"
-            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || timeout --foreground 20m bash Mobiles/e2e/run_e2e_tests.sh --app=react-native --platform=android --flow=diagnostics
             [ "$RUN_DIAGNOSTICS" != "true" ] || echo "==> Android Native APK: diagnostics E2E"
-            [ "$RUN_DIAGNOSTICS" != "true" ] || bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android --flow=diagnostics
+            [ "$RUN_DIAGNOSTICS" != "true" ] || timeout --foreground 20m bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android --flow=diagnostics
 
             echo "E2E tests completed (Flutter, React Native, Android Native on same emulator)."
 
