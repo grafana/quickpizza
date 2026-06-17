@@ -45,6 +45,7 @@ jobs:
             case "$file" in
               .github/workflows/mobile_demo_telemetry.yaml|\
               .github/workflows/mobile_demo_telemetry_build.yaml|\
+              .github/scripts/**|\
               Mobiles/*|\
               compose.grafana-cloud.microservices.yaml)
                 mobile=true

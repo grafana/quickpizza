@@ -7,6 +7,7 @@ import {
 import { InternalLoggerLevel, LogLevel, SamplingRate, initializeFaro, type ReactNativeConfig } from './core/o11y/faroSdk';
 
 import { extractTokenFromCollectorUrl } from './core/utils/faroUtils';
+import { resolveTelemetryAppVersion } from './core/config/appVersionResolver';
 import { getFaroCollectorUrl, getQuickPizzaTracePropagationUrlPatterns } from './core/config/configService';
 
 /**
@@ -21,7 +22,7 @@ const ENABLE_FARO_PAYLOAD_DIAGNOSTICS =
 /** Must match `app.name` and Metro `@grafana/faro-metro-plugin` `appName`. */
 const FARO_APP_NAME = 'QuickPizza_ReactNative';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = resolveTelemetryAppVersion(process.env.DEMO_APP_VERSION);
 const APP_ENV = __DEV__ ? 'development' : 'production';
 
 // Capture the original console BEFORE any patching happens (RN DevTools, LogBox, etc.)

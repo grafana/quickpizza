@@ -22,6 +22,8 @@ tasks.register<Delete>("deleteExampleConfig") {
 tasks.matching { it.name.contains("mergeDebugResources") || it.name.contains("mergeReleaseResources") || it.name.contains("packageDebugResources") || it.name.contains("packageReleaseResources") }
     .configureEach { dependsOn("deleteExampleConfig") }
 
+val quickPizzaDemoVersionName = providers.gradleProperty("quickpizzaDemoVersionName").orElse("1.0")
+
 android {
     namespace = "com.grafana.quickpizza"
     compileSdk = 36
@@ -31,7 +33,7 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = quickPizzaDemoVersionName.get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
