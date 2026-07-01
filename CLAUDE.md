@@ -129,3 +129,54 @@ The application is specifically designed for k6 load testing:
 - Support for k6 browser testing
 - k6 extensions and examples
 - Prometheus output for k6 metrics correlation
+
+## Upgrading the QuickPizza Image Version
+
+When a new release is published to GHCR (e.g. `ghcr.io/grafana/quickpizza-local:0.15.27`), update the image version in all of the following locations:
+
+### Step 1: Fetch the image digests
+
+```bash
+docker buildx imagetools inspect ghcr.io/grafana/quickpizza-local:<NEW_VERSION>
+```
+
+From the output, extract:
+- **Index digest** (the top-level `Digest:` field) — used in Terraform.
+- **linux/amd64 digest** (the manifest entry for `Platform: linux/amd64`) — used in GitHub Actions workflows.
+
+### Step 2: Files to update
+
+**Docker Compose files** — plain tag, no digest (uses `${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:<VERSION>}` pattern):
+- `compose.grafana-local-stack.monolithic.yaml`
+- `compose.grafana-local-stack.microservices.yaml` (7 service entries)
+- `compose.grafana-cloud.monolithic.yaml`
+- `compose.grafana-cloud.microservices.yaml` (7 service entries)
+
+**GitHub Actions example workflow files** — `tag@sha256:<linux/amd64-digest>` format, with `# zizmor: ignore[unpinned-images]` comment:
+- `.github/workflows/example_tests.yaml` (2 occurrences)
+- `.github/workflows/example_browser_tests.yaml` (2 occurrences)
+- `.github/workflows/example_cli_flags_test.yaml`
+- `.github/workflows/example_env_var.yaml`
+- `.github/workflows/example_verify_scripts.yaml`
+- `.github/workflows/example_specific_k6_version.yaml`
+
+**Kubernetes deployment files** — plain tag, no digest:
+- `deployments/kubernetes/base/quickpizza/catalog.yaml`
+- `deployments/kubernetes/base/quickpizza/config.yaml`
+- `deployments/kubernetes/base/quickpizza/copy.yaml`
+- `deployments/kubernetes/base/quickpizza/grpc.yaml`
+- `deployments/kubernetes/base/quickpizza/public-api.yaml`
+- `deployments/kubernetes/base/quickpizza/recommendations.yaml`
+- `deployments/kubernetes/base/quickpizza/ws.yaml`
+
+**Terraform variables** — two fields, both using `tag@sha256:<index-digest>` format:
+- `deployments/terraform/variables.tf`: `quickpizza_image` default (full `tag@sha256:` string) and `quickpizza_image_version` default (plain version string)
+
+### Step 3: Verify completeness
+
+After editing, run:
+```bash
+grep -rn "quickpizza-local:" . --include="*.yaml" --include="*.yml" --include="*.tf" | grep -v "docker_publish"
+```
+
+Confirm all occurrences show the new version. The `docker_publish.yaml` workflow is exempt — it derives the version dynamically from git release tags.
