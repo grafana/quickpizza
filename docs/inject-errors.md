@@ -9,9 +9,9 @@ You can inject delays to endpoints and assets using environment variables.
 This is useful for testing scenarios where you want to simulate slow responses across multiple endpoints. 
 
 ```shell
-export QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=1000
+export QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=1s
 ```
-The delay values should be specified in **milliseconds**.
+The delay values must be Go duration strings (e.g. `500ms`, `2s`, `1.5s`).
 
 The following environment variables are supported: 
 

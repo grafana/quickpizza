@@ -97,7 +97,7 @@ The application supports fault injection via HTTP headers and environment variab
 - `x-delay-get-ingredients` - Add delays to ingredient retrieval
 - Add `-percentage` suffix to any error header to control probability
 
-**Environment variables** (process-wide, value in milliseconds):
+**Environment variables** (process-wide, Go duration string, e.g. `500ms`, `2s`):
 - `QUICKPIZZA_DELAY_RECOMMENDATIONS` - Delay all recommendations endpoints
 - `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET` - Delay `GET /api/pizza/{id}`
 - `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST` - Delay `POST /api/pizza` (pizza generation)
@@ -109,7 +109,7 @@ The application supports fault injection via HTTP headers and environment variab
 - `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS` - Delay PNG asset serving
 - `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` - Random failure rate (0-100) for `POST /api/pizza`
 
-**Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3000` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
+**Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3s` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
 
 ### Frontend Integration
 - Frontend is built with SvelteKit and embedded in the Go binary

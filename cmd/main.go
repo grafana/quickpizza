@@ -176,7 +176,7 @@ func main() {
 //   - QUICKPIZZA_RECOMMENDATIONS_RETRIES - max retries
 //   - QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN/MAX - retry backoff bounds
 //
-// Use QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST (milliseconds) together with
+// Use QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST (Go duration, e.g. "3s") together with
 // QUICKPIZZA_PUBLIC_API_TIMEOUT to simulate timeout scenarios.
 func newRecommendationsHTTPClient() *http.Client {
 	httpClient := &http.Client{
