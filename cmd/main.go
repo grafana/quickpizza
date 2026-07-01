@@ -66,10 +66,6 @@ func main() {
 		}
 	}
 
-	// Create an HTTP client configured from env vars.
-	// If no specific env vars are set, this will return a http client that does not perform any retries.
-	httpCli := clientFromEnv()
-
 	// Create the QuickPizza server.
 	server := qphttp.NewServer(profilingEnabled, otelInstaller)
 
@@ -141,8 +137,9 @@ func main() {
 	// This URL is automatically set to `localhost` if Recommendations is enabled at the same time as either of those.
 	// If they are not, URLs are sourced from QUICKPIZZA_CATALOG_ENDPOINT and QUICKPIZZA_COPY_ENDPOINT.
 	if envServe("QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE") {
-		catalogClient := qphttp.NewCatalogClient(envEndpoint("QUICKPIZZA_ENABLE_CATALOG_SERVICE", "QUICKPIZZA_CATALOG_ENDPOINT")).WithClient(httpCli)
-		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_ENABLE_COPY_SERVICE", "QUICKPIZZA_COPY_ENDPOINT")).WithClient(httpCli)
+		recommendationsHTTPClient := newRecommendationsHTTPClient()
+		catalogClient := qphttp.NewCatalogClient(envEndpoint("QUICKPIZZA_ENABLE_CATALOG_SERVICE", "QUICKPIZZA_CATALOG_ENDPOINT")).WithClient(recommendationsHTTPClient)
+		copyClient := qphttp.NewCopyClient(envEndpoint("QUICKPIZZA_ENABLE_COPY_SERVICE", "QUICKPIZZA_COPY_ENDPOINT")).WithClient(recommendationsHTTPClient)
 
 		server.AddRecommendations(catalogClient, copyClient)
 	}
@@ -160,22 +157,31 @@ func main() {
 
 	listen := ":3333"
 	slog.Info("Starting QuickPizza", "listenAddress", listen)
-	err := http.ListenAndServe(listen, server)
+
+	handler := http.Handler(server)
+	if publicAPITimeout := envDuration("QUICKPIZZA_PUBLIC_API_TIMEOUT"); publicAPITimeout > 0 {
+		handler = http.TimeoutHandler(handler, publicAPITimeout, "request timed out")
+	}
+
+	err := http.ListenAndServe(listen, handler)
 	if err != nil {
 		slog.Error("Running HTTP server", "err", err)
 		os.Exit(1)
 	}
 }
 
-// clientFromEnv returns an *http.Client implementation according to the retries and backoff specified in env vars.
-func clientFromEnv() *http.Client {
-	// Configure an underlying client with otel transport.
-	// Otel transport takes care of generating spans for outcoming requests, as well as propagating trace IDs on those
-	// requests.
+// newRecommendationsHTTPClient returns an HTTP client used by the recommendations service
+// to call catalog and copy. Configured via:
+//   - QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT - request timeout (default 1s)
+//   - QUICKPIZZA_RECOMMENDATIONS_RETRIES - max retries
+//   - QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN/MAX - retry backoff bounds
+//
+// Use QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST (milliseconds) together with
+// QUICKPIZZA_PUBLIC_API_TIMEOUT to simulate timeout scenarios.
+func newRecommendationsHTTPClient() *http.Client {
 	httpClient := &http.Client{
 		Transport: otelhttp.NewTransport(
-			nil, // Default transport.
-			// Propagator will retrieve the tracer used in the server from memory.
+			nil,
 			otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(
 				propagation.TraceContext{},
 				propagation.Baggage{},
@@ -183,30 +189,25 @@ func clientFromEnv() *http.Client {
 		),
 	}
 
-	timeout := envDuration("QUICKPIZZA_TIMEOUT")
-	if timeout == 0 {
-		timeout = time.Second
+	clientTimeout := envDuration("QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT")
+	if clientTimeout == 0 {
+		clientTimeout = time.Second
 	}
-
-	httpClient.Timeout = timeout
+	httpClient.Timeout = clientTimeout
 
 	retriableClient := retryablehttp.NewClient()
 	retriableClient.Logger = nil
-	// Configure retryablehttp to use the instrumented client.
 	// Retries occur at the retriableClient layer, so instrumentation will see failures from httpClient.
 	retriableClient.HTTPClient = httpClient
+	retriableClient.RetryMax = envInt("QUICKPIZZA_RECOMMENDATIONS_RETRIES")
 
-	retriableClient.RetryMax = envInt("QUICKPIZZA_RETRIES")
-
-	if retryMin := envDuration("QUICKPIZZA_BACKOFF_MIN"); retryMin != 0 {
+	if retryMin := envDuration("QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN"); retryMin != 0 {
 		retriableClient.RetryWaitMin = retryMin
 	}
-
-	if retryMax := envDuration("QUICKPIZZA_BACKOFF_MAX"); retryMax != 0 {
+	if retryMax := envDuration("QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX"); retryMax != 0 {
 		retriableClient.RetryWaitMax = retryMax
 	}
 
-	// Return a stdlib client that uses retryablehttp as transport.
 	return retriableClient.StandardClient()
 }
 

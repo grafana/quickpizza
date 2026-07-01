@@ -81,6 +81,10 @@ resource "kubernetes_deployment_v1" "public_api" {
             value = "1"
           }
           env {
+            name  = "QUICKPIZZA_PUBLIC_API_TIMEOUT"
+            value = "10s"
+          }
+          env {
             name  = "QUICKPIZZA_OTEL_SERVICE_NAME"
             value = "public-api"
           }

@@ -163,17 +163,24 @@ async function getPizza() {
 		headers,
 		credentials: 'same-origin',
 	});
-	const json = await res.json();
 
 	rateResult = null;
 	errorResult = null;
 	if (!res.ok) {
 		pizza = '';
-		errorResult =
-			json.error || 'Failed to get pizza recommendation. Please try again.';
+		const contentType = res.headers.get('content-type') || '';
+		if (contentType.includes('application/json')) {
+			const json = await res.json();
+			errorResult =
+				json.error || 'Failed to get pizza recommendation. Please try again.';
+		} else {
+			const text = await res.text();
+			errorResult = `${res.status}: ${text || 'Failed to get pizza recommendation. Please try again.'}`;
+		}
 		window.faro?.api?.pushError(new Error(errorResult));
 		return;
 	}
+	const json = await res.json();
 
 	pizza = json;
 	const wsMsg = JSON.stringify({

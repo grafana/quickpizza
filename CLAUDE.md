@@ -79,16 +79,37 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_OTLP_ENDPOINT` - OpenTelemetry collector endpoint
 - `QUICKPIZZA_PYROSCOPE_ENDPOINT` - Pyroscope server for profiling
 - `QUICKPIZZA_DB` - Database connection string
+- `QUICKPIZZA_PUBLIC_API_TIMEOUT` - Wraps the public-api handler with `http.TimeoutHandler`; unset by default (no timeout). Returns **503** when the deadline fires. In monolith mode it covers the full request; in microservice mode it also covers the ReverseProxy leg to internal services. Uses Go duration format (e.g. `3s`).
+- `QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT` - Timeout on the HTTP client used by the recommendations service to call catalog and copy (default: `1s`). In monolith mode these are localhost calls; in microservice mode they are cross-service calls.
+- `QUICKPIZZA_RECOMMENDATIONS_RETRIES` - Max retries for recommendations → catalog/copy calls (renamed from `QUICKPIZZA_RETRIES`).
+- `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN` - Min backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MIN`).
+- `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
 
 ## Development Notes
 
-### Error Injection
-The application supports error injection via HTTP headers for testing:
+### Fault Injection
+The application supports fault injection via HTTP headers and environment variables.
+
+**HTTP headers** (per-request, via `pkg/errorinjector/`):
 - `x-error-record-recommendation` - Trigger recommendation errors
 - `x-error-get-ingredients` - Trigger ingredient retrieval errors
 - `x-delay-record-recommendation` - Add delays to recommendations
 - `x-delay-get-ingredients` - Add delays to ingredient retrieval
 - Add `-percentage` suffix to any error header to control probability
+
+**Environment variables** (process-wide, value in milliseconds):
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS` - Delay all recommendations endpoints
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET` - Delay `GET /api/pizza/{id}`
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST` - Delay `POST /api/pizza` (pizza generation)
+- `QUICKPIZZA_DELAY_COPY` - Delay all copy endpoints
+- `QUICKPIZZA_DELAY_COPY_API_QUOTES` - Delay `GET /api/quotes`
+- `QUICKPIZZA_DELAY_COPY_API_NAMES` - Delay pizza name generation
+- `QUICKPIZZA_DELAY_COPY_API_ADJECTIVES` - Delay adjective generation
+- `QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS` - Delay CSS asset serving
+- `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS` - Delay PNG asset serving
+- `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` - Random failure rate (0-100) for `POST /api/pizza`
+
+**Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3000` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
 
 ### Frontend Integration
 - Frontend is built with SvelteKit and embedded in the Go binary
