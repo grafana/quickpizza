@@ -284,6 +284,11 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) 
 		return err
 	}
 
+	if util.FailRandomlyIfEnvSet("QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION") {
+		_, err := c.db.ExecContext(ctx, "SELECT nonexistent_column FROM pizzas LIMIT 1")
+		return err
+	}
+
 	pizza.DoughID = pizza.Dough.ID
 	return c.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewInsert().Model(pizza).Exec(ctx)

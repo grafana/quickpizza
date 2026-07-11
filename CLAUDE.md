@@ -108,6 +108,7 @@ The application supports fault injection via HTTP headers and environment variab
 - `QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS` - Delay CSS asset serving
 - `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS` - Delay PNG asset serving
 - `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` - Random failure rate (0-100) for `POST /api/pizza`
+- `QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION` - Random failure rate (0-100) for `RecordRecommendation` database calls; fails with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`)
 
 **Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3s` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
 

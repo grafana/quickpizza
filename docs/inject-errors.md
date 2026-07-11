@@ -28,6 +28,7 @@ The following environment variables are supported:
 - **QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS**: Adds delay when serving PNG image assets
 
 - **QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST**: Set to a number to fail `<number>%` of pizza POST requests randomly.
+- **QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION**: Set to a number to make `<number>%` of `RecordRecommendation` database calls fail with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`).
 
 ## Using HTTP Headers
 
