@@ -58,6 +58,7 @@ services:
       QUICKPIZZA_ENABLE_CATALOG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "catalog"
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
+      # QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION: 20
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
       QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       # OTEL `db.name` span attribute. Used by servicegraph to create service nodes with this name
