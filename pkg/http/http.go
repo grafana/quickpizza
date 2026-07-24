@@ -434,7 +434,7 @@ func (s *Server) AddConfigHandler(config map[string]string) {
 // AddGateway enables a gateway that routes external requests to the respective services.
 // This endpoint should be typically enabled toget with WithFrontend on a microservices-based deployment.
 // TODO: So far the gateway only handles a few endpoints.
-func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl string) {
+func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, configUrl, chatUrl string) {
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
@@ -467,6 +467,8 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 					u, _ = url.Parse(configUrl)
 				case "/api/admin/login":
 					u, _ = url.Parse(catalogUrl)
+				case "/api/chat":
+					u, _ = url.Parse(chatUrl)
 				default:
 					u, _ = url.Parse(catalogUrl)
 				}
@@ -1302,6 +1304,49 @@ func (s *Server) AddCopyHandler(db *database.Copy) {
 			}
 
 			s.writeJSONResponse(w, r, map[string][]string{"adjectives": adjs}, http.StatusOK)
+		})
+	})
+}
+
+// AddChatHandler enables the chat endpoint in this Server.
+// It receives messages from the frontend chatbot and forwards them to an external AI service.
+func (s *Server) AddChatHandler(chatClient ChatClient) {
+	s.router.Group(func(r chi.Router) {
+		s.traceInstaller.Install(r, "chat")
+
+		r.Use(errorinjector.InjectErrorHeadersMiddleware)
+
+		r.Post("/api/chat", func(w http.ResponseWriter, r *http.Request) {
+			s.log.DebugContext(r.Context(), "Chat message received")
+
+			var req struct {
+				Message string `json:"message"`
+			}
+			if err := s.decodeJSONBody(w, r, &req); err != nil {
+				return
+			}
+
+			if req.Message == "" {
+				s.writeJSONErrorResponse(w, r, errors.New("message is required"), http.StatusBadRequest)
+				return
+			}
+
+			// Demo mode: return a default response if no external endpoint is configured
+			if chatClient.Endpoint() == "" {
+				s.writeJSONResponse(w, r, map[string]string{
+					"response": "I'm QuickPizza Assistant, currently being set up! Pizza recommendations coming soon. For now, try the 'Pizza, Please!' button.",
+				}, http.StatusOK)
+				return
+			}
+
+			response, err := chatClient.WithRequestContext(r.Context()).SendMessage(req.Message)
+			if err != nil {
+				s.log.ErrorContext(r.Context(), "Failed to get chat response", "err", err)
+				s.writeJSONErrorResponse(w, r, errors.New("failed to process chat message"), http.StatusInternalServerError)
+				return
+			}
+
+			s.writeJSONResponse(w, r, map[string]string{"response": response}, http.StatusOK)
 		})
 	})
 }
