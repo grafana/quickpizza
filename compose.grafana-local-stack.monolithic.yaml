@@ -102,7 +102,7 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.16.0
+    image: grafana/pyroscope:2.3.0
     container_name: pyroscope
     labels:
       - "service.type=instrumentation"
@@ -110,7 +110,7 @@ services:
       - "4040:4040"
 
   tempo:
-    image: grafana/tempo:2.9.0
+    image: grafana/tempo:3.0.3
     container_name: tempo
     labels:
       - "service.type=instrumentation"
