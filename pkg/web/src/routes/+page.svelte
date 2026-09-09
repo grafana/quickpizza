@@ -66,6 +66,9 @@ function randomToken(length) {
 
 let socket: WebSocket;
 onMount(async () => {
+	// Do not keep the whole page hidden while the local backend is starting.
+	render = true;
+
 	wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
 	if (wsVisitorID === 0) {
 		wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
@@ -78,9 +81,17 @@ onMount(async () => {
 	isLoggedIn = await verifyUserLoggedIn();
 	isLoggedInStore.set(isLoggedIn);
 
-	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
-	const json = await res.json();
-	quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
+	try {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/quotes`);
+		if (res.ok) {
+			const json = await res.json();
+			quote = json.quotes[Math.floor(Math.random() * json.quotes.length)];
+		}
+	} catch (error) {
+		window.faro?.api?.pushError(
+			error instanceof Error ? error : new Error('Failed to get a pizza quote'),
+		);
+	}
 
 	let wsUrl = `${PUBLIC_BACKEND_WS_ENDPOINT}`;
 	if (wsUrl === '') {
@@ -102,7 +113,6 @@ onMount(async () => {
 		}
 	});
 	getTools();
-	render = true;
 	window.faro?.api?.pushEvent('Navigation', { url: window.location.href });
 });
 
@@ -223,12 +233,20 @@ async function getTools() {
 		headers.Authorization = `Token ${anonymousToken}`;
 	}
 
-	const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
-		headers,
-		credentials: 'same-origin',
-	});
-	const json = await res.json();
-	tools = json.tools;
+	try {
+		const res = await fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/tools`, {
+			headers,
+			credentials: 'same-origin',
+		});
+		if (res.ok) {
+			const json = await res.json();
+			tools = json.tools;
+		}
+	} catch (error) {
+		window.faro?.api?.pushError(
+			error instanceof Error ? error : new Error('Failed to get pizza tools'),
+		);
+	}
 }
 </script>
 
@@ -245,15 +263,12 @@ async function getTools() {
 			<p class="text-xl font-bold text-red-600">QuickPizza</p>
 		</div>
 		<div class="flex float-right">
-			<span class="relative inline-flex items-center mb-5 mt-1 mr-6">
-				<span class="ml-3 text-xs text-red-600 font-bold"
-					>{#if isLoggedIn}
-						<a data-sveltekit-reload href="/login">Profile</a>
-					{:else}
-						<a data-sveltekit-reload href="/login">Login</a>
-					{/if}</span
-				>
-			</span>
+			<nav aria-label="Main navigation" class="flex items-center mb-5 mt-1 mr-6 gap-4 text-xs font-bold">
+				<a class="text-red-600 hover:text-red-800" href="/party">Pizza Party</a>
+				<a class="text-red-600 hover:text-red-800" data-sveltekit-reload href="/login">
+					{isLoggedIn ? 'Profile' : 'Login'}
+				</a>
+			</nav>
 			<label class="relative inline-flex items-center mb-5 cursor-pointer mt-1">
 				<input type="checkbox" bind:checked={advanced} class="sr-only peer" />
 				<div
