@@ -40,6 +40,8 @@ function setupFaro() {
 							password: true,
 							email: true,
 						},
+						// Faro 2.7.1 defaults this to '*', which masks all text (including inputs)
+						maskTextSelector: null,
 						collectFonts: true,
 						inlineImages: true,
 						inlineStylesheet: true,
