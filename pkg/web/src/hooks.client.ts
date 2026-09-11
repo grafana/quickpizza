@@ -35,7 +35,11 @@ function setupFaro() {
 			if (faroInstrumentationEnableReplay) {
 				instrumentations.push(
 					new ReplayInstrumentation({
-						maskAllInputs: true,
+						maskAllInputs: false,
+						maskInputOptions: {
+							password: true,
+							email: true,
+						},
 						collectFonts: true,
 						inlineImages: true,
 						inlineStylesheet: true,
