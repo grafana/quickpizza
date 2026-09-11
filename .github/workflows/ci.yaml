@@ -47,48 +47,11 @@ jobs:
           QUICKPIZZA_PYROSCOPE_ENDPOINT: "http://localhost"
         run: ./bin/quickpizza &
 
-      - name: Setup k6
-        uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
-        with:
-          browser: true
+      - name: Install Playwright browser
+        run: cd pkg/web && npx playwright install --with-deps chromium
 
-      - name: Install jq
-        uses: dcarbone/install-jq-action@e397bd87438d72198f81efd21f876461183d383a # v3.0.1
-
-      - name: Run k6 foundations tests
-        run: ./k6/run-tests.sh -t **/k6/foundations/*.js -u http://localhost:3333
-
-      - name: Run k6 foundations TS tests
-        run: ./k6/run-tests.sh -t **/k6/foundations/*.ts -u http://localhost:3333
-
-      - name: Run k6 internal tests
-        run: ./k6/run-tests.sh -t **/k6/internal/*.js -u http://localhost:3333
-
-      - name: Install Google Chrome (browser tests)
-        run: |
-          set -eux
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor --yes -o /usr/share/keyrings/google-chrome.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-
-      - name: Run k6 browser tests
-        run: ./k6/run-tests.sh -t **/k6/browser/*.js -u http://localhost:3333
-
-      - name: Install xk6
-        run: go install go.k6.io/xk6/cmd/xk6@latest
-
-      - name: Build custom k6 binary with quickpizzaext
-        run: |
-          xk6 build \
-            --output k6/extensions/k6 \
-            --with github.com/grafana/quickpizza/extensions/quickpizzaext=./k6/extensions/quickpizzaext \
-            --replace github.com/grafana/quickpizza=.
-
-      - name: Run k6 extension tests
-        run: ./k6/extensions/k6 run k6/extensions/01.quickpizzaext.js
+      - name: Run Playwright tests
+        run: cd pkg/web && npm run test:e2e
 
       - name: Stop Server
         run: pkill -9 quickpizza

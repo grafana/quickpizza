@@ -31,6 +31,8 @@ node_modules
 # production build
 .svelte-kit
 build
+playwright-report
+test-results
 
 # secrets
 .env
