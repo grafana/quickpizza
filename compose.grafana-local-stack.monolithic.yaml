@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.16.2
+    image: grafana/alloy:v1.19.2
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -60,7 +60,7 @@ services:
         condition: service_healthy
 
   quickpizza-db:
-    image: postgres:18.1
+    image: postgres:18.6
     container_name: quickpizza-db
     labels:
       - "service.type=database"
@@ -80,7 +80,7 @@ services:
       retries: 5
 
   loki:
-    image: grafana/loki:3.4.3
+    image: grafana/loki:3.7.7
     container_name: loki
     labels:
       - "service.type=instrumentation"
@@ -88,7 +88,7 @@ services:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.9.1
+    image: prom/prometheus:v3.14.0
     container_name: prometheus
     labels:
       - "service.type=instrumentation"
@@ -102,7 +102,7 @@ services:
       - "9090:9090"
 
   pyroscope:
-    image: grafana/pyroscope:1.16.0
+    image: grafana/pyroscope:1.21.1
     container_name: pyroscope
     labels:
       - "service.type=instrumentation"
@@ -110,7 +110,7 @@ services:
       - "4040:4040"
 
   tempo:
-    image: grafana/tempo:2.9.0
+    image: grafana/tempo:2.10.8
     container_name: tempo
     labels:
       - "service.type=instrumentation"

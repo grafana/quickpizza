@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.16.2
+    image: grafana/alloy:v1.19.2
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -61,7 +61,7 @@ services:
         condition: service_healthy
 
   quickpizza-db:
-    image: postgres:18.1
+    image: postgres:18.6
     container_name: quickpizza-db
     labels:
       - "service.type=database"
