@@ -22,9 +22,6 @@ export default function () {
   // instead of every VU hammering the login endpoint as the same "default" account.
   const user = users[(exec.vu.idInTest - 1) % users.length];
 
-  // The CSRF check on this endpoint only applies when logging in with
-  // ?set_cookie (browser session flow); a plain API/token login like this
-  // one doesn't need a CSRF token at all.
   const loginData = {
     username: user.username,
     password: user.password,
