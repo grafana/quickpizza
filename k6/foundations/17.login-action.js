@@ -22,20 +22,14 @@ export default function () {
   // instead of every VU hammering the login endpoint as the same "default" account.
   const user = users[(exec.vu.idInTest - 1) % users.length];
 
-  let res;
-  res = http.post(`${BASE_URL}/api/csrf-token`, null, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  check(res, { "csrf-token status is 200": (res) => res.status === 200 });
-
+  // The CSRF check on this endpoint only applies when logging in with
+  // ?set_cookie (browser session flow); a plain API/token login like this
+  // one doesn't need a CSRF token at all.
   const loginData = {
     username: user.username,
     password: user.password,
-    csrf: res.cookies.csrf_token[0].value,
   };
-  res = http.post(
+  let res = http.post(
     `${BASE_URL}/api/users/token/login`,
     JSON.stringify(loginData),
     {
