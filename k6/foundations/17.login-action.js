@@ -1,5 +1,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { SharedArray } from "k6/data";
+import exec from "k6/execution";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
 
@@ -8,7 +10,15 @@ export const options = {
   duration: "5s",
 };
 
+const users = new SharedArray("all users", function () {
+  return JSON.parse(open("./data/users.json")).users;
+});
+
 export default function () {
+  // Each VU logs in as a different user, like real, distinct users would,
+  // instead of every VU hammering the login endpoint as the same "default" account.
+  const user = users[(exec.vu.idInTest - 1) % users.length];
+
   let res;
   res = http.post(`${BASE_URL}/api/csrf-token`, null, {
     headers: {
@@ -18,8 +28,8 @@ export default function () {
   check(res, { "csrf-token status is 200": (res) => res.status === 200 });
 
   const loginData = {
-    username: "default",
-    password: "12345678",
+    username: user.username,
+    password: user.password,
     csrf: res.cookies.csrf_token[0].value,
   };
   res = http.post(
