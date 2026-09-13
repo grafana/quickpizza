@@ -6,8 +6,11 @@ import exec from "k6/execution";
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3333";
 
 export const options = {
-  vus: 5,
+  vus: 50,
   duration: "5s",
+  thresholds: {
+    http_req_failed: ["rate==0"],
+  },
 };
 
 const users = new SharedArray("all users", function () {
