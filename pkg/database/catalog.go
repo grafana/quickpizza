@@ -57,7 +57,7 @@ func NewCatalog(connString string) (*Catalog, error) {
 	c := &Catalog{
 		db:           db,
 		fixedPizzas:  envInt("QUICKPIZZA_DB_FIXED_PIZZAS", 100),
-		fixedUsers:   envInt("QUICKPIZZA_DB_FIXED_USERS", 10),
+		fixedUsers:   envInt("QUICKPIZZA_DB_FIXED_USERS", 200),
 		fixedRatings: envInt("QUICKPIZZA_DB_FIXED_RATINGS", 10),
 		maxPizzas:    envInt("QUICKPIZZA_DB_MAX_PIZZAS", 5000),
 		maxUsers:     envInt("QUICKPIZZA_DB_MAX_USERS", 5000),
