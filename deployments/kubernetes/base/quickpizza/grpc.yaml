@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: quickpizza
-          image: ghcr.io/grafana/quickpizza-local:0.15.28
+          image: ghcr.io/grafana/quickpizza-local:0.15.29
           ports:
             - name: grpc
               containerPort: 3334
