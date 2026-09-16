@@ -4,7 +4,7 @@ import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
 
 function setupFaro() {
-	fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/config`)
+	return fetch(`${PUBLIC_BACKEND_ENDPOINT}/api/config`)
 		.then((data) => data.json())
 		.then((config) => {
 			const url = config.faro_url;
@@ -71,4 +71,10 @@ function setupFaro() {
 		});
 }
 
-setupFaro();
+// SvelteKit awaits `init` before mounting the app or running any route `load` functions,
+// so this guarantees Faro's TracingInstrumentation has patched fetch/XHR before the app
+// issues its own requests (e.g. admin login, tools, quotes). The /api/config request
+// itself can never be traced, since it's what delivers Faro's own collector URL.
+export async function init() {
+	await setupFaro();
+}
