@@ -45,14 +45,14 @@ variable "quickpizza_enforce_image_digest" {
 }
 
 variable "quickpizza_image" {
-  default     = "ghcr.io/grafana/quickpizza-local:0.15.29@sha256:47fbd7b4df1c36f922cc0af8c5455ab5d91e4d649aa929de938813d7f4504e62"
+  default     = "ghcr.io/grafana/quickpizza-local:0.15.30@sha256:88aaa6d7df57d036744c65d794d7f6872cd8316c47f7f5d39e31c27db580febf"
   description = "The Image to use for the QuickPizza Demo Application. Must use tag@sha256:digest format when quickpizza_enforce_image_digest is true."
   nullable    = false
   type        = string
 }
 
 variable "quickpizza_image_version" {
-  default     = "0.15.29"
+  default     = "0.15.30"
   description = "The version of the QuickPizza image. Must match the tag in quickpizza_image when quickpizza_enforce_image_digest is true."
   nullable    = false
   type        = string
