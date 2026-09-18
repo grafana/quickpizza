@@ -181,3 +181,4 @@ grep -rn "quickpizza-local:" . --include="*.yaml" --include="*.yml" --include="*
 ```
 
 Confirm all occurrences show the new version. The `docker_publish.yaml` workflow is exempt — it derives the version dynamically from git release tags.
+- Security issues should be reported via [Grafana's security issue reporting page](https://grafana.com/legal/report-a-security-issue/) and not directly in this repository.
