@@ -1,7 +1,7 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-package runtime // import "go.opentelemetry.io/contrib/instrumentation/runtime"
+package runtime
 
 import (
 	"context"
@@ -34,6 +34,10 @@ type Producer struct {
 var _ metric.Producer = (*Producer)(nil)
 
 // NewProducer creates a Producer which provides precomputed histogram metrics from the go runtime.
+//
+// Metrics emitted by NewProducer include:
+//
+//	go.schedule.duration    s             The time goroutines have spent in the scheduler in a runnable state before actually running.
 func NewProducer(opts ...ProducerOption) *Producer {
 	c := newProducerConfig(opts...)
 	return &Producer{
@@ -56,7 +60,7 @@ func (p *Producer) Produce(context.Context) ([]metricdata.ScopeMetrics, error) {
 		{
 			Scope: instrumentation.Scope{
 				Name:    ScopeName,
-				Version: Version(),
+				Version: Version,
 			},
 			Metrics: []metricdata.Metrics{
 				{
@@ -101,8 +105,8 @@ func convertRuntimeHistogram(runtimeHist *metrics.Float64Histogram, ts time.Time
 		count += c
 		// This computed sum is an underestimate, since it assumes each
 		// observation happens at the bucket's lower bound.
-		if i > 0 && count != 0 {
-			sum += bounds[i-1] * float64(count)
+		if i > 0 && c != 0 {
+			sum += bounds[i-1] * float64(c)
 		}
 	}
 
