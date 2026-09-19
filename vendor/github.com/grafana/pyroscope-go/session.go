@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/grafana/pyroscope-go/godeltaprof"
-	"github.com/grafana/pyroscope-go/internal/labelset"
+	"github.com/grafana/pyroscope-go/internal/semconv"
 	"github.com/grafana/pyroscope-go/upstream"
 )
 
@@ -32,12 +32,13 @@ type Session struct {
 	// these things do change:
 	memBuf *bytes.Buffer
 
-	goroutinesBuf *bytes.Buffer
-	mutexBuf      *bytes.Buffer
-	blockBuf      *bytes.Buffer
+	goroutinesBuf    *bytes.Buffer
+	goroutineLeakBuf *bytes.Buffer
+	mutexBuf         *bytes.Buffer
+	blockBuf         *bytes.Buffer
 
 	lastGCGeneration uint32
-	appName          string
+	appNames         semconv.AppNames
 	startTime        time.Time
 
 	deltaBlock *godeltaprof.BlockProfiler
@@ -88,62 +89,46 @@ func NewSession(c SessionConfig) (*Session, error) {
 		c.UploadRate = math.MaxInt64
 	}
 
-	appName, err := mergeTagsWithAppName(c.AppName, newSessionID(), c.Tags)
+	appNames, err := semconv.MergeTagsWithAppName(c.AppName, newSessionID().String(), c.Tags)
 	if err != nil {
 		return nil, err
 	}
 
+	// Warn if goroutine leak profiling is requested but not available.
+	// The goroutineleak profile requires Go 1.26+ with GOEXPERIMENT=goroutineleakprofile.
+	for _, pt := range c.ProfilingTypes {
+		if pt == ProfileGoroutineLeak {
+			if pprof.Lookup("goroutineleak") == nil {
+				c.Logger.Infof("goroutine leak profiling requested but not available: " +
+					"build with GOEXPERIMENT=goroutineleakprofile (requires Go 1.26+)")
+			}
+
+			break
+		}
+	}
+
 	ps := &Session{
-		upstream:      c.Upstream,
-		appName:       appName,
-		profileTypes:  c.ProfilingTypes,
-		disableGCRuns: c.DisableGCRuns,
-		uploadRate:    c.UploadRate,
-		stopCh:        make(chan struct{}),
-		flushCh:       make(chan *flush),
-		logger:        c.Logger,
-		memBuf:        &bytes.Buffer{},
-		goroutinesBuf: &bytes.Buffer{},
-		mutexBuf:      &bytes.Buffer{},
-		blockBuf:      &bytes.Buffer{},
+		upstream:         c.Upstream,
+		appNames:         appNames,
+		profileTypes:     c.ProfilingTypes,
+		disableGCRuns:    c.DisableGCRuns,
+		uploadRate:       c.UploadRate,
+		stopCh:           make(chan struct{}),
+		flushCh:          make(chan *flush),
+		logger:           c.Logger,
+		memBuf:           &bytes.Buffer{},
+		goroutinesBuf:    &bytes.Buffer{},
+		goroutineLeakBuf: &bytes.Buffer{},
+		mutexBuf:         &bytes.Buffer{},
+		blockBuf:         &bytes.Buffer{},
 
 		deltaBlock: godeltaprof.NewBlockProfiler(),
 		deltaMutex: godeltaprof.NewMutexProfiler(),
 		deltaHeap:  godeltaprof.NewHeapProfiler(),
-		cpu:        newCPUProfileCollector(appName, c.Upstream, c.Logger, c.UploadRate),
+		cpu:        newCPUProfileCollector(appNames.SDK, c.Upstream, c.Logger, c.UploadRate),
 	}
 
 	return ps, nil
-}
-
-// mergeTagsWithAppName validates user input and merges explicitly specified
-// tags with tags from app name.
-//
-// App name may be in the full form including tags (app.name{foo=bar,baz=qux}).
-// Returned application name is always short, any tags that were included are
-// moved to tags map. When merged with explicitly provided tags (config/CLI),
-// last take precedence.
-//
-// App name may be an empty string. Tags must not contain reserved keys,
-// the map is modified in place.
-func mergeTagsWithAppName(appName string, sid sessionID, tags map[string]string) (string, error) {
-	k, err := labelset.Parse(appName)
-	if err != nil {
-		return "", err
-	}
-	for tagKey, tagValue := range tags {
-		if labelset.IsLabelNameReserved(tagKey) {
-			continue
-		}
-		err = labelset.ValidateLabelName(tagKey)
-		if err != nil {
-			return "", err
-		}
-		k.Add(tagKey, tagValue)
-	}
-	k.Add(sessionIDLabelName, sid.String())
-
-	return k.Normalized(), nil
 }
 
 // revive:disable-next-line:cognitive-complexity complexity is fine
@@ -249,6 +234,16 @@ func (ps *Session) isGoroutinesEnabled() bool {
 	return false
 }
 
+func (ps *Session) isGoroutineLeakEnabled() bool {
+	for _, t := range ps.profileTypes {
+		if t == ProfileGoroutineLeak {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (ps *Session) reset(startTime, endTime time.Time) {
 	ps.logger.Debugf("profiling session reset %s", startTime.String())
 	// first reset should not result in an upload
@@ -269,7 +264,7 @@ func (ps *Session) uploadData(startTime, endTime time.Time) {
 				return
 			}
 			ps.upstream.Upload(&upstream.UploadJob{
-				Name:            ps.appName,
+				Name:            ps.appNames.SDK,
 				StartTime:       startTime,
 				EndTime:         endTime,
 				SpyName:         "gospy",
@@ -286,6 +281,30 @@ func (ps *Session) uploadData(startTime, endTime time.Time) {
 				},
 			})
 			ps.goroutinesBuf.Reset()
+		}
+	}
+
+	if ps.isGoroutineLeakEnabled() {
+		p := pprof.Lookup("goroutineleak")
+		if p != nil {
+			err := p.WriteTo(ps.goroutineLeakBuf, 0)
+			if err != nil {
+				ps.logger.Errorf("failed to dump goroutine leak profile: %s", err)
+
+				return
+			}
+			ps.upstream.Upload(&upstream.UploadJob{
+				Name:             ps.appNames.SDK,
+				StartTime:        startTime,
+				EndTime:          endTime,
+				SpyName:          "gospy",
+				Units:            "goroutines",
+				AggregationType:  "average",
+				Format:           upstream.FormatPprof,
+				Profile:          copyBuf(ps.goroutineLeakBuf.Bytes()),
+				SampleTypeConfig: sampleTypeConfigGoroutineLeak,
+			})
+			ps.goroutineLeakBuf.Reset()
 		}
 	}
 
@@ -324,7 +343,7 @@ func (ps *Session) dumpHeapProfile(startTime time.Time, endTime time.Time) {
 		}
 		curMemBytes := copyBuf(ps.memBuf.Bytes())
 		job := &upstream.UploadJob{
-			Name:             ps.appName,
+			Name:             ps.appNames.Godeltaprof,
 			StartTime:        startTime,
 			EndTime:          endTime,
 			SpyName:          "gospy",
@@ -353,7 +372,7 @@ func (ps *Session) dumpMutexProfile(startTime time.Time, endTime time.Time) {
 	}
 	curMutexBuf := copyBuf(ps.mutexBuf.Bytes())
 	job := &upstream.UploadJob{
-		Name:             ps.appName,
+		Name:             ps.appNames.Godeltaprof,
 		StartTime:        startTime,
 		EndTime:          endTime,
 		SpyName:          "gospy",
@@ -379,7 +398,7 @@ func (ps *Session) dumpBlockProfile(startTime time.Time, endTime time.Time) {
 	}
 	curBlockBuf := copyBuf(ps.blockBuf.Bytes())
 	job := &upstream.UploadJob{
-		Name:             ps.appName,
+		Name:             ps.appNames.Godeltaprof,
 		StartTime:        startTime,
 		EndTime:          endTime,
 		SpyName:          "gospy",
