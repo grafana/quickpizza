@@ -61,7 +61,7 @@ resource "kubernetes_stateful_set_v1" "postgres_statefulset" {
       }
       spec {
         container {
-          image = "postgres:18.3@sha256:7e32e9833a6fb1c92c32552794cb6ed569d51b445a54907d35fc112ef39684db"
+          image = "postgres:18.4@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636"
           name  = "postgres"
           
           args = [
