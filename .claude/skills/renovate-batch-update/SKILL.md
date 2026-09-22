@@ -18,6 +18,11 @@ only 13 merged cleanly — the other 18 were dropped purely on `git merge` confl
 Step 2 for the mitigations this taught, and "Future improvement" at the bottom for the
 real fix (bump via `go get`/`npm install` instead of merging generated diffs).
 
+**Correction from the same run:** PR #544 included PR #487 ("update container images"),
+which it should never have touched — the observability stack images (Alloy, LGTM, etc.)
+are upgraded manually as a deliberate step when deciding whether to adopt new stack
+features, not batched. Step 1 now excludes this group entirely.
+
 ## Step 0: Sanity check
 
 - Confirm working tree is clean (`git status`). If not, stop and tell the user — do not
@@ -52,6 +57,27 @@ a security PR touch the same package (check titles — e.g. `npm-dependencies` a
 `security-pkgweb-@sveltejskit` both bump `@sveltejs/kit`), merge the **grouped** one first
 and skip the narrower one — it's superseded, and merging both just guarantees a conflict.
 This was the single biggest cause of drops in the first run.
+
+**Exclude the observability-stack container images group entirely — never merge it as
+part of a batch.** These are the Grafana observability stack images (Alloy, LGTM, etc.)
+used in the demo/workshop compose and Terraform setups, and they get upgraded manually
+while deciding whether to adopt new stack features — a batch PR silently including them
+defeats that review. Identify this group from `renovate.json` itself rather than
+hardcoding a name, since the groupName could change:
+
+```bash
+# Find the packageRule whose matchManagers is exactly docker-compose+terraform, and
+# read its groupName (currently "container images" per renovate.json).
+```
+
+Read `renovate.json`'s `packageRules`, find the rule matching
+`matchManagers: ["docker-compose", "terraform"]`, and take its `groupName`. Exclude any
+PR from Step 1 whose title contains that groupName — this covers both the regular and
+`(major)` variants Renovate splits out (e.g. PR #487 "update container images" and PR
+#500 "update container images (major)"). Don't merge these, don't risk-assess them,
+don't mention them in the batch PR body at all — they're out of scope for this skill,
+not a drop. Note in your summary to the user that N container-image PRs were left
+untouched by design, so it's clear this wasn't an oversight.
 
 ## Step 2: Build the batch branch
 
