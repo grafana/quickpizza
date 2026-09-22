@@ -1,16 +1,21 @@
 ---
 name: renovate-batch-update
-description: Consolidate all open Renovate PRs on quickpizza into one tested, reviewable PR. Fetches every open renovate/* branch, merges as many as will merge cleanly into a single batch branch, risk-assesses the survivors, builds + runs the k6 suite, and opens one draft PR to main summarizing what's in and what got dropped.
+description: Consolidate all open Renovate PRs on quickpizza into tested, reviewable PRs. Splits GitHub Actions bumps into their own PR (validated by their own CI run) from code/library bumps (validated by local build + k6), merges as many as will merge cleanly into each batch branch, risk-assesses the survivors, and opens draft PRs summarizing what's in and what got dropped.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # /renovate-batch-update — Consolidated Dependency Update
 
-Turns the weekly pile of individual Renovate PRs on `grafana/quickpizza` into a single
-tested PR, instead of reviewing/merging each one by hand.
+Turns the weekly pile of individual Renovate PRs on `grafana/quickpizza` into tested
+PRs, instead of reviewing/merging each one by hand.
 
-**Boundary:** this skill opens a **draft PR to `main`**. It never merges to `main` itself —
+**Boundary:** this skill opens **draft PRs to `main`**. It never merges to `main` itself —
 that's a shared-branch action and stays a human call.
+
+**This produces two separate PRs, not one:** a code/dependency batch (Go modules, npm
+packages, Docker base image tags, security patches) and, only if any exist, a GitHub
+Actions batch. See "Why GitHub Actions bumps get their own PR" below — this isn't
+optional risk-tiering, it's a hard split.
 
 **Known limitation (from the 2026-09-22 dry run, PR #544):** with 29 open Renovate PRs,
 only 13 merged cleanly — the other 18 were dropped purely on `git merge` conflicts in
@@ -23,6 +28,19 @@ which it should never have touched — the observability stack images (Alloy, LG
 are upgraded manually as a deliberate step when deciding whether to adopt new stack
 features, not batched. Step 1 now excludes this group entirely.
 
+**Second correction, same run:** PR #544 also included four GitHub Actions bumps
+(`actions/setup-go`, `actions/setup-node`, `actions/github-script`, `actions/checkout`
+digest). One of them — `actions/setup-go` v5→v7 — broke the PR's own `runner-job` CI
+check: `setup-go` v6.0.0 force-sets `GOTOOLCHAIN=local`, which stops `go` from
+auto-downloading a toolchain newer than what's pre-installed on the runner, and this
+repo's CI installs `goimports@latest` without pinning a Go version. Confirmed by testing
+an unrelated throwaway branch off `main` (no batch content) side-by-side: same workflow
+file *before* the setup-go bump ran fine (auto-downloaded the needed toolchain); the
+batch branch *with* the bump failed at that exact step. Local `make build` + k6 can't
+catch this class of failure — it's a change to the CI workflow's own behavior, only
+observable by that workflow actually running. See "Why GitHub Actions bumps get their
+own PR" below.
+
 ## Step 0: Sanity check
 
 - Confirm working tree is clean (`git status`). If not, stop and tell the user — do not
@@ -33,6 +51,24 @@ features, not batched. Step 1 now excludes this group entirely.
   container (`docker ps --filter publish=3333`) bound to it already. If so, **ask the user**
   before touching it — don't kill an unrelated process. If they agree, `docker stop <name>`
   before Step 4 and `docker start <name>` again once k6 finishes, whether it passed or not.
+
+## Why GitHub Actions bumps get their own PR
+
+A GitHub Actions version bump changes the CI workflow itself — the thing that's
+supposed to validate the batch. This skill's own testing (`make build` + k6) runs
+locally and has no way to exercise workflow-level behavior; the *only* real test for
+an Actions bump is that PR's own CI run. Two consequences:
+
+1. **Never mix Actions bumps into the code/dependency batch.** If a bad Actions bump
+   breaks CI, it either masks a real code regression in the same batch (both show up as
+   "CI failed," can't tell which) or gets masked by one. Keep them in a PR that contains
+   *only* Actions bumps, so a CI failure there is unambiguous.
+2. **The acceptance bar for the Actions batch is its own CI run passing, not a local
+   check.** Push it and look at its checks — don't try to predict the outcome locally.
+   It's fine, expected even, for that first push to fail; that failure is the actual
+   signal this batch exists to surface. Report it plainly in the PR body rather than
+   fixing it silently — the fix (e.g. pinning `go-version` in `ci.yaml`) is a `main`-level
+   CI hardening change, out of scope for a dependency-bump PR.
 
 ## Step 1: Collect open Renovate PRs
 
@@ -79,15 +115,29 @@ don't mention them in the batch PR body at all — they're out of scope for this
 not a drop. Note in your summary to the user that N container-image PRs were left
 untouched by design, so it's clear this wasn't an oversight.
 
-## Step 2: Build the batch branch
+**Split off GitHub Actions bumps into their own batch — filter by the `github-actions`
+label**, which Renovate already applies to these PRs (from `presets/github-actions` in
+`renovate.json`'s `extends`), rather than matching branch names or titles. Everything
+from here on (Steps 2-6) runs **twice**: once for the code/dependency PRs, once for the
+Actions PRs, each on its own branch, each as its own PR. See "Why GitHub Actions bumps
+get their own PR" above for why this isn't optional. Within the Actions set, dedupe the
+same way as Step 1's grouped/security overlap check — e.g. a digest-only pin and a
+major-version bump for the *same* action (like `actions/checkout`) will conflict with
+each other; keep the lower-risk one and drop the other as superseded, don't merge both.
+
+## Step 2: Build the batch branch(es)
 
 ```bash
+# Code/dependency batch:
 git checkout -b renovate-batch/$(date +%Y-%m-%d) origin/main
+# GitHub Actions batch, if any Actions PRs exist (separate branch, separate PR later):
+git checkout -b renovate-actions-batch/$(date +%Y-%m-%d) origin/main
 ```
 
-Merge order: lowest-risk first (security-patch, security-minor by severity LOW), then
-grouped patch/minor PRs, then GitHub Actions bumps, then major-version bumps last (majors
-are the first candidates to drop if later steps fail).
+Merge order within the code/dependency batch: lowest-risk first (security-patch,
+security-minor by severity LOW), then grouped patch/minor PRs, then major-version bumps
+last (majors are the first candidates to drop if later steps fail). GitHub Actions PRs
+never enter this branch — see the split-off step above.
 
 ```bash
 git merge --no-ff origin/<headRefName> -m "merge: <PR title> (#<number>)"
@@ -110,20 +160,30 @@ just unmerged.
 
 Assessing risk before merging wastes calls on PRs that just get dropped as conflicts —
 in the first run that would have been ~60% wasted effort. Risk-assess after Step 2, using
-only the PRs that are actually in the batch branch.
+only the PRs that are actually in each batch branch.
 
-Route by ecosystem — one skill doesn't cover everything:
+For the **code/dependency batch**, route by ecosystem — one skill doesn't cover everything:
 - **Go/npm code libraries** (module/package version bumps): `grafana-engineering:dependency-bump-context`
-- **Docker/container image tags**: `grafana-engineering:analyze-image-dep-bump-pr`
-- **GitHub Actions version bumps** (`actions/checkout`, `actions/setup-go`, etc.): neither
-  skill covers this. Do a quick manual check instead — read the action's release notes for
-  the target version (`gh release view <version> -R <owner>/<repo>`) and note anything
-  breaking; don't skip the row, just don't force-fit a skill that doesn't apply.
+- **Docker/container image tags** (e.g. the Dockerfile base image group): `grafana-engineering:analyze-image-dep-bump-pr`
+
+For the **GitHub Actions batch**, there's no skill that covers this — do the manual check
+for real, don't just note that one should happen. For each action being bumped, actually
+read its release notes between the current and target version
+(`gh api repos/<owner>/<repo>/releases --paginate` or `gh release view <version> -R
+<owner>/<repo>`) and look specifically for **breaking changes to the action's runtime
+behavior**, not just its own dependency bumps — version-number size alone doesn't tell
+you this. This is exactly the check that would have caught `actions/setup-go` v6.0.0's
+`GOTOOLCHAIN=local` change before it broke CI; skipping it or treating it as a formality
+is how that regression got through the first time.
 
 Build a table: PR #, title, ecosystem, update type (major/minor/patch/security), severity
 (if security), risk verdict. This table becomes the batch PR body — don't discard it.
 
 ## Step 4: Build + test the batch
+
+This step applies to the **code/dependency batch only**. The Actions batch has no local
+build/test step — its own CI run on the pushed PR is the test (see "Why GitHub Actions
+bumps get their own PR"). Skip straight to Step 6 for it.
 
 ```bash
 make build
@@ -178,9 +238,10 @@ test failure), separate from the ones that made it in. Group conflict-drops by r
 (e.g. "conflicted with the otel bumps already in the batch") rather than listing them as
 unexplained failures — see Step 2's note on why this is expected, not a red flag.
 
-## Step 6: Push and open the draft PR
+## Step 6: Push and open the draft PR(s)
 
-Only after Step 4 succeeds (or partially succeeds with drops recorded):
+For the code/dependency batch, only after Step 4 succeeds (or partially succeeds with
+drops recorded):
 
 ```bash
 git push -u origin renovate-batch/$(date +%Y-%m-%d)
@@ -200,8 +261,39 @@ EOF
 )"
 ```
 
-Tell the user the PR is a **draft** and summarize what's in/out — do not mark it ready
-for review or merge it yourself.
+For the Actions batch, push and open it unconditionally — there's no local pass/fail
+gate for it, its own CI run is the test:
+
+```bash
+git push -u origin renovate-actions-batch/$(date +%Y-%m-%d)
+gh pr create --draft --title "chore(deps): batch GitHub Actions update $(date +%Y-%m-%d)" --body "$(cat <<'EOF'
+Separate from the code/dependency batch — see "Why GitHub Actions bumps get their own PR"
+in the skill. This PR's own CI run is the test.
+
+## Included
+<table from Step 3>
+
+## Dropped
+<list from Step 5, if any>
+
+## Risk notes
+<anything found actually reading release notes in Step 3 — call out explicitly if a
+breaking runtime/behavior change was found, don't bury it in a version number>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
+```
+
+If the Actions batch's CI comes back red, don't silently fix it by dropping the
+offending PR and re-pushing — report which check failed and why in the PR body (edit
+it after the run, like the container-images and Actions corrections on PR #544/#546),
+and let the human decide whether to drop that PR from the batch or fix the CI config
+alongside it. That decision involves a `main`-level CI change, which is out of scope for
+this skill to make unilaterally.
+
+Tell the user both PRs are **drafts** and summarize what's in/out for each — do not mark
+either ready for review or merge them yourself.
 
 ## Step 7: Leave the original PRs alone
 
@@ -216,6 +308,9 @@ if the batch PR needs changes first.
 - If only one Renovate PR is open, still run the full process (risk assessment +
   build/test) rather than special-casing "just merge it" — the value here is the
   tested draft PR, not just the batching.
+- If either the code batch or the Actions batch ends up empty after Step 1's filtering
+  (e.g. no open Actions PRs this run), just skip that batch's PR entirely — don't open
+  an empty one.
 - This skill is safe to re-run: each run creates a dated branch, so re-running after a
   previous batch PR is still open just makes a second batch of whatever's newly opened.
   Since most drops are conflicts among *un-merged* PRs, re-running after the current
