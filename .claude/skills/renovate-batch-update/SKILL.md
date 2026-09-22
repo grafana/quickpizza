@@ -41,6 +41,14 @@ catch this class of failure — it's a change to the CI workflow's own behavior,
 observable by that workflow actually running. See "Why GitHub Actions bumps get their
 own PR" below.
 
+**Follow-up:** PR #547 fixed this specific trigger on `main` — `ci.yaml` now pins
+`go-version-file: go.mod` instead of trusting the runner's pre-installed Go, so a future
+`setup-go` major bump can't reproduce *this* exact failure. That doesn't retire the
+split, though: the reason for it is structural (only a workflow's own CI run can
+validate a change to that workflow, full stop), not specific to Go toolchains. The next
+Actions bump that breaks something will likely be unrelated to Go entirely, and the
+split is what keeps that failure attributable instead of buried in a mixed batch.
+
 ## Step 0: Sanity check
 
 - Confirm working tree is clean (`git status`). If not, stop and tell the user — do not
