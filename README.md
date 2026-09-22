@@ -1,5 +1,7 @@
 # QuickPizza
 
+<!-- CI test: verifying runner-job Go version failure is a runner-image issue, not a PR-content one. Safe to close/revert. -->
+
 ![QuickPizza screenshot](./docs/images/quickpizza-screenshot.png)
 
 - [What is QuickPizza? 🍕🍕🍕](#what-is-quickpizza-)
