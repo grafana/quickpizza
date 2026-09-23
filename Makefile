@@ -50,6 +50,10 @@ format-web: # Format frontend code
 format-check: # Check Go code formatting
 	@out=$$(goimports -l $(GO_SOURCES)) && echo "$$out" && test -z "$$out"
 
+.PHONY: test-go
+test-go: # Run Go unit tests
+	go test ./... -count=1
+
 .PHONY: docker-build
 docker-build: # Build Docker image
 	docker build . -t grafana/quickpizza-local:latest
