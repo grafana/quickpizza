@@ -14,7 +14,7 @@ RUN npm install && \
     npm run build
 
 # golang:1.26-alpine
-FROM golang:1.26-alpine@sha256:f23e8b227fb4493eabe03bede4d5a32d04092da71962f1fb79b5f7d1e6c2a17f AS builder
+FROM golang:1.27-alpine@sha256:4cb7ac979db5fcc41cae44b2227ba5ab8a51e8807f40d9ba4dee20a0ad960b5b AS builder
 
 WORKDIR /app
 COPY . ./
