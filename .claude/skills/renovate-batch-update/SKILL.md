@@ -30,8 +30,8 @@ Actions bumps get their own PR" below.
 ## Why GitHub Actions bumps get their own PR
 
 A GitHub Actions version bump changes the CI workflow itself — the thing meant to
-validate the batch. This skill's local testing (`make build` + k6) can't exercise
-workflow-level behavior at all; only that PR's own CI run can.
+validate the batch. This skill's local testing (`make build` + `make test-go` + k6)
+can't exercise workflow-level behavior at all; only that PR's own CI run can.
 
 1. **Never mix Actions bumps into the code/dependency batch.** A CI-breaking Actions
    change and a real code regression both just show up as "CI failed" if they're in
@@ -156,7 +156,17 @@ If the build fails, drop the most recently merged high-risk (major) update via `
 revert -m 1 <merge-commit>` and retry, up to twice. If it still fails, stop and report
 the failure without opening a PR — don't keep reverting blindly.
 
-If the build succeeds, run the app and the k6 suite against it:
+If the build succeeds, run the Go unit tests next — they're fast and catch regressions
+in pure logic (e.g. `pkg/password`'s bcrypt round-trip) that a black-box k6 test might
+not exercise:
+
+```bash
+make test-go
+```
+
+Apply the same drop-and-retry logic on failure as the build step above.
+
+If that succeeds, run the app and the k6 suite against it:
 
 ```bash
 ./bin/quickpizza > /tmp/qp_batch.log 2>&1 &
@@ -200,6 +210,7 @@ gh pr create --draft --title "chore(deps): batch renovate update $(date +%Y-%m-%
 
 ## Testing
 - `make build`: <pass/fail>
+- `make test-go`: <pass/fail>
 - `./k6/run-tests.sh`: <pass/fail, note any skipped/dropped-due-to-failure items>
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
