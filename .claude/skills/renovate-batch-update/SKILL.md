@@ -1,7 +1,6 @@
 ---
 name: renovate-batch-update
 description: Consolidate all open Renovate PRs on quickpizza into tested, reviewable PRs. Splits GitHub Actions bumps into their own PR (validated by their own CI run) from code/library bumps (validated by local build + k6), merges as many as will merge cleanly into each batch branch, risk-assesses the survivors, and opens draft PRs summarizing what's in and what got dropped.
-allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # /renovate-batch-update — Consolidated Dependency Update
