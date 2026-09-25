@@ -97,6 +97,13 @@ services:
     # privileged is required for the eBPF probes OBI attaches.
     pid: "service:quickpizza"
     privileged: true
+    volumes:
+      # Excludes /metrics and /debug/pprof/* from OBI's captured spans/metrics - these are
+      # already excluded from the app's own OTel SDK by router structure (see
+      # pkg/http/http.go's isInternalRoute), but that has no effect on OBI, which captures
+      # HTTP traffic via eBPF independently of the app's routing. See obi.yaml's own comment.
+      - "./deployments/docker-compose/grafana-local-stack/obi.yaml:/obi-config.yaml:Z"
+    command: ["-config", "/obi-config.yaml"]
     environment:
       OTEL_EBPF_OPEN_PORT: "3333"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318

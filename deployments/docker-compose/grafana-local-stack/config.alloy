@@ -327,7 +327,15 @@ otelcol.connector.spanmetrics "default" {
 // https://grafana.com/docs/tempo/latest/metrics-from-traces/service_graphs/enable-service-graphs/
 otelcol.connector.servicegraph "default" {
   metrics_flush_interval = "10s"
-  dimensions = ["http.method", "http.target"]
+  // "http.method"/"http.target" are the OLD HTTP semantic conventions. Both this app's own
+  // otelhttp-based SDK spans (in "sdk" mode) and OBI's eBPF-captured spans (in "obi" mode)
+  // use the NEW conventions ("http.request.method"/"url.path") - verified live for OBI by
+  // inspecting a captured "POST /api/pizza" span's attributes; verified for the SDK side by
+  // checking the vendored otelhttp/internal/semconv package. The old names were never
+  // present on either source with the currently vendored/pulled versions, so this dimension
+  // config predates both and has likely been silently producing spans with no
+  // http_method/http_target labels in either mode. See docs/otel.md.
+  dimensions = ["http.request.method", "url.path"]
   // TODO:  Enable when Alloy supports `exponential_histogram_max_size`
   // enable `exponential_histogram_max_size` option to send native histogram metrics
   // exponential_histogram_max_size = 16
