@@ -51,14 +51,21 @@ datasources:
         datasourceUid: "loki"
       # traces to profiles configuration
       # https://grafana.com/docs/grafana-cloud/connect-externally-hosted/data-sources/tempo/configure-tempo-data-source/#trace-to-profiles
-      tracesToProfiles:
-        datasourceUid: "pyroscope"
-        tags:
-          - key: "service.name"
-            value: "service_name"
-          - key: "service.namespace"
-            value: "service_namespace"
-        profileTypeId: "process_cpu:cpu:nanoseconds:cpu:nanoseconds"
+      #
+      # Disabled by default: the app only tags spans/profiles for this correlation when
+      # QUICKPIZZA_TRACES_LINK_PROFILES is set (see pkg/http/otel.go and docs/otel.md).
+      # Uncomment this block if you set that env var and want to try the "Profiles for this
+      # span" button - see docs/otel.md for why it doesn't reliably show per-request data.
+      # tracesToProfiles:
+      #   datasourceUid: "pyroscope"
+      #   tags:
+      #     - key: "service.name"
+      #       value: "service_name"
+      #     - key: "service.namespace"
+      #       value: "service_namespace"
+      #     - key: "pyroscope.profile.id"
+      #       value: "span_id"
+      #   profileTypeId: "process_cpu:cpu:nanoseconds:cpu:nanoseconds"
   - name: Pyroscope
     type: "phlare"
     uid: pyroscope
