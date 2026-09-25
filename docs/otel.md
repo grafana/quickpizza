@@ -38,19 +38,13 @@ In the microservices compose stack, `public-api` calls `recommendations`, which 
 
 ### Known limitation: span-level profile correlation
 
-`otel-profiling-go` sets two pprof labels on CPU samples: `span_name` (the local root span's name, e.g. `POST /api/pizza`) and `span_id` (that span's unique ID). The intent is for `span_id` to let a profile query narrow down to exactly the samples collected while one specific span was executing — that's what the `pyroscope.profile.id` → `span_id` tag mapping in the local Grafana stack's Tempo datasource (`deployments/docker-compose/grafana-local-stack/grafana/datasources/datasource.yaml`) is for.
+`otel-profiling-go` tags each CPU sample with two labels:
 
-In practice, only one of those two labels survives into a queryable Pyroscope label in this app's default deployment (pull-mode profiling, Alloy scraping `/debug/pprof` every 30s). Querying Pyroscope's label API directly confirms it:
+| Label | Identifies | Survives as a queryable Pyroscope label? |
+|---|---|---|
+| `span_name` | the route, e.g. `POST /api/pizza` (shared by *every* request to that route) | Yes |
+| `span_id` | one specific request | No (confirmed by querying Pyroscope's `LabelNames` API) |
 
-```bash
-curl -s -X POST http://localhost:4040/querier.v1.QuerierService/LabelNames \
-  -H "Content-Type: application/json" \
-  -d '{"start":<ms>,"end":<ms>,"matchers":["{service_name=\"public-api\"}"]}'
-```
+Tempo's "Profiles for this span" button is designed to filter by `span_id`, i.e. show only the samples from the one request you clicked. Since `span_id` doesn't survive, the button can only fall back to `span_name` — so it narrows a profile down to "this route", not "this specific request". Clicking it on two different `/api/pizza` requests shows the same route-level flame graph both times.
 
-returns `span_name` in the label set, but never `span_id`. So:
-
-- Enabling `QUICKPIZZA_TRACES_LINK_PROFILES` **does** let you narrow a profile down to a specific route (via `span_name`), which is still useful.
-- It does **not** currently give exact per-request/per-span isolation — clicking "Profiles for this span" on two different requests to the same route will show the same route-level flame graph, not two distinct ones.
-
-This is why the feature is opt-in rather than on by default: turning it on has a real, if partial, benefit, but documenting it as full span-to-profile correlation — which is what the button's name implies — would be misleading. The root cause (why `span_id`, a dynamic per-request pprof label, doesn't get indexed the same way `span_name` does) hasn't been tracked down to a specific Pyroscope/Alloy version or config flag yet; it may be a deliberate cardinality safeguard on Pyroscope's side (span IDs are unique per request, which would create unbounded label cardinality if indexed the same way as bounded labels like route names) rather than a bug. If you get to the bottom of it, or find a client/protocol combination where `span_id` does survive, update this section.
+So `QUICKPIZZA_TRACES_LINK_PROFILES` has a real but partial benefit (route-level filtering), not the full per-request correlation the button implies. Root cause not yet tracked down; if you find it, update this section.

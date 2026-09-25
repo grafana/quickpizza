@@ -84,7 +84,7 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_RECOMMENDATIONS_RETRIES` - Max retries for recommendations → catalog/copy calls (renamed from `QUICKPIZZA_RETRIES`).
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN` - Min backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MIN`).
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
-- `QUICKPIZZA_TRACES_LINK_PROFILES` - Opt-in, off by default. When truthy, wraps the tracer with `otelpyroscope.NewTracerProvider` (`pkg/http/otel.go`), which tags each local root span with a `pyroscope.profile.id` attribute and the matching pprof samples with a `span_id` label, for Tempo's "Profiles for this span" correlation. **Known limitation**: in this app's default local stack (Alloy pull-scraping `/debug/pprof`), `span_id` does not survive as a queryable Pyroscope label — confirmed by querying Pyroscope's `LabelNames` API directly, which returns `span_name` but not `span_id`. Enabling this only reliably narrows profiles down to the request's route (via `span_name`, which does survive); it does not currently give exact per-request span isolation. See `docs/otel.md` for the full explanation.
+- `QUICKPIZZA_TRACES_LINK_PROFILES` - See [docs/otel.md](docs/otel.md).
 
 ## Development Notes
 
