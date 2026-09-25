@@ -19,6 +19,8 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -26,6 +28,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -39,7 +42,10 @@ import (
 //     OTelRouteLabeler (adds the resolved chi route pattern as an http.route attribute) and
 //     LogTraceID (writes the trace ID into structured logs).
 //   - Registers Go runtime metrics (contrib/instrumentation/runtime) once, globally.
-func (t *OTelInstaller) installSDK(r chi.Router, serviceComponent string, res *resource.Resource, protocol string, extraOpts ...otelhttp.Option) error {
+func (t *OTelInstaller) installSDK(r chi.Router, serviceComponent string, extraOpts ...otelhttp.Option) error {
+	res := buildResource(serviceComponent)
+	protocol := otlpExporterProtocol()
+
 	ctx := context.Background()
 	var tp trace.TracerProvider
 	var mp *sdkmetric.MeterProvider
@@ -167,6 +173,87 @@ func createTraceProvider(ctx context.Context, endpoint *url.URL, otlpProtocol st
 		sdktrace.WithResource(resource),
 	)
 
+	return p, nil
+}
+
+// buildResource builds this service's OTel Resource attributes from QUICKPIZZA_OTEL_SERVICE_*
+// env vars plus the given component name.
+func buildResource(serviceComponent string) *resource.Resource {
+	// TODO: can leverage default OTEL_SERVICE_NAME, OTEL_RESOURCE_ATTRIBUTES env vars
+	serviceName, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAME")
+	if !ok {
+		serviceName = "quickpizza"
+	}
+	serviceNamespace, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAMESPACE")
+	if !ok {
+		serviceNamespace = "quickpizza"
+	}
+	serviceInstanceID, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID")
+	if !ok {
+		serviceInstanceID = "local"
+	}
+
+	// We discard the error here as it cannot possibly take place with the parameters we use.
+	res, _ := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(serviceName),
+			attribute.KeyValue{Key: "service.component", Value: attribute.StringValue(serviceComponent)},
+			attribute.KeyValue{Key: "service.namespace", Value: attribute.StringValue(serviceNamespace)},
+			attribute.KeyValue{Key: "service.instance.id", Value: attribute.StringValue(serviceInstanceID)},
+		),
+	)
+	return res
+}
+
+// otlpExporterProtocol reports OTEL_EXPORTER_OTLP_PROTOCOL, defaulting to "http/protobuf".
+func otlpExporterProtocol() string {
+	protocol, ok := os.LookupEnv("OTEL_EXPORTER_OTLP_PROTOCOL")
+	if !ok {
+		protocol = "http/protobuf"
+	}
+	return protocol
+}
+
+// createMetricProvider builds an OTLP metric exporter/provider for the given endpoint.
+func createMetricProvider(ctx context.Context, endpoint *url.URL, otlpProtocol string, resource *resource.Resource) (*sdkmetric.MeterProvider, error) {
+	if endpoint.Scheme != "http" && endpoint.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported scheme %q", endpoint.Scheme)
+	}
+
+	insecure := endpoint.Scheme == "http"
+
+	var exporter sdkmetric.Exporter
+	var err error
+
+	switch otlpProtocol {
+	case "grpc":
+		if insecure {
+			exporter, err = otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithEndpoint(endpoint.Host), otlpmetricgrpc.WithInsecure())
+		} else {
+			exporter, err = otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithEndpoint(endpoint.Host))
+		}
+	case "http/protobuf":
+		if insecure {
+			exporter, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint.Host), otlpmetrichttp.WithInsecure())
+		} else {
+			exporter, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint.Host))
+		}
+	default:
+		return nil, fmt.Errorf("unsupported protocol %q", otlpProtocol)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("new otlp metric exporter failed: %w", err)
+	}
+
+	metricReader := sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(5*time.Second))
+
+	var p = sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(metricReader),
+		sdkmetric.WithResource(resource),
+	)
 	return p, nil
 }
 
