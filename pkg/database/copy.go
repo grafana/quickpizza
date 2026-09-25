@@ -16,8 +16,8 @@ type Copy struct {
 	db *bun.DB
 }
 
-func NewCopy(connString string, enableQueryHook bool) (*Copy, error) {
-	db, err := initializeDB(connString, enableQueryHook)
+func NewCopy(connString string, enableOTelSpanQueryHook bool) (*Copy, error) {
+	db, err := initializeDB(connString, enableOTelSpanQueryHook)
 	if err != nil {
 		return nil, err
 	}

@@ -18,11 +18,11 @@ import (
 	"github.com/uptrace/bun/extra/bunotel"
 )
 
-// initializeDB opens the database connection and registers query hooks. enableQueryHook
+// initializeDB opens the database connection and registers query hooks. enableOTelSpanQueryHook
 // controls whether the bunotel OTel query hook is added - callers pass
 // qphttp.InstrumentDatabase() (false in "obi" mode, see its doc comment for why). The
 // slog logging hook is unconditional; it isn't part of the OTel/OBI split.
-func initializeDB(connString string, enableQueryHook bool) (*bun.DB, error) {
+func initializeDB(connString string, enableOTelSpanQueryHook bool) (*bun.DB, error) {
 	var db *bun.DB
 	if strings.HasPrefix(connString, "postgres://") {
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
@@ -50,7 +50,7 @@ func initializeDB(connString string, enableQueryHook bool) (*bun.DB, error) {
 		dbName = "quickpizza-database"
 	}
 	db.AddQueryHook(logging.NewBunSlogHook(slog.Default()))
-	if enableQueryHook {
+	if enableOTelSpanQueryHook {
 		db.AddQueryHook(bunotel.NewQueryHook(
 			bunotel.WithFormattedQueries(true),
 			bunotel.WithDBName(dbName),
