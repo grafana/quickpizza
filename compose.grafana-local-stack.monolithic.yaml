@@ -53,7 +53,8 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
       # sdk (default): this app's own OTel Go SDK instruments itself, as it always has.
       # obi: HTTP + business-logic traces and HTTP metrics are left for the OBI sidecar
-      # below (started with --profile obi) to capture instead. See docs/otel.md.
+      # below to capture instead - see the `obi:` service's own comment for the full
+      # command (this alone does nothing without also passing --profile obi).
       QUICKPIZZA_OTEL_INSTRUMENTATION_MODE: "${QUICKPIZZA_OTEL_INSTRUMENTATION_MODE:-sdk}"
       # Read by OBI (not by this app) from this container's own environment, to label the
       # spans/metrics OBI captures for this process with the right service.name.
@@ -67,9 +68,26 @@ services:
         condition: service_healthy
 
   # OBI (OpenTelemetry eBPF Instrumentation) instruments the quickpizza process from
-  # outside it, via eBPF, instead of relying on this app's own OTel SDK. Opt-in: only
-  # started with `docker compose --profile obi up`, and only useful when the quickpizza
-  # service above also has QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi. See docs/otel.md.
+  # outside it, via eBPF, instead of relying on this app's own OTel SDK. See docs/otel.md.
+  #
+  # To run it, BOTH of the following are required together - Compose can't derive one from
+  # the other, so setting only one silently does the wrong thing:
+  #   1. `--profile obi` on the compose invocation itself (this service has profiles: ["obi"]
+  #      below, so it never starts without it - `docker compose ... up` alone leaves it off).
+  #   2. `QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi` on the `quickpizza` service above, so the
+  #      app stops running its own OTel SDK (otherwise both this container AND the app's SDK
+  #      instrument the same requests, producing duplicate spans).
+  #
+  # Full command:
+  #
+  #   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi \
+  #     docker compose -f compose.grafana-local-stack.monolithic.yaml --profile obi up
+  #
+  # This container's own `environment:` below (OTEL_EBPF_OPEN_PORT/OTEL_EXPORTER_OTLP_*) is
+  # needed regardless of mode. Separately, because of `pid: "service:quickpizza"` below, OBI
+  # also reads OTEL_SERVICE_NAME and OTEL_RESOURCE_ATTRIBUTES directly out of the `quickpizza`
+  # container's own environment (set above) to label what it captures - this app never reads
+  # those two vars itself; they exist purely for OBI to pick up.
   obi:
     image: otel/ebpf-instrument:v0.13.0
     container_name: obi
