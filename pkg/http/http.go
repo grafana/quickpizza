@@ -35,8 +35,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 
 	k6 "github.com/grafana/pyroscope-go/x/k6"
 	"github.com/grafana/quickpizza/pkg/database"
@@ -1364,7 +1364,12 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
-			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+			// Use the global tracer directly (rather than deriving one from the current span's
+			// TracerProvider) so these two spans are created through OTel's plain Go Trace API.
+			// In "sdk" mode this resolves to the SDK tracer set globally in otel.go; in "obi"
+			// mode no TracerProvider is ever registered, which is what lets an OBI sidecar's
+			// Go Trace API bridge pick these spans up. See docs/otel.md.
+			tracer := otel.Tracer("quickpizza")
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions

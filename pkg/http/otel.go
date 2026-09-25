@@ -206,12 +206,35 @@ func (t *OTelInstaller) Insecure() {
 	t.insecure = true
 }
 
+// instrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
+// defaulting to "sdk". See docs/otel.md for what each mode does.
+//
+//   - "sdk" (default): this app's own OTel Go SDK creates and exports every span/metric,
+//     as it always has.
+//   - "obi": HTTP and business-logic traces (plus HTTP metrics) are left for an external
+//     OBI (OpenTelemetry eBPF Instrumentation) sidecar to capture instead. This app must
+//     then avoid registering a global TracerProvider and avoid running otelhttp, since
+//     OBI's Go Trace API bridge only auto-activates when no SDK is registered, and running
+//     otelhttp too would duplicate the HTTP spans/metrics OBI captures via eBPF.
+func instrumentationMode() string {
+	mode, ok := os.LookupEnv("QUICKPIZZA_OTEL_INSTRUMENTATION_MODE")
+	if !ok || mode == "" {
+		return "sdk"
+	}
+	return mode
+}
+
 // Install OTel,
 // - sets global OTel tracer and meter providers when called first time
 // - enable runtime metrics only once
 // - enable HTTP tracing and metrics on the supplied chi.Router
 // extraOpts take precedence over the default opts
+//
+// When QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi, HTTP tracing/metrics are skipped entirely
+// and no global TracerProvider is set, so an external OBI sidecar can instrument this
+// process instead. See instrumentationMode and docs/otel.md.
 func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts ...otelhttp.Option) error {
+	obiMode := instrumentationMode() == "obi"
 
 	// TODO: can leverage default OTEL_SERVICE_NAME, OTEL_RESOURCE_ATTRIBUTES env vars
 	serviceName, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAME")
@@ -249,11 +272,21 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	var mp *sdkmetric.MeterProvider
 	var err error
 
-	if t.endpoint == nil {
+	switch {
+	case t.endpoint == nil:
 		// If endpoint is nil, use no-op providers (local tracing only)
 		tp = sdktrace.NewTracerProvider()
 		mp = sdkmetric.NewMeterProvider()
-	} else {
+	case obiMode:
+		// In obi mode, traces are OBI's job (see instrumentationMode), so this app never
+		// creates a trace provider/exporter for itself. Metrics still need a real provider,
+		// since runtime metrics (goroutines, GC, ...) aren't something OBI produces.
+		tp = sdktrace.NewTracerProvider()
+		mp, err = createMetricProvider(ctx, t.endpoint, protocol, res)
+		if err != nil {
+			return fmt.Errorf("creating metric provider: %w", err)
+		}
+	default:
 		// Create providers that export to the configured endpoint
 		tp, err = createTraceProvider(ctx, t.endpoint, protocol, res)
 		if err != nil {
@@ -278,7 +311,13 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	if !t.installed {
 		// Set global providers only once
 		// TODO: it's not great since we set first component to be called to be global.
-		otel.SetTracerProvider(profiledTP)
+		//
+		// In obi mode, the TracerProvider is deliberately left unset: OBI's Go Trace API
+		// bridge (see docs/otel.md) only auto-activates for spans created through OTel's
+		// default, unregistered global tracer.
+		if !obiMode {
+			otel.SetTracerProvider(profiledTP)
+		}
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 		otel.SetMeterProvider(mp)
 
@@ -293,27 +332,32 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 		t.installed = true
 	}
 
-	defaultOpts := []otelhttp.Option{
-		otelhttp.WithTracerProvider(profiledTP),
-		otelhttp.WithMeterProvider(mp),
-		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
-		otelhttp.WithPublicEndpointFn(t.isPublic),
-		// Use a name formatter that follows the semantic conventions for server-side span naming:
-		// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
-		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
-		}),
-	}
+	// In obi mode, HTTP server spans/metrics are OBI's job (captured via eBPF from outside
+	// the process): registering otelhttp here too would duplicate them, and OTelRouteLabeler/
+	// LogTraceID exist only to enrich the span otelhttp creates, so they're skipped as well.
+	if !obiMode {
+		defaultOpts := []otelhttp.Option{
+			otelhttp.WithTracerProvider(profiledTP),
+			otelhttp.WithMeterProvider(mp),
+			otelhttp.WithPropagators(otel.GetTextMapPropagator()),
+			otelhttp.WithPublicEndpointFn(t.isPublic),
+			// Use a name formatter that follows the semantic conventions for server-side span naming:
+			// https://opentelemetry.io/docs/specs/otel/trace/semantic_conventions/http/#name
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+			}),
+		}
 
-	r.Use(func(handler http.Handler) http.Handler {
-		return otelhttp.NewHandler(
-			handler,
-			serviceComponent,
-			append(defaultOpts, extraOpts...)...,
-		)
-	})
-	r.Use(OTelRouteLabeler)
-	r.Use(LogTraceID)
+		r.Use(func(handler http.Handler) http.Handler {
+			return otelhttp.NewHandler(
+				handler,
+				serviceComponent,
+				append(defaultOpts, extraOpts...)...,
+			)
+		})
+		r.Use(OTelRouteLabeler)
+		r.Use(LogTraceID)
+	}
 
 	// Mark as installed after successful installation
 	t.installed = true

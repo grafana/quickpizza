@@ -51,6 +51,13 @@ services:
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
       OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      # sdk (default): this app's own OTel Go SDK instruments itself, as it always has.
+      # obi: HTTP + business-logic traces and HTTP metrics are left for the OBI sidecar
+      # below (started with --profile obi) to capture instead. See docs/otel.md.
+      QUICKPIZZA_OTEL_INSTRUMENTATION_MODE: "${QUICKPIZZA_OTEL_INSTRUMENTATION_MODE:-sdk}"
+      # Read by OBI (not by this app) from this container's own environment, to label the
+      # spans/metrics OBI captures for this process with the right service.name.
+      OTEL_SERVICE_NAME: "quickpizza"
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
       QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       # Enable logging. Possible values: error, warn, debug. Default: info
@@ -58,6 +65,28 @@ services:
     depends_on:
       quickpizza-db:
         condition: service_healthy
+
+  # OBI (OpenTelemetry eBPF Instrumentation) instruments the quickpizza process from
+  # outside it, via eBPF, instead of relying on this app's own OTel SDK. Opt-in: only
+  # started with `docker compose --profile obi up`, and only useful when the quickpizza
+  # service above also has QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi. See docs/otel.md.
+  obi:
+    image: otel/ebpf-instrument:v0.13.0
+    container_name: obi
+    labels:
+      - "service.type=instrumentation"
+    # Shares quickpizza's PID namespace so OBI can find and attach to its process;
+    # privileged is required for the eBPF probes OBI attaches.
+    pid: "service:quickpizza"
+    privileged: true
+    environment:
+      OTEL_EBPF_OPEN_PORT: "3333"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    depends_on:
+      - quickpizza
+      - alloy
+    profiles: ["obi"]
 
   quickpizza-db:
     image: postgres:18.1
