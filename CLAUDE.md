@@ -84,6 +84,7 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_RECOMMENDATIONS_RETRIES` - Max retries for recommendations → catalog/copy calls (renamed from `QUICKPIZZA_RETRIES`).
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN` - Min backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MIN`).
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
+- `QUICKPIZZA_OTEL_LINK_PROFILES` - Opt-in, off by default. When truthy, wraps the tracer with `otelpyroscope.NewTracerProvider` (`pkg/http/otel.go`), which tags each local root span with a `pyroscope.profile.id` attribute and the matching pprof samples with a `span_id` label, for Tempo's "Profiles for this span" correlation. **Known limitation**: in this app's default local stack (Alloy pull-scraping `/debug/pprof`), `span_id` does not survive as a queryable Pyroscope label — confirmed by querying Pyroscope's `LabelNames` API directly, which returns `span_name` but not `span_id`. Enabling this only reliably narrows profiles down to the request's route (via `span_name`, which does survive); it does not currently give exact per-request span isolation. See `docs/otel.md` for the full explanation.
 
 ## Development Notes
 
@@ -109,6 +110,7 @@ The application supports fault injection via HTTP headers and environment variab
 - `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS` - Delay PNG asset serving
 - `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` - Random failure rate (0-100) for `POST /api/pizza`
 - `QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION` - Random failure rate (0-100) for `RecordRecommendation` database calls; fails with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`)
+- `QUICKPIZZA_CPU_BURN_RECOMMENDATIONS_API_PIZZA_POST` - Busy-loops on CPU (instead of sleeping) inside `POST /api/pizza`'s pizza-generation span. Real pizza generation is too fast/I/O-bound for CPU profilers to ever sample it, so this makes Tempo's "Profiles for this span" trace-to-profile correlation demonstrable on demand.
 
 **Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3s` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
 

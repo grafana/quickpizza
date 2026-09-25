@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -265,10 +266,20 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 		}
 	}
 
+	// otelpyroscope tags spans (pyroscope.profile.id attribute) and the corresponding pprof
+	// samples (span_id label) so a span can, in principle, be correlated to the exact profile
+	// samples collected during its execution. Opt-in and off by default: see the
+	// QUICKPIZZA_OTEL_LINK_PROFILES doc in CLAUDE.md and docs/otel.md for why this correlation
+	// is not reliable in every deployment of this app.
+	profiledTP := tp
+	if linkProfilesToTraces() {
+		profiledTP = otelpyroscope.NewTracerProvider(tp)
+	}
+
 	if !t.installed {
 		// Set global providers only once
 		// TODO: it's not great since we set first component to be called to be global.
-		otel.SetTracerProvider(otelpyroscope.NewTracerProvider(tp))
+		otel.SetTracerProvider(profiledTP)
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 		otel.SetMeterProvider(mp)
 
@@ -284,7 +295,7 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	}
 
 	defaultOpts := []otelhttp.Option{
-		otelhttp.WithTracerProvider(otelpyroscope.NewTracerProvider(tp)),
+		otelhttp.WithTracerProvider(profiledTP),
 		otelhttp.WithMeterProvider(mp),
 		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
 		otelhttp.WithPublicEndpointFn(t.isPublic),
@@ -308,6 +319,18 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	// Mark as installed after successful installation
 	t.installed = true
 	return nil
+}
+
+// linkProfilesToTraces reports whether QUICKPIZZA_OTEL_LINK_PROFILES is set to a truthy value.
+// Off by default: see CLAUDE.md and docs/otel.md for why this trace-to-profile correlation
+// feature doesn't reliably work in every deployment of this app.
+func linkProfilesToTraces() bool {
+	v, ok := os.LookupEnv("QUICKPIZZA_OTEL_LINK_PROFILES")
+	if !ok {
+		return false
+	}
+	b, _ := strconv.ParseBool(v)
+	return b
 }
 
 func (t *OTelInstaller) isPublic(r *http.Request) bool {
