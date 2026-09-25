@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 
@@ -43,12 +44,10 @@ func (t *OTelInstaller) Insecure() {
 }
 
 // InstrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
-// defaulting to "sdk". See docs/otel.md for what each mode does. Exported because callers
-// outside this package that build their own otelhttp-wrapped HTTP clients (e.g.
-// cmd/main.go's recommendations→catalog/copy client) need to skip that wrapping too in
-// "obi" mode, for the same reason installOBI does nothing at all: OBI already captures
-// that HTTP traffic (and Go runtime metrics — see https://opentelemetry.io/docs/zero-code/obi/metrics/)
-// via eBPF, with zero app-side code, so any app-side OTel SDK use here would just duplicate it.
+// defaulting to "sdk". See docs/otel.md for what each mode does. Exported because a few
+// call sites outside Install's own dispatch need to check it directly: NewOTelHTTPTransport
+// below, and pkg/http/http.go's recommendations handler (which needs a mode-appropriate
+// tracer, not just a mode-appropriate otelhttp wrapper).
 //
 //   - "sdk" (default, otel-sdk.go): this app's own OTel Go SDK creates and exports every
 //     span/metric, as it always has.
@@ -70,4 +69,16 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 		return t.installOBI()
 	}
 	return t.installSDK(r, serviceComponent, extraOpts...)
+}
+
+// NewOTelHTTPTransport wraps base with otelhttp instrumentation, unless InstrumentationMode
+// is "obi" (in which case base is returned unchanged), since OBI already captures this HTTP
+// traffic via eBPF and app-side otelhttp would just duplicate it. Shared by every caller that
+// builds its own instrumented HTTP client instead of going through Install: cmd/main.go's
+// recommendations→catalog/copy client, and pkg/http/http.go's gateway reverse-proxy transport.
+func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.RoundTripper {
+	if InstrumentationMode() == "obi" {
+		return base
+	}
+	return otelhttp.NewTransport(base, opts...)
 }

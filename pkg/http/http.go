@@ -37,6 +37,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 
 	k6 "github.com/grafana/pyroscope-go/x/k6"
 	"github.com/grafana/quickpizza/pkg/database"
@@ -438,17 +439,13 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
-		// Generate client traces for requests proxied by the gateway. Skipped in "obi" mode:
-		// OBI captures this HTTP traffic via eBPF itself, so wrapping it with otelhttp too
-		// would just duplicate those spans. See InstrumentationMode and docs/otel.md.
-		var otelTransport http.RoundTripper
-		if InstrumentationMode() != "obi" {
-			otelTransport = otelhttp.NewTransport(
-				nil,
-				// Propagator will retrieve the tracer used in the server from memory.
-				otelhttp.WithPropagators(propagation.TraceContext{}),
-			)
-		}
+		// Generate client traces for requests proxied by the gateway (a no-op in "obi"
+		// mode - see NewOTelHTTPTransport).
+		otelTransport := NewOTelHTTPTransport(
+			nil,
+			// Propagator will retrieve the tracer used in the server from memory.
+			otelhttp.WithPropagators(propagation.TraceContext{}),
+		)
 
 		r.Handle("/api/*", &httputil.ReverseProxy{
 			Transport: otelTransport,
@@ -1369,12 +1366,23 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
-			// Use the global tracer directly (rather than deriving one from the current span's
-			// TracerProvider) so these two spans are created through OTel's plain Go Trace API.
-			// In "sdk" mode this resolves to the SDK tracer set globally in otel.go; in "obi"
-			// mode no TracerProvider is ever registered, which is what lets an OBI sidecar's
-			// Go Trace API bridge pick these spans up. See docs/otel.md.
-			tracer := otel.Tracer("quickpizza")
+			var tracer trace.Tracer
+			if InstrumentationMode() == "obi" {
+				// OBI's Go Trace API bridge only auto-activates for calls made through
+				// OTel's default, unregistered global tracer (see otel-obi.go and
+				// docs/otel.md) - there's no span in r.Context() to derive one from
+				// anyway, since otelhttp never runs in this mode.
+				tracer = otel.Tracer("quickpizza")
+			} else {
+				// In "sdk" mode, only the first-registered component's TracerProvider
+				// ever becomes global (see the TODO in otel-sdk.go's installSDK), so
+				// deriving the tracer from the current request's own span - the one
+				// otelhttp created using this specific Install() call's own, correctly
+				// resource-tagged provider - keeps these two spans attributed to this
+				// component ("recommendations") instead of whichever component happened
+				// to install first.
+				tracer = trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+			}
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions

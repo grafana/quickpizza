@@ -179,18 +179,15 @@ func main() {
 // Use QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST (Go duration, e.g. "3s") together with
 // QUICKPIZZA_PUBLIC_API_TIMEOUT to simulate timeout scenarios.
 func newRecommendationsHTTPClient() *http.Client {
-	httpClient := &http.Client{}
-	// Skipped in "obi" mode: OBI captures this HTTP traffic via eBPF itself, so wrapping it
-	// with otelhttp too would just duplicate those spans. See qphttp.InstrumentationMode and
-	// docs/otel.md.
-	if qphttp.InstrumentationMode() != "obi" {
-		httpClient.Transport = otelhttp.NewTransport(
+	httpClient := &http.Client{
+		// A no-op in "obi" mode - see qphttp.NewOTelHTTPTransport.
+		Transport: qphttp.NewOTelHTTPTransport(
 			nil,
 			otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(
 				propagation.TraceContext{},
 				propagation.Baggage{},
 			)),
-		)
+		),
 	}
 
 	clientTimeout := envDuration("QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT")
