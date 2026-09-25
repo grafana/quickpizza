@@ -9,7 +9,7 @@ For a full list of Prometheus metric names (including the ones OTel's HTTP instr
 `QUICKPIZZA_OTEL_INSTRUMENTATION_MODE` picks how HTTP and business-logic traces get created:
 
 - **`sdk`** (default): unchanged — this app's own OTel Go SDK does everything described below: it owns the TracerProvider/MeterProvider, runs `otelhttp` on every route group, and exports over OTLP.
-- **`obi`**: HTTP spans and HTTP metrics are left for an [OBI](https://opentelemetry.io/docs/zero-code/obi/) (OpenTelemetry eBPF Instrumentation) sidecar to capture from *outside* the process via eBPF — no code in this app produces them. This app does not register a global `TracerProvider` and does not run `otelhttp` in this mode (see `instrumentationMode` in `pkg/http/otel.go`), since:
+- **`obi`**: HTTP spans and HTTP metrics are left for an [OBI](https://opentelemetry.io/docs/zero-code/obi/) (OpenTelemetry eBPF Instrumentation) sidecar to capture from *outside* the process via eBPF — no code in this app produces them. This app does not register a global `TracerProvider` and does not run `otelhttp` in this mode (see `InstrumentationMode` in `pkg/http/otel.go` and `installOBI` in `pkg/http/otel-obi.go`), since:
   - Running `otelhttp` too would duplicate the HTTP spans/metrics OBI already captures.
   - OBI's "Go Trace API" bridge (available since OBI v0.11.0) only auto-activates for a Go process when *no* SDK `TracerProvider` is registered — it then instruments calls made through OTel's plain, unregistered global tracer instead. This is how the two manual business-logic spans (`pizza-generation`, `name-generation`) still get captured in `obi` mode: `pkg/http/http.go` always calls `otel.Tracer("quickpizza")` (the global accessor) rather than deriving a tracer from the current span's provider, so in `obi` mode that resolves to the auto-instrumentable default tracer instead of a real SDK one. See https://opentelemetry.io/docs/zero-code/obi/distributed-traces/.
 
@@ -27,15 +27,23 @@ QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local
 
 ## Setup entry point
 
-All SDK/provider/exporter wiring lives in `pkg/http/otel.go`. `cmd/main.go` creates one `OTelInstaller` per process and, if `QUICKPIZZA_OTLP_ENDPOINT` is set, calls `NewOTelInstaller` to configure OTLP exporters; otherwise the installer is a no-op (spans/metrics are created but never exported).
+SDK/provider/exporter wiring is split across three files in `pkg/http/`, by instrumentation mode:
 
-`OTelInstaller.Install(router, serviceComponent, ...)` is called once per service "component" registered on the chi router (`AddFrontend`, `AddGateway`, `AddCatalogHandler`, `AddCopyHandler`, `AddRecommendations`, `AddConfigHandler`, plus `users`/`admin`/`ws` route groups). Each call:
+- `otel.go` — shared code: the `OTelInstaller` type, `InstrumentationMode`, resource/protocol env var parsing, the metric provider builder (used by both modes), and `Install`, which dispatches to one of the two files below based on `InstrumentationMode`.
+- `otel-sdk.go` — the `sdk` mode (default): everything the OTel Go SDK itself does (trace provider/exporter, `otelhttp`, `OTelRouteLabeler`, `LogTraceID`).
+- `otel-obi.go` — the `obi` mode: just enough to keep Go runtime metrics working, deliberately without a `TracerProvider` or `otelhttp`. See "Two instrumentation modes" above.
+
+`cmd/main.go` creates one `OTelInstaller` per process and, if `QUICKPIZZA_OTLP_ENDPOINT` is set, calls `NewOTelInstaller` to configure OTLP exporters; otherwise the installer is a no-op (spans/metrics are created but never exported).
+
+`OTelInstaller.Install(router, serviceComponent, ...)` is called once per service "component" registered on the chi router (`AddFrontend`, `AddGateway`, `AddCatalogHandler`, `AddCopyHandler`, `AddRecommendations`, `AddConfigHandler`, plus `users`/`admin`/`ws` route groups). In `sdk` mode, each call:
 
 - Sets the **global** tracer/meter providers on the *first* call only (a `TODO` in the code notes this makes the first-registered component "own" the global providers — not ideal, but this is how it currently works).
 - Installs `otelhttp.NewHandler` on that router group, wrapped by two custom middlewares: `OTelRouteLabeler` (adds the resolved chi route pattern as an `http.route` attribute, since `otelhttp` can't see it before routing) and `LogTraceID` (writes the trace ID into structured logs).
 - Registers Go runtime metrics (`contrib/instrumentation/runtime`) once, globally.
 
-Resource attributes (`service.name`, `service.component`, `service.namespace`, `service.instance.id`) are set from `QUICKPIZZA_OTEL_SERVICE_*` env vars, defaulting to `quickpizza`/`quickpizza`/`local`.
+In `obi` mode, each call still registers Go runtime metrics once, globally, but does neither of the other two things.
+
+Resource attributes (`service.name`, `service.component`, `service.namespace`, `service.instance.id`) are set from `QUICKPIZZA_OTEL_SERVICE_*` env vars, defaulting to `quickpizza`/`quickpizza`/`local`, in both modes.
 
 ## Instrumentation by layer
 
