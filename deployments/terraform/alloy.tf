@@ -85,7 +85,7 @@ resource "kubernetes_deployment_v1" "alloy" {
         service_account_name = kubernetes_service_account_v1.alloy.metadata[0].name
         container {
           name              = "alloy"
-          image             = "grafana/alloy:v1.16.2@sha256:32913cbfac652d15fa84d256a74e5ee3f71575961bb19d34796ce3838bfba693"
+          image             = "grafana/alloy:v1.19.2@sha256:b8ec653c44235fbe910879145dac3597d66b0aaecf60bcbbe82580767771a839"
           image_pull_policy = "IfNotPresent"
           args = [
             "run",
