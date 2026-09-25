@@ -1,0 +1,23 @@
+# OBI (OpenTelemetry eBPF Instrumentation) routes config.
+#
+# Excludes noisy infrastructure endpoints from OBI's captured spans/metrics: GET /metrics
+# (scraped every few seconds by Prometheus/Alloy) and GET /debug/pprof/* (scraped by
+# Pyroscope in pull mode - see pkg/http/http.go's NewServer). These are already excluded from
+# the app's own OTel SDK in "sdk" mode (see isInternalRoute in pkg/http/http.go), but that
+# exclusion is app-side router structure and has no effect on OBI: OBI captures HTTP traffic
+# via eBPF at the socket level, independent of which chi router group handled the request, so
+# it needs its own, separate exclusion here. See docs/otel.md.
+#
+# ignore_mode: all excludes matching routes from both traces and metrics (as opposed to just
+# "traces" or just "metrics").
+routes:
+  ignore_mode: all
+  ignored_patterns:
+    - /metrics
+    # /debug/pprof/* alone does not match the bare "/debug/pprof/" path itself (glob "*"
+    # requires at least one more character after the trailing slash) - verified live: without
+    # this literal entry, GET /debug/pprof/ (pyroscope's index page fetch) still showed up as
+    # a trace even with /debug/pprof/* configured. Pyroscope also scrapes sub-paths like
+    # /debug/pprof/goroutine, /debug/pprof/allocs, etc., which /debug/pprof/* does cover.
+    - /debug/pprof/
+    - /debug/pprof/*

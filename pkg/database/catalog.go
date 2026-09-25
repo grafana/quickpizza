@@ -36,8 +36,8 @@ const getRatingsMax = 50
 var ErrUsernameTaken = errors.New("username already taken")
 var ErrGlobalOperationNotPermitted = errors.New("operation not permitted for default user")
 
-func NewCatalog(connString string) (*Catalog, error) {
-	db, err := initializeDB(connString)
+func NewCatalog(connString string, enableOTelSpanQueryHook bool) (*Catalog, error) {
+	db, err := initializeDB(connString, enableOTelSpanQueryHook)
 	if err != nil {
 		return nil, err
 	}

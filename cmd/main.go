@@ -116,7 +116,9 @@ func main() {
 	}
 
 	if envServe("QUICKPIZZA_ENABLE_CATALOG_SERVICE") {
-		db, err := database.NewCatalog(envDBConnString())
+		// qphttp.InstrumentDatabase is false in "obi" mode: OBI already captures Postgres
+		// traffic itself, so the bunotel query hook would just duplicate those spans.
+		db, err := database.NewCatalog(envDBConnString(), qphttp.InstrumentDatabase())
 		if err != nil {
 			slog.Error("setting up database connection", "err", err)
 			os.Exit(1)
@@ -125,7 +127,7 @@ func main() {
 	}
 
 	if envServe("QUICKPIZZA_ENABLE_COPY_SERVICE") {
-		db, err := database.NewCopy(envDBConnString())
+		db, err := database.NewCopy(envDBConnString(), qphttp.InstrumentDatabase())
 		if err != nil {
 			slog.Error("setting up database connection", "err", err)
 			os.Exit(1)
@@ -180,7 +182,8 @@ func main() {
 // QUICKPIZZA_PUBLIC_API_TIMEOUT to simulate timeout scenarios.
 func newRecommendationsHTTPClient() *http.Client {
 	httpClient := &http.Client{
-		Transport: otelhttp.NewTransport(
+		// A no-op in "obi" mode - see qphttp.NewOTelHTTPTransport.
+		Transport: qphttp.NewOTelHTTPTransport(
 			nil,
 			otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(
 				propagation.TraceContext{},

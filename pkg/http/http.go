@@ -36,7 +36,6 @@ import (
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 
 	k6 "github.com/grafana/pyroscope-go/x/k6"
 	"github.com/grafana/quickpizza/pkg/database"
@@ -438,8 +437,9 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
-		// Generate client traces for requests proxied by the gateway.
-		otelTransport := otelhttp.NewTransport(
+		// Generate client traces for requests proxied by the gateway (a no-op in "obi"
+		// mode - see NewOTelHTTPTransport).
+		otelTransport := NewOTelHTTPTransport(
 			nil,
 			// Propagator will retrieve the tracer used in the server from memory.
 			otelhttp.WithPropagators(propagation.TraceContext{}),
@@ -1364,7 +1364,10 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
-			tracer := trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
+			// BusinessTracer (pkg/http/otel.go) picks the mode-appropriate tracer for these
+			// two manual spans - this handler doesn't need to know how "sdk" vs "obi" mode
+			// differ.
+			tracer := BusinessTracer(r.Context())
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
