@@ -84,6 +84,7 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_RECOMMENDATIONS_RETRIES` - Max retries for recommendations → catalog/copy calls (renamed from `QUICKPIZZA_RETRIES`).
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN` - Min backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MIN`).
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
+- `QUICKPIZZA_TRACES_LINK_PROFILES` - See [docs/otel.md](docs/otel.md).
 
 ## Development Notes
 
