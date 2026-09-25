@@ -38,4 +38,4 @@ In the microservices compose stack, `public-api` calls `recommendations`, which 
 
 ### Known limitation: span-level profile correlation
 
-Tempo's "Profiles for this span" button doesn't reliably show per-request data in this app's current deployment, even with `QUICKPIZZA_TRACES_LINK_PROFILES` enabled. Treat it as experimental rather than a working feature.
+Tempo's "Profiles for this span" button doesn't reliably show per-request data in this app, even with `QUICKPIZZA_TRACES_LINK_PROFILES` enabled. `otel-profiling-go`'s own README explains why: the `pyroscope.profile.id` attribute marks a span as *eligible* for a profile, but doesn't guarantee one was collected — the CPU profiler only samples every ~10ms, so a span needs at least that much actual on-CPU time to ever get sampled. This app's request-handling code is mostly I/O-bound (waiting on catalog/copy/recommendations over HTTP) with little real CPU work per request, so individual requests rarely accumulate 10ms of on-CPU time — there's usually nothing to sample. Treat this feature as experimental rather than working.
