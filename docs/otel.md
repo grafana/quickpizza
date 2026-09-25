@@ -27,7 +27,7 @@ Resource attributes (`service.name`, `service.component`, `service.namespace`, `
 | Go runtime | `contrib/instrumentation/runtime` (auto) | Metrics | Process-level metrics: goroutine count, GC pause times, heap/stack memory usage. Not tied to any individual request or trace; useful for spotting resource pressure or leaks over time. |
 | gRPC | **none** | Nothing | The gRPC server is currently uninstrumented — no spans or metrics are produced for gRPC calls (`Status`, `RatePizza`). This is a known gap, not a deliberate omission. |
 | Application counters/histograms | Prometheus client (not OTel) | Metrics | Domain-specific metrics that OTel has no concept of, e.g. how many pizzas were recommended, how many ingredients/calories a pizza had, split by vegetarian/tool. Registered on the standard Prometheus client registry and exposed on `/metrics`; no OTel SDK, OTLP, or collector involvement. Included here because in a Grafana dashboard these sit right next to the real OTel HTTP metrics and look indistinguishable — in the local stack, Alloy *scrapes* `/metrics` (pull) for these, while it *receives* the OTel metrics over OTLP (push) on a completely separate pipeline; both end up converted to the same Prometheus-compatible format downstream, which is what erases the distinction unless you know to look for it. |
-| Profiling | Pyroscope + `otel-profiling-go` (opt-in, off by default) | Profiles (span-linked, when enabled) | Continuous CPU/memory profiling runs regardless. Setting `QUICKPIZZA_TRACES_LINK_PROFILES` additionally wraps the tracer so each local root span gets a `pyroscope.profile.id` attribute, and the matching CPU samples get a `span_id` pprof label — the mechanism Tempo's "Profiles for this span" button relies on. This is opt-in rather than always-on because the correlation is not fully reliable in this app's default deployment: see [Known limitation: span-level profile correlation](#known-limitation-span-level-profile-correlation) below. |
+| Profiling | Pyroscope + `otel-profiling-go` (opt-in, off by default) | Profiles | Continuous CPU/memory profiling runs regardless. Setting `QUICKPIZZA_TRACES_LINK_PROFILES` additionally tags spans and profile samples for Tempo's "Profiles for this span" correlation — but that correlation doesn't reliably work in this app's current deployment, so it's opt-in rather than on by default. Treat it as experimental. |
 | Baggage | `baggagecopy.NewSpanProcessor` (auto) | Span attributes (forwarded from baggage) | Copies any OTel baggage set on the request (arbitrary key/value context propagated across service calls) onto every span in that trace as attributes, so cross-cutting metadata (e.g. a test run ID from k6) shows up on every span without each service needing to read and re-attach it manually. Doesn't create spans itself — it enriches spans created elsewhere. |
 
 If you add a new manual span, add a row here.
@@ -38,13 +38,4 @@ In the microservices compose stack, `public-api` calls `recommendations`, which 
 
 ### Known limitation: span-level profile correlation
 
-`otel-profiling-go` tags each CPU sample with two labels:
-
-| Label | Identifies | Survives as a queryable Pyroscope label? |
-|---|---|---|
-| `span_name` | the route, e.g. `POST /api/pizza` (shared by *every* request to that route) | Yes |
-| `span_id` | one specific request | No (confirmed by querying Pyroscope's `LabelNames` API) |
-
-Tempo's "Profiles for this span" button is designed to filter by `span_id`, i.e. show only the samples from the one request you clicked. Since `span_id` doesn't survive, the button can only fall back to `span_name` — so it narrows a profile down to "this route", not "this specific request". Clicking it on two different `/api/pizza` requests shows the same route-level flame graph both times.
-
-So `QUICKPIZZA_TRACES_LINK_PROFILES` has a real but partial benefit (route-level filtering), not the full per-request correlation the button implies. Root cause not yet tracked down; if you find it, update this section.
+Tempo's "Profiles for this span" button doesn't reliably show per-request data in this app's current deployment, even with `QUICKPIZZA_TRACES_LINK_PROFILES` enabled. Treat it as experimental rather than a working feature.
