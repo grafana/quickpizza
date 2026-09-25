@@ -269,7 +269,7 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	// otelpyroscope tags spans (pyroscope.profile.id attribute) and the corresponding pprof
 	// samples (span_id label) so a span can, in principle, be correlated to the exact profile
 	// samples collected during its execution. Opt-in and off by default: see the
-	// QUICKPIZZA_OTEL_LINK_PROFILES doc in CLAUDE.md and docs/otel.md for why this correlation
+	// QUICKPIZZA_TRACES_LINK_PROFILES doc in CLAUDE.md and docs/otel.md for why this correlation
 	// is not reliable in every deployment of this app.
 	profiledTP := tp
 	if linkProfilesToTraces() {
@@ -321,11 +321,11 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	return nil
 }
 
-// linkProfilesToTraces reports whether QUICKPIZZA_OTEL_LINK_PROFILES is set to a truthy value.
+// linkProfilesToTraces reports whether QUICKPIZZA_TRACES_LINK_PROFILES is set to a truthy value.
 // Off by default: see CLAUDE.md and docs/otel.md for why this trace-to-profile correlation
 // feature doesn't reliably work in every deployment of this app.
 func linkProfilesToTraces() bool {
-	v, ok := os.LookupEnv("QUICKPIZZA_OTEL_LINK_PROFILES")
+	v, ok := os.LookupEnv("QUICKPIZZA_TRACES_LINK_PROFILES")
 	if !ok {
 		return false
 	}
