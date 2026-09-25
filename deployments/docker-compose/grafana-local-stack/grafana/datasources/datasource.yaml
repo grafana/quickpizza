@@ -58,6 +58,12 @@ datasources:
             value: "service_name"
           - key: "service.namespace"
             value: "service_namespace"
+          # otel-profiling-go (pkg/http/otel.go) sets this span attribute to the span ID,
+          # and tags the corresponding pprof samples with the same value as a "span_id" label.
+          # Without this mapping, the profile query only filters by service, ignoring the
+          # span-level correlation entirely.
+          - key: "pyroscope.profile.id"
+            value: "span_id"
         profileTypeId: "process_cpu:cpu:nanoseconds:cpu:nanoseconds"
   - name: Pyroscope
     type: "phlare"
