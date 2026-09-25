@@ -88,15 +88,27 @@ func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.
 // BusinessTracer returns the trace.Tracer that a manual, non-HTTP/DB business-logic span
 // (e.g. pkg/http/http.go's pizza-generation/name-generation spans) should start from for the
 // request carried by ctx, dispatched by InstrumentationMode:
+//
 //   - "sdk": the TracerProvider tied to the current request's own HTTP server span, i.e. the
 //     specific component's Install() call that handled this request. Deriving it this way
 //     (rather than from otel.GetTracerProvider) keeps these spans attributed to that
 //     component's own resource, since only the first-registered component's TracerProvider
 //     ever becomes global (see the TODO in otel-sdk.go's installSDK).
-//   - "obi": the plain, unregistered global tracer. There is no span in ctx to derive one
-//     from anyway, since otelhttp never runs in this mode; using the global accessor is what
-//     lets OBI's Go Trace API bridge auto-activate for these calls instead (see otel-obi.go
-//     and docs/otel.md).
+//
+//   - "obi": the plain, unregistered global tracer (otel.Tracer, backed by
+//     otel.GetTracerProvider) — deliberately NOT ctx-derived. installOBI never runs otelhttp
+//     (Install is a no-op in this mode, see otel-obi.go), so no span is ever placed in ctx to
+//     begin with. That matters because trace.SpanFromContext falls back to a *different*,
+//     hardcoded no-op path when ctx has no span: vendor/go.opentelemetry.io/otel/trace/noop.go's
+//     noopSpan.TracerProvider() returns a TracerProvider that is a permanent no-op unless a
+//     Go auto-instrumentation agent has flipped its own separate autoInstEnabled flag — it does
+//     NOT go through otel.GetTracerProvider()'s global registration slot at all. OBI's Go Trace
+//     API bridge (https://opentelemetry.io/docs/zero-code/obi/distributed-traces/) hooks that
+//     global slot, not this per-span fallback. So if this branch used the ctx-derived form like
+//     "sdk" mode does, pizza-generation/name-generation would silently become permanently no-op
+//     spans in obi mode instead of being picked up by OBI — this is the one case where ctx
+//     genuinely cannot be used, not just a style choice. See docs/otel.md's "Two instrumentation
+//     modes" section for the OBI-side half of this story.
 func BusinessTracer(ctx context.Context) trace.Tracer {
 	if InstrumentationMode() == "obi" {
 		return otel.Tracer("quickpizza")
