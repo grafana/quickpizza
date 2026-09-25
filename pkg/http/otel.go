@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // OTelInstaller installs tracing middleware into a chi router.
@@ -44,10 +46,10 @@ func (t *OTelInstaller) Insecure() {
 }
 
 // InstrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
-// defaulting to "sdk". See docs/otel.md for what each mode does. Exported because a few
-// call sites outside Install's own dispatch need to check it directly: NewOTelHTTPTransport
-// below, and pkg/http/http.go's recommendations handler (which needs a mode-appropriate
-// tracer, not just a mode-appropriate otelhttp wrapper).
+// defaulting to "sdk". See docs/otel.md for what each mode does. Exported for NewOTelHTTPTransport
+// and BusinessTracer below, which are the only mode-aware call sites outside Install's own
+// dispatch; callers like pkg/http/http.go go through those instead of checking the mode
+// themselves.
 //
 //   - "sdk" (default, otel-sdk.go): this app's own OTel Go SDK creates and exports every
 //     span/metric, as it always has.
@@ -81,4 +83,23 @@ func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.
 		return base
 	}
 	return otelhttp.NewTransport(base, opts...)
+}
+
+// BusinessTracer returns the trace.Tracer that a manual, non-HTTP/DB business-logic span
+// (e.g. pkg/http/http.go's pizza-generation/name-generation spans) should start from for the
+// request carried by ctx, dispatched by InstrumentationMode:
+//   - "sdk": the TracerProvider tied to the current request's own HTTP server span, i.e. the
+//     specific component's Install() call that handled this request. Deriving it this way
+//     (rather than from otel.GetTracerProvider) keeps these spans attributed to that
+//     component's own resource, since only the first-registered component's TracerProvider
+//     ever becomes global (see the TODO in otel-sdk.go's installSDK).
+//   - "obi": the plain, unregistered global tracer. There is no span in ctx to derive one
+//     from anyway, since otelhttp never runs in this mode; using the global accessor is what
+//     lets OBI's Go Trace API bridge auto-activate for these calls instead (see otel-obi.go
+//     and docs/otel.md).
+func BusinessTracer(ctx context.Context) trace.Tracer {
+	if InstrumentationMode() == "obi" {
+		return otel.Tracer("quickpizza")
+	}
+	return trace.SpanFromContext(ctx).TracerProvider().Tracer("")
 }

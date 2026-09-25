@@ -35,9 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 
 	k6 "github.com/grafana/pyroscope-go/x/k6"
 	"github.com/grafana/quickpizza/pkg/database"
@@ -1366,23 +1364,10 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
-			var tracer trace.Tracer
-			if InstrumentationMode() == "obi" {
-				// OBI's Go Trace API bridge only auto-activates for calls made through
-				// OTel's default, unregistered global tracer (see otel-obi.go and
-				// docs/otel.md) - there's no span in r.Context() to derive one from
-				// anyway, since otelhttp never runs in this mode.
-				tracer = otel.Tracer("quickpizza")
-			} else {
-				// In "sdk" mode, only the first-registered component's TracerProvider
-				// ever becomes global (see the TODO in otel-sdk.go's installSDK), so
-				// deriving the tracer from the current request's own span - the one
-				// otelhttp created using this specific Install() call's own, correctly
-				// resource-tagged provider - keeps these two spans attributed to this
-				// component ("recommendations") instead of whichever component happened
-				// to install first.
-				tracer = trace.SpanFromContext(r.Context()).TracerProvider().Tracer("")
-			}
+			// BusinessTracer (pkg/http/otel.go) picks the mode-appropriate tracer for these
+			// two manual spans - this handler doesn't need to know how "sdk" vs "obi" mode
+			// differ.
+			tracer := BusinessTracer(r.Context())
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
