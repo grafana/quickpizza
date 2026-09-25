@@ -206,8 +206,12 @@ func (t *OTelInstaller) Insecure() {
 	t.insecure = true
 }
 
-// instrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
-// defaulting to "sdk". See docs/otel.md for what each mode does.
+// InstrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
+// defaulting to "sdk". See docs/otel.md for what each mode does. Exported because callers
+// outside this package that build their own otelhttp-wrapped HTTP clients (e.g.
+// cmd/main.go's recommendations→catalog/copy client) need to skip that wrapping too in
+// "obi" mode, for the same reason Install below skips otelhttp: OBI already captures that
+// HTTP traffic via eBPF, so app-side otelhttp instrumentation would just duplicate it.
 //
 //   - "sdk" (default): this app's own OTel Go SDK creates and exports every span/metric,
 //     as it always has.
@@ -216,7 +220,7 @@ func (t *OTelInstaller) Insecure() {
 //     then avoid registering a global TracerProvider and avoid running otelhttp, since
 //     OBI's Go Trace API bridge only auto-activates when no SDK is registered, and running
 //     otelhttp too would duplicate the HTTP spans/metrics OBI captures via eBPF.
-func instrumentationMode() string {
+func InstrumentationMode() string {
 	mode, ok := os.LookupEnv("QUICKPIZZA_OTEL_INSTRUMENTATION_MODE")
 	if !ok || mode == "" {
 		return "sdk"
@@ -232,9 +236,9 @@ func instrumentationMode() string {
 //
 // When QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi, HTTP tracing/metrics are skipped entirely
 // and no global TracerProvider is set, so an external OBI sidecar can instrument this
-// process instead. See instrumentationMode and docs/otel.md.
+// process instead. See InstrumentationMode and docs/otel.md.
 func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts ...otelhttp.Option) error {
-	obiMode := instrumentationMode() == "obi"
+	obiMode := InstrumentationMode() == "obi"
 
 	// TODO: can leverage default OTEL_SERVICE_NAME, OTEL_RESOURCE_ATTRIBUTES env vars
 	serviceName, ok := os.LookupEnv("QUICKPIZZA_OTEL_SERVICE_NAME")
@@ -278,7 +282,7 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 		tp = sdktrace.NewTracerProvider()
 		mp = sdkmetric.NewMeterProvider()
 	case obiMode:
-		// In obi mode, traces are OBI's job (see instrumentationMode), so this app never
+		// In obi mode, traces are OBI's job (see InstrumentationMode), so this app never
 		// creates a trace provider/exporter for itself. Metrics still need a real provider,
 		// since runtime metrics (goroutines, GC, ...) aren't something OBI produces.
 		tp = sdktrace.NewTracerProvider()

@@ -438,12 +438,17 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 	s.router.Group(func(r chi.Router) {
 		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
-		// Generate client traces for requests proxied by the gateway.
-		otelTransport := otelhttp.NewTransport(
-			nil,
-			// Propagator will retrieve the tracer used in the server from memory.
-			otelhttp.WithPropagators(propagation.TraceContext{}),
-		)
+		// Generate client traces for requests proxied by the gateway. Skipped in "obi" mode:
+		// OBI captures this HTTP traffic via eBPF itself, so wrapping it with otelhttp too
+		// would just duplicate those spans. See InstrumentationMode and docs/otel.md.
+		var otelTransport http.RoundTripper
+		if InstrumentationMode() != "obi" {
+			otelTransport = otelhttp.NewTransport(
+				nil,
+				// Propagator will retrieve the tracer used in the server from memory.
+				otelhttp.WithPropagators(propagation.TraceContext{}),
+			)
+		}
 
 		r.Handle("/api/*", &httputil.ReverseProxy{
 			Transport: otelTransport,
