@@ -161,28 +161,23 @@ services:
       QUICKPIZZA_OTEL_SERVICE_NAME: "grpc"
       OTEL_SERVICE_NAME: "grpc"
 
-  # OBI (OpenTelemetry eBPF Instrumentation) instruments every quickpizza-family process on
-  # this host from outside it, via eBPF. Unlike the monolithic compose file (a single
-  # quickpizza process, so one obi sidecar sharing just that container's PID namespace is
-  # enough), microservices mode runs catalog/config/copy/public-api/recommendations/ws/grpc
-  # as 7 separate processes - matching OBI's own recommended topology for that case (see
-  # https://opentelemetry.io/docs/zero-code/obi/setup/kubernetes/, the "DaemonSet" pattern):
-  # one shared OBI instance discovering every matching process on the host, rather than one
-  # sidecar per service. `pid: host` gives OBI visibility into every process on this machine
-  # (not just this compose project's containers), but OTEL_EBPF_AUTO_TARGET_EXE scopes what
-  # it actually instruments to processes running this exact binary - every quickpizza-family
-  # container runs the same image, so one glob covers all 7 regardless of which container's
-  # network namespace they're in (port-based selection, used in the monolithic compose file,
-  # can't disambiguate them here: they all listen on the same port number in separate
-  # per-container network namespaces).
+  # OBI (OpenTelemetry eBPF Instrumentation) instruments every quickpizza-family process
+  # (catalog/config/copy/public-api/recommendations/ws/grpc) from outside them, via eBPF,
+  # instead of relying on the app OTel SDK.
   #
-  # Opt-in: only started with `docker compose --profile obi up`, and only useful when the
-  # app services above also have QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi. See docs/otel.md.
+  # Full command (opt-in):
+  #
+  #   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi \
+  #     docker compose -f compose.grafana-local-stack.microservices.yaml --profile obi up
   obi:
     image: otel/ebpf-instrument:v0.13.0
     container_name: obi
     labels:
       - "service.type=instrumentation"
+    # "DaemonSet" pattern: one shared OBI instance discovering every matching process on the
+    # host. `pid: host` gives OBI visibility into every process on this machine;
+    # OTEL_EBPF_AUTO_TARGET_EXE scopes what it actually instruments to processes running this
+    # exact binary.
     pid: "host"
     privileged: true
     volumes:
