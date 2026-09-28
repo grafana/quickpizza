@@ -32,7 +32,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// installSDK is the "sdk" InstrumentationMode (the default): this app's own OTel Go SDK
+// installSDK implements the "sdk" instrumentation mode (the default): this app's own OTel Go SDK
 // creates and exports every span/metric, exactly as it always has. See docs/otel.md.
 //
 //   - Sets the global TracerProvider/MeterProvider the first time any component calls
