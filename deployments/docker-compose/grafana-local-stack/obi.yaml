@@ -35,11 +35,16 @@ routes:
 # process-internal maps; external features depending on pinned maps ... will be disabled"
 # (bpffs isn't mounted in this local Docker Desktop setup) - despite that, some log lines
 # from quickpizza do come out with a correct trace_id/span_id injected (confirmed by decoding
-# the span_id and matching it to the exact "processing" span for that request in Tempo). This
-# matches the documented caveat: "the log enricher only sees trace context when the log write
-# happens on the request-handling thread" - most of this app's log writes apparently don't
-# satisfy that, some do. Treat it as a real but unreliable signal in this environment, not as
-# fully broken.
+# the span_id and matching it to the exact "processing" span for that request in Tempo).
+#
+# Measured live across ~15 requests per endpoint: enrichment rate tracks request duration,
+# not chance. Every sub-millisecond request (9 different endpoints, 135 samples) got 0%
+# enrichment; ~3-4ms requests got 47-100%; a 70ms request got 87%; a 29s request got 100%.
+# Matches the same limitation already documented for Tempo's "Profiles for this span"
+# correlation: establishing OBI's per-goroutine "this goroutine is inside span X" association
+# takes real, if small, wall-clock time after a request starts, so a request/log-write that
+# finishes faster than that loses the race and gets zero correlation - not bad luck, a
+# structural race. Treat it as a real but duration-dependent signal, not evenly unreliable.
 #
 # `enabled` below does NOT actually gate this in v0.13.0 - verified live: with `enabled: false`
 # and `services` still present, enrichment still fired on some log lines. Only removing the
