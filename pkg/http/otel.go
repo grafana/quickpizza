@@ -97,20 +97,13 @@ func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.
 //     component's own resource, since only the first-registered component's TracerProvider
 //     ever becomes global (see the TODO in otel-sdk.go's installSDK).
 //
-//   - "obi": the plain, unregistered global tracer (otel.Tracer, backed by
-//     otel.GetTracerProvider) — deliberately NOT ctx-derived. Install is a no-op in this
-//     mode (it never runs otelhttp), so no span is ever placed in ctx to begin with. That
-//     matters because trace.SpanFromContext falls back to a *different*,
-//     hardcoded no-op path when ctx has no span: vendor/go.opentelemetry.io/otel/trace/noop.go's
-//     noopSpan.TracerProvider() returns a TracerProvider that is a permanent no-op unless a
-//     Go auto-instrumentation agent has flipped its own separate autoInstEnabled flag — it does
-//     NOT go through otel.GetTracerProvider()'s global registration slot at all. OBI's Go Trace
-//     API bridge (https://opentelemetry.io/docs/zero-code/obi/distributed-traces/) hooks that
-//     global slot, not this per-span fallback. So if this branch used the ctx-derived form like
-//     "sdk" mode does, pizza-generation/name-generation would silently become permanently no-op
-//     spans in obi mode instead of being picked up by OBI — this is the one case where ctx
-//     genuinely cannot be used, not just a style choice. See docs/otel.md's "Two instrumentation
-//     modes" section for the OBI-side half of this story.
+//   - "obi": the plain global tracer (otel.Tracer), never ctx-derived — deliberately, not by
+//     oversight. In this mode Install never runs, so this app never puts an HTTP span into
+//     ctx in the first place; deriving a tracer from "whatever span is in ctx" would just
+//     find nothing and silently produce dead spans that go nowhere. OBI's own agent watches
+//     for exactly this plain global tracer and turns its calls into real, exported spans —
+//     which is the whole reason this still works without this app running any SDK of its
+//     own. See docs/otel.md's "Two instrumentation modes" section.
 func QuickPizzaTracer(ctx context.Context) trace.Tracer {
 	if InstrumentationMode() == "obi" {
 		return otel.Tracer("quickpizza")
