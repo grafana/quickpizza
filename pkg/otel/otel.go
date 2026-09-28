@@ -19,7 +19,7 @@ import (
 // An uninitialized OTelInstaller behaves like a noop, where calls to Install have no effect.
 //
 // Install dispatches on instrumentationMode:
-//   - "sdk" (otel-sdk.go, the default): this app's own OTel Go SDK instruments itself.
+//   - "sdk" (otel_sdk.go, the default): this app's own OTel Go SDK instruments itself.
 //   - "obi": a deliberate no-op — an external OBI sidecar instruments this process entirely
 //     from outside it, via eBPF, with zero code in this app.
 //
@@ -51,7 +51,7 @@ func (t *OTelInstaller) Insecure() {
 // external callers should go through Install, InstrumentHTTPTransport, QuickPizzaTracer, or
 // InstrumentDatabase instead of checking the mode themselves.
 //
-//   - "sdk" (default, otel-sdk.go): this app's own OTel Go SDK creates and exports every
+//   - "sdk" (default, otel_sdk.go): this app's own OTel Go SDK creates and exports every
 //     span/metric, as it always has.
 //   - "obi": every span and metric this app would otherwise produce is left for an external
 //     OBI (OpenTelemetry eBPF Instrumentation) sidecar to capture instead.
@@ -96,7 +96,7 @@ func InstrumentHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) ht
 //     specific component's Install() call that handled this request. Deriving it this way
 //     (rather than from otel.GetTracerProvider) keeps these spans attributed to that
 //     component's own resource, since only the first-registered component's TracerProvider
-//     ever becomes global (see the TODO in otel-sdk.go's installSDK).
+//     ever becomes global (see the TODO in otel_sdk.go's installSDK).
 //
 //   - "obi": the plain global tracer (otel.Tracer), never ctx-derived — deliberately, not by
 //     oversight. In this mode Install never runs, so this app never puts an HTTP span into
@@ -124,7 +124,7 @@ func InstrumentDatabase() bool {
 // ExemplarData holds trace context that inner middleware populates for outer middleware to
 // read. Callers (e.g. pkg/http/http.go's HTTPMetricsMiddleware, which runs in both modes)
 // store a pointer under ExemplarKey in the request context before calling next.ServeHTTP().
-// Only "sdk" mode's otelRouteLabeler (otel-sdk.go) ever writes a trace ID into it - in "obi"
+// Only "sdk" mode's otelRouteLabeler (otel_sdk.go) ever writes a trace ID into it - in "obi"
 // mode nothing populates it, so callers get the metrics but never an exemplar.
 type ExemplarData struct {
 	TraceID string

@@ -86,7 +86,7 @@ datasources:
     jsonData:
       derivedFields:
         # Matches the app's own JSON log field "trace_id":"<hex>" (pkg/logging's
-        # SDKContextLogger, and pkg/otel/otel-sdk.go's logTraceID for httplog's per-request
+        # OTelSDKContextLogger, and pkg/otel/otel_sdk.go's logTraceID for httplog's per-request
         # lines) to link a log line straight to its trace in Tempo. The previous
         # `tid=(\w+)` pattern never matched this app's actual JSON log format at all.
         - datasourceUid: tempo
