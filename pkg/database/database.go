@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"github.com/grafana/quickpizza/pkg/logging"
+	"github.com/grafana/quickpizza/pkg/otel"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
@@ -18,11 +19,11 @@ import (
 	"github.com/uptrace/bun/extra/bunotel"
 )
 
-// initializeDB opens the database connection and registers query hooks. enableOTelSpanQueryHook
-// controls whether the bunotel OTel query hook is added - callers pass
-// qphttp.InstrumentDatabase() (false in "obi" mode, see its doc comment for why). The
-// slog logging hook is unconditional; it isn't part of the OTel/OBI split.
-func initializeDB(connString string, enableOTelSpanQueryHook bool) (*bun.DB, error) {
+// initializeDB opens the database connection and registers query hooks. The bunotel OTel
+// query hook is only added when otel.InstrumentDatabase() reports true (false in "obi" mode,
+// see its doc comment for why). The slog logging hook is unconditional; it isn't part of the
+// OTel/OBI split.
+func initializeDB(connString string) (*bun.DB, error) {
 	var db *bun.DB
 	if strings.HasPrefix(connString, "postgres://") {
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
@@ -50,7 +51,7 @@ func initializeDB(connString string, enableOTelSpanQueryHook bool) (*bun.DB, err
 		dbName = "quickpizza-database"
 	}
 	db.AddQueryHook(logging.NewBunSlogHook(slog.Default()))
-	if enableOTelSpanQueryHook {
+	if otel.InstrumentDatabase() {
 		db.AddQueryHook(bunotel.NewQueryHook(
 			bunotel.WithFormattedQueries(true),
 			bunotel.WithDBName(dbName),

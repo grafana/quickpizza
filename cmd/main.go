@@ -17,6 +17,7 @@ import (
 	qpgrpc "github.com/grafana/quickpizza/pkg/grpc"
 	qphttp "github.com/grafana/quickpizza/pkg/http"
 	"github.com/grafana/quickpizza/pkg/logging"
+	"github.com/grafana/quickpizza/pkg/otel"
 	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -44,7 +45,7 @@ func main() {
 	}
 
 	// Enable OpenTelemetry if configured.
-	otelInstaller := &qphttp.OTelInstaller{}
+	otelInstaller := &otel.OTelInstaller{}
 
 	// TODO: use standard OTEL_EXPORTER_OTLP_ENDPOINT env var
 	otlpEndpoint, _ := os.LookupEnv("QUICKPIZZA_OTLP_ENDPOINT")
@@ -53,7 +54,7 @@ func main() {
 		defer cancel()
 
 		var err error
-		otelInstaller, err = qphttp.NewOTelInstaller(ctx, otlpEndpoint)
+		otelInstaller, err = otel.NewOTelInstaller(ctx, otlpEndpoint)
 		if err != nil {
 			slog.Error("creating OpenTelemetryinstaller", "err", err)
 			os.Exit(1)
@@ -116,9 +117,7 @@ func main() {
 	}
 
 	if envServe("QUICKPIZZA_ENABLE_CATALOG_SERVICE") {
-		// qphttp.InstrumentDatabase is false in "obi" mode: OBI already captures Postgres
-		// traffic itself, so the bunotel query hook would just duplicate those spans.
-		db, err := database.NewCatalog(envDBConnString(), qphttp.InstrumentDatabase())
+		db, err := database.NewCatalog(envDBConnString())
 		if err != nil {
 			slog.Error("setting up database connection", "err", err)
 			os.Exit(1)
@@ -127,7 +126,7 @@ func main() {
 	}
 
 	if envServe("QUICKPIZZA_ENABLE_COPY_SERVICE") {
-		db, err := database.NewCopy(envDBConnString(), qphttp.InstrumentDatabase())
+		db, err := database.NewCopy(envDBConnString())
 		if err != nil {
 			slog.Error("setting up database connection", "err", err)
 			os.Exit(1)
@@ -182,8 +181,8 @@ func main() {
 // QUICKPIZZA_PUBLIC_API_TIMEOUT to simulate timeout scenarios.
 func newRecommendationsHTTPClient() *http.Client {
 	httpClient := &http.Client{
-		// A no-op in "obi" mode - see qphttp.NewOTelHTTPTransport.
-		Transport: qphttp.NewOTelHTTPTransport(
+		// A no-op in "obi" mode - see otel.NewOTelHTTPTransport.
+		Transport: otel.NewOTelHTTPTransport(
 			nil,
 			otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(
 				propagation.TraceContext{},

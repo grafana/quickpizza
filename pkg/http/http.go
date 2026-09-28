@@ -42,6 +42,7 @@ import (
 	"github.com/grafana/quickpizza/pkg/errorinjector"
 	"github.com/grafana/quickpizza/pkg/logging"
 	"github.com/grafana/quickpizza/pkg/model"
+	"github.com/grafana/quickpizza/pkg/otel"
 	"github.com/grafana/quickpizza/pkg/util"
 	"github.com/grafana/quickpizza/pkg/web"
 )
@@ -258,12 +259,12 @@ func LogUser(next http.Handler) http.Handler {
 // as one single big service.
 type Server struct {
 	log            *slog.Logger
-	traceInstaller *OTelInstaller
+	traceInstaller *otel.OTelInstaller
 	router         chi.Router
 	melody         *melody.Melody
 }
 
-func NewServer(profiling bool, traceInstaller *OTelInstaller) *Server {
+func NewServer(profiling bool, traceInstaller *otel.OTelInstaller) *Server {
 	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
 
 	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
@@ -438,8 +439,8 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
 		// Generate client traces for requests proxied by the gateway (a no-op in "obi"
-		// mode - see NewOTelHTTPTransport).
-		otelTransport := NewOTelHTTPTransport(
+		// mode - see otel.NewOTelHTTPTransport).
+		otelTransport := otel.NewOTelHTTPTransport(
 			nil,
 			// Propagator will retrieve the tracer used in the server from memory.
 			otelhttp.WithPropagators(propagation.TraceContext{}),
@@ -1364,10 +1365,9 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
-			// QuickPizzaTracer (pkg/http/otel.go) picks the mode-appropriate tracer for these
-			// two manual spans - this handler doesn't need to know how "sdk" vs "obi" mode
-			// differ.
-			tracer := QuickPizzaTracer(r.Context())
+			// otel.QuickPizzaTracer picks the mode-appropriate tracer for these two manual
+			// spans - this handler doesn't need to know how "sdk" vs "obi" mode differ.
+			tracer := otel.QuickPizzaTracer(r.Context())
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
@@ -1648,17 +1648,17 @@ func excludeWebSocketFromOTel() otelhttp.Option {
 // for method, path (route pattern), and status code. It also attaches exemplars
 // containing trace context to histogram metrics for observability linking.
 //
-// Exemplars rely on OTelRouteLabeler populating an exemplarData pointer stored
+// Exemplars rely on otel.OTelRouteLabeler populating an otel.ExemplarData pointer stored
 // in the request context. This avoids installing otelhttp at the root level.
 func HTTPMetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-		// Store a mutable pointer in the context for OTelRouteLabeler to populate
+		// Store a mutable pointer in the context for otel.OTelRouteLabeler to populate
 		// with trace IDs after otelhttp creates the span.
-		ed := &exemplarData{}
-		ctx := context.WithValue(r.Context(), exemplarKey, ed)
+		ed := &otel.ExemplarData{}
+		ctx := context.WithValue(r.Context(), otel.ExemplarKey, ed)
 
 		next.ServeHTTP(ww, r.WithContext(ctx))
 		duration := time.Since(start)
