@@ -3,11 +3,13 @@ package otel
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/grafana/quickpizza/pkg/logging"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
@@ -133,3 +135,20 @@ type ExemplarData struct {
 type exemplarKeyType int
 
 const ExemplarKey exemplarKeyType = 0
+
+// WrapLogHandler returns the slog.Handler this app's structured logs should use, dispatched by
+// instrumentationMode:
+//
+//   - "sdk": logging.SDKContextLogger, which reads the current span out of ctx and attaches
+//     its trace ID to every log record - manual instrumentation, required because nothing
+//     else correlates logs with traces in this mode.
+//   - "obi": logging.OBIContextLogger, which never touches trace context at all. Log
+//     correlation in this mode, if wanted, is OBI's own log_enricher feature rewriting the
+//     raw log bytes from outside this process, via eBPF - zero code here does it. See
+//     docs/otel.md.
+func WrapLogHandler(base slog.Handler) slog.Handler {
+	if instrumentationMode() == "obi" {
+		return logging.NewOBIContextLogger(base)
+	}
+	return logging.NewSDKContextLogger(base)
+}

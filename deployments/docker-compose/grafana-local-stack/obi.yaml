@@ -21,3 +21,27 @@ routes:
     # /debug/pprof/goroutine, /debug/pprof/allocs, etc., which /debug/pprof/* does cover.
     - /debug/pprof/
     - /debug/pprof/*
+
+# Log enricher: injects trace_id/span_id into the app's own JSON logs (written to stdout via
+# slog) in place, for the request-handling thread of an active traced span. OBI never exports
+# logs itself - Alloy's existing log pipeline would pick up the now-enriched lines unchanged.
+# See https://opentelemetry.io/docs/zero-code/obi/trace-log-correlation/ and docs/otel.md.
+#
+# Schema verified against the v0.13.0 binary's own struct tags (the upstream docs example has
+# a stray `service:` wrapper around `open_ports` that this version's parser rejects).
+#
+# Verified live: works, but only intermittently. obi's own startup log still reports
+# logenricher=false for this process, and the container also logs "OBI will use
+# process-internal maps; external features depending on pinned maps ... will be disabled"
+# (bpffs isn't mounted in this local Docker Desktop setup) - despite that, some log lines
+# from quickpizza do come out with a correct trace_id/span_id injected (confirmed by decoding
+# the span_id and matching it to the exact "processing" span for that request in Tempo). This
+# matches the documented caveat: "the log enricher only sees trace context when the log write
+# happens on the request-handling thread" - most of this app's log writes apparently don't
+# satisfy that, some do. Treat it as a real but unreliable signal in this environment, not as
+# fully broken.
+ebpf:
+  log_enricher:
+    enabled: true
+    services:
+      - open_ports: "3333"

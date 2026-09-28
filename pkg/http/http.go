@@ -265,7 +265,7 @@ type Server struct {
 }
 
 func NewServer(profiling bool, traceInstaller *otel.OTelInstaller) *Server {
-	logger := slog.New(logging.NewContextLogger(slog.Default().Handler()))
+	logger := slog.New(otel.WrapLogHandler(slog.Default().Handler()))
 
 	reqLogger := httplog.NewLogger("quickpizza", httplog.Options{
 		JSON:             true,
