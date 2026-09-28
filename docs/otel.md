@@ -15,7 +15,7 @@ For a full list of Prometheus metric names (including the ones OTel's HTTP instr
 | Database spans | Produced by this app, via a Bun ORM query hook | Produced by OBI, from the raw Postgres wire protocol |
 | Business-logic spans (`pizza-generation`, `name-generation`) | Produced by this app | Also produced, via a different capture path — same span names and nesting |
 | Go runtime metrics | Produced by this app | Produced by OBI natively |
-| Request queue/processing timing | Not produced | Produced — every HTTP span gets extra `in queue` and `processing` child spans, splitting out time spent waiting to be handled from time spent actively being handled |
+| Request queue/processing timing | Not produced | Produced — see below |
 | Resource attributes (`service.name`, ...) | Set by this app from `QUICKPIZZA_OTEL_SERVICE_*` env vars | Set by OBI, read from `OTEL_SERVICE_NAME`/`OTEL_RESOURCE_ATTRIBUTES` on the `quickpizza` container |
 | Prometheus app counters, logs, profiling | Unaffected by this toggle | Unaffected by this toggle |
 
@@ -29,6 +29,7 @@ QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local
 
 ### Known differences in captured data
 
+- **`obi` mode's HTTP spans include queueing time; `sdk` mode's can't.** Every HTTP server span in `obi` mode gets two extra child spans: `in queue` (time the request spent waiting to be dispatched, before the handler started running) and `processing` (time actually spent inside the request handler). `sdk` mode's HTTP server span only ever covers `processing` — its span starts when the Go handler function is invoked, so any time spent before that (accept-queue delay, goroutine scheduling delay under load) is invisible to it by construction, not just something nobody's added yet. OBI can see it because its eBPF probes attach at the kernel/Go-runtime level, below where the handler function starts. Under normal load the two are close enough not to matter; under load, this is exactly the gap that makes queueing delay show up as latency with no explanation in `sdk` mode. See Grafana Beyla's docs (OBI's predecessor project) for the full breakdown, including a worked example: https://grafana.com/docs/beyla/latest/requesttime/.
 - **`/metrics` and `/debug/pprof/*` are excluded from `obi` mode's captured spans/metrics** — these endpoints were never traced in `sdk` mode either, so this exclusion keeps the two modes' data comparable rather than flooding `obi` mode with scrape traffic `sdk` mode never showed.
 - **Database spans look different between modes.** `sdk` mode's DB spans carry the formatted SQL query text as an attribute; `obi` mode's DB spans, being derived from the wire protocol, may not carry the same level of query detail.
 
