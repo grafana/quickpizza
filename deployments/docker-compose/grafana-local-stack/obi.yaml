@@ -40,6 +40,12 @@ routes:
 # happens on the request-handling thread" - most of this app's log writes apparently don't
 # satisfy that, some do. Treat it as a real but unreliable signal in this environment, not as
 # fully broken.
+#
+# `enabled` below does NOT actually gate this in v0.13.0 - verified live: with `enabled: false`
+# and `services` still present, enrichment still fired on some log lines. Only removing the
+# entire `log_enricher:` block (services included) stopped it. So it's the presence of
+# `services` that activates this feature here, not `enabled` - to turn it off, comment out
+# this whole block, not just this one field.
 ebpf:
   log_enricher:
     enabled: true
