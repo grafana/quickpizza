@@ -292,20 +292,6 @@ func logTraceID(next http.Handler) http.Handler {
 	})
 }
 
-// ExemplarData holds trace context that inner middleware populates for outer middleware to
-// read. Callers (e.g. pkg/http/http.go's HTTPMetricsMiddleware) store a pointer under
-// ExemplarKey in the request context before calling next.ServeHTTP(). The route labeler
-// middleware below (running inside route groups, after otelhttp) writes the trace IDs into it.
-type ExemplarData struct {
-	TraceID string
-}
-
-// exemplarKeyType is deliberately unexported: callers outside this package use the ExemplarKey
-// value below as an opaque context key, but should never construct their own key of this type.
-type exemplarKeyType int
-
-const ExemplarKey exemplarKeyType = 0
-
 // otelRouteLabeler is a middleware that adds the chi route pattern to OTel metrics.
 // This must be used AFTER otelhttp.NewHandler and will add an "http.route" label
 // to the http_server_request_duration_seconds metric.

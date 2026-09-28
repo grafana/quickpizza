@@ -119,3 +119,18 @@ func QuickPizzaTracer(ctx context.Context) trace.Tracer {
 func InstrumentDatabase() bool {
 	return InstrumentationMode() != "obi"
 }
+
+// ExemplarData holds trace context that inner middleware populates for outer middleware to
+// read. Callers (e.g. pkg/http/http.go's HTTPMetricsMiddleware, which runs in both modes)
+// store a pointer under ExemplarKey in the request context before calling next.ServeHTTP().
+// Only "sdk" mode's otelRouteLabeler (otel-sdk.go) ever writes a trace ID into it - in "obi"
+// mode nothing populates it, so callers get the metrics but never an exemplar.
+type ExemplarData struct {
+	TraceID string
+}
+
+// exemplarKeyType is deliberately unexported: callers outside this package use the ExemplarKey
+// value below as an opaque context key, but should never construct their own key of this type.
+type exemplarKeyType int
+
+const ExemplarKey exemplarKeyType = 0
