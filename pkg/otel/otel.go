@@ -139,7 +139,7 @@ const ExemplarKey exemplarKeyType = 0
 // WrapLogHandler returns the slog.Handler this app's structured logs should use, dispatched by
 // instrumentationMode:
 //
-//   - "sdk": logging.SDKContextLogger, which reads the current span out of ctx and attaches
+//   - "sdk": logging.OTelSDKContextLogger, which reads the current span out of ctx and attaches
 //     its trace ID to every log record - manual instrumentation, required because nothing
 //     else correlates logs with traces in this mode.
 //   - "obi": logging.ContextLogger, this app's plain default logger, unmodified. Log
@@ -150,5 +150,5 @@ func WrapLogHandler(base slog.Handler) slog.Handler {
 	if instrumentationMode() == "obi" {
 		return logging.NewContextLogger(base)
 	}
-	return logging.NewSDKContextLogger(base)
+	return logging.NewOTelSDKContextLogger(base)
 }

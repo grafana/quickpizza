@@ -10,7 +10,7 @@ import (
 // user (if present in ctx) to every log record and otherwise passes through to its parent
 // handler. Nothing here reads or attaches trace context - this is exactly the logger "obi"
 // mode uses, unmodified, since OBI needs no application code to correlate logs with traces
-// (see otel_sdk_context_logger.go's SDKContextLogger for the extra code "sdk" mode layers on
+// (see otel_sdk_context_logger.go's OTelSDKContextLogger for the extra code "sdk" mode layers on
 // top of this one to get the same result manually).
 type ContextLogger struct {
 	parent slog.Handler
