@@ -46,6 +46,10 @@ services:
       QUICKPIZZA_ENABLE_ALL_SERVICES: 1 # 1 for monolithic mode
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "quickpizza"
       QUICKPIZZA_OTEL_SERVICE_NAME: "quickpizza"
+      # sdk (default) or obi - see the `obi:` service's own comment and docs/otel.md.
+      QUICKPIZZA_OTEL_INSTRUMENTATION_MODE: "${QUICKPIZZA_OTEL_INSTRUMENTATION_MODE:-sdk}"
+      # Read by OBI to label the spans/metrics with the right service.name
+      OTEL_SERVICE_NAME: "quickpizza"
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-QuickPizza}"
@@ -59,6 +63,34 @@ services:
     depends_on:
       quickpizza-db:
         condition: service_healthy
+
+  # OBI (OpenTelemetry eBPF Instrumentation) instruments the quickpizza process from
+  # outside it, via eBPF, instead of relying on the app's OTel SDK.
+  #
+  # Full command (opt-in):
+  #
+  #   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi \
+  #     docker compose -f compose.grafana-cloud.monolithic.yaml --profile obi up
+  obi:
+    image: otel/ebpf-instrument:v0.13.0
+    container_name: obi
+    labels:
+      - "service.type=instrumentation"
+    # Shares quickpizza's PID namespace so OBI can find and attach to its process;
+    # privileged is required for the eBPF probes OBI attaches.
+    pid: "service:quickpizza"
+    privileged: true
+    volumes:
+      - "./deployments/docker-compose/grafana-local-stack/obi.yaml:/obi-config.yaml:Z"
+    command: ["-config", "/obi-config.yaml"]
+    environment:
+      OTEL_EBPF_OPEN_PORT: "3333"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    depends_on:
+      - quickpizza
+      - alloy
+    profiles: ["obi"]
 
   quickpizza-db:
     image: postgres:18.1

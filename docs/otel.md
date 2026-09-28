@@ -19,15 +19,20 @@ For a full list of Prometheus metric names (including the ones OTel's HTTP instr
 | Resource attributes (`service.name`, ...) | Set by this app from `QUICKPIZZA_OTEL_SERVICE_*` env vars | Set by OBI, read per-process from each container's own `OTEL_SERVICE_NAME`/`OTEL_RESOURCE_ATTRIBUTES` |
 | Prometheus app counters, logs, profiling | Unaffected by this toggle | Unaffected by this toggle |
 
-To try `obi` mode locally:
+To try `obi` mode:
 
 ```sh
-# Monolith: one quickpizza process, one obi container attached to it.
+# Local stack - monolith: one quickpizza process, one obi container attached to it.
 QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local-stack.monolithic.yaml --profile obi up
 
-# Microservices: 7 separate processes (catalog/config/copy/public-api/recommendations/ws/grpc),
-# one obi container discovering and attaching to all of them.
+# Local stack - microservices: 7 separate processes (catalog/config/copy/public-api/
+# recommendations/ws/grpc), one obi container discovering and attaching to all of them.
 QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local-stack.microservices.yaml --profile obi up
+
+# Grafana Cloud - monolith / microservices: same as above, just exported through Alloy to
+# Grafana Cloud instead of the local stack (needs GRAFANA_CLOUD_TOKEN/GRAFANA_CLOUD_STACK set).
+QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-cloud.monolithic.yaml --profile obi up
+QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-cloud.microservices.yaml --profile obi up
 ```
 
 (Without `--profile obi`, the `obi` container(s) never start, regardless of the env var above.)
