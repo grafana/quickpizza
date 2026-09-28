@@ -34,7 +34,7 @@ QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local
 
 ### Known differences in captured data
 
-- **`obi` mode's HTTP spans include queueing time; `sdk` mode's structurally can't.** Each server span gets `in queue` (wait before the handler runs) and `processing` (handler execution) child spans. `sdk` mode's span only starts once the handler is invoked, so queueing delay is invisible to it, not just unimplemented. Details: https://grafana.com/docs/beyla/latest/requesttime/.
+- **`obi` mode's HTTP spans include queueing time; `sdk` mode's structurally can't.** Each server span gets `in queue` (wait before the handler runs) and `processing` (handler execution) child spans — OBI's own docs frame this as measuring *total request time* (client-perceived) rather than just *service time* (handler-only). `sdk` mode's span only starts once the handler is invoked, so it can only ever measure service time — queueing delay is structurally invisible to it, not just unimplemented. Details: https://opentelemetry.io/docs/zero-code/obi/requesttime/.
 - **`/metrics` and `/debug/pprof/*` are excluded from `obi` mode's captured spans/metrics** — these endpoints were never traced in `sdk` mode either, so this exclusion keeps the two modes' data comparable rather than flooding `obi` mode with scrape traffic `sdk` mode never showed.
 - **Database spans look different between modes.** `sdk` mode's DB spans carry the formatted SQL query text as an attribute; `obi` mode's DB spans, being derived from the wire protocol, may not carry the same level of query detail.
 
