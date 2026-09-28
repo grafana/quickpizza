@@ -111,18 +111,11 @@ func QuickPizzaTracer(ctx context.Context) trace.Tracer {
 	return trace.SpanFromContext(ctx).TracerProvider().Tracer("")
 }
 
-// InstrumentDatabase reports whether pkg/database should register its bunotel query hook
-// (github.com/uptrace/bun/extra/bunotel), which creates one client span per SQL query via
-// bunotel's own internal call into the OTel API. It's false in "obi" mode: OBI already
-// captures Postgres traffic itself, from *outside* the process, by parsing the wire protocol
-// on the socket (see the pgx/lib/pq-adjacent uprobes and generic net.Read/Write/crypto/tls
-// hooks OBI attaches, independent of which driver/ORM the app uses). Since bunotel's own
-// Start() calls go through the same unregistered global tracer QuickPizzaTracer uses in "obi"
-// mode, OBI's Go Trace API bridge picks those up *too* - so leaving the hook enabled in "obi"
-// mode double-counts every query: one span from OBI's wire-protocol capture, one from OBI
-// bridging bunotel's own instrumentation call. pkg/database has no OTel-mode awareness of its
-// own; callers (cmd/main.go) pass this straight into database.NewCatalog/NewCopy. See
-// docs/otel.md's "Database (Bun ORM)" row.
+// InstrumentDatabase reports whether pkg/database should register its own DB query hook.
+// False in "obi" mode: OBI already captures database queries itself, from outside the
+// process, so the app's own hook would just double up every query into two spans. pkg/database
+// has no OTel-mode awareness of its own; callers (cmd/main.go) pass this straight into
+// database.NewCatalog/NewCopy. See docs/otel.md's "Database (Bun ORM)" row.
 func InstrumentDatabase() bool {
 	return InstrumentationMode() != "obi"
 }
