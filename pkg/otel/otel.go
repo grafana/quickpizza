@@ -142,13 +142,13 @@ const ExemplarKey exemplarKeyType = 0
 //   - "sdk": logging.SDKContextLogger, which reads the current span out of ctx and attaches
 //     its trace ID to every log record - manual instrumentation, required because nothing
 //     else correlates logs with traces in this mode.
-//   - "obi": logging.OBIContextLogger, which never touches trace context at all. Log
+//   - "obi": logging.ContextLogger, this app's plain default logger, unmodified. Log
 //     correlation in this mode, if wanted, is OBI's own log_enricher feature rewriting the
 //     raw log bytes from outside this process, via eBPF - zero code here does it. See
 //     docs/otel.md.
 func WrapLogHandler(base slog.Handler) slog.Handler {
 	if instrumentationMode() == "obi" {
-		return logging.NewOBIContextLogger(base)
+		return logging.NewContextLogger(base)
 	}
 	return logging.NewSDKContextLogger(base)
 }
