@@ -46,7 +46,7 @@ func (t *OTelInstaller) Insecure() {
 
 // InstrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
 // defaulting to "sdk". See docs/otel.md for what each mode does. Exported for NewOTelHTTPTransport
-// and BusinessTracer below, which are the only mode-aware call sites outside Install's own
+// and QuickPizzaTracer below, which are the only mode-aware call sites outside Install's own
 // dispatch; callers like pkg/http/http.go go through those instead of checking the mode
 // themselves.
 //
@@ -87,7 +87,7 @@ func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.
 	return otelhttp.NewTransport(base, opts...)
 }
 
-// BusinessTracer returns the trace.Tracer that a manual, non-HTTP/DB business-logic span
+// QuickPizzaTracer returns the trace.Tracer that a manual, non-HTTP/DB business-logic span
 // (e.g. pkg/http/http.go's pizza-generation/name-generation spans) should start from for the
 // request carried by ctx, dispatched by InstrumentationMode:
 //
@@ -111,7 +111,7 @@ func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.
 //     spans in obi mode instead of being picked up by OBI — this is the one case where ctx
 //     genuinely cannot be used, not just a style choice. See docs/otel.md's "Two instrumentation
 //     modes" section for the OBI-side half of this story.
-func BusinessTracer(ctx context.Context) trace.Tracer {
+func QuickPizzaTracer(ctx context.Context) trace.Tracer {
 	if InstrumentationMode() == "obi" {
 		return otel.Tracer("quickpizza")
 	}
@@ -124,7 +124,7 @@ func BusinessTracer(ctx context.Context) trace.Tracer {
 // captures Postgres traffic itself, from *outside* the process, by parsing the wire protocol
 // on the socket (see the pgx/lib/pq-adjacent uprobes and generic net.Read/Write/crypto/tls
 // hooks OBI attaches, independent of which driver/ORM the app uses). Since bunotel's own
-// Start() calls go through the same unregistered global tracer BusinessTracer uses in "obi"
+// Start() calls go through the same unregistered global tracer QuickPizzaTracer uses in "obi"
 // mode, OBI's Go Trace API bridge picks those up *too* - so leaving the hook enabled in "obi"
 // mode double-counts every query: one span from OBI's wire-protocol capture, one from OBI
 // bridging bunotel's own instrumentation call. pkg/database has no OTel-mode awareness of its

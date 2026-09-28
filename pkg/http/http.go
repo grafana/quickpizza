@@ -1364,10 +1364,10 @@ func (s *Server) AddRecommendations(catalogClient CatalogClient, copyClient Copy
 			catalogClient := catalogClient.WithRequestContext(r.Context())
 			copyClient := copyClient.WithRequestContext(r.Context())
 
-			// BusinessTracer (pkg/http/otel.go) picks the mode-appropriate tracer for these
+			// QuickPizzaTracer (pkg/http/otel.go) picks the mode-appropriate tracer for these
 			// two manual spans - this handler doesn't need to know how "sdk" vs "obi" mode
 			// differ.
-			tracer := BusinessTracer(r.Context())
+			tracer := QuickPizzaTracer(r.Context())
 
 			s.log.DebugContext(r.Context(), "Received pizza recommendation request")
 			var restrictions Restrictions
