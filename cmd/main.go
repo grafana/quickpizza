@@ -181,8 +181,8 @@ func main() {
 // QUICKPIZZA_PUBLIC_API_TIMEOUT to simulate timeout scenarios.
 func newRecommendationsHTTPClient() *http.Client {
 	httpClient := &http.Client{
-		// A no-op in "obi" mode - see otel.NewOTelHTTPTransport.
-		Transport: otel.NewOTelHTTPTransport(
+		// A no-op in "obi" mode - see otel.InstrumentHTTPTransport.
+		Transport: otel.InstrumentHTTPTransport(
 			nil,
 			otelhttp.WithPropagators(propagation.NewCompositeTextMapPropagator(
 				propagation.TraceContext{},

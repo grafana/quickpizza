@@ -439,8 +439,8 @@ func (s *Server) AddGateway(catalogUrl, copyUrl, wsUrl, recommendationsUrl, conf
 		s.traceInstaller.Install(r, "gateway", excludeWebSocketFromOTel())
 
 		// Generate client traces for requests proxied by the gateway (a no-op in "obi"
-		// mode - see otel.NewOTelHTTPTransport).
-		otelTransport := otel.NewOTelHTTPTransport(
+		// mode - see otel.InstrumentHTTPTransport).
+		otelTransport := otel.InstrumentHTTPTransport(
 			nil,
 			// Propagator will retrieve the tracer used in the server from memory.
 			otelhttp.WithPropagators(propagation.TraceContext{}),

@@ -46,7 +46,7 @@ func (t *OTelInstaller) Insecure() {
 
 // instrumentationMode reports the value of QUICKPIZZA_OTEL_INSTRUMENTATION_MODE,
 // defaulting to "sdk". See docs/otel.md for what each mode does. Unexported deliberately:
-// external callers should go through Install, NewOTelHTTPTransport, QuickPizzaTracer, or
+// external callers should go through Install, InstrumentHTTPTransport, QuickPizzaTracer, or
 // InstrumentDatabase instead of checking the mode themselves.
 //
 //   - "sdk" (default, otel-sdk.go): this app's own OTel Go SDK creates and exports every
@@ -74,12 +74,12 @@ func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts
 	return t.installSDK(r, serviceComponent, extraOpts...)
 }
 
-// NewOTelHTTPTransport wraps base with otelhttp instrumentation, unless instrumentationMode
+// InstrumentHTTPTransport wraps base with otelhttp instrumentation, unless instrumentationMode
 // is "obi" (in which case base is returned unchanged), since OBI already captures this HTTP
 // traffic via eBPF and app-side otelhttp would just duplicate it. Shared by every caller that
 // builds its own instrumented HTTP client instead of going through Install: cmd/main.go's
 // recommendations→catalog/copy client, and pkg/http/http.go's gateway reverse-proxy transport.
-func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.RoundTripper {
+func InstrumentHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.RoundTripper {
 	if instrumentationMode() == "obi" {
 		return base
 	}
