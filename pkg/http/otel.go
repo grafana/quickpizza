@@ -16,13 +16,12 @@ import (
 // OTelInstaller installs tracing middleware into a chi router.
 // An uninitialized OTelInstaller behaves like a noop, where calls to Install have no effect.
 //
-// Install dispatches to one of two independent implementations depending on
-// InstrumentationMode:
-//   - installSDK (otel-sdk.go, the default): this app's own OTel Go SDK instruments itself.
-//   - installOBI (otel-obi.go): a deliberate no-op — an external OBI sidecar instruments
-//     this process entirely from outside it, via eBPF, with zero code in this app.
+// Install dispatches on InstrumentationMode:
+//   - "sdk" (otel-sdk.go, the default): this app's own OTel Go SDK instruments itself.
+//   - "obi": a deliberate no-op — an external OBI sidecar instruments this process entirely
+//     from outside it, via eBPF, with zero code in this app.
 //
-// See docs/otel.md for what each mode does and why they're kept in separate files.
+// See docs/otel.md for what each mode does.
 type OTelInstaller struct {
 	insecure  bool
 	installed bool
@@ -53,8 +52,8 @@ func (t *OTelInstaller) Insecure() {
 //
 //   - "sdk" (default, otel-sdk.go): this app's own OTel Go SDK creates and exports every
 //     span/metric, as it always has.
-//   - "obi" (otel-obi.go): every span and metric this app would otherwise produce is left
-//     for an external OBI (OpenTelemetry eBPF Instrumentation) sidecar to capture instead.
+//   - "obi": every span and metric this app would otherwise produce is left for an external
+//     OBI (OpenTelemetry eBPF Instrumentation) sidecar to capture instead.
 func InstrumentationMode() string {
 	mode, ok := os.LookupEnv("QUICKPIZZA_OTEL_INSTRUMENTATION_MODE")
 	if !ok || mode == "" {
@@ -65,10 +64,13 @@ func InstrumentationMode() string {
 
 // Install sets up tracing/metrics for the given chi.Router, using whichever implementation
 // InstrumentationMode selects. extraOpts take precedence over installSDK's default otelhttp
-// options; installOBI ignores them entirely, since it does nothing.
+// options; ignored entirely in "obi" mode, since that mode does nothing here — see
+// InstrumentationMode.
 func (t *OTelInstaller) Install(r chi.Router, serviceComponent string, extraOpts ...otelhttp.Option) error {
 	if InstrumentationMode() == "obi" {
-		return t.installOBI()
+		// OBI captures HTTP spans/metrics itself, via eBPF, from outside this process.
+		// Running otelhttp here too would just duplicate them.
+		return nil
 	}
 	return t.installSDK(r, serviceComponent, extraOpts...)
 }
@@ -96,9 +98,9 @@ func NewOTelHTTPTransport(base http.RoundTripper, opts ...otelhttp.Option) http.
 //     ever becomes global (see the TODO in otel-sdk.go's installSDK).
 //
 //   - "obi": the plain, unregistered global tracer (otel.Tracer, backed by
-//     otel.GetTracerProvider) — deliberately NOT ctx-derived. installOBI never runs otelhttp
-//     (Install is a no-op in this mode, see otel-obi.go), so no span is ever placed in ctx to
-//     begin with. That matters because trace.SpanFromContext falls back to a *different*,
+//     otel.GetTracerProvider) — deliberately NOT ctx-derived. Install is a no-op in this
+//     mode (it never runs otelhttp), so no span is ever placed in ctx to begin with. That
+//     matters because trace.SpanFromContext falls back to a *different*,
 //     hardcoded no-op path when ctx has no span: vendor/go.opentelemetry.io/otel/trace/noop.go's
 //     noopSpan.TracerProvider() returns a TracerProvider that is a permanent no-op unless a
 //     Go auto-instrumentation agent has flipped its own separate autoInstEnabled flag — it does
