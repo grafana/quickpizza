@@ -6,7 +6,7 @@ For a full list of Prometheus metric names (including the ones OTel's HTTP instr
 
 ## Two instrumentation modes: `sdk` vs `obi`
 
-`QUICKPIZZA_OTEL_INSTRUMENTATION_MODE` picks how QuickPizza's telemetry gets produced, and defaults to `sdk`. The two modes are mutually exclusive alternatives, not layers that stack — pick one. Both produce the same span/metric coverage described below; what differs is where it's produced and, in a few cases, exactly what the data looks like.
+`QUICKPIZZA_OTEL_INSTRUMENTATION_MODE` picks how QuickPizza's telemetry gets produced, and defaults to `sdk`. The two modes are mutually exclusive alternatives, not layers that stack — pick one. Coverage is mostly the same between them, with a couple of exceptions noted below.
 
 | Signal | `sdk` | `obi` |
 |---|---|---|
@@ -15,6 +15,7 @@ For a full list of Prometheus metric names (including the ones OTel's HTTP instr
 | Database spans | Produced by this app, via a Bun ORM query hook | Produced by OBI, from the raw Postgres wire protocol |
 | Business-logic spans (`pizza-generation`, `name-generation`) | Produced by this app | Also produced, via a different capture path — same span names and nesting |
 | Go runtime metrics | Produced by this app | Produced by OBI natively |
+| Request queue/processing timing | Not produced | Produced — every HTTP span gets extra `in queue` and `processing` child spans, splitting out time spent waiting to be handled from time spent actively being handled |
 | Resource attributes (`service.name`, ...) | Set by this app from `QUICKPIZZA_OTEL_SERVICE_*` env vars | Set by OBI, read from `OTEL_SERVICE_NAME`/`OTEL_RESOURCE_ATTRIBUTES` on the `quickpizza` container |
 | Prometheus app counters, logs, profiling | Unaffected by this toggle | Unaffected by this toggle |
 
@@ -26,7 +27,7 @@ QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local
 
 (Without `--profile obi`, the `obi` sidecar container never starts, regardless of the env var above.)
 
-### Known gaps in `obi` mode's data
+### Known differences in captured data
 
 - **`/metrics` and `/debug/pprof/*` are excluded from `obi` mode's captured spans/metrics** — these endpoints were never traced in `sdk` mode either, so this exclusion keeps the two modes' data comparable rather than flooding `obi` mode with scrape traffic `sdk` mode never showed.
 - **Database spans look different between modes.** `sdk` mode's DB spans carry the formatted SQL query text as an attribute; `obi` mode's DB spans, being derived from the wire protocol, may not carry the same level of query detail.
