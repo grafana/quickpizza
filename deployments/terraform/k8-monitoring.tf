@@ -1,5 +1,5 @@
 resource "helm_release" "grafana-k8s-monitoring" {
-  count = var.enable_k8s_monitoring ? 1 : 0
+  count            = var.enable_k8s_monitoring ? 1 : 0
   name             = "grafana-k8s-monitoring"
   repository       = "https://grafana.github.io/helm-charts"
   chart            = "k8s-monitoring"

@@ -2,8 +2,8 @@
 
 locals {
   alloy_component_labels = {
-    "environment"                = var.deployment_environment
-    "app.k8s.io/name"            = "alloy-app"
+    "environment"                 = var.deployment_environment
+    "app.k8s.io/name"             = "alloy-app"
     "app.kubernetes.io/component" = "service"
     "app.kubernetes.io/instance"  = "alloy"
   }
@@ -20,7 +20,7 @@ resource "kubernetes_service_account_v1" "alloy" {
 // This allows Alloy (`service_account_name`) to discover application pods and scrape metrics. 
 resource "kubernetes_cluster_role_binding_v1" "alloy" {
   metadata {
-    name      = "alloy"
+    name = "alloy"
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -63,7 +63,7 @@ resource "kubernetes_deployment_v1" "alloy" {
   metadata {
     name      = "alloy"
     namespace = kubernetes_namespace_v1.quickpizza.id
-    labels = local.alloy_component_labels
+    labels    = local.alloy_component_labels
   }
   spec {
     replicas = 1
@@ -192,6 +192,6 @@ resource "kubernetes_service_v1" "alloy" {
       target_port = "http"
     }
     selector = local.alloy_component_labels
-    type = "ClusterIP"
+    type     = "ClusterIP"
   }
 }

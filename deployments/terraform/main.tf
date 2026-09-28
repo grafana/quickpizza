@@ -52,6 +52,12 @@ locals {
     {
       name  = "QUICKPIZZA_LOG_LEVEL"
       value = var.quickpizza_log_level
+    },
+    {
+      # sdk (default) or obi - driven by var.enable_obi, which also gates the OBI DaemonSet
+      # itself (see obi.tf), so the two can't drift out of sync. See docs/otel.md.
+      name  = "QUICKPIZZA_OTEL_INSTRUMENTATION_MODE"
+      value = var.enable_obi ? "obi" : "sdk"
     }
   ]
   default_resources = {
