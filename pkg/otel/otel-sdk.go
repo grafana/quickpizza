@@ -39,8 +39,8 @@ import (
 //     Install (a TODO below notes this makes the first-registered component "own" the
 //     global providers — not ideal, but how this currently works).
 //   - Installs otelhttp.NewHandler on the router group, wrapped by two custom middlewares:
-//     OTelRouteLabeler (adds the resolved chi route pattern as an http.route attribute) and
-//     LogTraceID (writes the trace ID into structured logs).
+//     otelRouteLabeler (adds the resolved chi route pattern as an http.route attribute) and
+//     logTraceID (writes the trace ID into structured logs).
 //   - Registers Go runtime metrics (contrib/instrumentation/runtime) once, globally.
 func (t *OTelInstaller) installSDK(r chi.Router, serviceComponent string, extraOpts ...otelhttp.Option) error {
 	res := buildResource(serviceComponent)
@@ -114,8 +114,8 @@ func (t *OTelInstaller) installSDK(r chi.Router, serviceComponent string, extraO
 			append(defaultOpts, extraOpts...)...,
 		)
 	})
-	r.Use(OTelRouteLabeler)
-	r.Use(LogTraceID)
+	r.Use(otelRouteLabeler)
+	r.Use(logTraceID)
 
 	return nil
 }
@@ -281,7 +281,7 @@ func (t *OTelInstaller) isPublic(r *http.Request) bool {
 	return true
 }
 
-func LogTraceID(next http.Handler) http.Handler {
+func logTraceID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		span := trace.SpanFromContext(r.Context())
 		if span.SpanContext().HasTraceID() {
@@ -294,17 +294,19 @@ func LogTraceID(next http.Handler) http.Handler {
 
 // ExemplarData holds trace context that inner middleware populates for outer middleware to
 // read. Callers (e.g. pkg/http/http.go's HTTPMetricsMiddleware) store a pointer under
-// ExemplarKey in the request context before calling next.ServeHTTP(). OTelRouteLabeler
-// (running inside route groups, after otelhttp) writes the trace IDs into it.
+// ExemplarKey in the request context before calling next.ServeHTTP(). The route labeler
+// middleware below (running inside route groups, after otelhttp) writes the trace IDs into it.
 type ExemplarData struct {
 	TraceID string
 }
 
-type ExemplarKeyType int
+// exemplarKeyType is deliberately unexported: callers outside this package use the ExemplarKey
+// value below as an opaque context key, but should never construct their own key of this type.
+type exemplarKeyType int
 
-const ExemplarKey ExemplarKeyType = 0
+const ExemplarKey exemplarKeyType = 0
 
-// OTelRouteLabeler is a middleware that adds the chi route pattern to OTel metrics.
+// otelRouteLabeler is a middleware that adds the chi route pattern to OTel metrics.
 // This must be used AFTER otelhttp.NewHandler and will add an "http.route" label
 // to the http_server_request_duration_seconds metric.
 //
@@ -314,7 +316,7 @@ const ExemplarKey ExemplarKeyType = 0
 // Note: otelhttp.WithMetricAttributesFn cannot be used for this because the chi
 // route pattern is only resolved after routing, but WithMetricAttributesFn runs
 // before the handler. The Labeler is the recommended approach for dynamic attributes.
-func OTelRouteLabeler(next http.Handler) http.Handler {
+func otelRouteLabeler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if labeler, ok := otelhttp.LabelerFromContext(r.Context()); ok {
 			if rctx := chi.RouteContext(r.Context()); rctx != nil {

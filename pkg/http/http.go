@@ -1648,15 +1648,16 @@ func excludeWebSocketFromOTel() otelhttp.Option {
 // for method, path (route pattern), and status code. It also attaches exemplars
 // containing trace context to histogram metrics for observability linking.
 //
-// Exemplars rely on otel.OTelRouteLabeler populating an otel.ExemplarData pointer stored
-// in the request context. This avoids installing otelhttp at the root level.
+// Exemplars rely on pkg/otel's internal route-labeler middleware populating an
+// otel.ExemplarData pointer stored in the request context. This avoids installing otelhttp
+// at the root level.
 func HTTPMetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-		// Store a mutable pointer in the context for otel.OTelRouteLabeler to populate
-		// with trace IDs after otelhttp creates the span.
+		// Store a mutable pointer in the context for pkg/otel's route-labeler middleware to
+		// populate with trace IDs after otelhttp creates the span.
 		ed := &otel.ExemplarData{}
 		ctx := context.WithValue(r.Context(), otel.ExemplarKey, ed)
 
