@@ -16,16 +16,21 @@ For a full list of Prometheus metric names (including the ones OTel's HTTP instr
 | Business-logic spans (`pizza-generation`, `name-generation`) | Produced by this app | Also produced, via a different capture path — same span names and nesting |
 | Go runtime metrics | Produced by this app | Produced by OBI natively |
 | Request queue/processing timing | Not produced | Produced — see below |
-| Resource attributes (`service.name`, ...) | Set by this app from `QUICKPIZZA_OTEL_SERVICE_*` env vars | Set by OBI, read from `OTEL_SERVICE_NAME`/`OTEL_RESOURCE_ATTRIBUTES` on the `quickpizza` container |
+| Resource attributes (`service.name`, ...) | Set by this app from `QUICKPIZZA_OTEL_SERVICE_*` env vars | Set by OBI, read per-process from each container's own `OTEL_SERVICE_NAME`/`OTEL_RESOURCE_ATTRIBUTES` |
 | Prometheus app counters, logs, profiling | Unaffected by this toggle | Unaffected by this toggle |
 
-To try `obi` mode locally with `compose.grafana-local-stack.monolithic.yaml`:
+To try `obi` mode locally:
 
 ```sh
+# Monolith: one quickpizza process, one obi container attached to it.
 QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local-stack.monolithic.yaml --profile obi up
+
+# Microservices: 7 separate processes (catalog/config/copy/public-api/recommendations/ws/grpc),
+# one obi container discovering and attaching to all of them.
+QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-local-stack.microservices.yaml --profile obi up
 ```
 
-(Without `--profile obi`, the `obi` sidecar container never starts, regardless of the env var above.)
+(Without `--profile obi`, the `obi` container(s) never start, regardless of the env var above.)
 
 ### Known differences in captured data
 
