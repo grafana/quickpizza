@@ -286,7 +286,7 @@ func logTraceID(next http.Handler) http.Handler {
 		span := trace.SpanFromContext(r.Context())
 		if span.SpanContext().HasTraceID() {
 			traceID := span.SpanContext().TraceID().String()
-			httplog.LogEntrySetField(r.Context(), "traceID", slog.StringValue(traceID))
+			httplog.LogEntrySetField(r.Context(), "trace_id", slog.StringValue(traceID))
 		}
 		next.ServeHTTP(w, r.WithContext(r.Context()))
 	})

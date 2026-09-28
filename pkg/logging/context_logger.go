@@ -32,7 +32,7 @@ func (c *SDKContextLogger) Handle(ctx context.Context, record slog.Record) error
 	}
 	span := trace.SpanFromContext(ctx)
 	if span.SpanContext().HasTraceID() {
-		record.Add("traceID", span.SpanContext().TraceID())
+		record.Add("trace_id", span.SpanContext().TraceID())
 	}
 	return c.parent.Handle(ctx, record)
 }
