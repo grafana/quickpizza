@@ -2,8 +2,8 @@
 
 locals {
   ws_component_labels = {
-    "environment"                = var.deployment_environment
-    "app.k8s.io/name"            = "quickpizza-app"
+    "environment"                 = var.deployment_environment
+    "app.k8s.io/name"             = "quickpizza-app"
     "app.kubernetes.io/component" = "service"
     "app.kubernetes.io/instance"  = "ws"
   }
@@ -11,7 +11,7 @@ locals {
 
 resource "kubernetes_deployment_v1" "ws" {
   depends_on = [kubernetes_deployment_v1.alloy]
-  
+
   metadata {
     name      = "ws"
     namespace = kubernetes_namespace_v1.quickpizza.id
@@ -70,6 +70,12 @@ resource "kubernetes_deployment_v1" "ws" {
             name  = "QUICKPIZZA_OTEL_SERVICE_NAME"
             value = "ws"
           }
+          # Read by OBI (not by this app) to label spans/metrics OBI captures for this
+          # process - see obi.tf and docs/otel.md.
+          env {
+            name  = "OTEL_SERVICE_NAME"
+            value = "ws"
+          }
           env {
             name = "QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID"
             value_from {
@@ -100,6 +106,6 @@ resource "kubernetes_service_v1" "ws" {
       target_port = "3333"
     }
     selector = local.ws_component_labels
-    type = "ClusterIP"
+    type     = "ClusterIP"
   }
 }

@@ -2,8 +2,8 @@
 
 locals {
   catalog_component_labels = {
-    "environment"                = var.deployment_environment
-    "app.k8s.io/name"            = "quickpizza-app"
+    "environment"                 = var.deployment_environment
+    "app.k8s.io/name"             = "quickpizza-app"
     "app.kubernetes.io/component" = "service"
     "app.kubernetes.io/instance"  = "catalog"
   }
@@ -15,7 +15,7 @@ resource "kubernetes_deployment_v1" "catalog" {
     kubernetes_deployment_v1.alloy,
     kubernetes_stateful_set_v1.postgres_statefulset
   ]
-  
+
   metadata {
     name      = "catalog"
     namespace = kubernetes_namespace_v1.quickpizza.id
@@ -74,6 +74,12 @@ resource "kubernetes_deployment_v1" "catalog" {
             name  = "QUICKPIZZA_OTEL_SERVICE_NAME"
             value = "catalog"
           }
+          # Read by OBI (not by this app) to label spans/metrics OBI captures for this
+          # process - see obi.tf and docs/otel.md.
+          env {
+            name  = "OTEL_SERVICE_NAME"
+            value = "catalog"
+          }
           env {
             name = "QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID"
             value_from {
@@ -121,6 +127,6 @@ resource "kubernetes_service_v1" "catalog" {
       target_port = "3333"
     }
     selector = local.catalog_component_labels
-    type = "ClusterIP"
+    type     = "ClusterIP"
   }
 }

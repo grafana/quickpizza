@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"github.com/grafana/quickpizza/pkg/logging"
+	"github.com/grafana/quickpizza/pkg/otel"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
@@ -18,6 +19,10 @@ import (
 	"github.com/uptrace/bun/extra/bunotel"
 )
 
+// initializeDB opens the database connection and registers query hooks. The bunotel OTel
+// query hook is only added when otel.InstrumentDatabase() reports true (false in "obi" mode,
+// see its doc comment for why). The slog logging hook is unconditional; it isn't part of the
+// OTel/OBI split.
 func initializeDB(connString string) (*bun.DB, error) {
 	var db *bun.DB
 	if strings.HasPrefix(connString, "postgres://") {
@@ -46,9 +51,11 @@ func initializeDB(connString string) (*bun.DB, error) {
 		dbName = "quickpizza-database"
 	}
 	db.AddQueryHook(logging.NewBunSlogHook(slog.Default()))
-	db.AddQueryHook(bunotel.NewQueryHook(
-		bunotel.WithFormattedQueries(true),
-		bunotel.WithDBName(dbName),
-	))
+	if otel.InstrumentDatabase() {
+		db.AddQueryHook(bunotel.NewQueryHook(
+			bunotel.WithFormattedQueries(true),
+			bunotel.WithDBName(dbName),
+		))
+	}
 	return db, nil
 }

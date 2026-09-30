@@ -87,44 +87,51 @@ variable "enable_k8s_monitoring" {
   default     = false
 }
 
+variable "enable_obi" {
+  description = "Deploy OBI (OpenTelemetry eBPF Instrumentation) as a DaemonSet and switch every QuickPizza Deployment to QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi, instead of the app's own OTel SDK. One variable drives both so they can't drift out of sync. See docs/otel.md."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
 variable "cluster_name" {
   type    = string
-  default     = null
+  default = null
 }
 
 variable "externalservices_prometheus_host" {
   type    = string
-  default     = null
+  default = null
 }
 
 variable "externalservices_prometheus_basicauth_username" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_prometheus_basicauth_password" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_loki_host" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_loki_basicauth_username" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_loki_basicauth_password" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "quickpizza_db_name" {
@@ -143,13 +150,13 @@ variable "quickpizza_db_password" {
 }
 
 variable "db_o11y_user" {
-  default     = "db-o11y"
-  type    = string
-  sensitive   = true
+  default   = "db-o11y"
+  type      = string
+  sensitive = true
 }
 
 variable "db_o11y_password" {
-  default     = "db-o11y-password"
-  type    = string
-  sensitive   = true
+  default   = "db-o11y-password"
+  type      = string
+  sensitive = true
 }

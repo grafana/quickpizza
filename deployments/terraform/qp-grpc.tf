@@ -1,9 +1,9 @@
 locals {
   grpc_component_labels = {
-    "environment"                  = var.deployment_environment
-    "app.k8s.io/name"              = "quickpizza-app"
-    "app.kubernetes.io/component"  = "service"
-    "app.kubernetes.io/instance"   = "grpc"
+    "environment"                 = var.deployment_environment
+    "app.k8s.io/name"             = "quickpizza-app"
+    "app.kubernetes.io/component" = "service"
+    "app.kubernetes.io/instance"  = "grpc"
   }
 }
 
@@ -70,6 +70,12 @@ resource "kubernetes_deployment_v1" "grpc" {
           }
           env {
             name  = "QUICKPIZZA_OTEL_SERVICE_NAME"
+            value = "grpc"
+          }
+          # Read by OBI (not by this app) to label spans/metrics OBI captures for this
+          # process - see obi.tf and docs/otel.md.
+          env {
+            name  = "OTEL_SERVICE_NAME"
             value = "grpc"
           }
           env {
