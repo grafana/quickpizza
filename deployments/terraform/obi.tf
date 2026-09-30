@@ -67,19 +67,9 @@ resource "kubernetes_cluster_role_binding_v1" "obi" {
   }
 }
 
-# Same route-exclusion + log-enricher config as the Docker Compose deployments - see
-# deployments/docker-compose/grafana-local-stack/obi.yaml's own comments for the full
-# rationale (kept as a single shared file rather than duplicated here, since this is
-# app-behavior config, not stack-specific).
-#
-# The discovery.instrument block appended below is Kubernetes-only (there's no equivalent
-# env var for k8s_namespace), so it lives here rather than in the shared file: with
-# host_pid = true, the DaemonSet below can see every process on the node, not just this
-# namespace's - without this, a second QuickPizza install on the same node would also get
-# instrumented, and its telemetry would get exported into this deployment's Alloy. exe_path
-# moves here too (out of the OTEL_EBPF_AUTO_TARGET_EXE env var below) so both selectors are
-# combined on the same discovery.instrument entry, per OBI's docs: selectors within one
-# entry are AND-ed together, so this alone couldn't be expressed as two separate env vars.
+# Own template (obi.yaml.tftpl), not shared with the Docker Compose deployments: this one
+# also needs a discovery.instrument block to scope which processes OBI instruments (see its
+# own comment for why), which only makes sense with Kubernetes namespaces.
 resource "kubernetes_config_map_v1" "obi_config" {
   count = var.enable_obi ? 1 : 0
   metadata {
@@ -87,7 +77,9 @@ resource "kubernetes_config_map_v1" "obi_config" {
     namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
-    "obi.yaml" = "${file("${path.module}/../docker-compose/grafana-local-stack/obi.yaml")}\ndiscovery:\n  instrument:\n    - exe_path: \"/bin/quickpizza\"\n      k8s_namespace: \"${var.quickpizza_kubernetes_namespace}\"\n"
+    "obi.yaml" = templatefile("${path.module}/obi.yaml.tftpl", {
+      quickpizza_namespace = var.quickpizza_kubernetes_namespace
+    })
   }
 }
 
