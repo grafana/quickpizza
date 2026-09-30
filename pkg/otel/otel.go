@@ -68,11 +68,7 @@ func instrumentationMode() string {
 }
 
 // ValidateInstrumentationMode rejects any QUICKPIZZA_OTEL_INSTRUMENTATION_MODE value other
-// than "sdk", "obi", or unset/empty (which defaults to "sdk"). Without this, a typo like
-// "obl" would silently fall through instrumentationMode's default to "sdk" - if the OBI
-// sidecar profile/DaemonSet is also running (as it would be if the user meant to set "obi"),
-// both it and this app's own SDK would instrument the same requests, producing duplicate
-// spans with no error to explain why. Call this once at startup, before Install.
+// than "sdk", "obi", or unset/empty (which defaults to "sdk").
 func ValidateInstrumentationMode() error {
 	mode, ok := os.LookupEnv("QUICKPIZZA_OTEL_INSTRUMENTATION_MODE")
 	if !ok || mode == "" || mode == "sdk" || mode == "obi" {
