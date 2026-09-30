@@ -71,6 +71,15 @@ resource "kubernetes_cluster_role_binding_v1" "obi" {
 # deployments/docker-compose/grafana-local-stack/obi.yaml's own comments for the full
 # rationale (kept as a single shared file rather than duplicated here, since this is
 # app-behavior config, not stack-specific).
+#
+# The discovery.instrument block appended below is Kubernetes-only (there's no equivalent
+# env var for k8s_namespace), so it lives here rather than in the shared file: with
+# host_pid = true, the DaemonSet below can see every process on the node, not just this
+# namespace's - without this, a second QuickPizza install on the same node would also get
+# instrumented, and its telemetry would get exported into this deployment's Alloy. exe_path
+# moves here too (out of the OTEL_EBPF_AUTO_TARGET_EXE env var below) so both selectors are
+# combined on the same discovery.instrument entry, per OBI's docs: selectors within one
+# entry are AND-ed together, so this alone couldn't be expressed as two separate env vars.
 resource "kubernetes_config_map_v1" "obi_config" {
   count = var.enable_obi ? 1 : 0
   metadata {
@@ -78,7 +87,7 @@ resource "kubernetes_config_map_v1" "obi_config" {
     namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
-    "obi.yaml" = file("${path.module}/../docker-compose/grafana-local-stack/obi.yaml")
+    "obi.yaml" = "${file("${path.module}/../docker-compose/grafana-local-stack/obi.yaml")}\ndiscovery:\n  instrument:\n    - exe_path: \"/bin/quickpizza\"\n      k8s_namespace: \"${var.quickpizza_kubernetes_namespace}\"\n"
   }
 }
 
@@ -103,18 +112,16 @@ resource "kubernetes_daemon_set_v1" "obi" {
         host_pid             = true
         service_account_name = kubernetes_service_account_v1.obi[0].metadata[0].name
         container {
-          name              = "obi"
-          image             = "otel/ebpf-instrument:v0.13.0"
+          name = "obi"
+          # Digest-pinned like this repo's other privileged/host-scoped Terraform images
+          # (alloy.tf, database.tf) and QuickPizza's own image (variables.tf) - this container
+          # runs privileged with host_pid, so a moved tag would silently start executing with
+          # host-level access.
+          image             = "otel/ebpf-instrument:v0.13.0@sha256:5e89d7478b5feeb8ee73881c58bfe5bb0ccb6dcd4f8cd62e30457aa6e6426adb"
           image_pull_policy = "IfNotPresent"
           args              = ["-config", "/obi-config.yaml"]
           security_context {
             privileged = true
-          }
-          env {
-            # Scopes what OBI actually instruments, out of every process host_pid makes
-            # visible, to processes running this exact binary.
-            name  = "OTEL_EBPF_AUTO_TARGET_EXE"
-            value = "/bin/quickpizza"
           }
           env {
             name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
