@@ -32,6 +32,11 @@ func main() {
 		Level: logging.GetLogLevel(),
 	})))
 
+	if err := otel.ValidateInstrumentationMode(); err != nil {
+		slog.Error("invalid configuration", "err", err)
+		os.Exit(1)
+	}
+
 	// Profiling in pull mode is enabled by default.
 	// If QUICKPIZZA_PYROSCOPE_ENDPOINT is set, profiling in push mode will be enabled.
 	profilingConfig, profilingEnabled := envPyroscopeConfig()

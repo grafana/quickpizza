@@ -55,12 +55,30 @@ func (t *OTelInstaller) Insecure() {
 //     span/metric, as it always has.
 //   - "obi": every span and metric this app would otherwise produce is left for an external
 //     OBI (OpenTelemetry eBPF Instrumentation) sidecar to capture instead.
+//
+// Any other value is treated as "sdk" here, same as unset - this function alone can't reject
+// it, since none of its callers can return an error. ValidateInstrumentationMode is what
+// actually catches a typo; call it once at startup before relying on this default.
 func instrumentationMode() string {
 	mode, ok := os.LookupEnv("QUICKPIZZA_OTEL_INSTRUMENTATION_MODE")
 	if !ok || mode == "" {
 		return "sdk"
 	}
 	return mode
+}
+
+// ValidateInstrumentationMode rejects any QUICKPIZZA_OTEL_INSTRUMENTATION_MODE value other
+// than "sdk", "obi", or unset/empty (which defaults to "sdk"). Without this, a typo like
+// "obl" would silently fall through instrumentationMode's default to "sdk" - if the OBI
+// sidecar profile/DaemonSet is also running (as it would be if the user meant to set "obi"),
+// both it and this app's own SDK would instrument the same requests, producing duplicate
+// spans with no error to explain why. Call this once at startup, before Install.
+func ValidateInstrumentationMode() error {
+	mode, ok := os.LookupEnv("QUICKPIZZA_OTEL_INSTRUMENTATION_MODE")
+	if !ok || mode == "" || mode == "sdk" || mode == "obi" {
+		return nil
+	}
+	return fmt.Errorf("invalid QUICKPIZZA_OTEL_INSTRUMENTATION_MODE %q: must be \"sdk\" or \"obi\"", mode)
 }
 
 // Install sets up tracing/metrics for the given chi.Router, using whichever implementation
