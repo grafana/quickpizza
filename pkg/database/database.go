@@ -19,17 +19,13 @@ import (
 	"github.com/uptrace/bun/extra/bunotel"
 )
 
-// initializeDB opens the database connection and registers query hooks. The slog logging
-// hook is unconditional; it isn't part of the OTel/OBI split. The bunotel OTel query hook is
-// added unless otel.InstrumentDatabase() reports false (i.e. "obi" mode) AND the connection
-// is Postgres - OBI only captures database queries by sniffing the Postgres wire protocol
-// (see its own doc comment), so it has no way to observe SQLite, which never goes over a
-// socket. Suppressing the app's own hook for SQLite too would leave the in-memory-SQLite
-// default (envDBConnString in cmd/main.go) with no database spans at all in "obi" mode.
+// initializeDB opens the database connection and registers query hooks. The bunotel OTel
+// query hook is only added when otel.InstrumentDatabase() reports true (false in "obi" mode,
+// see its doc comment for why). The slog logging hook is unconditional; it isn't part of the
+// OTel/OBI split.
 func initializeDB(connString string) (*bun.DB, error) {
 	var db *bun.DB
-	isPostgres := strings.HasPrefix(connString, "postgres://")
-	if isPostgres {
+	if strings.HasPrefix(connString, "postgres://") {
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
 		maxOpenConns := 4 * runtime.GOMAXPROCS(0)
 		sqldb.SetMaxOpenConns(maxOpenConns)
@@ -55,7 +51,7 @@ func initializeDB(connString string) (*bun.DB, error) {
 		dbName = "quickpizza-database"
 	}
 	db.AddQueryHook(logging.NewBunSlogHook(slog.Default()))
-	if !isPostgres || otel.InstrumentDatabase() {
+	if otel.InstrumentDatabase() {
 		db.AddQueryHook(bunotel.NewQueryHook(
 			bunotel.WithFormattedQueries(true),
 			bunotel.WithDBName(dbName),
