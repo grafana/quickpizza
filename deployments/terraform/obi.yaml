@@ -58,9 +58,14 @@ ebpf:
       - open_ports: "3333"
 
 # Kubernetes-only: with host_pid = true (obi.tf's DaemonSet), OBI can see every process on
-# the node, not just this namespace's. Both selectors below must match (AND, not OR), so this
-# scopes instrumentation to this deployment's own quickpizza binary in its own namespace.
+# the node, not just this namespace's. All three selectors below must match (AND, not OR),
+# so this scopes instrumentation to this deployment's own quickpizza pods specifically.
+# k8s_namespace must match variables.tf's quickpizza_kubernetes_namespace default, and
+# app.k8s.io/name must match every qp-*.tf Deployment's own label - update all three if
+# either ever changes, this file isn't templated from them.
 discovery:
   instrument:
     - exe_path: "/bin/quickpizza"
-      k8s_namespace: "${quickpizza_namespace}"
+      k8s_namespace: "quickpizza"
+      k8s_pod_labels:
+        "app.k8s.io/name": "quickpizza-app"
