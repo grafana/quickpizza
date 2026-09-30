@@ -3,9 +3,11 @@
   "extends": [
     "github>grafana/grafana-renovate-config//presets/base",
     "github>grafana/grafana-renovate-config//presets/labels",
-    "github>grafana/grafana-renovate-config//presets/github-actions",
-    "schedule:earlyMondays"
+    "github>grafana/grafana-renovate-config//presets/github-actions"
   ],
+  "timezone": "UTC",
+  "schedule": ["after 6pm and before 7pm on tuesday"],
+  "rebaseWhen": "behind-base-branch",
   "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {
     "enabled": true,
