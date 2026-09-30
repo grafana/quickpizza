@@ -67,9 +67,9 @@ resource "kubernetes_cluster_role_binding_v1" "obi" {
   }
 }
 
-# Own template (obi.yaml.tftpl), not shared with the Docker Compose deployments: this one
-# also needs a discovery.instrument block to scope which processes OBI instruments (see its
-# own comment for why), which only makes sense with Kubernetes namespaces.
+# Own file (obi.yaml), not shared with the Docker Compose deployments: this one also needs a
+# discovery.instrument block to scope which processes OBI instruments (see its own comment
+# for why), which only makes sense with Kubernetes namespaces.
 resource "kubernetes_config_map_v1" "obi_config" {
   count = var.enable_obi ? 1 : 0
   metadata {
@@ -77,9 +77,7 @@ resource "kubernetes_config_map_v1" "obi_config" {
     namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
-    "obi.yaml" = templatefile("${path.module}/obi.yaml.tftpl", {
-      quickpizza_namespace = var.quickpizza_kubernetes_namespace
-    })
+    "obi.yaml" = file("${path.module}/obi.yaml")
   }
 }
 
