@@ -1,0 +1,73 @@
+# QuickPizza plus the smallest stack needed to look at k6 results in Grafana.
+#
+#   make up     -> http://localhost:3333 (app), http://localhost:3000 (Grafana)
+#   make down
+#
+# If something already uses those ports, override them:
+#   GRAFANA_PORT=3001 PROMETHEUS_PORT=9091 make up
+# and point k6 at the new app port with  make smoke BASE_URL=http://localhost:8080
+services:
+  # The system under test. Uses the published image so there is nothing to
+  # build at the workshop; set QUICKPIZZA_IMAGE to use a locally built one.
+  quickpizza:
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
+    ports:
+      - "${QUICKPIZZA_PORT:-3333}:3333"
+    environment:
+      QUICKPIZZA_ENABLE_ALL_SERVICES: 1
+      QUICKPIZZA_DB: "postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable"
+      # QUICKPIZZA_LOG_LEVEL: debug
+      #
+      # Fault injection - uncomment to make a test fail on purpose.
+      # See docs/inject-errors.md.
+      # QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST: "800ms"
+      # QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST: "10"
+      # QUICKPIZZA_PUBLIC_API_TIMEOUT: "1s"
+    depends_on:
+      quickpizza-db:
+        condition: service_healthy
+
+  # Postgres rather than the default in-memory SQLite: SQLite serialises writes,
+  # so the spike test's 100 VUs would produce lock errors that look like
+  # application failures and derail the demo.
+  quickpizza-db:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quickpizza_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Receives k6 results via remote write:
+  #   make load K6_FLAGS="-o experimental-prometheus-rw"
+  # and also scrapes QuickPizza's own /metrics (see prometheus.yaml), so you can
+  # compare what k6 measured from the outside with what the app reports inside.
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    volumes:
+      - ./deployments/observability/prometheus.yaml:/etc/prometheus.yaml
+    command:
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+      - --config.file=/etc/prometheus.yaml
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+
+  # Anonymous admin access, no login prompt. The k6 Prometheus dashboards are
+  # provisioned from deployments/observability/grafana.
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-13.0.1}
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+    volumes:
+      - ./deployments/observability/grafana:/etc/grafana/provisioning/
+    depends_on:
+      - prometheus

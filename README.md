@@ -1,326 +1,220 @@
-# QuickPizza
+# QuickPizza — k6 workshop
 
-![QuickPizza screenshot](./docs/images/quickpizza-screenshot.png)
+A stripped-down fork of [grafana/quickpizza](https://github.com/grafana/quickpizza),
+used as the system under test for a hands-on k6 workshop.
 
-- [What is QuickPizza? 🍕🍕🍕](#what-is-quickpizza-)
-- [Requirements](#requirements)
-- [Use k6 to test QuickPizza](#use-k6-to-test-quickpizza)
-- [Run locally with Docker](#run-locally-with-docker)
-- [Run and observe locally with Grafana OSS 🐳📊](#run-and-observe-locally-with-grafana-oss-)
-- [QuickPizza deployment modes: Monolithic vs Microservices](#quickpizza-deployment-modes-monolithic-vs-microservices)
-- [Run locally and observe with Grafana Cloud ☁📊](#run-locally-and-observe-with-grafana-cloud-)
-  - [Enable Grafana Cloud Observability solutions](#enable-grafana-cloud-observability-solutions)
+Upstream QuickPizza is a full observability demo: browser tests, xk6 extensions, gRPC,
+WebSockets, Kubernetes, Terraform, Alloy, Tempo, Loki, Pyroscope. All of that has been
+removed here on purpose. What is left is one application, one `compose.yaml`, and three
+k6 scripts covering the three test types the workshop is about.
 
-## What is QuickPizza? 🍕🍕🍕
+If you want any of the removed material, go to the upstream repository.
 
-**QuickPizza** is a simple web application, used for demonstrations and workshops, that generates new and exciting pizza combinations!
+## What the workshop covers
 
-It helps you learn app instrumentation and observability with the Grafana stack, and k6 testing from basics to advanced.
+| Test type | Script | Question it answers |
+|---|---|---|
+| **Smoke** | `k6/01-smoke.js` | Does the system work at all under minimal load? |
+| **Load** (performance) | `k6/02-load.js` | Does it meet its performance targets under expected traffic? |
+| **Spike** (peak load) | `k6/03-spike.js` | What happens at a sudden peak, and does it recover? |
 
-You can run QuickPizza locally or deploy it to your own infrastructure. For demo purposes, QuickPizza is also publicly available at:
-1. [quickpizza.grafana.fun](https://quickpizza.grafana.fun/) — Experience this demo instrumented in Grafana Play. Explore [Application Observability](https://play.grafana.org/a/grafana-app-observability-app/services?instrumentedFilter=all&sortFilterId=serviceName&var-prometheus=grafanacloud-prom&from=now-30m&to=now&timezone=utc&var-environmentValue=production&var-filterBy=serviceNamespace%7C%3D%7Cquickpizza), [Database Observability](https://play.grafana.org/a/grafana-dbo11y-app/overview?waitEvents=durationOfEvents&var-filters=namespace%7C%3D%7Cquickpizza), [Frontend Observability](https://play.grafana.org/a/grafana-kowalski-app/apps/2410), [Kubernetes Monitoring](https://play.grafana.org/a/grafana-k8s-app/home?from=now-1h&to=now&refresh=1m&var-cluster=%24__all&var-namespace=quickpizza), [SRE Demo Dashboard](https://play.grafana.org/d/d2e206e1-f72b-448c-83d8-657831c2ea6d/overview), and more insights in Grafana Play.
-2. [quickpizza.grafana.com](https://quickpizza.grafana.com/) — Use this environment to run small-scale performance tests like the ones in the [k6 folder](./k6/).
-
+Plus the three things that turn a script into a test: **checks**, **custom metrics** and
+**thresholds**.
 
 ## Requirements
 
-The requirements for QuickPizza depend on your intended use—whether you want to run k6 tests for performance testing, or enable observability with a local or Grafana Cloud observability stack.
-
-- [Grafana k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (v1.0.0 or higher) to run the k6 tests used in this project to test QuickPizza.
-- [Docker](https://docs.docker.com/get-docker/) to run QuickPizza [locally](#run-locally-with-docker).
-- [Docker Compose](https://docs.docker.com/get-docker/) to run and instrument QuickPizza, storing metrics, logs, traces, and profiling data using the Grafana Observability stack. You can either [store this data locally](#run-and-observe-locally-with-grafana-oss-) or send it to [Grafana Cloud](#run-locally-and-observe-with-grafana-cloud-️).
-
-
-## Use k6 to test QuickPizza
-
-All tests live in the `k6` folder. Within this folder, you will find the following folders:
-
-- [foundations](k6/foundations/) - covers the basic functionalities of k6.
-- [browser](k6/browser/) - covers the [k6 browser module](https://grafana.com/docs/k6/latest/using-k6-browser/) for browser and web performance testing.
-- [extensions](k6/extensions/) - covers basic tests using [k6 extensions](https://grafana.com/docs/k6/latest/extensions/).
-
-To run tests on the `foundations` folder, you can use the following commands:
+- Docker (with Compose)
+- [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) — `brew install k6`
 
 ```bash
-cd k6/foundations
-k6 run 01.basic.js
+git clone --depth 1 <this-repo>
 ```
 
-If QuickPizza is publicly available , then pass the hostname and port through the `BASE_URL` environment variable as follows:
+`--depth 1` is worth it: the full history carries ~164 MB of vendored Go dependencies
+that the workshop never touches.
+
+Nothing else. You do not need Go or Node — `compose.yaml` runs a published image.
+
+## Quick start
 
 ```bash
-k6 run -e BASE_URL=https://quickpizza.grafana.com 01.basic.js
+make up      # QuickPizza + Postgres + Prometheus + Grafana
+make smoke   # 30 seconds
 ```
 
-<details>
-  <summary>Using k6 extensions</summary>
-  If the test uses an extension, you need to build a k6 binary that includes the required extension/s. For detailed instructions, refer to k6 docs:
+| | |
+|---|---|
+| QuickPizza | http://localhost:3333 |
+| Grafana | http://localhost:3000 (no login) |
+| Prometheus | http://localhost:9090 |
 
-  - [Build a k6 binary using Go](https://grafana.com/docs/k6/latest/extensions/build-k6-binary-using-go/)
-  - [Build a k6 binary using Docker](https://grafana.com/docs/k6/latest/extensions/build-k6-binary-using-docker/)
-
-  ```bash
-  cd k6/extensions
-
-  xk6 build --with xk6-internal=../internal
-  ```
-
-  To run the test that uses the `k6/x/internal` module, use  previously created k6 binary in the `k6/extensions` folder:
-
-  ```bash
-  ./k6 run 01.basic-internal.js
-  ```
-</details>
-
-<details>
-  <summary>Send k6 test results to Prometheus</summary>
-
-  You can also send k6 metrics to either a local Prometheus instance or Grafana Cloud Prometheus, and visualize the test results in Grafana.
-
-  ```bash
-  ./k6 run -o experimental-prometheus-rw 01.basic-internal.js
-  ```
-
-  The sections below explain how to observe QuickPizza using either a local Grafana Observability stack or Grafana Cloud.
-
-  For detailed instructions, see [Send k6 Test Results to Prometheus](./docs/send-k6-test-results.md)
-
-</details>
-
-<details>
-  <summary>Using k6 Docker image</summary>
-  
-  If you want to use the [k6 Docker image](https://hub.docker.com/r/grafana/k6) to run k6, you need to run the QuickPizza and k6 containers within the same network.
-
-  First, create a Docker network. Then, run QuickPizza, assigning a hostname and connecting to the created network.
-
-  ```bash
-  docker network create quickpizza_network
-  docker run --network=quickpizza_network --hostname=quickpizza --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
-  ```
-
-  Next, you can use the k6 Docker image to execute the k6 test. Run the k6 Docker container within the same network (`quickpizza_network`) and pass the `BASE_URL` environment variable with the value of the QuickPizza container's hostname as follows:
-
-  ```bash
-  docker run -i --network=quickpizza_network -e BASE_URL=http://quickpizza:3333 grafana/k6 run  - <01.basic.js
-  ```
-</details>
-
-
-## Run locally with Docker
-
-To run the app locally with Docker, run the command:
+If a port is taken, override it:
 
 ```bash
-docker run --rm -it -p 3333:3333  ghcr.io/grafana/quickpizza-local:latest
+GRAFANA_PORT=3001 PROMETHEUS_PORT=9091 QUICKPIZZA_PORT=8080 make up
+make smoke QUICKPIZZA_PORT=8080
 ```
 
-or build image from the repo:
+`make down` when you are finished. `make help` lists every target.
+
+## Running the tests
 
 ```bash
-docker run --rm -it -p 3333:3333 $(docker build -q .)
+make smoke   # 1 VU, 30s
+make load    # ramp to 10 VUs, ~2 min
+make spike   # peak of 100 VUs, ~2 min
 ```
 
-That's it!
+All three hit the same endpoint (`POST /api/pizza`) with the same user journey. They
+differ only in the **shape of the load** (`k6/lib/stages.js`) and in the **expectations**
+attached to it. That is the main idea of the walkthrough: a test type is a traffic
+profile plus a set of thresholds, not a different kind of script.
 
-Now you can go to [localhost:3333](http://localhost:3333) and get some pizza recommendations!
+## Checks
 
+A `check` is an assertion about a response:
 
+```js
+check(res, {
+  "status is 200": (r) => r.status === 200,
+  "no excluded ingredient was used": () => /* ... */,
+});
+```
 
-**Testing something you can't observe is only half the fun!** 🔍✨ QuickPizza is instrumented using best practices to record logs, emit metrics, traces and allow profiling. Get ready to dive deep into observability! 🚀
+Two things surprise people:
 
-## Run and observe locally with Grafana OSS 🐳📊
+1. **A failing check does not fail the test.** It is recorded and the iteration carries
+   on. This is deliberate — under load you want the full picture, not a stop at the
+   first error.
+2. **What makes checks a gate is a threshold on the `checks` metric.** k6 aggregates
+   every check into one pass rate; `checks: ["rate>0.99"]` is what turns assertions into
+   a build decision.
 
+Worth pointing at: status codes alone are a weak assertion. A service under load can
+stay fast and still return wrong answers, which is why these scripts also assert
+business rules (the recipe must respect the restrictions we sent).
 
-The [compose.grafana-local-stack.monolithic.yaml](./compose.grafana-local-stack.monolithic.yaml) file is set up to run and orchestrate the QuickPizza, Grafana, Tempo, Loki, Prometheus, Pyroscope, and Grafana Alloy containers.
+## Metrics
 
-Grafana Alloy collects traces, metrics, logs and profiling data from the QuickPizza app, forwarding them to the Tempo, Prometheus and Loki. Finally, you can visualize and correlate data stored in these containers with the locally running Grafana instance.
+k6 collects these for free; the ones that matter most:
 
-To start the local environment with the complete observability stack, use the following command:
+| Metric | Type | What it is |
+|---|---|---|
+| `http_req_duration` | Trend | End-to-end response time. Look at `p(95)`/`p(99)`, not `avg`. |
+| `http_req_failed` | Rate | Share of failed requests — your error rate. |
+| `checks` | Rate | Share of checks that passed. |
+| `iterations` | Counter | Completed runs of the default function. |
+| `vus` | Gauge | Virtual users currently active. |
+
+**Never set a target on the average.** An average hides the slow tail, which is exactly
+what users complain about. Percentiles are the whole point.
+
+You add your own for anything domain-specific — `k6/02-load.js` declares two:
+
+```js
+const pizzasCreated = new Counter("pizzas_created");  // only goes up
+const pizzaCalories = new Trend("pizza_calories");    // full distribution
+```
+
+Four types exist: `Counter`, `Gauge`, `Rate` and `Trend`.
+
+## Thresholds
+
+Thresholds are the pass/fail criteria — where SLOs stop being a slide and become a build
+step:
+
+```js
+thresholds: {
+  http_req_failed: ["rate<0.01"],              // availability
+  http_req_duration: ["p(95)<500", "p(99)<1000"], // latency
+  checks: ["rate>0.99"],                       // correctness
+  pizza_calories: ["max<=500"],                // your own domain
+}
+```
+
+A breached threshold makes k6 exit with **code 99**, so CI fails without any extra
+scripting:
 
 ```bash
-docker compose -f compose.grafana-local-stack.monolithic.yaml up -d
+k6 run k6/02-load.js ; echo $?    # -> 99 when a threshold is crossed
 ```
 
-This setup runs QuickPizza in monolithic mode, where all QuickPizza components run in a single instance.
+(Through `make` you will see `make: *** [load] Error 99` in the output, but `$?` is 2 —
+make reports its own exit code, not the recipe's. Call `k6 run` directly when the exit
+code itself is the point.)
 
-Like before, QuickPizza is available at [localhost:3333](http://localhost:3333). It's time to discover some fancy pizzas!
+Compare the three scripts: the smoke test demands `rate==0` failures, the spike test
+tolerates `rate<0.05`. Same system, different expectations — because degrading under a
+20x spike is acceptable and falling over is not.
 
-Then, you can visit the Grafana instance running at [localhost:3000](http://localhost:3000) and use **Explore** or **Drilldown apps** to access QuickPizza data.
+## Watching results in Grafana
 
-![Use Profiles Drilldown](./docs/images/drilldown-profiles.png)
-
-## QuickPizza deployment modes: Monolithic vs Microservices
-
-QuickPizza can be deployed in two modes: monolithic or microservices.
-
-- **Monolithic mode**: All QuickPizza components run inside a single container.
-- **Microservices mode**: QuickPizza is split into independent services, each with a clear responsibility (for example, `catalog`, `recommendations`, or `public-api`). Each service runs in its own Docker container.
-
-The microservices architecture demonstrates service-oriented observability patterns, such as distributed tracing, metric labeling per service, and log correlation.
-
-```mermaid
-graph TB
-  subgraph "QuickPizza microservices"
-    
-   subgraph public-api-svc [public-api service]
-      API[/gateway component/]
-      FR[/frontend component/]
-    end
-
-    copy-svc[copy service]
-    rec-svc[recommendations service]
-    cfg-svc[config service]
-    ws-svc[ws service]
-
-    subgraph catalog-svc [catalog service]
-      CA[/catalog component/]
-      US[/users component/]
-      AD[/admin component/]
-    end
-    
-    DB[(db)]
-  end
-  GA[Alloy]
-  GC[Grafana Cloud<br/>Mimir, Loki, Tempo, Pyroscope]
-  
-  
-  User --> FR
-  API_Client --> API
-  FR --> API
-  API --> copy-svc
-  API --> rec-svc
-  API --> cfg-svc
-  API --> ws-svc
-  API --> CA
-  API --> US
-  API --> AD
-
-  copy-svc --> DB
-  catalog-svc --> DB
-  
-  public-api-svc <--> GA
-  catalog-svc <--> GA
-  copy-svc <--> GA
-  rec-svc <--> GA
-  cfg-svc <--> GA
-  ws-svc <--> GA
-  GA --> GC
-```
-
-Label and attributes follow OpenTelemetry semantic conventions for service-oriented architectures:
-
-
-<details>
-  <summary>Microservices mode</summary>
-  
-  Observability labels:
-  - `service_namespace=quickpizza`
-  - `service_name={catalog, config, public-api, ...}`
-  
-  OTEL resource attributes:
-  - `service.namespace=quickpizza`
-  - `service.name={catalog, config, public-api, ...}`
-</details>
-
-<details>
-  <summary>Monolithic mode</summary>
-  
-  Observability labels:
-  - `service_namespace=quickpizza`
-  - `service_name=quickpizza`
-  
-  OTEL resource attributes:
-  - `service.namespace=quickpizza`
-  - `service.name=quickpizza`
-  - `service.component={catalog, config, public-api, ...}`
-</details>
-
-You can deploy QuickPizza with different Compose files depending on the mode and observability backend:
-
-- [`compose.grafana-local-stack.monolithic.yaml`](./compose.grafana-local-stack.monolithic.yaml): Monolithic mode with a local Grafana observability stack.
-- [`compose.grafana-local-stack.microservices.yaml`](./compose.grafana-local-stack.microservices.yaml): Microservice mode with a local Grafana observability stack. 
-- [`compose.grafana-cloud.monolithic.yaml`](./compose.grafana-cloud.monolithic.yaml): Monolithic mode with Grafana Cloud.
-- [`compose.grafana-cloud.microservices.yaml`](./compose.grafana-cloud.microservices.yaml): Microservice mode with Grafana Cloud.
-
-For microservice deployments, we recommend [monitoring QuickPizza with Application Observability](#monitor-quickpizza-with-grafana-cloud-application-and-frontend-observability), which allows you to easily visualize and correlate data across services.
-
-## Run locally and observe with Grafana Cloud ☁📊
-
-The [compose.grafana-cloud.microservices.yaml](./compose.grafana-cloud.microservices.yaml) file is set up to run QuickPizza in microservice mode with a Grafana Alloy instance.
-
-In this setup, Grafana Alloy collects observability data from the QuickPizza microservices and forwards it to [Grafana Cloud](https://grafana.com/products/cloud/).
-
-You will need the following settings:
-
-1. The name of the [Grafana Cloud Stack](https://grafana.com/docs/grafana-cloud/account-management/cloud-portal/#your-grafana-cloud-stack) where the telemetry data will be stored.
-2. An [Access Policy Token](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) that includes the following scopes for the selected Grafana Cloud Stack: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`, and `profiles:write`.
-
-Then, create an `.env` file with the following environment variables and the values of the previous settings:
+Stream results into the local Prometheus while the test runs:
 
 ```bash
-# Your Grafana Cloud Stack Name (Slug)
-GRAFANA_CLOUD_STACK=
-# Your Grafana Cloud Access Policy Token
-GRAFANA_CLOUD_TOKEN=
+make load K6_FLAGS="-o experimental-prometheus-rw"
 ```
 
-Finally, execute the Docker Compose command using the `compose.grafana-cloud.microservices.yaml` file, just as in the local setup:
+Then open Grafana → **k6 Prometheus**. The panels fill in live.
+
+Each run is tagged (`smoke-<timestamp>`, `load-<timestamp>`, …) so you can pick it from
+the dashboard's test-run dropdown and compare runs side by side. The `make` targets add
+that tag for you; if you call `k6 run` by hand, pass `--tag testid=something` or the
+dashboard will have nothing to select.
+
+Prometheus also scrapes QuickPizza's own `/metrics`, so in **Explore** you can compare
+the two sides of the same traffic:
+
+- `k6_http_req_duration_p99` — what the client experienced
+- `quickpizza_server_http_request_duration_seconds` — what the server thinks it did
+
+The gap between them is queueing, connection setup and network. Good material for the
+"where did the time actually go?" conversation.
+
+No Docker needed for a quick look — k6 ships its own dashboard:
 
 ```bash
-docker compose -f compose.grafana-cloud.microservices.yaml up -d
+make load K6_FLAGS="--out web-dashboard"
 ```
 
-QuickPizza is available at [localhost:3333](http://localhost:3333). Click the `Pizza, Please!` button and discover some awesome pizzas!
+## Making a test fail on purpose
 
-Now, you can log in to [Grafana Cloud](https://grafana.com/products/cloud/) and use **Explore** or **Drilldown apps** to access QuickPizza's telemetry data.
+A test that always passes demonstrates nothing. Uncomment one of the fault-injection
+variables on the `quickpizza` service in [`compose.yaml`](compose.yaml) and `make up`
+again:
 
-![Use Metrics Drilldown](./docs/images/grafana-cloud-drilldown-metrics.png)
+```yaml
+QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST: "800ms"
+```
 
-![Use Profiles Drilldown](./docs/images/grafana-cloud-drilldown-profiles.png)
+`make load` now breaches `p(95)<500` and `p(99)<1000` (response time goes from ~130 ms
+to ~940 ms), while the application itself stays perfectly healthy — a clean illustration
+that a threshold is a decision you made, not a property of the system. See
+[docs/inject-errors.md](docs/inject-errors.md) for the full list, including error rates
+and timeouts.
 
+## Cheat sheet
 
-### Enable Grafana Cloud Observability solutions
+```bash
+make load K6_FLAGS="--vus 50 --duration 1m"          # override the load profile
+make load K6_FLAGS="--summary-mode=full"             # per-group/per-check detail
+make load K6_FLAGS="--summary-export=summary.json"   # machine-readable summary
+make load K6_FLAGS="--no-thresholds"                 # measure without gating
+make load K6_FLAGS="--http-debug=full"               # dump requests and responses
+make smoke BASE_URL=https://my-env.example.com       # point at another environment
+```
 
-The Docker Compose setup is fully instrumented out of the box, so you can jump right into Grafana Cloud Observability apps and start observing the inner workings of the QuickPizza service components.
+## Layout
 
-To enable [Application Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/) and [Database Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/database-observability/) for QuickPizza:
-
-1. In your Grafana Cloud instance, navigate to **Observability > Application**.
-2. Click on **Enable metrics generation** to enable the usage of Application Observability. 
-3. Interact with the QuickPizza app to generate traffic. After a few minutes, the QuickPizza components will be automatically discovered and displayed in the UI.
-
-  ![Application Observability](./docs/images/grafana-cloud-application-observability.png)
-
-  ![Application Observability - Public API Service](./docs/images/grafana-cloud-application-observability-public-api-svc.png)
-
-4. Navigate to **Observability > Database** to understand the performance of the Postgres database:
-
-  ![Database Observability](./docs/images/grafana-cloud-database-observability.png)
-
-
-To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/):
-
-1. In Grafana Cloud, create a new Frontend Observability application and set the domain to `http://localhost:3333`.
-2. Copy the application's Faro web URL.
-3. In your `.env` file, add the following environment variables to configure your Faro URL and application name:
-
-    ```bash
-    # FRONTEND OBSERVABILITY URL
-    QUICKPIZZA_CONF_FARO_URL=
-
-    # FRONTEND OBSERVABILITY APPLICATION NAME
-    QUICKPIZZA_CONF_FARO_APP_NAME=
-
-    # ENABLE FARO SESSION REPLAY INSTRUMENTATION (default: false)
-    QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY=true
-    ```
-
-4. Restart the `compose.grafana-cloud.microservices.yaml` environment:
-
-    ```bash
-    docker compose -f compose.grafana-cloud.microservices.yaml down
-    docker compose -f compose.grafana-cloud.microservices.yaml up -d
-    ```
-
-![Frontend Observability](./docs/images/grafana-cloud-frontend-observability-quickpizza.png)
+```
+k6/
+├── 01-smoke.js   02-load.js   03-spike.js
+├── lib/config.js   shared BASE_URL, auth header, request payload
+├── lib/stages.js   the three load profiles
+└── README.md       facilitator notes for the walkthrough
+compose.yaml                     the workshop stack
+deployments/observability/       Prometheus config + provisioned Grafana dashboards
+docs/inject-errors.md            how to make things fail
+quickpizza-openapi.yaml          the full API, if you want to script another endpoint
+cmd/ pkg/                        the Go application and SvelteKit frontend
+```

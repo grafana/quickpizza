@@ -1,0 +1,15 @@
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources
+apiVersion: 1
+
+datasources:
+  - name: prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      # Must match scrape_interval in prometheus.yaml.
+      timeInterval: 5s
+    editable: false

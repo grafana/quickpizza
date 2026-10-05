@@ -1,185 +1,102 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in this repository.
 
-## Project Overview
+## Project overview
 
-QuickPizza is a demonstration web application that generates pizza recommendations. It's built with a Go backend and SvelteKit frontend, designed for k6 load testing workshops and observability demonstrations.
+A stripped-down fork of [grafana/quickpizza](https://github.com/grafana/quickpizza) used
+as the system under test for a k6 workshop. QuickPizza is a demo web app that generates
+pizza recommendations: Go backend, SvelteKit frontend embedded in the binary.
 
-## Key Commands
+**This fork is deliberately minimal.** Upstream's browser tests, xk6 extensions, gRPC
+and WebSocket examples, Kubernetes manifests, Terraform, and the Alloy/Tempo/Loki/
+Pyroscope/OBI telemetry pipeline have all been removed. Do not reintroduce them. If a
+task seems to need them, it probably belongs upstream.
 
-### Building & Running
-- `make build` - Build frontend and backend together
-- `make build-go` - Build only Go backend (doesn't rebuild frontend)
-- `docker run --rm -it -p 3333:3333 ghcr.io/grafana/quickpizza-local:latest` - Run with Docker
+The workshop covers exactly three test types — smoke, load, spike — plus checks, custom
+metrics and thresholds. Keep additions in that scope.
 
-### Frontend Development
-- `cd pkg/web && npm install` - Install frontend dependencies
-- `cd pkg/web && npm run dev` - Start development server
-- `cd pkg/web && npm run build` - Build production frontend
-- `cd pkg/web && npm run biome-check` - Check frontend code
-- `cd pkg/web && npm run biome-format` - Format frontend code
+## Key commands
 
-### Go Development
-- `make format` - Format Go code with goimports
-- `make format-check` - Check Go formatting
-- `make proto` - Generate protobuf files from proto/quickpizza.proto
+```bash
+make up      # QuickPizza + Postgres + Prometheus + Grafana (published image, no build)
+make down
+make smoke   # k6/01-smoke.js   1 VU, 30s
+make load    # k6/02-load.js    ramp to 10 VUs, ~2m
+make spike   # k6/03-spike.js   peak of 100 VUs, ~2m
+make help    # every target
+```
 
-### Testing
-- `./k6/run-tests.sh` - Run k6 tests (requires k6 installed)
-- `./k6/run-tests.sh -u http://localhost:3333 -t "k6/foundations/*.js"` - Run specific tests
-- All k6 tests are in the `k6/` directory organized by category
+Extra k6 flags go through `K6_FLAGS`, e.g.
+`make load K6_FLAGS="-o experimental-prometheus-rw"`.
 
-### Docker Development
-- `make docker-build` - Build local Docker image
-- `make docker-run` - Run local container with volume mounts
+Host ports are overridable: `QUICKPIZZA_PORT`, `PROMETHEUS_PORT`, `GRAFANA_PORT`
+(defaults 3333 / 9090 / 3000). `BASE_URL` follows `QUICKPIZZA_PORT`, and
+`K6_PROMETHEUS_RW_SERVER_URL` follows `PROMETHEUS_PORT`.
+
+Building the app itself requires Go and Node, which the workshop does not:
+
+```bash
+make build        # frontend + backend
+make build-go     # backend only
+make test-go
+make format       # goimports + biome
+make format-check
+```
 
 ## Architecture
 
-### Microservices Architecture
-The application is designed as a modular monolith that can be deployed as separate microservices. Services are controlled by environment variables:
+- `cmd/` — entrypoint; everything listens on `:3333`.
+- `pkg/http/` — HTTP server and all route handlers. `POST /api/pizza` (the endpoint the
+  workshop load-tests) is at `pkg/http/http.go:1352`; recipe generation is the
+  `for range 10` loop around `pkg/http/http.go:1479`.
+- `pkg/database/` — Bun ORM over SQLite or PostgreSQL, migrations included.
+- `pkg/model/` — Pizza, User, Ingredient.
+- `pkg/web/` — SvelteKit frontend, embedded via `//go:embed all:build`. This means
+  `pkg/web/build/` must exist for the Go build to succeed; `make build-go` creates it
+  from `pkg/web/dev.html`.
+- `pkg/errorinjector/` — header-driven fault injection.
+- `k6/` — the three workshop scripts plus `lib/config.js` and `lib/stages.js`.
 
-- **PublicAPI** (`QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE`) - Serves Frontend and Gateway
-- **Frontend** -  Serves SvelteKit UI
-- **Gateway** - Routes requests between services in microservice deployments
-- **Catalog** (`QUICKPIZZA_ENABLE_CATALOG_SERVICE`) - Manages ingredients, tools, doughs, users, ratings
-- **Copy** (`QUICKPIZZA_ENABLE_COPY_SERVICE`) - Handles quotes, names, adjectives for pizza generation
-- **Recommendations** (`QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE`) - Core pizza recommendation logic
-- **WebSocket** (`QUICKPIZZA_ENABLE_WS_SERVICE`) - Real-time communication
-- **gRPC** (`QUICKPIZZA_ENABLE_GRPC_SERVICE`) - gRPC service on ports 3334/3335
-- **Config** (`QUICKPIZZA_ENABLE_CONFIG_SERVICE`) - Configuration endpoint
-- **HTTP Testing** (`QUICKPIZZA_ENABLE_HTTP_TESTING_SERVICE`) - HTTP testing utilities
-- **Test K6 IO** (`QUICKPIZZA_ENABLE_TEST_K6_IO_SERVICE`) - Legacy test.k6.io replacement endpoints
+The app can run as a modular monolith or as separate services via
+`QUICKPIZZA_ENABLE_*_SERVICE` env vars, but this fork only ever runs the monolith
+(`QUICKPIZZA_ENABLE_ALL_SERVICES=1`).
 
-### Key Packages
-- `pkg/http/` - Main HTTP server and route handlers
-- `pkg/database/` - Database abstraction (supports SQLite and PostgreSQL)
-- `pkg/grpc/` - gRPC server implementation
-- `pkg/web/` - SvelteKit frontend embedded in Go binary
-- `pkg/model/` - Data models (Pizza, User, Ingredient, etc.)
-- `pkg/errorinjector/` - Error injection for testing via headers
+## Things worth knowing
 
-### Database
-- Default: In-memory SQLite (`file::memory:?cache=shared`)
-- Configurable via `QUICKPIZZA_DB` environment variable
-- Supports PostgreSQL with `postgres://` connection strings
-- Uses Bun ORM with migrations in `pkg/database/migrations/`
+**Auth.** `POST /api/pizza` requires a token, but any 16-character value works —
+`Catalog.Authenticate` falls back to user id 1 (`pkg/database/catalog.go:266`). The
+scripts use `abcdef0123456789`.
 
-### Observability
-Comprehensive observability built-in:
-- **Tracing**: OpenTelemetry with configurable OTLP endpoint
-- **Metrics**: Prometheus metrics on `/metrics` endpoint
-- **Logging**: Structured JSON logging with slog
-- **Profiling**: Pyroscope integration for continuous profiling
-- **Frontend Observability**: Grafana Faro support
+**Restrictions are matched exactly.** `excludedIngredients` / `excludedTools` compare
+against names case-sensitively, so `"pepperoni"` excludes nothing while `"Pepperoni"`
+works. The API accepts both silently.
 
-### Environment Configuration
-- `QUICKPIZZA_ENABLE_ALL_SERVICES` - Enable all services (default: true)
-- `QUICKPIZZA_LOG_LEVEL` - Set logging level (default: info)
-- `QUICKPIZZA_OTLP_ENDPOINT` - OpenTelemetry collector endpoint
-- `QUICKPIZZA_PYROSCOPE_ENDPOINT` - Pyroscope server for profiling
-- `QUICKPIZZA_DB` - Database connection string
-- `QUICKPIZZA_PUBLIC_API_TIMEOUT` - Wraps the public-api handler with `http.TimeoutHandler`; unset by default (no timeout). Returns **503** when the deadline fires. In monolith mode it covers the full request; in microservice mode it also covers the ReverseProxy leg to internal services. Uses Go duration format (e.g. `3s`).
-- `QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT` - Timeout on the HTTP client used by the recommendations service to call catalog and copy (default: `1s`). In monolith mode these are localhost calls; in microservice mode they are cross-service calls.
-- `QUICKPIZZA_RECOMMENDATIONS_RETRIES` - Max retries for recommendations → catalog/copy calls (renamed from `QUICKPIZZA_RETRIES`).
-- `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN` - Min backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MIN`).
-- `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
-- `QUICKPIZZA_TRACES_LINK_PROFILES` - See [docs/otel.md](docs/otel.md).
-- `QUICKPIZZA_OTEL_INSTRUMENTATION_MODE` - `sdk` (default) or `obi`. See [docs/otel.md](docs/otel.md).
+**The calorie cap is best-effort.** Recipe generation retries at most 10 times and then
+returns the over-budget pizza anyway, so `calories <= maxCaloriesPerSlice` holds about
+99.6% of the time on a healthy system. This is why `02-load.js` uses
+`checks: ["rate>0.99"]` and `01-smoke.js` omits that check entirely. Do not "fix" those
+thresholds to `rate==1` — the smoke test would then fail roughly one run in ten.
 
-## Development Notes
+**Database.** `compose.yaml` uses PostgreSQL deliberately. The default in-memory SQLite
+serialises writes, which produces lock errors at the spike test's 100 VUs that look like
+application failures.
 
-### Fault Injection
-The application supports fault injection via HTTP headers and environment variables.
+## Fault injection
 
-**HTTP headers** (per-request, via `pkg/errorinjector/`):
-- `x-error-record-recommendation` - Trigger recommendation errors
-- `x-error-get-ingredients` - Trigger ingredient retrieval errors
-- `x-delay-record-recommendation` - Add delays to recommendations
-- `x-delay-get-ingredients` - Add delays to ingredient retrieval
-- Add `-percentage` suffix to any error header to control probability
+Used in the workshop finale to force a threshold breach. Set on the `quickpizza` service
+in `compose.yaml` (commented examples are already there):
 
-**Environment variables** (process-wide, Go duration string, e.g. `500ms`, `2s`):
-- `QUICKPIZZA_DELAY_RECOMMENDATIONS` - Delay all recommendations endpoints
-- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET` - Delay `GET /api/pizza/{id}`
-- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST` - Delay `POST /api/pizza` (pizza generation)
-- `QUICKPIZZA_DELAY_COPY` - Delay all copy endpoints
-- `QUICKPIZZA_DELAY_COPY_API_QUOTES` - Delay `GET /api/quotes`
-- `QUICKPIZZA_DELAY_COPY_API_NAMES` - Delay pizza name generation
-- `QUICKPIZZA_DELAY_COPY_API_ADJECTIVES` - Delay adjective generation
-- `QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS` - Delay CSS asset serving
-- `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS` - Delay PNG asset serving
-- `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` - Random failure rate (0-100) for `POST /api/pizza`
-- `QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION` - Random failure rate (0-100) for `RecordRecommendation` database calls; fails with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`)
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST` — delay `POST /api/pizza`
+- `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` — fail 0-100% with a 503
+- `QUICKPIZZA_PUBLIC_API_TIMEOUT` — return 503 past this deadline
 
-**Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3s` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
+Per-request headers (`x-error-*`, `x-delay-*`, with `-percentage` suffixes) also work.
+Full list in `docs/inject-errors.md`.
 
-### Frontend Integration
-- Frontend is built with SvelteKit and embedded in the Go binary
-- Uses Vite for development builds
-- Supports Grafana Faro for frontend observability
-- WebSocket integration for real-time updates
+## Observability
 
-### Authentication
-- Token-based authentication with user management
-- Admin endpoints with separate admin authentication
-- CSRF protection for cookie-based authentication
-- Authentication middleware can be bypassed with `X-Is-Internal` header
-
-### Testing with k6
-The application is specifically designed for k6 load testing:
-- Extensive k6 test suite in `k6/` directory
-- Support for k6 browser testing
-- k6 extensions and examples
-- Prometheus output for k6 metrics correlation
-
-## Upgrading the QuickPizza Image Version
-
-When a new release is published to GHCR (e.g. `ghcr.io/grafana/quickpizza-local:0.15.27`), update the image version in all of the following locations:
-
-### Step 1: Fetch the image digests
-
-```bash
-docker buildx imagetools inspect ghcr.io/grafana/quickpizza-local:<NEW_VERSION>
-```
-
-From the output, extract:
-- **Index digest** (the top-level `Digest:` field) — used in Terraform.
-- **linux/amd64 digest** (the manifest entry for `Platform: linux/amd64`) — used in GitHub Actions workflows.
-
-### Step 2: Files to update
-
-**Docker Compose files** — plain tag, no digest (uses `${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:<VERSION>}` pattern):
-- `compose.grafana-local-stack.monolithic.yaml`
-- `compose.grafana-local-stack.microservices.yaml` (7 service entries)
-- `compose.grafana-cloud.monolithic.yaml`
-- `compose.grafana-cloud.microservices.yaml` (7 service entries)
-
-**GitHub Actions example workflow files** — `tag@sha256:<linux/amd64-digest>` format, with `# zizmor: ignore[unpinned-images]` comment:
-- `.github/workflows/example_tests.yaml` (2 occurrences)
-- `.github/workflows/example_browser_tests.yaml` (2 occurrences)
-- `.github/workflows/example_cli_flags_test.yaml`
-- `.github/workflows/example_env_var.yaml`
-- `.github/workflows/example_verify_scripts.yaml`
-- `.github/workflows/example_specific_k6_version.yaml`
-
-**Kubernetes deployment files** — plain tag, no digest:
-- `deployments/kubernetes/base/quickpizza/catalog.yaml`
-- `deployments/kubernetes/base/quickpizza/config.yaml`
-- `deployments/kubernetes/base/quickpizza/copy.yaml`
-- `deployments/kubernetes/base/quickpizza/grpc.yaml`
-- `deployments/kubernetes/base/quickpizza/public-api.yaml`
-- `deployments/kubernetes/base/quickpizza/recommendations.yaml`
-- `deployments/kubernetes/base/quickpizza/ws.yaml`
-
-**Terraform variables** — two fields, both using `tag@sha256:<index-digest>` format:
-- `deployments/terraform/variables.tf`: `quickpizza_image` default (full `tag@sha256:` string) and `quickpizza_image_version` default (plain version string)
-
-### Step 3: Verify completeness
-
-After editing, run:
-```bash
-grep -rn "quickpizza-local:" . --include="*.yaml" --include="*.yml" --include="*.tf" | grep -v "docker_publish"
-```
-
-Confirm all occurrences show the new version. The `docker_publish.yaml` workflow is exempt — it derives the version dynamically from git release tags.
+Just Prometheus and Grafana. `deployments/observability/prometheus.yaml` accepts k6
+remote-write and scrapes the app's own `/metrics`; the two "k6 Prometheus" dashboards are
+provisioned from `deployments/observability/grafana/`. There is no tracing, logging or
+profiling backend in this fork.

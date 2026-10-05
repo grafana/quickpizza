@@ -1,54 +1,58 @@
-# Injecting Delays and Errors 
+# Injecting delays and errors
 
-QuickPizza supports two methods for injecting delays and errors to simulate various failure scenarios and performance issues during testing and demos.
+A load test that always passes teaches nothing. QuickPizza can be made slow or
+flaky on demand, so you can show a threshold actually failing.
 
-## Using Environment Variables
+There are two mechanisms: environment variables (process-wide) and HTTP headers
+(per request).
 
-You can inject delays to endpoints and assets using environment variables. 
+## Environment variables
 
-This is useful for testing scenarios where you want to simulate slow responses across multiple endpoints. 
+Set these on the `quickpizza` service in [`compose.yaml`](../compose.yaml), then
+`make up` again. Delays are Go duration strings (`500ms`, `2s`, `1.5s`).
 
-```shell
-export QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=1s
-```
-The delay values must be Go duration strings (e.g. `500ms`, `2s`, `1.5s`).
+The three used in the workshop:
 
-The following environment variables are supported: 
+| Variable | Effect |
+|---|---|
+| `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST` | Adds a fixed delay to `POST /api/pizza`. Breaks the `http_req_duration` threshold. |
+| `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` | Fails this percentage (0-100) of pizza requests with a 503. Breaks `http_req_failed` and `checks`. |
+| `QUICKPIZZA_PUBLIC_API_TIMEOUT` | Wraps the API in a timeout; returns 503 when it fires. Combine with a delay larger than the timeout. |
 
-- **QUICKPIZZA_DELAY_COPY**: Adds delay to all copy-related endpoints
-     - **QUICKPIZZA_DELAY_COPY_API_QUOTES**: Adds delay specifically to the quotes API endpoint
-     - **QUICKPIZZA_DELAY_COPY_API_NAMES**: Adds delay specifically to the names API endpoint  
-     - **QUICKPIZZA_DELAY_COPY_API_ADJECTIVES**: Adds delay specifically to the adjectives API endpoint
+Suggested demo: `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=800ms` makes
+`make load` breach `p(95)<500` and exit with code 99, while the app itself stays
+perfectly healthy — a good illustration of why a threshold is a decision, not a
+measurement.
 
-- **QUICKPIZZA_DELAY_RECOMMENDATIONS**: Adds delay to all recommendation-related endpoints
-     - **QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET**: Adds delay specifically to the GET pizza recommendations endpoint
-     - **QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST**: Adds delay specifically to the POST pizza recommendations endpoint
+Others available:
 
-- **QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS**: Adds delay when serving CSS assets
-- **QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS**: Adds delay when serving PNG image assets
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS` — all recommendation endpoints
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET` — `GET /api/pizza/{id}`
+- `QUICKPIZZA_DELAY_COPY`, `..._API_QUOTES`, `..._API_NAMES`, `..._API_ADJECTIVES`
+- `QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS`, `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS`
+- `QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION` — fails that
+  percentage of `RecordRecommendation` database calls with a real PostgreSQL
+  error. Requires the Postgres backend, which `compose.yaml` already uses.
 
-- **QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST**: Set to a number to fail `<number>%` of pizza POST requests randomly.
-- **QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION**: Set to a number to make `<number>%` of `RecordRecommendation` database calls fail with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`).
+## HTTP headers
 
-## Using HTTP Headers
+Per-request, so you can inject faults from inside a k6 script without
+restarting anything — add them to `headers` in `k6/lib/config.js`.
 
-You can introduce errors from the client side using custom headers. Below is a list of the currently supported error headers:
+| Header | Value |
+|---|---|
+| `x-error-record-recommendation` | error message to raise when recording a recommendation |
+| `x-error-get-ingredients` | error message to raise when retrieving ingredients |
+| `x-delay-record-recommendation` | delay duration, e.g. `250ms` |
+| `x-delay-get-ingredients` | delay duration |
 
-- **x-error-record-recommendation**: Triggers an error when recording a recommendation. The header value should be the error message.
-- **x-error-record-recommendation-percentage**: Specifies the percentage chance of an error occurring when recording a recommendation, if x-error-record-recommendation is also included. The header value should be a number between 0 and 100.
-- **x-delay-record-recommendation**: Introduces a delay when recording a recommendation. The header value should specify the delay duration and unit. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y".
-- **x-delay-record-recommendation-percentage**: Specifies the percentage chance of a delay occurring when recording a recommendation, if x-delay-record-recommendation is also included. The header value should be a number between 0 and 100.
-- **x-error-get-ingredients**: Triggers an error when retrieving ingredients. The header value should be the error message.
-- **x-error-get-ingredients-percentage**: Specifies the percentage chance of an error occurring when retrieving ingredients, if x-error-get-ingredients is also included. The header value should be a number between 0 and 100.
-- **x-delay-get-ingredients**: Introduces a delay when retrieving ingredients. The header value should specify the delay duration and unit. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y".
-- **x-delay-get-ingredients-percentage**: Specifies the percentage chance of a delay occurring when retrieving ingredients, if x-delay-get-ingredients is also included. The header value should be a number between 0 and 100.
-
-Example of header usage:
+Append `-percentage` to any of the above with a value of 0-100 to make it
+probabilistic:
 
 ```shell
 curl -X POST http://localhost:3333/api/pizza \
      -H "Content-Type: application/json" \
-     -H "Authorization: abcdef0123456789" \
+     -H "Authorization: token abcdef0123456789" \
      -H "x-error-record-recommendation: internal-error" \
      -H "x-error-record-recommendation-percentage: 20" \
      -d '{}'

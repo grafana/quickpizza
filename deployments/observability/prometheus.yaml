@@ -1,0 +1,21 @@
+---
+global:
+  scrape_interval: 5s
+  # Only needed if you run k6 with K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true.
+  # Note that doing so stops the provisioned "k6 Prometheus" dashboard from working:
+  # it reads the pre-computed k6_*_p99 / _avg series, which native histograms replace.
+  scrape_native_histograms: true
+
+storage:
+  tsdb:
+    # k6's remote-write output batches samples, so they can arrive slightly out
+    # of order. Without this window Prometheus would reject them.
+    out_of_order_time_window: 10m
+
+scrape_configs:
+  # QuickPizza's own Prometheus endpoint. Gives you the server's view of the
+  # same traffic k6 is generating - useful for showing that client-side and
+  # server-side latency are not the same number.
+  - job_name: quickpizza
+    static_configs:
+      - targets: ["quickpizza:3333"]

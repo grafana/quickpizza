@@ -1,6 +1,0 @@
----
-global:
-  scrape_native_histograms: true
-storage:
-  tsdb:
-    out_of_order_time_window: 10m
