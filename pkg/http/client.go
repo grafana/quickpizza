@@ -76,6 +76,8 @@ func (hc httpClient) postJSON(parentCtx context.Context, url string, src any, de
 		return fmt.Errorf("building http request: %w", err)
 	}
 
+	request.Header.Add("Content-Type", "application/json")
+
 	errorinjector.AddErrorHeaders(parentCtx, request)
 
 	resp, err := hc.do(request)
