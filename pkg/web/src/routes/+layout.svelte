@@ -1,5 +1,6 @@
 <script>
 import '../app.css';
+import ChatBot from '$lib/ChatBot.svelte';
 </script>
 
 <div class="flex justify-center">
@@ -7,3 +8,5 @@ import '../app.css';
 		<slot />
 	</div>
 </div>
+
+<ChatBot />
