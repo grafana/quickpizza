@@ -86,6 +86,7 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
 - `QUICKPIZZA_TRACES_LINK_PROFILES` - See [docs/otel.md](docs/otel.md).
 - `QUICKPIZZA_OTEL_INSTRUMENTATION_MODE` - `sdk` (default) or `obi`. See [docs/otel.md](docs/otel.md).
+- `QUICKPIZZA_OTEL_RECORD_BODIES` - Adds redacted HTTP request/response bodies to server spans as events (`sdk` mode only, default: off). See [docs/otel.md](docs/otel.md).
 
 ## Development Notes
 

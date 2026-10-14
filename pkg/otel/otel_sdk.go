@@ -116,6 +116,9 @@ func (t *OTelInstaller) installSDK(r chi.Router, serviceComponent string, extraO
 	})
 	r.Use(otelRouteLabeler)
 	r.Use(logTraceID)
+	if recordBodies() {
+		r.Use(bodyEvents)
+	}
 
 	return nil
 }

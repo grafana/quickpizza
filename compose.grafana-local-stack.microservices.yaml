@@ -10,6 +10,8 @@ x-quickpizza-env-common: &quickpizza-env-common
   OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
   # sdk (default) or obi - see the `obi:` service's own comment and docs/otel.md.
   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE: "${QUICKPIZZA_OTEL_INSTRUMENTATION_MODE:-sdk}"
+  # Adds redacted request/response bodies to server spans as events (sdk mode only).
+  QUICKPIZZA_OTEL_RECORD_BODIES: "${QUICKPIZZA_OTEL_RECORD_BODIES:-false}"
 
 name: quickpizza
 services:
