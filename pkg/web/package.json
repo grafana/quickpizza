@@ -18,7 +18,7 @@
     "@grafana/faro-web-tracing": "2.12.1",
     "@sveltejs/adapter-auto": "7.0.1",
     "@sveltejs/adapter-static": "3.0.10",
-    "@sveltejs/kit": "2.70.3",
+    "@sveltejs/kit": "3.0.0",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "autoprefixer": "10.6.1",
     "postcss": "8.5.28",
