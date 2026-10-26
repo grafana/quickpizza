@@ -13,8 +13,8 @@ github.com/dustin/go-humanize
 # github.com/felixge/httpsnoop v1.1.0
 ## explicit; go 1.25
 github.com/felixge/httpsnoop
-# github.com/go-chi/chi/v5 v5.3.2
-## explicit; go 1.23
+# github.com/go-chi/chi/v5 v5.4.0
+## explicit; go 1.24
 github.com/go-chi/chi/v5
 github.com/go-chi/chi/v5/middleware
 # github.com/go-chi/cors v1.2.2
