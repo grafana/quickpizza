@@ -1,7 +1,7 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: organized by hand
 import { faro } from '@grafana/faro-web-sdk';
-import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
+import { PUBLIC_BACKEND_ENDPOINT } from '$app/env/public';
 import { onMount } from 'svelte';
 
 var loginError = '';
