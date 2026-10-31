@@ -44,6 +44,17 @@ datasources:
       #https://grafana.com/docs/grafana-cloud/connect-externally-hosted/data-sources/tempo/configure-tempo-data-source/#trace-to-metrics
       tracesToMetrics:
         datasourceUid: "prometheus"
+        spanEndTimeShift: "2m"
+        spanStartTimeShift: "-2m"
+        mapTagNamesEnabled: true
+        queries:
+          - name: "Request rate"
+            query: "sum by (service_name) (rate(traces_span_metrics_calls_total{$$__tags}[2m]))"
+          - name: "Error rate"
+            query: 'sum by (service_name) (rate(traces_span_metrics_calls_total{status_code="STATUS_CODE_ERROR",$$__tags}[$$__rate_interval]))'
+        tags:
+          - key: "service.name"
+            value: "service_name"
       # traces to logs configuration
       # https://grafana.com/docs/grafana-cloud/connect-externally-hosted/data-sources/tempo/configure-tempo-data-source/#trace-to-logs
       tracesToLogs:
