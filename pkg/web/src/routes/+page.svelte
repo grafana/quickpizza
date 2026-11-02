@@ -4,7 +4,7 @@ import { faro } from '@grafana/faro-web-sdk';
 import {
 	PUBLIC_BACKEND_ENDPOINT,
 	PUBLIC_BACKEND_WS_ENDPOINT,
-} from '$env/static/public';
+} from '$app/env/public';
 import { onMount } from 'svelte';
 import { Confetti } from 'svelte-confetti';
 import { wsVisitorIDStore, isLoggedInStore } from '../lib/stores';

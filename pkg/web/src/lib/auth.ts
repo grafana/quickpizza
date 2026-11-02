@@ -1,4 +1,4 @@
-import { PUBLIC_BACKEND_ENDPOINT } from '$env/static/public';
+import { PUBLIC_BACKEND_ENDPOINT } from '$app/env/public';
 
 /**
  * Get a cookie value by name
