@@ -152,7 +152,7 @@ dependencies {
 
     // TODO(opentelemetry-android#764): remove with com.grafana.quickpizza.nativecrash package.
     // Protobuf tombstone decode for ApplicationExitInfo.traceInputStream (API 31+).
-    implementation("com.google.protobuf:protobuf-javalite:3.25.1")
+    implementation("com.google.protobuf:protobuf-javalite:3.25.9")
 
     // Testing
     testImplementation(libs.junit)
