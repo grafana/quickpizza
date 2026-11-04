@@ -77,7 +77,6 @@ function randomToken(length: number) {
 
 let socket: WebSocket;
 onMount(async () => {
-	// biome-ignore lint/suspicious/noAssignInExpressions: -
 	wsVisitorIDStore.subscribe((value) => (wsVisitorID = value));
 	if (wsVisitorID === 0) {
 		wsVisitorIDStore.set(Math.floor(100000 + Math.random() * 900000));
@@ -176,18 +175,26 @@ async function getPizza() {
 		headers,
 		credentials: 'same-origin',
 	});
-	const json = await res.json();
 
 	rateResult = null;
 	errorResult = null;
 	if (!res.ok) {
 		pizza = null;
-		const message =
-			json.error || 'Failed to get pizza recommendation. Please try again.';
+		const contentType = res.headers.get('content-type') || '';
+		let message: string;
+		if (contentType.includes('application/json')) {
+			const json = await res.json();
+			message =
+				json.error || 'Failed to get pizza recommendation. Please try again.';
+		} else {
+			const text = await res.text();
+			message = `${res.status}: ${text || 'Failed to get pizza recommendation. Please try again.'}`;
+		}
 		errorResult = message;
 		faro?.api?.pushError(new Error(message));
 		return;
 	}
+	const json = await res.json();
 
 	pizza = json as PizzaResponse;
 	const wsMsg = JSON.stringify({

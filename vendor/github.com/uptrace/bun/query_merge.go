@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/bun/schema"
 )
 
+// MergeQuery builds MERGE statements for dialects that support them.
 type MergeQuery struct {
 	baseQuery
 	returningQuery
@@ -23,13 +24,14 @@ type MergeQuery struct {
 
 var _ Query = (*MergeQuery)(nil)
 
+// NewMergeQuery creates a MergeQuery associated with the provided DB.
 func NewMergeQuery(db *DB) *MergeQuery {
 	q := &MergeQuery{
 		baseQuery: baseQuery{
 			db: db,
 		},
 	}
-	if q.db.dialect.Name() != dialect.MSSQL && q.db.dialect.Name() != dialect.PG {
+	if !q.db.HasFeature(feature.Merge) {
 		q.setErr(errors.New("bun: merge not supported for current dialect"))
 	}
 	return q

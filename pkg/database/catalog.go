@@ -57,7 +57,7 @@ func NewCatalog(connString string) (*Catalog, error) {
 	c := &Catalog{
 		db:           db,
 		fixedPizzas:  envInt("QUICKPIZZA_DB_FIXED_PIZZAS", 100),
-		fixedUsers:   envInt("QUICKPIZZA_DB_FIXED_USERS", 10),
+		fixedUsers:   envInt("QUICKPIZZA_DB_FIXED_USERS", 200),
 		fixedRatings: envInt("QUICKPIZZA_DB_FIXED_RATINGS", 10),
 		maxPizzas:    envInt("QUICKPIZZA_DB_MAX_PIZZAS", 5000),
 		maxUsers:     envInt("QUICKPIZZA_DB_MAX_USERS", 5000),
@@ -281,6 +281,11 @@ func (c *Catalog) RecordRecommendation(ctx context.Context, pizza *model.Pizza) 
 	// Inject an artificial error for testing purposes
 	err := errorinjector.InjectErrors(ctx, "record-recommendation")
 	if err != nil {
+		return err
+	}
+
+	if util.FailRandomlyIfEnvSet("QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION") {
+		_, err := c.db.ExecContext(ctx, "SELECT nonexistent_column FROM pizzas LIMIT 1")
 		return err
 	}
 

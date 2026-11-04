@@ -2,6 +2,7 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 import { Trend, Counter } from "k6/metrics";
 import { SharedArray } from 'k6/data';
+import exec from "k6/execution";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.2/index.js";
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3333';
@@ -48,6 +49,11 @@ export function setup() {
 }
 
 export function getPizza() {
+  // Each VU consistently acts as the same user for the whole test, like a
+  // real user would keep a single session open, instead of hopping
+  // between accounts on every request.
+  const token = tokens[(exec.vu.idInTest - 1) % tokens.length];
+
   let restrictions = {
     maxCaloriesPerSlice: 500,
     mustBeVegetarian: false,
@@ -59,7 +65,7 @@ export function getPizza() {
   let res = http.post(`${BASE_URL}/api/pizza`, JSON.stringify(restrictions), {
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Token ' + tokens[Math.floor(Math.random() * tokens.length)],
+      'Authorization': 'Token ' + token,
     },
   });
   check(res, { "status is 200": (res) => res.status === 200 });

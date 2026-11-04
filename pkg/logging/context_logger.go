@@ -4,10 +4,14 @@ import (
 	"context"
 
 	"log/slog"
-
-	"go.opentelemetry.io/otel/trace"
 )
 
+// ContextLogger is this app's default structured-logging wrapper: it attaches the current
+// user (if present in ctx) to every log record and otherwise passes through to its parent
+// handler. Nothing here reads or attaches trace context - this is exactly the logger "obi"
+// mode uses, unmodified, since OBI needs no application code to correlate logs with traces
+// (see otel_sdk_context_logger.go's OTelSDKContextLogger for the extra code "sdk" mode layers on
+// top of this one to get the same result manually).
 type ContextLogger struct {
 	parent slog.Handler
 }
@@ -24,10 +28,6 @@ func (c *ContextLogger) Handle(ctx context.Context, record slog.Record) error {
 	user := ctx.Value("user")
 	if user != nil {
 		record.Add("user", user)
-	}
-	span := trace.SpanFromContext(ctx)
-	if span.SpanContext().HasTraceID() {
-		record.Add("traceID", span.SpanContext().TraceID())
 	}
 	return c.parent.Handle(ctx, record)
 }

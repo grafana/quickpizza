@@ -1,7 +1,7 @@
 locals {
   database_component_labels = {
     "environment"                 = var.deployment_environment
-    "app.k8s.io/name"            = "quickpizza-app"
+    "app.k8s.io/name"             = "quickpizza-app"
     "app.kubernetes.io/component" = "database"
     "app.kubernetes.io/instance"  = "quickpizza-db"
   }
@@ -61,15 +61,17 @@ resource "kubernetes_stateful_set_v1" "postgres_statefulset" {
       }
       spec {
         container {
-          image = "postgres:18@sha256:b6b4d0b75c699a2c94dfc5a94fe09f38630f3b67ab0e1653ede1b7ac8e13c197"
+          image = "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722"
           name  = "postgres"
-          
+
           args = [
             "-c", "shared_preload_libraries=pg_stat_statements",
             "-c", "track_activity_query_size=4096",
-            "-c", "pg_stat_statements.track=all"
+            "-c", "pg_stat_statements.track=all",
+            "-c", "compute_query_id=on",
+            "-c", "log_line_prefix=%m:%r:%u@%d:[%p]:%l:%e:%s:%v:%x:%c:%q%a:"
           ]
-          
+
           resources {
             requests = {
               cpu    = "100m"
@@ -112,7 +114,7 @@ resource "kubernetes_stateful_set_v1" "postgres_statefulset" {
           }
 
           volume_mount {
-            name = "init"
+            name       = "init"
             mount_path = "/docker-entrypoint-initdb.d"
           }
         }

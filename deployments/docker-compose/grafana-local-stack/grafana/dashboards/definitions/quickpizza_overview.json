@@ -1,0 +1,733 @@
+{
+	"annotations": {
+		"list": [
+			{
+				"builtIn": 1,
+				"datasource": {
+					"type": "grafana",
+					"uid": "-- Grafana --"
+				},
+				"enable": true,
+				"hide": true,
+				"iconColor": "rgba(0, 211, 255, 1)",
+				"name": "Annotations & Alerts",
+				"type": "dashboard"
+			}
+		]
+	},
+	"editable": true,
+	"fiscalYearStartMonth": 0,
+	"graphTooltip": 0,
+	"liveNow": false,
+	"panels": [
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 0
+			},
+			"id": 17,
+			"title": "Overview",
+			"type": "row"
+		},
+		{
+			"gridPos": {
+				"h": 4,
+				"w": 24,
+				"x": 0,
+				"y": 1
+			},
+			"id": 2,
+			"options": {
+				"code": {
+					"language": "plaintext",
+					"showLineNumbers": false,
+					"showMiniMap": false
+				},
+				"content": "# Welcome to the QuickPizza SRE Demo!\n\nThis dashboard includes an overview of the architecture, as well as some high level stats about the application.\nIt should serve as an entrypoint to view the health of the system at a quick glance.\n\nYou can try out the application at [quickpizza.grafana.fun](https://quickpizza.grafana.fun/)\n",
+				"mode": "markdown"
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [],
+			"title": "",
+			"transparent": true,
+			"type": "text"
+		},
+		{
+			"datasource": {
+				"type": "tempo",
+				"uid": "tempo"
+			},
+			"gridPos": {
+				"h": 12,
+				"w": 24,
+				"x": 0,
+				"y": 5
+			},
+			"id": 1,
+			"options": {
+				"edges": {},
+				"layoutAlgorithm": "layered",
+				"nodes": {
+					"arcs": []
+				},
+				"zoomMode": "cooperative"
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "tempo",
+						"uid": "tempo"
+					},
+					"filters": [
+						{
+							"id": "8de6ae50",
+							"operator": "=",
+							"scope": "span"
+						}
+					],
+					"limit": 20,
+					"queryType": "serviceMap",
+					"refId": "A",
+					"serviceMapQuery": "{service_namespace=\"quickpizza\"}"
+				}
+			],
+			"title": "",
+			"transparent": true,
+			"type": "nodeGraph"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"description": "This panel summarizes request duration and rates across all microservices. Check out the App Observability plugin for more details.",
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "thresholds"
+					},
+					"custom": {
+						"align": "auto",
+						"cellOptions": {
+							"type": "auto"
+						},
+						"footer": {
+							"reducers": []
+						},
+						"inspect": false
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": 0
+							},
+							{
+								"color": "red",
+								"value": 80
+							}
+						]
+					}
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Duration, p95"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "yellow",
+									"mode": "fixed"
+								}
+							},
+							{
+								"id": "unit",
+								"value": "s"
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Rate"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "blue",
+									"mode": "fixed"
+								}
+							},
+							{
+								"id": "unit",
+								"value": "reqps"
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "Errors"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "red",
+									"mode": "fixed"
+								}
+							},
+							{
+								"id": "unit",
+								"value": "percentunit"
+							},
+							{
+								"id": "decimals",
+								"value": 0
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 24,
+				"x": 0,
+				"y": 17
+			},
+			"id": 9,
+			"options": {
+				"cellHeight": "sm",
+				"frameIndex": 0,
+				"showHeader": true
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"editorMode": "code",
+					"expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_namespace=\"quickpizza\"} [$__rate_interval])) by (le,service_name))",
+					"instant": false,
+					"legendFormat": "__auto",
+					"range": true,
+					"refId": "Duration"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"editorMode": "code",
+					"expr": "(sum(rate(http_server_request_duration_seconds_count{service_namespace=\"quickpizza\", http_response_status_code=~\"(4|5)..\"} [$__rate_interval])) by (service_name) OR sum(rate(http_server_request_duration_seconds_count{service_namespace=\"quickpizza\"} [$__rate_interval])) by (service_name) * 0) / sum(rate(http_server_request_duration_seconds_count{service_namespace=\"quickpizza\"} [$__rate_interval])) by (service_name)",
+					"instant": false,
+					"legendFormat": "__auto",
+					"range": true,
+					"refId": "Errors"
+				},
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(http_server_request_duration_seconds_count{service_namespace=\"quickpizza\"} [$__rate_interval])) by (service_name)",
+					"instant": false,
+					"legendFormat": "__auto",
+					"range": true,
+					"refId": "Rate"
+				}
+			],
+			"title": "",
+			"transformations": [
+				{
+					"id": "timeSeriesTable",
+					"options": {}
+				},
+				{
+					"id": "joinByField",
+					"options": {
+						"byField": "service_name",
+						"mode": "outer"
+					}
+				},
+				{
+					"id": "organize",
+					"options": {
+						"excludeByName": {},
+						"indexByName": {
+							"Trend #Duration": 3,
+							"Trend #Errors": 2,
+							"Trend #Rate": 1,
+							"service_name": 0
+						},
+						"renameByName": {
+							"Trend #Duration": "Duration, p95",
+							"Trend #Errors": "Errors",
+							"Trend #Rate": "Rate",
+							"service_name": "Service"
+						}
+					}
+				}
+			],
+			"transparent": true,
+			"type": "table"
+		},
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 25
+			},
+			"id": 18,
+			"title": "Logs",
+			"type": "row"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"fixedColor": "text",
+						"mode": "fixed"
+					},
+					"custom": {
+						"axisBorderShow": false,
+						"axisCenteredZero": false,
+						"axisColorMode": "text",
+						"axisLabel": "",
+						"axisPlacement": "hidden",
+						"barAlignment": 0,
+						"barWidthFactor": 0.6,
+						"drawStyle": "bars",
+						"fillOpacity": 100,
+						"gradientMode": "none",
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						},
+						"insertNulls": false,
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"pointSize": 5,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"showPoints": "auto",
+						"showValues": false,
+						"spanNulls": false,
+						"stacking": {
+							"group": "A",
+							"mode": "normal"
+						},
+						"thresholdsStyle": {
+							"mode": "off"
+						}
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "text",
+								"value": 0
+							}
+						]
+					},
+					"unit": "short"
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "error"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "red",
+									"mode": "fixed"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "info"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "green",
+									"mode": "fixed"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "warn"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "yellow",
+									"mode": "fixed"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 24,
+				"x": 0,
+				"y": 26
+			},
+			"id": 12,
+			"interval": "1m",
+			"options": {
+				"annotations": {
+					"clustering": -1,
+					"multiLane": false
+				},
+				"legend": {
+					"calcs": [],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": false
+				},
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} [$__auto])) by (detected_level)",
+					"legendFormat": "{{ detected_level }}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Logs",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"gridPos": {
+				"h": 11,
+				"w": 24,
+				"x": 0,
+				"y": 30
+			},
+			"id": 10,
+			"options": {
+				"dedupStrategy": "none",
+				"enableInfiniteScrolling": false,
+				"enableLogDetails": true,
+				"prettifyLogMessage": false,
+				"showCommonLabels": false,
+				"showControls": false,
+				"showFieldSelector": false,
+				"showLabels": false,
+				"showLevel": true,
+				"showTime": true,
+				"sortOrder": "Descending",
+				"timestampResolution": "ms",
+				"unwrappedColumns": false,
+				"wrapLogMessage": false
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "{namespace=\"quickpizza\"} | json | httpRequest_method != \"\" | line_format `[{{.service_name}}] {{.httpRequest_method}} {{.httpRequest_path}} {{if .traceID}}[traceID={{.traceID}}]{{end}}`",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "",
+			"type": "logs"
+		},
+		{
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 41
+			},
+			"id": 19,
+			"title": "⏱️ Request Timings",
+			"type": "row"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"fixedColor": "blue",
+						"mode": "palette-classic"
+					},
+					"custom": {
+						"axisBorderShow": false,
+						"axisCenteredZero": false,
+						"axisColorMode": "text",
+						"axisLabel": "",
+						"axisPlacement": "hidden",
+						"barAlignment": 0,
+						"barWidthFactor": 0.6,
+						"drawStyle": "line",
+						"fillOpacity": 10,
+						"gradientMode": "opacity",
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						},
+						"insertNulls": false,
+						"lineInterpolation": "smooth",
+						"lineWidth": 1,
+						"pointSize": 5,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"showPoints": "never",
+						"showValues": false,
+						"spanNulls": false,
+						"stacking": {
+							"group": "A",
+							"mode": "none"
+						},
+						"thresholdsStyle": {
+							"mode": "off"
+						}
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": 0
+							}
+						]
+					},
+					"unit": "reqps"
+				}
+			},
+			"gridPos": {
+				"h": 3,
+				"w": 20,
+				"x": 0,
+				"y": 42
+			},
+			"id": 13,
+			"options": {
+				"annotations": {
+					"clustering": -1,
+					"multiLane": false
+				},
+				"legend": {
+					"calcs": [],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": false
+				},
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"editorMode": "code",
+					"expr": "sum(rate(http_server_request_duration_seconds_count{service_namespace=\"quickpizza\",service_name=~\".*public-api\"}[$__rate_interval])) by (service_name)",
+					"legendFormat": "Total",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Request Volume",
+			"type": "timeseries"
+		},
+		{
+			"gridPos": {
+				"h": 11,
+				"w": 4,
+				"x": 20,
+				"y": 42
+			},
+			"id": 16,
+			"options": {
+				"code": {
+					"language": "plaintext",
+					"showLineNumbers": false,
+					"showMiniMap": false
+				},
+				"content": "# About _Request Timings_\n\nThe _Heatmap_ to the left displays request timings and their frequency.\n\nIt can be read as follows:\n\n* The Y Axis shows the duration of the requests. Blocks found higher up, represent a longer request duration.\n* The color of the blocks represent the amount of requests in the respective range of timings. A lighter block contains more requests than a dark one.\n\nWith a higher request rate, the variance between response times will increase. Ideally, a clear line at the bottom should be visible. This means that most requests finished quickly.",
+				"mode": "markdown"
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [],
+			"title": "",
+			"type": "text"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"custom": {
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						},
+						"scaleDistribution": {
+							"type": "linear"
+						}
+					}
+				}
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 20,
+				"x": 0,
+				"y": 45
+			},
+			"id": 11,
+			"options": {
+				"annotations": {
+					"clustering": -1,
+					"multiLane": false
+				},
+				"calculate": false,
+				"cellGap": 1,
+				"color": {
+					"exponent": 0.5,
+					"fill": "dark-green",
+					"mode": "scheme",
+					"reverse": false,
+					"scale": "exponential",
+					"scheme": "Warm",
+					"steps": 128
+				},
+				"exemplars": {
+					"color": "rgba(255,0,255,0.7)"
+				},
+				"filterValues": {
+					"le": 1e-9
+				},
+				"legend": {
+					"show": true
+				},
+				"rowsFrame": {
+					"layout": "auto"
+				},
+				"tooltip": {
+					"mode": "single",
+					"showColorScale": false,
+					"yHistogram": false
+				},
+				"yAxis": {
+					"axisPlacement": "left",
+					"reverse": false,
+					"unit": "s"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"editorMode": "code",
+					"exemplar": false,
+					"expr": "sum(increase(quickpizza_server_http_request_duration_seconds_bucket{service_namespace=\"quickpizza\",service_name=~\".*public-api\"}[$__rate_interval])) by (le)",
+					"format": "heatmap",
+					"instant": false,
+					"legendFormat": "{{le}}",
+					"range": true,
+					"refId": "A"
+				}
+			],
+			"title": "Request Latency Heatmap",
+			"type": "heatmap"
+		}
+	],
+	"preload": false,
+	"refresh": "1m",
+	"schemaVersion": 42,
+	"time": {
+		"from": "now-3h",
+		"to": "now"
+	},
+	"timepicker": {
+		"refresh_intervals": [
+			"5s",
+			"10s",
+			"30s",
+			"1m",
+			"5m",
+			"15m",
+			"30m",
+			"1h",
+			"2h",
+			"1d"
+		]
+	},
+	"timezone": "browser",
+	"title": "QuickPizza Overview",
+	"version": 1,
+	"uid": "quickpizza-overview",
+	"id": 923605801357312
+}

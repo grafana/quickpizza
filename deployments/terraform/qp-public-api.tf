@@ -1,7 +1,7 @@
 locals {
   public_api_component_labels = {
-    "environment"                = var.deployment_environment
-    "app.k8s.io/name"            = "quickpizza-app"
+    "environment"                 = var.deployment_environment
+    "app.k8s.io/name"             = "quickpizza-app"
     "app.kubernetes.io/component" = "service"
     "app.kubernetes.io/instance"  = "public-api"
   }
@@ -13,14 +13,14 @@ resource "kubernetes_secret_v1" "public_api" {
     namespace = kubernetes_namespace_v1.quickpizza.id
   }
   data = {
-    QUICKPIZZA_CONF_FARO_URL = var.quickpizza_conf_faro_url
+    QUICKPIZZA_CONF_FARO_URL      = var.quickpizza_conf_faro_url
     QUICKPIZZA_CONF_FARO_APP_NAME = var.quickpizza_conf_faro_app_name
   }
 }
 
 resource "kubernetes_deployment_v1" "public_api" {
   depends_on = [kubernetes_deployment_v1.alloy]
-  
+
   metadata {
     name      = "public-api"
     namespace = kubernetes_namespace_v1.quickpizza.id
@@ -81,7 +81,17 @@ resource "kubernetes_deployment_v1" "public_api" {
             value = "1"
           }
           env {
+            name  = "QUICKPIZZA_PUBLIC_API_TIMEOUT"
+            value = "10s"
+          }
+          env {
             name  = "QUICKPIZZA_OTEL_SERVICE_NAME"
+            value = "public-api"
+          }
+          # Read by OBI (not by this app) to label spans/metrics OBI captures for this
+          # process - see obi.tf and docs/otel.md.
+          env {
+            name  = "OTEL_SERVICE_NAME"
             value = "public-api"
           }
           env {
@@ -114,7 +124,7 @@ resource "kubernetes_service_v1" "public_api" {
       target_port = "3333"
     }
     selector = local.public_api_component_labels
-    type = "LoadBalancer"
+    type     = "LoadBalancer"
   }
 
   wait_for_load_balancer = false

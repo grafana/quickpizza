@@ -22,6 +22,7 @@ const (
 	allWithDeletedFlag
 )
 
+// WithQuery defines a common table expression used by another query.
 type WithQuery struct {
 	name            string
 	query           Query
@@ -76,7 +77,7 @@ var (
 	_ IDB = (*Tx)(nil)
 )
 
-// QueryBuilder is used for common query methods
+// QueryBuilder exposes shared filtering helpers across query builders.
 type QueryBuilder interface {
 	Query
 	Where(query string, args ...any) QueryBuilder
@@ -257,6 +258,7 @@ func (q *baseQuery) isSoftDelete() bool {
 
 //------------------------------------------------------------------------------
 
+// NewWithQuery creates a CTE with the given name and underlying query.
 func NewWithQuery(name string, query Query) *WithQuery {
 	return &WithQuery{
 		name:  name,
@@ -264,16 +266,19 @@ func NewWithQuery(name string, query Query) *WithQuery {
 	}
 }
 
+// Recursive marks the CTE as recursive, enabling self-referential queries.
 func (q *WithQuery) Recursive() *WithQuery {
 	q.recursive = true
 	return q
 }
 
+// Materialized hints the planner to evaluate the CTE once and store the results.
 func (q *WithQuery) Materialized() *WithQuery {
 	q.materialized = true
 	return q
 }
 
+// NotMaterialized hints the planner to inline the CTE, potentially re-evaluating it.
 func (q *WithQuery) NotMaterialized() *WithQuery {
 	q.notMaterialized = true
 	return q
@@ -1160,6 +1165,7 @@ func (q *setQuery) appendSet(gen schema.QueryGen, b []byte) (_ []byte, err error
 func (q *setQuery) appendSetStruct(
 	gen schema.QueryGen, b []byte, model *structTableModel, fields []*schema.Field,
 ) (_ []byte, err error) {
+	defaultPlaceholder := gen.HasFeature(feature.DefaultPlaceholder)
 	isTemplate := gen.IsNop()
 	pos := len(b)
 	for _, f := range fields {
@@ -1191,6 +1197,8 @@ func (q *setQuery) appendSetStruct(
 			if err != nil {
 				return nil, err
 			}
+		} else if defaultPlaceholder {
+			b = f.AppendValueOrDefault(gen, b, model.strct)
 		} else {
 			b = f.AppendValue(gen, b, model.strct)
 		}
@@ -1568,6 +1576,7 @@ func (q *orderLimitOffsetQuery) appendLimitOffset(gen schema.QueryGen, b []byte)
 	return b, nil
 }
 
+// IsReadOnlyQuery reports whether the provided query and its CTEs are SELECT-only.
 func IsReadOnlyQuery(query Query) bool {
 	sel, ok := query.(*SelectQuery)
 	if !ok {

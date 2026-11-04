@@ -1,13 +1,13 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-package baggagecopy // import "go.opentelemetry.io/contrib/processors/baggagecopy"
+package baggagecopy
 
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
-	api "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/sdk/log"
 )
 
@@ -32,6 +32,11 @@ func NewLogProcessor(filter Filter) *LogProcessor {
 	}
 }
 
+// Enabled reports whether the Processor will process.
+func (LogProcessor) Enabled(context.Context, log.EnabledParameters) bool {
+	return true
+}
+
 // OnEmit adds Baggage member to a log record as attributes that are pulled from
 // the Baggage found in ctx. Baggage members are filtered by the filter passed
 // to NewLogProcessor.
@@ -43,7 +48,7 @@ func (processor LogProcessor) OnEmit(ctx context.Context, record *log.Record) er
 
 	for _, member := range baggage.FromContext(ctx).Members() {
 		if filter(member) {
-			record.AddAttributes(api.String(member.Key(), member.Value()))
+			record.AddAttributes(attribute.String(member.Key(), member.Value()))
 		}
 	}
 

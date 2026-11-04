@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
 	"vcs": {
 		"enabled": false,
 		"clientKind": "git",
@@ -7,13 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": [
-			"src/**",
-			"static/**",
-			"test.k6.io/**",
-			"!test.k6.io/**/*.css",
-			"!src/**/*.css"
-		]
+		"includes": ["src/**", "static/**", "!src/**/*.css"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -22,7 +16,10 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"suspicious": {
+				"noDocumentCookie": "off"
+			}
 		}
 	},
 	"javascript": {

@@ -10,15 +10,17 @@ x-quickpizza-env-common: &quickpizza-env-common
   # Default is 1s, which is too short to demonstrate "slow" error injection
   # toggles (e.g. x-delay-record-recommendation: 3s would always trigger
   # the timeout instead of producing a slow-but-successful response).
-  QUICKPIZZA_TIMEOUT: "10s"
+  QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT: "10s"
   OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
   # Adds redacted request/response bodies to server spans as events.
   QUICKPIZZA_OTEL_RECORD_BODIES: "${QUICKPIZZA_OTEL_RECORD_BODIES:-false}"
+  # sdk (default) or obi - see the `obi:` service's own comment and docs/otel.md.
+  QUICKPIZZA_OTEL_INSTRUMENTATION_MODE: "${QUICKPIZZA_OTEL_INSTRUMENTATION_MODE:-sdk}"
 
 name: quickpizza
 services:
   alloy:
-    image: grafana/alloy:v1.14.2@sha256:eadfe35ea52b26cbec4d4d780fbcc31edb31108c1c9e537ca59557a5a102c712
+    image: grafana/alloy:v1.20.0
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -56,7 +58,7 @@ services:
       - grpc
 
   catalog:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: catalog
     labels:
       - "service.type=application"
@@ -66,6 +68,9 @@ services:
       QUICKPIZZA_ENABLE_CATALOG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "catalog"
       QUICKPIZZA_OTEL_SERVICE_NAME: "catalog"
+      # Read by OBI (not by this app) to label spans/metrics OBI captures for this process.
+      OTEL_SERVICE_NAME: "catalog"
+      # QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION: 20
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
       QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       # OTEL `db.name` span attribute. Used by servicegraph to create service nodes with this name
@@ -76,7 +81,7 @@ services:
         condition: service_healthy
 
   config:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: config
     labels:
       - "service.type=application"
@@ -86,12 +91,13 @@ services:
       QUICKPIZZA_ENABLE_CONFIG_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "config"
       QUICKPIZZA_OTEL_SERVICE_NAME: "config"
+      OTEL_SERVICE_NAME: "config"
       # enable Faro integration
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-QuickPizza}"
       QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY: "${QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY:-false}"
   copy:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: copy
     labels:
       - "service.type=application"
@@ -101,6 +107,7 @@ services:
       QUICKPIZZA_ENABLE_COPY_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "copy"
       QUICKPIZZA_OTEL_SERVICE_NAME: "copy"
+      OTEL_SERVICE_NAME: "copy"
       # QUICKPIZZA_DB unset set to postgres. If empty, set to sqlite.
       QUICKPIZZA_DB: "${QUICKPIZZA_DB-postgres://postgres:postgres@quickpizza-db:5432/quickpizza_db?sslmode=disable}"
       # OTEL `db.name` span attribute. Used by servicegraph to create service nodes with this name
@@ -113,7 +120,7 @@ services:
         condition: service_started
 
   public-api:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: public-api
     labels:
       - "service.type=application"
@@ -125,9 +132,10 @@ services:
       QUICKPIZZA_ENABLE_PUBLIC_API_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "public-api"
       QUICKPIZZA_OTEL_SERVICE_NAME: "public-api"
+      OTEL_SERVICE_NAME: "public-api"
 
   recommendations:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: recommendations
     labels:
       - "service.type=application"
@@ -137,9 +145,10 @@ services:
       QUICKPIZZA_ENABLE_RECOMMENDATIONS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "recommendations"
       QUICKPIZZA_OTEL_SERVICE_NAME: "recommendations"
+      OTEL_SERVICE_NAME: "recommendations"
 
   ws:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: ws
     labels:
       - "service.type=application"
@@ -149,9 +158,10 @@ services:
       QUICKPIZZA_ENABLE_WS_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "ws"
       QUICKPIZZA_OTEL_SERVICE_NAME: "ws"
+      OTEL_SERVICE_NAME: "ws"
 
   grpc:
-    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.21@sha256:de839571c65ce9ac6e96290f44a7122869f31744d93bd235903ecb9429158d32}
+    image: ${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:0.15.30}
     container_name: grpc
     labels:
       - "service.type=application"
@@ -163,9 +173,47 @@ services:
       QUICKPIZZA_ENABLE_GRPC_SERVICE: "1"
       QUICKPIZZA_OTEL_SERVICE_INSTANCE_ID: "grpc"
       QUICKPIZZA_OTEL_SERVICE_NAME: "grpc"
+      OTEL_SERVICE_NAME: "grpc"
+
+  # OBI (OpenTelemetry eBPF Instrumentation) instruments every quickpizza-family process
+  # (catalog/config/copy/public-api/recommendations/ws/grpc) from outside them, via eBPF,
+  # instead of relying on the app OTel SDK.
+  #
+  # Full command (opt-in):
+  #
+  #   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi \
+  #     docker compose -f compose.grafana-cloud.microservices.yaml --profile obi up
+  obi:
+    image: otel/ebpf-instrument:v0.13.0
+    container_name: obi
+    labels:
+      - "service.type=instrumentation"
+    # "DaemonSet" pattern: one shared OBI instance discovering every matching process on the
+    # host. `pid: host` gives OBI visibility into every process on this machine;
+    # OTEL_EBPF_AUTO_TARGET_EXE scopes what it actually instruments to processes running this
+    # exact binary.
+    pid: "host"
+    privileged: true
+    volumes:
+      - "./deployments/docker-compose/grafana-local-stack/obi.yaml:/obi-config.yaml:Z"
+    command: ["-config", "/obi-config.yaml"]
+    environment:
+      OTEL_EBPF_AUTO_TARGET_EXE: /bin/quickpizza
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    depends_on:
+      - catalog
+      - config
+      - copy
+      - public-api
+      - recommendations
+      - ws
+      - grpc
+      - alloy
+    profiles: ["obi"]
 
   quickpizza-db:
-    image: postgres:18.1@sha256:5773fe724c49c42a7a9ca70202e11e1dff21fb7235b335a73f39297d200b73a2
+    image: postgres:18.6
     container_name: quickpizza-db
     labels:
       - "service.type=database"
@@ -190,6 +238,10 @@ services:
       - "track_activity_query_size=4096"
       - "-c"
       - "pg_stat_statements.track=all"
+      - "-c"
+      - "compute_query_id=on"
+      - "-c"
+      - "log_line_prefix=%m:%r:%u@%d:[%p]:%l:%e:%s:%v:%x:%c:%q%a:"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

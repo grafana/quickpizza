@@ -1,6 +1,7 @@
 package util
 
 import (
+	"log/slog"
 	"math/rand"
 	"os"
 	"strconv"
@@ -23,13 +24,19 @@ func GenerateAlphaNumToken(length int) string {
 	return string(data)
 }
 
-// DelayIfEnvSet applies a delay in milliseconds if the specified environment variable is set.
-// The environment variable should contain an integer value representing milliseconds.
+// DelayIfEnvSet sleeps for the duration specified by the environment variable.
+// The value must be a Go duration string (e.g. "500ms", "2s"). Invalid values are ignored.
 func DelayIfEnvSet(envVarName string) {
-	if delayStr, ok := os.LookupEnv(envVarName); ok {
-		delayMs, _ := strconv.Atoi(delayStr)
-		time.Sleep(time.Duration(delayMs) * time.Millisecond)
+	delayStr, ok := os.LookupEnv(envVarName)
+	if !ok {
+		return
 	}
+	d, err := time.ParseDuration(delayStr)
+	if err != nil {
+		slog.Warn("invalid duration for env var, ignoring", "env", envVarName, "value", delayStr)
+		return
+	}
+	time.Sleep(d)
 }
 
 // FailRandomlyIfEnvSet checks if this request should fail based on a random percentage.

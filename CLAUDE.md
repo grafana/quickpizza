@@ -82,6 +82,14 @@ Comprehensive observability built-in:
 - `QUICKPIZZA_OTEL_RECORD_BODIES` - Adds redacted HTTP request/response bodies to server spans as `http.request.body` / `http.response.body` events (default: off)
 - `QUICKPIZZA_PYROSCOPE_ENDPOINT` - Pyroscope server for profiling
 - `QUICKPIZZA_DB` - Database connection string
+- `QUICKPIZZA_PUBLIC_API_TIMEOUT` - Wraps the public-api handler with `http.TimeoutHandler`; unset by default (no timeout). Returns **503** when the deadline fires. In monolith mode it covers the full request; in microservice mode it also covers the ReverseProxy leg to internal services. Uses Go duration format (e.g. `3s`).
+- `QUICKPIZZA_RECOMMENDATIONS_HTTP_CLIENT_TIMEOUT` - Timeout on the HTTP client used by the recommendations service to call catalog and copy (default: `1s`). In monolith mode these are localhost calls; in microservice mode they are cross-service calls.
+- `QUICKPIZZA_RECOMMENDATIONS_RETRIES` - Max retries for recommendations → catalog/copy calls (renamed from `QUICKPIZZA_RETRIES`).
+- `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MIN` - Min backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MIN`).
+- `QUICKPIZZA_RECOMMENDATIONS_BACKOFF_MAX` - Max backoff duration between retries (renamed from `QUICKPIZZA_BACKOFF_MAX`).
+- `QUICKPIZZA_TRACES_LINK_PROFILES` - See [docs/otel.md](docs/otel.md).
+- `QUICKPIZZA_OTEL_INSTRUMENTATION_MODE` - `sdk` (default) or `obi`. See [docs/otel.md](docs/otel.md).
+- `QUICKPIZZA_OTEL_RECORD_BODIES` - Adds redacted HTTP request/response bodies to server spans as events (`sdk` mode only, default: off). See [docs/otel.md](docs/otel.md).
 
 ## Mobile Apps (`Mobiles/`)
 
@@ -124,13 +132,30 @@ Runs every 2 h on `main`, on push, and via `workflow_dispatch`. Two jobs — And
 
 ## Development Notes
 
-### Error Injection
-The application supports error injection via HTTP headers for testing:
+### Fault Injection
+The application supports fault injection via HTTP headers and environment variables.
+
+**HTTP headers** (per-request, via `pkg/errorinjector/`):
 - `x-error-record-recommendation` - Trigger recommendation errors
 - `x-error-get-ingredients` - Trigger ingredient retrieval errors
 - `x-delay-record-recommendation` - Add delays to recommendations
 - `x-delay-get-ingredients` - Add delays to ingredient retrieval
 - Add `-percentage` suffix to any error header to control probability
+
+**Environment variables** (process-wide, Go duration string, e.g. `500ms`, `2s`):
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS` - Delay all recommendations endpoints
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_GET` - Delay `GET /api/pizza/{id}`
+- `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST` - Delay `POST /api/pizza` (pizza generation)
+- `QUICKPIZZA_DELAY_COPY` - Delay all copy endpoints
+- `QUICKPIZZA_DELAY_COPY_API_QUOTES` - Delay `GET /api/quotes`
+- `QUICKPIZZA_DELAY_COPY_API_NAMES` - Delay pizza name generation
+- `QUICKPIZZA_DELAY_COPY_API_ADJECTIVES` - Delay adjective generation
+- `QUICKPIZZA_DELAY_FRONTEND_CSS_ASSETS` - Delay CSS asset serving
+- `QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS` - Delay PNG asset serving
+- `QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST` - Random failure rate (0-100) for `POST /api/pizza`
+- `QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION` - Random failure rate (0-100) for `RecordRecommendation` database calls; fails with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`)
+
+**Timeout testing example**: set `QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=3s` with `QUICKPIZZA_PUBLIC_API_TIMEOUT=1s` to trigger 503 responses on pizza requests.
 
 ### Frontend Integration
 - Frontend is built with SvelteKit and embedded in the Go binary
@@ -148,5 +173,56 @@ The application supports error injection via HTTP headers for testing:
 The application is specifically designed for k6 load testing:
 - Extensive k6 test suite in `k6/` directory
 - Support for k6 browser testing
-- k6 extensions and disruptor examples
+- k6 extensions and examples
 - Prometheus output for k6 metrics correlation
+
+## Upgrading the QuickPizza Image Version
+
+When a new release is published to GHCR (e.g. `ghcr.io/grafana/quickpizza-local:0.15.27`), update the image version in all of the following locations:
+
+### Step 1: Fetch the image digests
+
+```bash
+docker buildx imagetools inspect ghcr.io/grafana/quickpizza-local:<NEW_VERSION>
+```
+
+From the output, extract:
+- **Index digest** (the top-level `Digest:` field) — used in Terraform.
+- **linux/amd64 digest** (the manifest entry for `Platform: linux/amd64`) — used in GitHub Actions workflows.
+
+### Step 2: Files to update
+
+**Docker Compose files** — plain tag, no digest (uses `${QUICKPIZZA_IMAGE:-ghcr.io/grafana/quickpizza-local:<VERSION>}` pattern):
+- `compose.grafana-local-stack.monolithic.yaml`
+- `compose.grafana-local-stack.microservices.yaml` (7 service entries)
+- `compose.grafana-cloud.monolithic.yaml`
+- `compose.grafana-cloud.microservices.yaml` (7 service entries)
+
+**GitHub Actions example workflow files** — `tag@sha256:<linux/amd64-digest>` format, with `# zizmor: ignore[unpinned-images]` comment:
+- `.github/workflows/example_tests.yaml` (2 occurrences)
+- `.github/workflows/example_browser_tests.yaml` (2 occurrences)
+- `.github/workflows/example_cli_flags_test.yaml`
+- `.github/workflows/example_env_var.yaml`
+- `.github/workflows/example_verify_scripts.yaml`
+- `.github/workflows/example_specific_k6_version.yaml`
+
+**Kubernetes deployment files** — plain tag, no digest:
+- `deployments/kubernetes/base/quickpizza/catalog.yaml`
+- `deployments/kubernetes/base/quickpizza/config.yaml`
+- `deployments/kubernetes/base/quickpizza/copy.yaml`
+- `deployments/kubernetes/base/quickpizza/grpc.yaml`
+- `deployments/kubernetes/base/quickpizza/public-api.yaml`
+- `deployments/kubernetes/base/quickpizza/recommendations.yaml`
+- `deployments/kubernetes/base/quickpizza/ws.yaml`
+
+**Terraform variables** — two fields, both using `tag@sha256:<index-digest>` format:
+- `deployments/terraform/variables.tf`: `quickpizza_image` default (full `tag@sha256:` string) and `quickpizza_image_version` default (plain version string)
+
+### Step 3: Verify completeness
+
+After editing, run:
+```bash
+grep -rn "quickpizza-local:" . --include="*.yaml" --include="*.yml" --include="*.tf" | grep -v "docker_publish"
+```
+
+Confirm all occurrences show the new version. The `docker_publish.yaml` workflow is exempt — it derives the version dynamically from git release tags.

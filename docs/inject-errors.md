@@ -9,9 +9,9 @@ You can inject delays to endpoints and assets using environment variables.
 This is useful for testing scenarios where you want to simulate slow responses across multiple endpoints. 
 
 ```shell
-export QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=1000
+export QUICKPIZZA_DELAY_RECOMMENDATIONS_API_PIZZA_POST=1s
 ```
-The delay values should be specified in **milliseconds**.
+The delay values must be Go duration strings (e.g. `500ms`, `2s`, `1.5s`).
 
 The following environment variables are supported: 
 
@@ -28,6 +28,7 @@ The following environment variables are supported:
 - **QUICKPIZZA_DELAY_FRONTEND_PNG_ASSETS**: Adds delay when serving PNG image assets
 
 - **QUICKPIZZA_FAIL_RATE_RECOMMENDATIONS_API_PIZZA_POST**: Set to a number to fail `<number>%` of pizza POST requests randomly.
+- **QUICKPIZZA_FAIL_RATE_CATALOG_DATABASE_RECORD_RECOMMENDATION**: Set to a number to make `<number>%` of `RecordRecommendation` database calls fail with a genuine PostgreSQL error (`column "nonexistent_column" does not exist`). Requires a PostgreSQL backend (`QUICKPIZZA_DB`).
 
 ## Using HTTP Headers
 
@@ -52,14 +53,3 @@ curl -X POST http://localhost:3333/api/pizza \
      -H "x-error-record-recommendation-percentage: 20" \
      -d '{}'
 ```
-
-## Inject Errors Running k6 Disruptor Tests (Kubernetes) 
-
-When deploying QuickPizza on Kubernetes, you can run k6 tests using [xk6-disruptor](https://grafana.com/docs/k6/latest/testing-guides/injecting-faults-with-xk6-disruptor/first-steps/) to inject HTTP errors.
-
-To run a basic xk6-disruptor test, follow the installation instructions and run the tests in the `k6/disruptor` folder:
-
-```bash
-./k6 run k6/disruptor/02.error.js
-```
-

@@ -17,7 +17,6 @@ export function getCookie(name: string): string | null {
  * Clear a cookie by name (client-side logout).
  */
 export function clearCookie(name: string): void {
-	// biome-ignore lint/suspicious/noDocumentCookie: demo logout clears session cookies in-browser
 	document.cookie = `${name}=; Expires=Thu, 01 Jan 1970 00:00:01 GMT`;
 }
 

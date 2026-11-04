@@ -1,0 +1,750 @@
+{
+	"annotations": {
+		"list": [
+			{
+				"builtIn": 1,
+				"datasource": {
+					"type": "grafana",
+					"uid": "-- Grafana --"
+				},
+				"enable": true,
+				"hide": true,
+				"iconColor": "rgba(0, 211, 255, 1)",
+				"name": "Annotations & Alerts",
+				"type": "dashboard"
+			}
+		]
+	},
+	"editable": true,
+	"fiscalYearStartMonth": 0,
+	"graphTooltip": 0,
+	"liveNow": false,
+	"panels": [
+		{
+			"gridPos": {
+				"h": 3,
+				"w": 19,
+				"x": 0,
+				"y": 0
+			},
+			"id": 7,
+			"options": {
+				"code": {
+					"language": "plaintext",
+					"showLineNumbers": false,
+					"showMiniMap": false
+				},
+				"content": "<div style=\"padding: 3px;\">\n  <div style=\"margin-bottom: 3px;display: flex; flex-direction: row; align-items: center; margin-top: 3px;\">\n    <img style=\"height: 40px; width: 40px; margin-right: 10px;\" src=\"https://files.readme.io/e5e1b43-grafana-loki.png\" />\n    <h1 style=\"margin-top: 5px;\">QuickPizza Logs Demo Dashboard</h1>\n  </div>",
+				"mode": "html"
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [],
+			"title": "",
+			"transparent": true,
+			"type": "text"
+		},
+		{
+			"gridPos": {
+				"h": 4,
+				"w": 24,
+				"x": 0,
+				"y": 3
+			},
+			"id": 8,
+			"options": {
+				"code": {
+					"language": "plaintext",
+					"showLineNumbers": false,
+					"showMiniMap": false
+				},
+				"content": "---\n<div style=\"padding: 10px;\">\n\n### **Pre-configured Log Panels**\nThe panels below offer an introductory setup so you start observing Demo Logs. All of these panels are dynamic so you can view, share, share and inspect the data in each panel.\n\n---\n##### 💡 Tips\n- Hover over the ℹ️ icon to read a full description of what's included on each panel\n- Adjust the timepicker to select relative time range options and set custom absolute time ranges\n- Useful keyboard shortcuts for dashboards: \n   - `Ctrl+S` : Saves the current dashboard\n   - `f`: Opens the dashboard finder / search\n   - `d+s`: Dashboard settings",
+				"mode": "markdown"
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [],
+			"title": "",
+			"transparent": true,
+			"type": "text"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"fixedColor": "green",
+						"mode": "shades"
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": 0
+							},
+							{
+								"color": "red",
+								"value": 80
+							}
+						]
+					}
+				}
+			},
+			"gridPos": {
+				"h": 3,
+				"w": 8,
+				"x": 0,
+				"y": 7
+			},
+			"id": 4,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"percentChangeColorMode": "standard",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"showPercentChange": false,
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} | detected_level=\"info\" [$__range]))",
+					"legendFormat": "{{service_name}}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Total Info Logs",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"fixedColor": "yellow",
+						"mode": "shades"
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": 0
+							},
+							{
+								"color": "red",
+								"value": 80
+							}
+						]
+					}
+				}
+			},
+			"gridPos": {
+				"h": 3,
+				"w": 8,
+				"x": 8,
+				"y": 7
+			},
+			"id": 5,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"percentChangeColorMode": "standard",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"showPercentChange": false,
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} | detected_level=\"warn\" [$__range]))",
+					"legendFormat": "{{service_name}}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Total Warn Logs",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"fixedColor": "red",
+						"mode": "shades"
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": 0
+							},
+							{
+								"color": "red",
+								"value": 80
+							}
+						]
+					}
+				}
+			},
+			"gridPos": {
+				"h": 3,
+				"w": 8,
+				"x": 16,
+				"y": 7
+			},
+			"id": 3,
+			"options": {
+				"colorMode": "value",
+				"graphMode": "area",
+				"justifyMode": "auto",
+				"orientation": "auto",
+				"percentChangeColorMode": "standard",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"showPercentChange": false,
+				"textMode": "auto",
+				"wideLayout": true
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} | detected_level=\"error\" [$__range]))",
+					"legendFormat": "{{service_name}}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Total Error Logs",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"fixedColor": "text",
+						"mode": "fixed"
+					},
+					"custom": {
+						"axisBorderShow": false,
+						"axisCenteredZero": false,
+						"axisColorMode": "text",
+						"axisLabel": "",
+						"axisPlacement": "hidden",
+						"barAlignment": 0,
+						"barWidthFactor": 0.6,
+						"drawStyle": "bars",
+						"fillOpacity": 100,
+						"gradientMode": "none",
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						},
+						"insertNulls": false,
+						"lineInterpolation": "linear",
+						"lineWidth": 2,
+						"pointSize": 5,
+						"scaleDistribution": {
+							"type": "linear"
+						},
+						"showPoints": "auto",
+						"showValues": false,
+						"spanNulls": false,
+						"stacking": {
+							"group": "A",
+							"mode": "normal"
+						},
+						"thresholdsStyle": {
+							"mode": "off"
+						}
+					},
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "text",
+								"value": 0
+							}
+						]
+					},
+					"unit": "short"
+				},
+				"overrides": [
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "error"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "red",
+									"mode": "fixed"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "info"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "green",
+									"mode": "fixed"
+								}
+							}
+						]
+					},
+					{
+						"matcher": {
+							"id": "byName",
+							"options": "warn"
+						},
+						"properties": [
+							{
+								"id": "color",
+								"value": {
+									"fixedColor": "yellow",
+									"mode": "fixed"
+								}
+							}
+						]
+					}
+				]
+			},
+			"gridPos": {
+				"h": 4,
+				"w": 24,
+				"x": 0,
+				"y": 10
+			},
+			"id": 1,
+			"interval": "1m",
+			"options": {
+				"annotations": {
+					"clustering": -1,
+					"multiLane": false
+				},
+				"legend": {
+					"calcs": [],
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": false
+				},
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "multi",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} [$__auto])) by (detected_level)",
+					"legendFormat": "{{ detected_level }}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Logs",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"custom": {
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						}
+					}
+				}
+			},
+			"gridPos": {
+				"h": 7,
+				"w": 6,
+				"x": 0,
+				"y": 14
+			},
+			"id": 13,
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"pieType": "pie",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"sort": "desc",
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} [$__range])) by (detected_level)",
+					"legendFormat": "{{detected_level}}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Distribution by Log Level",
+			"type": "piechart"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"custom": {
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						}
+					}
+				}
+			},
+			"gridPos": {
+				"h": 7,
+				"w": 6,
+				"x": 6,
+				"y": 14
+			},
+			"id": 14,
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"pieType": "pie",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"sort": "desc",
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} | json | httpRequest_path=~\"/api/.*\" [$__range])) by (httpRequest_path)",
+					"legendFormat": "{{ httpRequest_path }}",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "Distribution by Path",
+			"type": "piechart"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"custom": {
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						}
+					}
+				}
+			},
+			"gridPos": {
+				"h": 7,
+				"w": 6,
+				"x": 12,
+				"y": 14
+			},
+			"id": 15,
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"pieType": "pie",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"sort": "desc",
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} | json | httpRequest_path=~\"/api/.*\" [$__range])) by (httpRequest_method)",
+					"legendFormat": "{{httpRequest_method}}",
+					"queryType": "range",
+					"refId": "Errors"
+				}
+			],
+			"title": "Distribution by Method",
+			"type": "piechart"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"color": {
+						"mode": "palette-classic"
+					},
+					"custom": {
+						"hideFrom": {
+							"legend": false,
+							"tooltip": false,
+							"viz": false
+						}
+					}
+				}
+			},
+			"gridPos": {
+				"h": 7,
+				"w": 6,
+				"x": 18,
+				"y": 14
+			},
+			"id": 16,
+			"interval": "1m",
+			"options": {
+				"legend": {
+					"displayMode": "list",
+					"placement": "bottom",
+					"showLegend": true
+				},
+				"pieType": "pie",
+				"reduceOptions": {
+					"calcs": [
+						"lastNotNull"
+					],
+					"fields": "",
+					"values": false
+				},
+				"sort": "desc",
+				"tooltip": {
+					"hideZeros": false,
+					"mode": "single",
+					"sort": "none"
+				}
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "code",
+					"expr": "sum(count_over_time({service_namespace=\"quickpizza\"} | json | httpRequest_path=~\"/api/.*\" [$__range])) by (httpResponse_status)",
+					"legendFormat": "200",
+					"queryType": "range",
+					"refId": "Errors"
+				}
+			],
+			"title": "Distribution by Status Code",
+			"type": "piechart"
+		},
+		{
+			"datasource": {
+				"type": "loki",
+				"uid": "loki"
+			},
+			"gridPos": {
+				"h": 10,
+				"w": 24,
+				"x": 0,
+				"y": 21
+			},
+			"id": 9,
+			"options": {
+				"dedupStrategy": "none",
+				"enableInfiniteScrolling": false,
+				"enableLogDetails": true,
+				"prettifyLogMessage": false,
+				"showCommonLabels": false,
+				"showControls": false,
+				"showFieldSelector": false,
+				"showLabels": false,
+				"showLevel": true,
+				"showTime": true,
+				"sortOrder": "Descending",
+				"timestampResolution": "ms",
+				"unwrappedColumns": false,
+				"wrapLogMessage": false
+			},
+			"pluginVersion": "13.0.1",
+			"targets": [
+				{
+					"datasource": {
+						"type": "loki",
+						"uid": "loki"
+					},
+					"editorMode": "builder",
+					"expr": "{service_namespace=\"quickpizza\"} |= ``",
+					"queryType": "range",
+					"refId": "A"
+				}
+			],
+			"title": "",
+			"type": "logs"
+		}
+	],
+	"preload": false,
+	"refresh": "",
+	"schemaVersion": 42,
+	"tags": [
+		"Logs"
+	],
+	"time": {
+		"from": "now-1h",
+		"to": "now"
+	},
+	"timepicker": {
+		"refresh_intervals": [
+			"5s",
+			"10s",
+			"30s",
+			"1m",
+			"5m",
+			"15m",
+			"30m",
+			"1h",
+			"2h",
+			"1d"
+		]
+	},
+	"timezone": "browser",
+	"title": "QuickPizza Logs",
+	"version": 1,
+	"uid": "quickpizza-logs",
+	"id": 898112275218432
+}

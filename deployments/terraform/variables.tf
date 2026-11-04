@@ -43,15 +43,29 @@ variable "quickpizza_kubernetes_namespace" {
   type        = string
 }
 
+variable "quickpizza_enforce_image_digest" {
+  default     = true
+  description = "Enforce tag@sha256:digest format for quickpizza_image. Set to false for local development."
+  nullable    = false
+  type        = bool
+}
+
 variable "quickpizza_image" {
-  default     = "ghcr.io/grafana/quickpizza-local:0.15.21"
-  description = "The Image to use for the QuickPizza Demo Application."
+  default     = "ghcr.io/grafana/quickpizza-local:0.15.30@sha256:88aaa6d7df57d036744c65d794d7f6872cd8316c47f7f5d39e31c27db580febf"
+  description = "The Image to use for the QuickPizza Demo Application. Must use tag@sha256:digest format when quickpizza_enforce_image_digest is true."
+  nullable    = false
+  type        = string
+}
+
+variable "quickpizza_image_version" {
+  default     = "0.15.30"
+  description = "The version of the QuickPizza image. Must match the tag in quickpizza_image when quickpizza_enforce_image_digest is true."
   nullable    = false
   type        = string
 }
 
 variable "quickpizza_git_ref" {
-  default     = "56ce74d"
+  default     = "d5608ca"
   description = "The GitHub reference to the specific commit of the QuickPizza version"
   nullable    = false
   type        = string
@@ -79,44 +93,51 @@ variable "enable_k8s_monitoring" {
   default     = false
 }
 
+variable "enable_obi" {
+  description = "Deploy OBI (OpenTelemetry eBPF Instrumentation) as a DaemonSet and switch every QuickPizza Deployment to QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi, instead of the app's own OTel SDK. One variable drives both so they can't drift out of sync. See docs/otel.md."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
 variable "cluster_name" {
   type    = string
-  default     = null
+  default = null
 }
 
 variable "externalservices_prometheus_host" {
   type    = string
-  default     = null
+  default = null
 }
 
 variable "externalservices_prometheus_basicauth_username" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_prometheus_basicauth_password" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_loki_host" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_loki_basicauth_username" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "externalservices_loki_basicauth_password" {
-  default     = null
-  type    = string
-  sensitive   = true
+  default   = null
+  type      = string
+  sensitive = true
 }
 
 variable "quickpizza_db_name" {
@@ -135,13 +156,13 @@ variable "quickpizza_db_password" {
 }
 
 variable "db_o11y_user" {
-  default     = "db-o11y"
-  type    = string
-  sensitive   = true
+  default   = "db-o11y"
+  type      = string
+  sensitive = true
 }
 
 variable "db_o11y_password" {
-  default     = "db-o11y-password"
-  type    = string
-  sensitive   = true
+  default   = "db-o11y-password"
+  type      = string
+  sensitive = true
 }
