@@ -108,6 +108,7 @@ See [telemetry/README.md](./telemetry/README.md) for options and IDE launch.
 | I want to… | Read |
 | --- | --- |
 | Set up plain OpenTelemetry Swift from scratch (no Grafana package) | [quickstart/ios/README.md](./quickstart/ios/README.md) |
+| Set up plain OpenTelemetry Android from scratch (no Grafana package) | [quickstart/android/README.md](./quickstart/android/README.md) |
 | Connect an app to a Grafana Cloud stack | [docs/CONNECT_GRAFANA_CLOUD.md](./docs/CONNECT_GRAFANA_CLOUD.md) |
 | See what each app emits and where it lands | [docs/MOBILE_OBSERVABILITY_OVERVIEW.md](./docs/MOBILE_OBSERVABILITY_OVERVIEW.md) |
 | Read the shared screens and workflows spec | [FEATURES.md](./FEATURES.md) |

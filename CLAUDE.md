@@ -101,7 +101,7 @@ Docs (read these instead of restating them here):
 - [`Mobiles/docs/CONNECT_GRAFANA_CLOUD.md`](./Mobiles/docs/CONNECT_GRAFANA_CLOUD.md): collector URLs, config keys, legacy OTLP gateway.
 - [`Mobiles/docs/MOBILE_OBSERVABILITY_OVERVIEW.md`](./Mobiles/docs/MOBILE_OBSERVABILITY_OVERVIEW.md): what each app emits and where it lands.
 - Per-platform READMEs under `Mobiles/<platform>/README.md`; SDK gaps in [`Mobiles/docs/OTEL_MOBILE_MATURITY.md`](./Mobiles/docs/OTEL_MOBILE_MATURITY.md).
-- [`Mobiles/quickstart/`](./Mobiles/quickstart/README.md): minimal pure-OTel sample apps for customers (not QuickPizza, no Grafana package). Keep them minimal; the iOS README holds the load-bearing setup rules.
+- [`Mobiles/quickstart/`](./Mobiles/quickstart/README.md): minimal pure-OTel sample apps for customers (not QuickPizza, no Grafana package). Keep them minimal; each platform README (`ios/`, `android/`) holds that platform's load-bearing setup rules.
 
 | App | SDK | Endpoint (config key) | Faro app (id) | Config file |
 | --- | --- | --- | --- | --- |

@@ -1,0 +1,27 @@
+# Allowlist: ignore everything, then unignore the sample's own files.
+# Keeps build output (which embeds the real collector URL), local.properties and IDE files out of git.
+*
+!.gitignore
+!README.md
+!docs/
+!docs/images/
+!docs/images/*.png
+!settings.gradle.kts
+!build.gradle.kts
+!gradle.properties
+!gradlew
+!gradlew.bat
+!gradle/
+!gradle/wrapper/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!app/
+!app/build.gradle.kts
+!app/src/
+!app/src/main/
+!app/src/main/AndroidManifest.xml
+!app/src/main/java/
+!app/src/main/java/com/
+!app/src/main/java/com/example/
+!app/src/main/java/com/example/otelandroidsample/
+!app/src/main/java/com/example/otelandroidsample/*.kt
