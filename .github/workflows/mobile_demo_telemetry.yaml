@@ -98,6 +98,14 @@ jobs:
     env:
       RUN_HANDLED_EXCEPTION_DIAGNOSTICS: ${{ needs.resolve-diagnostics-cadence.outputs.run_handled_exception }}
       RUN_CRASH_DIAGNOSTICS: ${{ needs.resolve-diagnostics-cadence.outputs.run_crash }}
+      # Primary stack: Gradle plugin com.grafana.faro.android-symbols reads FARO_SOURCEMAP_* (set on assembleRelease step).
+      FARO_SOURCEMAP_PRIMARY_ENDPOINT: ${{ vars.FARO_SOURCEMAP_PRIMARY_ENDPOINT }}
+      FARO_SOURCEMAP_PRIMARY_APP_ID: ${{ vars.FARO_SOURCEMAP_PRIMARY_APP_ID }}
+      FARO_SOURCEMAP_PRIMARY_STACK_ID: ${{ vars.FARO_SOURCEMAP_PRIMARY_STACK_ID }}
+      # Secondary stack: optional faro-cli android upload (non-empty SECONDARY_ENDPOINT enables the step).
+      FARO_SOURCEMAP_SECONDARY_ENDPOINT: ${{ vars.FARO_SOURCEMAP_SECONDARY_ENDPOINT }}
+      FARO_SOURCEMAP_SECONDARY_APP_ID: ${{ vars.FARO_SOURCEMAP_SECONDARY_APP_ID }}
+      FARO_SOURCEMAP_SECONDARY_STACK_ID: ${{ vars.FARO_SOURCEMAP_SECONDARY_STACK_ID }}
 
     steps:
       - name: Get Vault secrets
@@ -106,6 +114,8 @@ jobs:
           repo_secrets: |
             OPENAI_API_KEY=openai_api_key:value
             MOBILE_TELEMETRY_DESTINATIONS=mobile_telemetry_destinations:value
+            FARO_SOURCEMAP_PRIMARY_API_KEY=faro_sourcemap_primary_api_key:value
+            FARO_SOURCEMAP_SECONDARY_API_KEY=faro_sourcemap_secondary_api_key:value
 
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -249,19 +259,67 @@ jobs:
           echo "ANDROID_NATIVE_DEMO_APP_VERSION=${ANDROID_NATIVE_DEMO_APP_VERSION}" >> "$GITHUB_ENV"
           echo "Android Native demo app version: ${ANDROID_NATIVE_DEMO_APP_VERSION} (base: ${ANDROID_NATIVE_DEMO_BASE_VERSION})"
 
-      - name: Build Android Native APK (debug)
+      # Release + symbol upload only when all four PRIMARY settings are set (GitHub vars + Vault API key).
+      # Otherwise assembleDebug: telemetry E2E still runs; no R8 mapping / native-symbol upload for that run.
+      - name: Build Android Native APK (release or debug)
         working-directory: Mobiles/android
+        env:
+          P_ENDPOINT: ${{ env.FARO_SOURCEMAP_PRIMARY_ENDPOINT }}
+          P_APP_ID: ${{ env.FARO_SOURCEMAP_PRIMARY_APP_ID }}
+          P_STACK_ID: ${{ env.FARO_SOURCEMAP_PRIMARY_STACK_ID }}
+          P_API_KEY: ${{ env.FARO_SOURCEMAP_PRIMARY_API_KEY }}
         run: |
-          echo "Building native Android APK..."
-          ./gradlew :app:assembleDebug -PquickpizzaDemoVersionName="${ANDROID_NATIVE_DEMO_APP_VERSION}"
-          ls -la app/build/outputs/apk/debug/
+          set -euo pipefail
+          echo "Building native Android APK ..."
+          if [ -n "${P_ENDPOINT:-}" ] && [ -n "${P_APP_ID:-}" ] && [ -n "${P_STACK_ID:-}" ] && [ -n "${P_API_KEY:-}" ]; then
+            echo "Primary Faro source map config complete → assembleRelease (Gradle plugin uploads to PRIMARY faro-api)"
+            export FARO_SOURCEMAP_ENDPOINT="$P_ENDPOINT"
+            export FARO_SOURCEMAP_APP_ID="$P_APP_ID"
+            export FARO_SOURCEMAP_STACK_ID="$P_STACK_ID"
+            export FARO_SOURCEMAP_API_KEY="$P_API_KEY"
+            ./gradlew :app:assembleRelease -PquickpizzaDemoVersionName="${ANDROID_NATIVE_DEMO_APP_VERSION}"
+            ls -la app/build/outputs/apk/release/
+            echo "ANDROID_NATIVE_STAGE_FROM=release" >> "$GITHUB_ENV"
+          else
+            echo "Primary Faro source map config incomplete → assembleDebug (no symbol upload; stacks without symbolication can use this path)"
+            ./gradlew :app:assembleDebug -PquickpizzaDemoVersionName="${ANDROID_NATIVE_DEMO_APP_VERSION}"
+            ls -la app/build/outputs/apk/debug/
+            echo "ANDROID_NATIVE_STAGE_FROM=debug" >> "$GITHUB_ENV"
+          fi
+
+      # Skip until prod stack enables symbolication: release build only, all four secondary values non-empty.
+      - name: Upload Android symbols to secondary stack (faro-cli)
+        if: ${{ env.ANDROID_NATIVE_STAGE_FROM == 'release' && env.FARO_SOURCEMAP_SECONDARY_ENDPOINT != '' && env.FARO_SOURCEMAP_SECONDARY_APP_ID != '' && env.FARO_SOURCEMAP_SECONDARY_STACK_ID != '' && env.FARO_SOURCEMAP_SECONDARY_API_KEY != '' }}
+        working-directory: Mobiles/android
+        env:
+          SEC_ENDPOINT: ${{ env.FARO_SOURCEMAP_SECONDARY_ENDPOINT }}
+          SEC_APP_ID: ${{ env.FARO_SOURCEMAP_SECONDARY_APP_ID }}
+          SEC_STACK_ID: ${{ env.FARO_SOURCEMAP_SECONDARY_STACK_ID }}
+          SEC_API_KEY: ${{ env.FARO_SOURCEMAP_SECONDARY_API_KEY }}
+        run: |
+          set -euo pipefail
+          npx --yes @grafana/faro-cli@0.13.3 android upload \
+            --mapping app/build/outputs/mapping/release/mapping.txt \
+            --native-symbols app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip \
+            --endpoint "${SEC_ENDPOINT}" \
+            --app-id "${SEC_APP_ID}" \
+            --stack-id "${SEC_STACK_ID}" \
+            --api-key "${SEC_API_KEY}" \
+            --application-id com.grafana.quickpizza.android \
+            --version-code 1 \
+            --version-name "${ANDROID_NATIVE_DEMO_APP_VERSION}" \
+            --verbose
 
       - name: Stage APKs for e2e
         run: |
           mkdir -p apk/flutter apk/react-native apk/android-native
           cp Mobiles/flutter/build/app/outputs/flutter-apk/app-debug.apk apk/flutter/
           cp Mobiles/react-native/android/app/build/outputs/apk/debug/app-debug.apk apk/react-native/
-          cp Mobiles/android/app/build/outputs/apk/debug/app-debug.apk apk/android-native/
+          if [ "${ANDROID_NATIVE_STAGE_FROM}" = "release" ]; then
+            cp Mobiles/android/app/build/outputs/apk/release/app-release.apk apk/android-native/app-native.apk
+          else
+            cp Mobiles/android/app/build/outputs/apk/debug/app-debug.apk apk/android-native/app-native.apk
+          fi
 
       - name: Verify APKs
         run: |
@@ -273,8 +331,9 @@ jobs:
           file apk/react-native/app-debug.apk
           echo "React Native APK size: $(du -h apk/react-native/app-debug.apk | cut -f1)"
           ls -la apk/android-native/
-          file apk/android-native/app-debug.apk
-          echo "Android Native APK size: $(du -h apk/android-native/app-debug.apk | cut -f1)"
+          file apk/android-native/app-native.apk
+          echo "Android Native APK size: $(du -h apk/android-native/app-native.apk | cut -f1)"
+          echo "Android native stage: ${ANDROID_NATIVE_STAGE_FROM} (release → R8 + symbol upload when configured)"
           echo "APKs verified"
 
       - name: Start QuickPizza backend (Docker Compose)
@@ -366,7 +425,7 @@ jobs:
             adb shell am force-stop com.grafana.quickpizza.rn || true
 
             echo "==> Android Native APK: install and E2E"
-            adb install -r apk/android-native/app-debug.apk
+            adb install -r apk/android-native/app-native.apk
             bash Mobiles/e2e/run_e2e_tests.sh --app=android-native --platform=android
             sleep 30 # Allow normal SDK export before stopping the app.
             adb shell am force-stop com.grafana.quickpizza.android || true

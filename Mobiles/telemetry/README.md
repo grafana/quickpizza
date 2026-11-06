@@ -69,6 +69,38 @@ Vault secrets, both read from field `value`:
   values (no `${ENV_VAR}` placeholders).
 - `openai_api_key`: the OpenAI key for the [e2e runner](../e2e/README.md).
 
+**Android native symbol upload (CI only):** the `mobile_demo_telemetry` workflow
+builds the native Android demo as **release** only when **all four** primary
+settings are set (three GitHub variables below + `FARO_SOURCEMAP_PRIMARY_API_KEY`
+from Vault). Then it uploads symbols to the **primary** stack via
+ **`com.grafana.faro.android-symbols`**, and optionally to the **secondary** stack
+via **`faro-cli android upload`** (same `mapping.txt` /
+`native-debug-symbols.zip`). If any primary value is missing, the job uses
+**`assembleDebug`** instead (no symbol upload; E2E telemetry still runs).
+
+**A. GitHub Actions environment `mobile-demo-telemetry` — variables** (non-secret):
+
+| Variable | Role |
+| --- | --- |
+| `FARO_SOURCEMAP_PRIMARY_ENDPOINT` | FE O11y (primary stack) → app → **Settings → Source maps** — API base URL (`…/faro/api/v1`) |
+| `FARO_SOURCEMAP_PRIMARY_APP_ID` | App id (primary) |
+| `FARO_SOURCEMAP_PRIMARY_STACK_ID` | Stack id (primary) |
+| `FARO_SOURCEMAP_SECONDARY_ENDPOINT` | Same for **secondary** stack (optional: leave empty to skip `faro-cli` upload) |
+| `FARO_SOURCEMAP_SECONDARY_APP_ID` | App id (secondary; QuickPizza_Android registration on that stack) |
+| `FARO_SOURCEMAP_SECONDARY_STACK_ID` | Stack id (secondary) |
+
+**B. Vault** (read by `get-vault-secrets` in the Android job — add field `value` at
+the paths below; names must match the workflow mapping):
+
+| Vault env name in workflow | Suggested Vault path (field `value` = upload token) |
+| --- | --- |
+| `FARO_SOURCEMAP_PRIMARY_API_KEY` | `faro_sourcemap_primary_api_key` |
+| `FARO_SOURCEMAP_SECONDARY_API_KEY` | `faro_sourcemap_secondary_api_key` |
+
+Each pair (endpoint, app id, stack id, token) must match a **QuickPizza_Android**
+Frontend Observability registration on **that** stack; they need not match across
+primary vs secondary.
+
 [JSON fields](DETAILS.md#destination-json) ·
 [Update endpoints or rotate tokens](DETAILS.md#update-an-endpoint-or-rotate-a-token)
 
