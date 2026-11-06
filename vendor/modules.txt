@@ -68,7 +68,7 @@ github.com/hashicorp/go-retryablehttp
 # github.com/jinzhu/inflection v1.0.0
 ## explicit
 github.com/jinzhu/inflection
-# github.com/klauspost/compress v1.20.1
+# github.com/klauspost/compress v1.20.2
 ## explicit; go 1.25
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
