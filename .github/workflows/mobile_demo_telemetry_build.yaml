@@ -249,6 +249,27 @@ jobs:
         working-directory: Mobiles/android
         run: ./gradlew :app:assembleRelease
 
+  build-android-quickstart-apk:
+    name: Build check — Android quickstart APK
+    needs: mobile-changes
+    if: needs.mobile-changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Build Android quickstart APK (debug)
+        working-directory: Mobiles/quickstart/android
+        run: ./gradlew :app:assembleDebug
+
   build-ios-native-app:
     name: Build check — iOS Native .app
     needs: mobile-changes
