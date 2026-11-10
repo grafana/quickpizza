@@ -1,5 +1,6 @@
-# node:24-alpine
-FROM node:24-alpine@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14 AS fe-builder
+# node:26-alpine
+# Image generated on 2026-11-05
+FROM node:26-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS fe-builder
 
 WORKDIR /app/pkg/web
 COPY pkg/web ./
@@ -13,8 +14,9 @@ ENV PUBLIC_BACKEND_WS_ENDPOINT=${PUBLIC_BACKEND_WS_ENDPOINT}
 RUN npm install && \
     npm run build
 
-# golang:1.26-alpine
-FROM golang:1.27-alpine@sha256:4cb7ac979db5fcc41cae44b2227ba5ab8a51e8807f40d9ba4dee20a0ad960b5b AS builder
+# golang:1.27-alpine
+# Image generated on 2026-11-05
+FROM golang:1.27-alpine@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS builder
 
 WORKDIR /app
 COPY . ./
@@ -23,8 +25,8 @@ COPY --from=fe-builder /app/pkg/web/build /app/pkg/web/build
 # with uses a different distribution of libc.
 RUN CGO_ENABLED=0 go build -o /bin/quickpizza ./cmd
 
-# gcr.io/distroless/static-debian12
-FROM gcr.io/distroless/static-debian12@sha256:9c346e4be81b5ca7ff31a0d89eaeade58b0f95cfd3baed1f36083ddb47ca3160
+# gcr.io/distroless/static-debian13
+FROM gcr.io/distroless/static-debian13@sha256:448810357cc8e67b7208988abdba0f5ec3d3aebee0a5b13eb624979792cffc0f
 
 COPY --from=builder /bin/quickpizza /bin
 EXPOSE 3333 3334 3335
