@@ -16,7 +16,7 @@
     "@grafana/faro-instrumentation-replay": "2.12.1",
     "@grafana/faro-web-sdk": "2.12.1",
     "@grafana/faro-web-tracing": "2.12.1",
-    "@sveltejs/adapter-static": "4.0.0",
+    "@sveltejs/adapter-static": "4.0.1",
     "@sveltejs/kit": "3.0.0",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "autoprefixer": "10.6.1",
