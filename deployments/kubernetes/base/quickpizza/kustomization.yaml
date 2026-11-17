@@ -71,4 +71,4 @@ patches:
           failureThreshold: 3
     target:
       kind: Deployment
-      name: "!quickpizza-grpc"
+      labelSelector: app.kubernetes.io/instance!=grpc
