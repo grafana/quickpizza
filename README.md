@@ -302,7 +302,7 @@ To enable [Application Observability](https://grafana.com/docs/grafana-cloud/mon
 To enable [Grafana Cloud Frontend Observability](https://grafana.com/docs/grafana-cloud/monitor-applications/frontend-observability/):
 
 1. In Grafana Cloud, create a new Frontend Observability application and set the domain to `http://localhost:3333`.
-2. Copy the application's Faro web URL.
+2. Copy the application's Faro web URL. Faro request compression requires Web SDK v2.8.0 or newer; this repository pins v2.12.1. Grafana Cloud supports gzip. A self-hosted Grafana Alloy `faro.receiver` requires Alloy v1.17.0 or newer. Custom receivers and proxies must accept gzip request bodies and the `Content-Encoding` header in CORS preflight requests.
 3. In your `.env` file, add the following environment variables to configure your Faro URL and application name:
 
     ```bash
