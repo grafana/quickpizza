@@ -328,9 +328,8 @@ otelcol.connector.spanmetrics "default" {
 otelcol.connector.servicegraph "default" {
   metrics_flush_interval = "10s"
   dimensions = ["http.request.method", "url.path"]
-  // TODO:  Enable when Alloy supports `exponential_histogram_max_size`
   // enable `exponential_histogram_max_size` option to send native histogram metrics
-  // exponential_histogram_max_size = 16
+  exponential_histogram_max_size = 16
   output {
     metrics = [otelcol.processor.transform.add_namespace_labels_to_trace_metrics.input]
   }
