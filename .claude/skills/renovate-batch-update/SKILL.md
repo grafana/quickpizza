@@ -16,6 +16,18 @@ packages, Docker base image tags, security patches) and, only if any exist, a Gi
 Actions batch. This is a hard split, not optional risk-tiering — see "Why GitHub
 Actions bumps get their own PR" below.
 
+**Sequential mode (when the user wants to test and merge PRs one by one).** If the user
+says they will approve and merge the Renovate PRs themselves, skip the batch branches.
+Test one PR at a time, lowest-risk first, and report pass/fail with what you actually
+verified. After each merge, `git fetch` and re-assess every remaining PR from scratch
+(see "Re-check after every merge" in Step 2) before testing the next one. Do not close,
+rebase or comment on the PRs yourself.
+
+**Don't change `renovate.json` to fix overlapping PRs.** Its schedule, `rebaseWhen` and
+per-manager grouping are deliberate (PR #560, aligned with other k6 repos). Security
+PRs come from `vulnerabilityAlerts` (one PR per package, own schedule), so overlap
+between them is expected. Handle it in testing and merge order, not in the config.
+
 ## Step 0: Sanity check
 
 - Confirm the working tree is clean (`git status`). If not, stop and tell the user —
@@ -54,10 +66,11 @@ gh pr list --state open --json number,title,headRefName,labels \
   --search "head:renovate/ OR head:security-" --limit 100
 ```
 
-Renovate branches are prefixed `renovate/`; security branches use the
-`additionalBranchPrefix: "security-"` from `renovate.json`, so also match
-`security-*` heads. From each PR's labels, note: `update-major` / `update-minor` /
-`update-patch`, and any `severity:*` / `automerge-security-update`.
+Renovate branches are prefixed `renovate/`, and security branches are
+`renovate/security-*`, so matching `head:renovate/` covers both. From each PR's labels,
+note: `update-major` / `update-minor` / `update-patch`, and any `severity:*` /
+`automerge-security-update`. A PR with no update-type label may be lock file
+maintenance (see Step 4).
 
 Don't request `mergeable` from `gh pr list` — GitHub computes it lazily and it's
 `UNKNOWN` for most PRs right after a fetch. Step 2's actual `git merge` is the only
@@ -69,6 +82,11 @@ reliable mergeability check.
 PRs for the same packages. If a grouped PR and a security PR touch the same package
 (compare titles), merge the **grouped** one and skip the narrower one — it's
 superseded, and merging both guarantees a conflict.
+
+Related modules move together. Bumping one `go.opentelemetry.io/otel*` module in the
+root `go.mod` pulls the others to the same version, and `k6/extensions/quickpizzaext`
+resolves its versions through the root via `replace => ../../..`. So several
+single-package security PRs often collapse into the first one that merges.
 
 **Exclude the observability-stack container images group entirely.** These are the
 Grafana observability stack images (Alloy, LGTM, etc.) upgraded manually while deciding
@@ -107,6 +125,20 @@ On a clean merge, continue. On a conflict, `git merge --abort`, record `<PR> —
 merge conflict`, and continue to the next PR. Don't attempt manual conflict
 resolution.
 
+**Re-check after every merge.** Once a PR lands on `main`, the PRs still open can be
+redundant, stale or conflicting. Before testing the next one:
+
+- Test the real merge result, not the PR's own branch. Renovate rebases with a delay
+  (`rebaseWhen: behind-base-branch`), so a branch can be behind `main`. Merge it onto a
+  scratch branch off current `main` and test that.
+- Check redundancy with a two-dot diff of the files it changes against `main`
+  (`git diff origin/main <branch> -- <file>`). The PR's own diff is against its old
+  merge-base and still shows changes that `main` already has. If the files are
+  identical, or the trial merge stages nothing, the PR is redundant: don't merge it,
+  and let Renovate close it. Closing it by hand can make Renovate ignore that version.
+- A conflict between two PRs that bump the same module family usually means one covers
+  the other. Keep the PR that includes the other's changes.
+
 **Why conflicts are common here:** this repo vendors Go dependencies (`vendor/`), so
 any single-module bump touches `go.mod`, `go.sum`, and often unrelated files under
 `vendor/` (shared semconv/version directories get rewritten wholesale). Once one
@@ -131,6 +163,13 @@ changes to the action's runtime behavior**, not just its own dependency bumps. V
 number alone doesn't reveal this kind of change, and skipping the check is how a
 CI-breaking bump gets through unnoticed.
 
+Whatever the ecosystem, check whether the bumped package is actually used: which
+packages of it our code imports (`go mod why`, grep the imports), and whether it's
+instantiated at runtime or only compiled in as a transitive dependency. A major bump
+of a package we never call is much lower risk than the version number suggests. A
+bump of the code we do exercise (for example the OpenTelemetry SDK) is higher risk
+than its patch-level number suggests.
+
 Build a table — PR #, title, ecosystem, update type, severity, risk verdict — and keep
 it; it becomes the batch PR body.
 
@@ -138,6 +177,31 @@ it; it becomes the batch PR body.
 
 Applies to the **code/dependency batch only**. The Actions batch has no local
 build/test step — skip straight to Step 6 for it.
+
+**Test the logic the dependency affects, not the whole suite.** Read each PR's CI
+first (`gh pr checks <n>`). The repo's CI already runs the full k6 suites and browser
+tests on every PR, so repeating them locally adds little. Use local time for what CI
+can't show: decide, from the package and from how our code uses it (Step 3), which
+behavior could break, then exercise that behavior and look for evidence that it works.
+You choose the commands. Some examples of the reasoning, not a checklist:
+
+- A library that is only configured at runtime (OpenTelemetry is initialized only when
+  `QUICKPIZZA_OTLP_ENDPOINT` is set) is not exercised by build, unit tests and a smoke
+  run. Run the app with it enabled against a real backend and confirm the telemetry
+  arrives.
+- Code that is a separate Go module (`k6/extensions/*`) needs its own build and a run
+  of the example that loads it, since `make build` doesn't compile it.
+- Frontend tooling bumps need the frontend built, the embedded assets served, and the
+  browser-test CI jobs read.
+- A package we only compile in and never call needs little beyond the build.
+
+Compare against a baseline on `main` before calling something a regression, because
+this repo has failures that predate the PR (for example one check in
+`k6/extensions/01.quickpizzaext.js` fails 0 of 25 on `main`). State what you verified
+and what you did not. A pass means the checks you ran passed, not that the dependency
+was exhaustively tested.
+
+Also run a baseline sanity check, as below.
 
 ```bash
 make build
@@ -150,7 +214,8 @@ Makefile target does.
 If `npm install` modified `pkg/web/package-lock.json` beyond what the merged PRs
 already changed, discard that diff (`git checkout -- pkg/web/package-lock.json`) — it's
 typically platform-specific optional-dependency drift, not a real change, and it must
-not leak into the batch PR.
+not leak into the batch PR. `make build` re-creates this drift every time, and it
+blocks `git checkout` to another branch, so discard it after every build.
 
 If the build fails, drop the most recently merged high-risk (major) update via `git
 revert -m 1 <merge-commit>` and retry, up to twice. If it still fails, stop and report
@@ -166,27 +231,35 @@ make test-go
 
 Apply the same drop-and-retry logic on failure as the build step above.
 
-If that succeeds, run the app and the k6 suite against it:
+If that succeeds, start the app and run a smoke test against it, plus whatever
+impacted-logic checks you chose above:
 
 ```bash
 ./bin/quickpizza > /tmp/qp_batch.log 2>&1 &
 QP_PID=$!
 sleep 2
-./k6/run-tests.sh -u http://localhost:3333 -t "k6/foundations/*.js"
+./k6/run-tests.sh -u http://localhost:3333 -t "k6/foundations/01.basic.js"
 K6_EXIT=$?
 kill $QP_PID
 ```
 
-Default to `k6/foundations/*.js`, not the full `k6/**/*.js` tree — some subtrees
-(browser, extension examples) need the custom xk6 quickpizza extension binary or extra
-credentials that aren't guaranteed to be available locally.
-
-This can exceed a 180s foreground command timeout and move to background — that's
-expected for the full 17-file suite. Treat the background task's exit code as the
-pass/fail signal; the captured output may only contain the tail once it's moved.
+A single script is enough when the PR's CI is green, because CI runs the full suites.
+Only run `k6/foundations/*.js` (17 files, long enough to exceed a 180s foreground
+timeout and move to background) when you have no CI result to rely on, and avoid the
+full `k6/**/*.js` tree: some subtrees need the custom xk6 extension binary or extra
+credentials. If a long run moves to the background, treat its exit code as the
+pass/fail signal. Don't leave the app running when you finish, and confirm port 3333
+is free.
 
 If `K6_EXIT` is non-zero, apply the same drop-and-retry logic as a build failure, and
 check `/tmp/qp_batch.log` for server-side errors, not just the exit code.
+
+**Lock file maintenance PRs** (no update-type label, only `package-lock.json`, title
+"lock file maintenance") refresh transitive npm packages, mostly dev tooling. Build
+the frontend, compare build warnings against `main`, confirm the embedded frontend and
+its assets are served, and read the browser-test CI jobs. Check for major jumps among
+the transitive packages and for a pending `renovate/stability-days` check, which
+means Renovate is holding the PR until the packages are old enough.
 
 ## Step 5: Track drops
 
@@ -254,7 +327,15 @@ either ready for review or merge them.
 
 Don't close or comment on the individual Renovate PRs. Once a batch PR merges, Renovate
 detects the deps are already at target versions on `main` and closes its own PRs on its
-next run.
+next run. Closing one by hand can make Renovate ignore that version, so leave the
+redundant ones for it to close.
+
+When you report a PR as ready to merge, mention the merge gates so they aren't mistaken
+for failures. The `main` ruleset requires one approving review with approval of the
+last push (any new push, including a Renovate rebase, dismisses it), the TruffleHog and
+zizmor workflows, and an org "Assistant approvals" workflow whose status shows
+"Expected" until it runs. `renovate/stability-days` stays pending until packages reach
+the minimum release age.
 
 ## Notes
 
