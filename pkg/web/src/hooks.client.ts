@@ -53,6 +53,7 @@ function setupFaro() {
 			console.log(`Initializing Grafana Faro to '${url}'`);
 			initializeFaro({
 				url,
+				requestCompression: true,
 				app: {
 					name: faroAppName,
 					namespace: faroAppNamespace,
