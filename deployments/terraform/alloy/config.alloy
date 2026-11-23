@@ -5,8 +5,8 @@ import.git "grafana_cloud" {
   pull_frequency = "0s"
 }
 grafana_cloud.stack "receivers" {
-  stack_name = env("GRAFANA_CLOUD_STACK")
-  token = env("GRAFANA_CLOUD_TOKEN")
+  stack_name = sys.env("GRAFANA_CLOUD_STACK")
+  token = sys.env("GRAFANA_CLOUD_TOKEN")
 }
 
 // Metrics
@@ -75,7 +75,7 @@ discovery.relabel "application_pods" {
   }
   rule {
     target_label = "cluster"
-    replacement = env("CLUSTER_NAME")
+    replacement = sys.env("CLUSTER_NAME")
   }
   targets = discovery.kubernetes.application_pods.targets
 }
@@ -87,7 +87,7 @@ prometheus.remote_write "grafana_cloud" {
     url = grafana_cloud.stack.receivers.info["hmInstancePromUrl"] + "/api/prom/push"
     basic_auth {
       username = grafana_cloud.stack.receivers.info["hmInstancePromId"]
-      password = env("GRAFANA_CLOUD_TOKEN")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
     }
     send_native_histograms = true
   }
@@ -98,7 +98,7 @@ prometheus.scrape "application_pods" {
   scrape_interval = "10s"
   scrape_native_histograms = true
   forward_to = [prometheus.remote_write.grafana_cloud.receiver]
-  targets = concat(discovery.relabel.application_pods.output, discovery.relabel.database_observability_postgres_quickpizza.output)
+  targets = array.concat(discovery.relabel.application_pods.output, discovery.relabel.database_observability_postgres_quickpizza.output)
 }
 
 
@@ -129,11 +129,11 @@ discovery.relabel "application_pods_profiles" {
   // https://grafana.com/docs/pyroscope/latest/view-and-analyze-profile-data/line-by-line/
   rule {
     target_label = "service_repository"
-    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
+    replacement = coalesce(sys.env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
   }
   rule {
     target_label = "service_git_ref"
-    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
+    replacement = coalesce(sys.env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
   }
   targets = discovery.relabel.application_pods.output
 }
@@ -222,7 +222,7 @@ otelcol.processor.transform "default" {
 	trace_statements {
 		context    = "resource"
 		statements = [
-			`set(attributes["k8s.cluster.name"], "` + env("CLUSTER_NAME") + `")`,
+			`set(attributes["k8s.cluster.name"], "` + sys.env("CLUSTER_NAME") + `")`,
 			`set(attributes["k8s.namespace.name"], attributes["service.namespace"])`,
 			`set(attributes["k8s.pod.name"], attributes["service.instance.id"])`,
 		]
@@ -231,7 +231,7 @@ otelcol.processor.transform "default" {
 	log_statements {
 		context    = "resource"
 		statements = [
-			`set(attributes["k8s.cluster.name"], "` + env("CLUSTER_NAME") + `")`,
+			`set(attributes["k8s.cluster.name"], "` + sys.env("CLUSTER_NAME") + `")`,
 			`set(attributes["k8s.namespace.name"], attributes["service.namespace"])`,
 			`set(attributes["k8s.pod.name"], attributes["service.instance.id"])`,
 		]
@@ -240,7 +240,7 @@ otelcol.processor.transform "default" {
 	metric_statements {
 		context    = "resource"
 		statements = [
-			`set(attributes["k8s.cluster.name"], "` + env("CLUSTER_NAME") + `")`,
+			`set(attributes["k8s.cluster.name"], "` + sys.env("CLUSTER_NAME") + `")`,
 			`set(attributes["k8s.namespace.name"], attributes["service.namespace"])`,
 			`set(attributes["k8s.pod.name"], attributes["service.instance.id"])`,
 		]
@@ -361,7 +361,7 @@ otelcol.processor.batch "default" {
 otelcol.auth.basic "otlpEndpoint" {
   // Grafana Cloud Instance ID.
   username = grafana_cloud.stack.receivers.info["id"]
-  password = env("GRAFANA_CLOUD_TOKEN")
+  password = sys.env("GRAFANA_CLOUD_TOKEN")
 }
 
 otelcol.exporter.otlphttp "otlpEndpoint" {
@@ -376,7 +376,7 @@ otelcol.exporter.otlphttp "otlpEndpoint" {
 
 // DB o11y
 prometheus.exporter.postgres "postgres_quickpizza" {
-  data_source_names  = [env("DB_O11Y_CONNECTION")]
+  data_source_names  = [sys.env("DB_O11Y_CONNECTION")]
   enabled_collectors = ["stat_statements"]
 
   stat_statements {
@@ -414,7 +414,7 @@ discovery.relabel "postgres_pod" {
 }
 
 database_observability.postgres "postgres_quickpizza" {
-  data_source_name  = env("DB_O11Y_CONNECTION")
+  data_source_name  = sys.env("DB_O11Y_CONNECTION")
   forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
   targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
   enable_collectors = ["query_details", "query_samples", "schema_details", "explain_plans"]
@@ -436,19 +436,19 @@ loki.relabel "database_observability_postgres_quickpizza" {
   }
   rule {
     target_label = "service_namespace"
-    replacement = env("DB_SERVICE_NAMESPACE")
+    replacement = sys.env("DB_SERVICE_NAMESPACE")
   }
   rule {
     target_label = "namespace"
-    replacement = env("DB_SERVICE_NAMESPACE")
+    replacement = sys.env("DB_SERVICE_NAMESPACE")
   }
   rule {
     target_label = "service_name"
-    replacement = env("DB_SERVICE_NAME")
+    replacement = sys.env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
-    replacement = env("DEPLOY_ENVIRONMENT")
+    replacement = sys.env("DEPLOY_ENVIRONMENT")
   }
 }
 
@@ -465,19 +465,19 @@ discovery.relabel "database_observability_postgres_quickpizza" {
   }
   rule {
     target_label = "service_namespace"
-    replacement = env("DB_SERVICE_NAMESPACE")
+    replacement = sys.env("DB_SERVICE_NAMESPACE")
   }
   rule {
     target_label = "namespace"
-    replacement = env("DB_SERVICE_NAMESPACE")
+    replacement = sys.env("DB_SERVICE_NAMESPACE")
   }
   rule {
     target_label = "service_name"
-    replacement = env("DB_SERVICE_NAME")
+    replacement = sys.env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
-    replacement = env("DEPLOY_ENVIRONMENT")
+    replacement = sys.env("DEPLOY_ENVIRONMENT")
   }
 }
 

@@ -27,32 +27,23 @@ routes:
 # logs itself - Alloy's existing log pipeline would pick up the now-enriched lines unchanged.
 # See https://opentelemetry.io/docs/zero-code/obi/trace-log-correlation/ and docs/otel.md.
 #
-# Schema verified against the v0.13.0 binary's own struct tags (the upstream docs example has
-# a stray `service:` wrapper around `open_ports` that this version's parser rejects).
+# Schema verified against the v1.0.0 binary: each `services` entry needs a `service:` key
+# holding a LIST of selectors. The bare `- open_ports: "3333"` form (accepted by v0.13.0)
+# still parses on v1.0.0 but silently selects nothing, so no logs are enriched
+# (`logenricher=false` in OBI's "instrumenting process" log line, 0 of 360 request log lines
+# enriched in a live run).
 #
-# Verified live: works, but only intermittently. obi's own startup log still reports
-# logenricher=false for this process, and the container also logs "OBI will use
-# process-internal maps; external features depending on pinned maps ... will be disabled"
-# (bpffs isn't mounted in this local Docker Desktop setup) - despite that, some log lines
-# from quickpizza do come out with a correct trace_id/span_id injected (confirmed by decoding
-# the span_id and matching it to the exact "processing" span for that request in Tempo).
+# Verified live on v1.0.0 (compose, Docker Desktop): 100% of request log lines were enriched
+# across 100 requests per endpoint, including sub-millisecond ones (the duration-dependent
+# enrichment race seen on v0.13.0 is gone). OBI still logs "OBI will use process-internal maps"
+# because bpffs isn't mounted, which only disables pinned-map features such as profile
+# correlation; the log enricher doesn't need them. The enricher turns on trace context
+# population itself, so `ebpf.populate_trace_context` isn't needed.
 #
-# Measured live across ~15 requests per endpoint: enrichment rate tracks request duration,
-# not chance. Every sub-millisecond request (9 different endpoints, 135 samples) got 0%
-# enrichment; ~3-4ms requests got 47-100%; a 70ms request got 87%; a 29s request got 100%.
-# Matches the same limitation already documented for Tempo's "Profiles for this span"
-# correlation: establishing OBI's per-goroutine "this goroutine is inside span X" association
-# takes real, if small, wall-clock time after a request starts, so a request/log-write that
-# finishes faster than that loses the race and gets zero correlation - not bad luck, a
-# structural race. Treat it as a real but duration-dependent signal, not evenly unreliable.
-#
-# `enabled` below does NOT actually gate this in v0.13.0 - verified live: with `enabled: false`
-# and `services` still present, enrichment still fired on some log lines. Only removing the
-# entire `log_enricher:` block (services included) stopped it. So it's the presence of
-# `services` that activates this feature here, not `enabled` - to turn it off, comment out
-# this whole block, not just this one field.
+# There is no `enabled` field: the enricher is active whenever `services` is non-empty. To turn
+# it off, comment out this whole block.
 ebpf:
   log_enricher:
-    enabled: true
     services:
-      - open_ports: "3333"
+      - service:
+          - open_ports: "3333"

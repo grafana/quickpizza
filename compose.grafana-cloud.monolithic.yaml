@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.20.0
+    image: grafana/alloy:v1.22.0
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -54,7 +54,7 @@ services:
       QUICKPIZZA_CONF_FARO_URL: "${QUICKPIZZA_CONF_FARO_URL:-}"
       QUICKPIZZA_CONF_FARO_APP_NAME: "${QUICKPIZZA_CONF_FARO_APP_NAME:-QuickPizza}"
       QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY: "${QUICKPIZZA_CONF_FARO_INSTRUMENTATION_ENABLE_REPLAY:-false}"
-      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local,service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
       # OTEL `db.name` span attribute. Used by servicegraph to create service nodes with this name
       # Set to the logical database service name
       QUICKPIZZA_OTEL_DB_NAME: "quickpizza-db"
@@ -69,10 +69,9 @@ services:
   #
   # Full command (opt-in):
   #
-  #   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi \
-  #     docker compose -f compose.grafana-cloud.monolithic.yaml --profile obi up
+  # QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi docker compose -f compose.grafana-cloud.monolithic.yaml --profile obi up
   obi:
-    image: otel/ebpf-instrument:v0.13.0
+    image: otel/ebpf-instrument:v1.0.0
     container_name: obi
     labels:
       - "service.type=instrumentation"
@@ -93,7 +92,7 @@ services:
     profiles: ["obi"]
 
   quickpizza-db:
-    image: postgres:18.6
+    image: postgres:18.7
     container_name: quickpizza-db
     labels:
       - "service.type=database"
