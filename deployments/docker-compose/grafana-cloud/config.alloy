@@ -7,8 +7,8 @@ import.git "grafana_cloud" {
 }
 
 grafana_cloud.stack "receivers" {
-  stack_name = env("GRAFANA_CLOUD_STACK")
-  token = env("GRAFANA_CLOUD_TOKEN")
+  stack_name = sys.env("GRAFANA_CLOUD_STACK")
+  token = sys.env("GRAFANA_CLOUD_TOKEN")
 }
 
 discovery.docker "all_containers" {
@@ -66,7 +66,7 @@ discovery.relabel "app_containers" {
   }
   rule {
     target_label = "deployment_environment"
-    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+    replacement = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
   targets = discovery.docker.all_containers.targets
 }
@@ -78,7 +78,7 @@ prometheus.remote_write "grafana_cloud" {
     url = grafana_cloud.stack.receivers.info["hmInstancePromUrl"] + "/api/prom/push"
     basic_auth {
       username = grafana_cloud.stack.receivers.info["hmInstancePromId"]
-      password = env("GRAFANA_CLOUD_TOKEN")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
     }
     send_native_histograms = true
   }
@@ -87,7 +87,7 @@ prometheus.remote_write "grafana_cloud" {
 prometheus.scrape "app_containers" {
   scrape_interval = "10s"
   scrape_native_histograms = true
-  targets = concat(discovery.relabel.app_containers.output, discovery.relabel.database_observability_postgres_quickpizza.output)
+  targets = array.concat(discovery.relabel.app_containers.output, discovery.relabel.database_observability_postgres_quickpizza.output)
   forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 }
 // Logs
@@ -110,11 +110,11 @@ discovery.relabel "app_containers_profiles" {
   // https://grafana.com/docs/pyroscope/latest/view-and-analyze-profile-data/line-by-line/
   rule {
     target_label = "service_repository"
-    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
+    replacement = coalesce(sys.env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
   }
   rule {
     target_label = "service_git_ref"
-    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
+    replacement = coalesce(sys.env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
   }
   targets = discovery.relabel.app_containers.output
 }
@@ -268,7 +268,7 @@ otelcol.processor.batch "default" {
 otelcol.auth.basic "otlpEndpoint" {
   // Grafana Cloud Instance ID.
   username = grafana_cloud.stack.receivers.info["id"]
-  password = env("GRAFANA_CLOUD_TOKEN")
+  password = sys.env("GRAFANA_CLOUD_TOKEN")
 }
 
 otelcol.exporter.otlphttp "otlpEndpoint" {
@@ -282,7 +282,7 @@ otelcol.exporter.otlphttp "otlpEndpoint" {
 
 // DB o11y
 prometheus.exporter.postgres "postgres_quickpizza" {
-  data_source_names  = [coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
+  data_source_names  = [coalesce(sys.env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
   enabled_collectors = ["stat_statements"]
 
   stat_statements {
@@ -320,7 +320,7 @@ loki.source.docker "database_observability_postgres_quickpizza" {
 }
 
 database_observability.postgres "postgres_quickpizza" {
-  data_source_name  = coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")
+  data_source_name  = coalesce(sys.env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")
   forward_to        = [loki.relabel.database_observability_postgres_quickpizza.receiver]
   targets           = prometheus.exporter.postgres.postgres_quickpizza.targets
   enable_collectors    = ["query_details", "query_samples", "schema_details", "explain_plans"]
@@ -342,19 +342,19 @@ loki.relabel "database_observability_postgres_quickpizza" {
   }
   rule {
     target_label = "service_namespace"
-    replacement = env("SERVICE_NAMESPACE")
+    replacement = sys.env("SERVICE_NAMESPACE")
   }
   rule {
     target_label = "namespace"
-    replacement = env("SERVICE_NAMESPACE")
+    replacement = sys.env("SERVICE_NAMESPACE")
   }
   rule {
     target_label = "service_name"
-    replacement = env("DB_SERVICE_NAME")
+    replacement = sys.env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
-    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+    replacement = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
 }
 
@@ -371,19 +371,19 @@ discovery.relabel "database_observability_postgres_quickpizza" {
   }
   rule {
     target_label = "service_namespace"
-    replacement = env("SERVICE_NAMESPACE")
+    replacement = sys.env("SERVICE_NAMESPACE")
   }
   rule {
     target_label = "namespace"
-    replacement = env("SERVICE_NAMESPACE")
+    replacement = sys.env("SERVICE_NAMESPACE")
   }
   rule {
     target_label = "service_name"
-    replacement = env("DB_SERVICE_NAME")
+    replacement = sys.env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
-    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+    replacement = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
 
 }

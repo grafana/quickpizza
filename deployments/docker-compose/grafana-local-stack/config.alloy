@@ -52,39 +52,39 @@ discovery.relabel "app_containers" {
   }
   rule {
     target_label = "deployment_environment"
-    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+    replacement = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
   targets = discovery.docker.all_containers.targets
 }
 
 prometheus.exporter.postgres "default" {
-  data_source_names  = [coalesce(env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
+  data_source_names  = [coalesce(sys.env("DB_O11Y_CONNECTION"), "postgresql://localhost:5432/notexist")]
 }
 
 discovery.relabel "postgres" {
   rule {
     target_label = "job"
-    replacement = format("%s/%s", env("SERVICE_NAMESPACE"), env("DB_SERVICE_NAME"))
+    replacement = string.format("%s/%s", sys.env("SERVICE_NAMESPACE"), sys.env("DB_SERVICE_NAME"))
   }
   rule {
     target_label = "instance"
-    replacement = env("DB_SERVICE_NAME")
+    replacement = sys.env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "service_namespace"
-    replacement = env("SERVICE_NAMESPACE")
+    replacement = sys.env("SERVICE_NAMESPACE")
   }
   rule {
     target_label = "namespace"
-    replacement = env("SERVICE_NAMESPACE")
+    replacement = sys.env("SERVICE_NAMESPACE")
   }
   rule {
     target_label = "service_name"
-    replacement = env("DB_SERVICE_NAME")
+    replacement = sys.env("DB_SERVICE_NAME")
   }
   rule {
     target_label = "deployment_environment"
-    replacement = coalesce(env("DEPLOYMENT_ENVIRONMENT"), "development")
+    replacement = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "development")
   }
   targets = prometheus.exporter.postgres.default.targets
 }
@@ -93,7 +93,7 @@ discovery.relabel "postgres" {
 prometheus.remote_write "local" {
   endpoint {
     // TODO: Replace this with your prometheus-compatible metrics store
-    url = env("METRICS_ENDPOINT")
+    url = sys.env("METRICS_ENDPOINT")
     send_native_histograms = true
     send_exemplars = true
   }
@@ -101,14 +101,14 @@ prometheus.remote_write "local" {
 prometheus.scrape "app_containers" {
   scrape_interval = "10s"
   scrape_native_histograms = true
-  targets = concat(discovery.relabel.app_containers.output, discovery.relabel.postgres.output)
+  targets = array.concat(discovery.relabel.app_containers.output, discovery.relabel.postgres.output)
   forward_to = [prometheus.remote_write.local.receiver]
 }
 
 // Logs
 loki.write "local" {
   endpoint {
-    url = env("LOGS_ENDPOINT")
+    url = sys.env("LOGS_ENDPOINT")
   }
 }
 loki.source.docker "app_containers" {
@@ -120,7 +120,7 @@ loki.source.docker "app_containers" {
 // Profiling Pull Mode
 pyroscope.write "local" {
    endpoint {
-       url = env("PROFILES_ENDPOINT")
+       url = sys.env("PROFILES_ENDPOINT")
    }
 }
 discovery.relabel "app_containers_profiles" {
@@ -136,11 +136,11 @@ discovery.relabel "app_containers_profiles" {
   // https://grafana.com/docs/pyroscope/latest/view-and-analyze-profile-data/line-by-line/
   rule {
     target_label = "service_repository"
-    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
+    replacement = coalesce(sys.env("QUICKPIZZA_PYROSCOPE_SERVICE_REPOSITORY"), "https://github.com/grafana/quickpizza")
   }
   rule {
     target_label = "service_git_ref"
-    replacement = coalesce(env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
+    replacement = coalesce(sys.env("QUICKPIZZA_PYROSCOPE_SERVICE_GIT_REF"), "refs/heads/main")
   }
   targets = discovery.relabel.app_containers.output
 }
@@ -344,8 +344,8 @@ otelcol.processor.transform "add_namespace_labels_to_trace_metrics" {
   metric_statements {
     context = "datapoint"
     statements = [
-      "set(attributes[\"service_namespace\"], \"" + env("SERVICE_NAMESPACE") + "\")",
-      "set(attributes[\"namespace\"], \"" + env("SERVICE_NAMESPACE") + "\")",
+      "set(attributes[\"service_namespace\"], \"" + sys.env("SERVICE_NAMESPACE") + "\")",
+      "set(attributes[\"namespace\"], \"" + sys.env("SERVICE_NAMESPACE") + "\")",
     ]
   }
   
@@ -371,7 +371,7 @@ otelcol.exporter.prometheus "local" {
 otelcol.exporter.otlp "default" {
   client {
     // TODO: Replace this with the endpoint for your trace receiver
-    endpoint = env("TRACES_ENDPOINT")
+    endpoint = sys.env("TRACES_ENDPOINT")
     tls {
         insecure             = true
         insecure_skip_verify = true

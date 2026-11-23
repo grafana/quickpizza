@@ -107,7 +107,7 @@ resource "kubernetes_daemon_set_v1" "obi" {
           # (alloy.tf, database.tf) and QuickPizza's own image (variables.tf) - this container
           # runs privileged with host_pid, so a moved tag would silently start executing with
           # host-level access.
-          image             = "otel/ebpf-instrument:v0.13.0@sha256:5e89d7478b5feeb8ee73881c58bfe5bb0ccb6dcd4f8cd62e30457aa6e6426adb"
+          image             = "otel/ebpf-instrument:v1.0.0@sha256:a68d70e934260f72540f157ccf4fb4adfa38f11de060d7d905696dad6a3fca02"
           image_pull_policy = "IfNotPresent"
           args              = ["-config", "/obi-config.yaml"]
           security_context {

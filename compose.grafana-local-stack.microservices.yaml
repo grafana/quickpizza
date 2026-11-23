@@ -7,7 +7,7 @@ x-quickpizza-env-common: &quickpizza-env-common
   QUICKPIZZA_WS_ENDPOINT: http://ws:3333
   QUICKPIZZA_RECOMMENDATIONS_ENDPOINT: http://recommendations:3333
   QUICKPIZZA_CONFIG_ENDPOINT: http://config:3333
-  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local"
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=${DEPLOYMENT_ENVIRONMENT:-development},service.version=quickpizza-local,service.namespace=${SERVICE_NAMESPACE:-quickpizza}"
   # sdk (default) or obi - see the `obi:` service's own comment and docs/otel.md.
   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE: "${QUICKPIZZA_OTEL_INSTRUMENTATION_MODE:-sdk}"
   # Adds redacted request/response bodies to server spans as events (sdk mode only).
@@ -16,7 +16,7 @@ x-quickpizza-env-common: &quickpizza-env-common
 name: quickpizza
 services:
   alloy:
-    image: grafana/alloy:v1.20.0
+    image: grafana/alloy:v1.22.0
     container_name: alloy
     labels:
       - "service.type=instrumentation"
@@ -172,7 +172,7 @@ services:
   #   QUICKPIZZA_OTEL_INSTRUMENTATION_MODE=obi \
   #     docker compose -f compose.grafana-local-stack.microservices.yaml --profile obi up
   obi:
-    image: otel/ebpf-instrument:v0.13.0
+    image: otel/ebpf-instrument:v1.0.0
     container_name: obi
     labels:
       - "service.type=instrumentation"
@@ -186,7 +186,7 @@ services:
       - "./deployments/docker-compose/grafana-local-stack/obi.yaml:/obi-config.yaml:Z"
     command: ["-config", "/obi-config.yaml"]
     environment:
-      OTEL_EBPF_AUTO_TARGET_EXE: /bin/quickpizza
+      OTEL_EBPF_AUTO_TARGET_EXE: "*/bin/quickpizza"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     depends_on:
@@ -201,7 +201,7 @@ services:
     profiles: ["obi"]
 
   quickpizza-db:
-    image: postgres:18.6
+    image: postgres:18.7
     container_name: quickpizza-db
     labels:
       - "service.type=database"
@@ -221,7 +221,7 @@ services:
       retries: 5
 
   loki:
-    image: grafana/loki:3.7.8
+    image: grafana/loki:3.7.10
     container_name: loki
     labels:
       - "service.type=instrumentation"
@@ -229,7 +229,7 @@ services:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:v3.16.0
     container_name: prometheus
     labels:
       - "service.type=instrumentation"
@@ -264,17 +264,16 @@ services:
       - prometheus
 
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-13.0.1}
+    image: grafana/grafana:${GRAFANA_VERSION:-13.3.1}
     container_name: grafana
     labels:
       - "service.type=instrumentation"
     ports:
       - "3000:3000"
     environment:
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_BASIC_ENABLED=false
-      - GF_FEATURE_TOGGLES_ENABLE=tempoAlerting
+      - GF_FEATURE_TOGGLES_tempoAlerting=true
     volumes:
       - ./deployments/docker-compose/grafana-local-stack/grafana:/etc/grafana/provisioning/
 
