@@ -137,6 +137,15 @@ services:
   pyroscope:
     image: grafana/pyroscope:2.4.4
     container_name: pyroscope
+    # Pyroscope v2 waits 15s to 30s per component (metastore, ingester, segment writer)
+    # before /ready returns 200, which only helps rolling updates of a cluster. Disable the
+    # waits for this single-instance local setup (about 65s -> 6s to ready). The first argument
+    # keeps the image's default config file.
+    command:
+      - -config.file=/etc/pyroscope/config.yaml
+      - -metastore.min-ready-duration=0
+      - -ingester.min-ready-duration=0
+      - -segment-writer.min-ready-duration=0
     labels:
       - "service.type=instrumentation"
     ports:
