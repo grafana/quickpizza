@@ -14,7 +14,7 @@ jobs:
 
     services:
       quickpizza:
-        image: ghcr.io/grafana/quickpizza-local:0.15.30@sha256:93d322a244a1313842e2b3ccb791f993034dbeab716e69b7e760a4ae0fdc5d22 # zizmor: ignore[unpinned-images]
+        image: ghcr.io/grafana/quickpizza-local:0.15.32@sha256:9d6df3cbb94ea61ee79083fdcc047a77d7131d1142d5bd4c9fe943fbd57b588c # zizmor: ignore[unpinned-images]
         ports:
           - 3333:3333
 
