@@ -3,7 +3,7 @@ module github.com/grafana/quickpizza/extensions/quickpizzaext
 go 1.26.0
 
 require (
-	github.com/grafana/quickpizza v0.15.30
+	github.com/grafana/quickpizza v0.15.32
 	go.k6.io/k6/v2 v2.3.0
 )
 
