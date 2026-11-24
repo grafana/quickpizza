@@ -176,6 +176,9 @@ From the output, extract:
 **Terraform variables** — two fields, both using `tag@sha256:<index-digest>` format:
 - `deployments/terraform/variables.tf`: `quickpizza_image` default (full `tag@sha256:` string) and `quickpizza_image_version` default (plain version string)
 
+**k6 extension Go module** — version with a `v` prefix (e.g. `v0.15.32`), no digest:
+- `k6/extensions/quickpizzaext/go.mod`: the `github.com/grafana/quickpizza` requirement. Bump it to the released tag, which must already exist (release first, then this PR). The `replace => ../../..` in that file does not apply when xk6 builds the extension, so a build without `--replace github.com/grafana/quickpizza=.` resolves this exact version from the published module. `v0.0.0` would make that build fail.
+
 ### Step 3: Verify completeness
 
 After editing, run:
@@ -184,3 +187,8 @@ grep -rn "quickpizza-local:" . --include="*.yaml" --include="*.yml" --include="*
 ```
 
 Confirm all occurrences show the new version. The `docker_publish.yaml` workflow is exempt — it derives the version dynamically from git release tags.
+
+Also confirm the k6 extension module version matches:
+```bash
+grep -n "grafana/quickpizza v" k6/extensions/quickpizzaext/go.mod
+```
